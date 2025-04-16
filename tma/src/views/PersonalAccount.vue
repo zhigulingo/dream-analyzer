@@ -156,7 +156,206 @@ watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
 });
 </script>
 
-<style scoped>
-/* --- Стили без изменений --- */
-/* ... (все ваши стили) ... */
+<style scoped>.personal-account {
+  padding: 10px;
+  font-family: var(--tg-theme-font-type); /* Используем шрифт Telegram */
+}
+
+h1 {
+  margin-bottom: 15px;
+  font-size: 20px;
+  color: var(--tg-theme-text-color); /* Используем цвет текста Telegram */
+}
+
+.card {
+  background-color: transparent; /* Прозрачный фон */
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.user-info h2,
+.history h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: var(--tg-theme-text-color); /* Используем цвет текста Telegram */
+}
+
+.user-info p {
+  margin: 5px 0;
+  color: var(--tg-theme-hint-color); /* Используем цвет подсказки Telegram для обычного текста */
+}
+
+.user-info strong {
+  color: var(--tg-theme-text-color); /* Выделяем важный текст основным цветом */
+  font-weight: 500;
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
+
+.change-plan-button,
+.subscribe-button-main,
+.subscribe-button,
+.claim-button,
+.back-button,
+.secondary {
+  display: inline-block;
+  padding: 10px 15px;
+  border: 1px solid var(--tg-theme-button-color); /* Тонкая граница */
+  border-radius: 4px; /* Меньше скругление */
+  font-size: 14px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  background-color: transparent; /* Прозрачный фон */
+  color: var(--tg-theme-button-color); /* Цвет текста */
+}
+
+/* Стили для кнопки "Сменить тариф" */
+.change-plan-button {
+}
+
+.change-plan-button:hover {
+  background-color: rgba(0, 0, 0, 0.1); /* Легкое затемнение при наведении */
+}
+
+/* Стили для основной кнопки подписки */
+.subscribe-button-main {
+  font-weight: 500;
+}
+
+.subscribe-button-main:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Стили для ссылки-кнопки подписки на канал */
+.subscribe-button {
+  color: var(--tg-theme-link-color); /* Цвет текста - цвет ссылок */
+  border-color: var(--tg-theme-link-color); /* Граница - цвет ссылок */
+}
+
+.subscribe-button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  text-decoration: none;
+}
+
+/* Стили для кнопки проверки подписки и получения награды */
+.claim-button {
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+.claim-button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.claim-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+/* Общие стили для кнопок "назад" */
+.back-button {
+}
+
+.back-button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Модификатор для вторичной кнопки "назад" */
+.back-button.secondary {
+}
+
+.back-button.secondary:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Стили для спиннера загрузки */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;  
+  animation: spin 1s linear infinite;
+  border: 2px solid var(--tg-theme-button-color);
+  border-radius: 50%;  
+  border-left-color: transparent;  
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+/* Стили для сообщений об ошибках */
+.error-message {
+  color: #ff6347; /*  Коралловый цвет для ошибок */
+  margin-top: 10px;
+}
+
+/* Стили для сообщений об успехе */
+.success-message {
+  color: #32cd32; /*  Зеленый цвет для успеха */
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px; /*  Отступ между текстом и кнопкой */
+}
+
+/* Стили для информационных сообщений */
+.info-message {
+  color: var(--tg-theme-hint-color);
+  margin-top: 10px;
+}
+
+.info-message a {
+  color: var(--tg-theme-link-color);
+}
+
+/* Стили для страницы получения награды */
+.reward-claim-view {
+  text-align: center;
+}
+
+.reward-claim-view h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.reward-claim-view p {
+  margin-bottom: 20px;
+  color: var(--tg-theme-text-color);
+}
+
+.reward-claim-view .steps {
+  list-style: none;
+  padding: 0;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.reward-claim-view .steps li {
+  padding: 10px;
+  margin-bottom: 5px;
+}
+
+.reward-claim-view .steps li span {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: normal; /* Убираем выделение */
+  color: var(--tg-theme-text-color);
+}
+
+.reward-claim-view .hint {
+  display: block;
+  font-size: 14px;
+  color: var(--tg-theme-hint-color);
+  margin-top: 5px;
+}
+
+/* Стили для сообщения о получении награды в профиле */
+.reward-claimed-info {
+    margin-top: 10px;
+    color: #32cd32; /* Зеленый цвет */
+}
 </style>
