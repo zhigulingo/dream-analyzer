@@ -2,11 +2,21 @@
   <div class="personal-account">
     <!-- Показываем или основной ЛК, или страницу получения награды -->
     <template v-if="!showRewardClaimView">
-      <h1>Личный кабинет</h1>
+      <h1 style="text-align: center;">Личный кабинет</h1>
+
+      <div v-if="userStore.isLoadingProfile" class="user-info-top">Загрузка профиля...</div>
+      <div v-else-if="userStore.errorProfile" class="user-info-top error-message">
+        Ошибка загрузки профиля: {{ userStore.errorProfile }}
+      </div>
+      <div v-else-if="userStore.profile" class="user-info-top">
+        ID: {{ userStore.profile.id }}, Username: {{ userStore.profile.username }},<br>
+        Дата регистрации: {{ formatDate(userStore.profile.created_at) }}
+      </div>
+
 
       <!-- Блок 1: Информация о пользователе -->
       <section class="user-info card">
-        <h2>Ваш профиль</h2>
+        <h2>Основная информация</h2>
         <div v-if="userStore.isLoadingProfile">Загрузка профиля...</div>
         <div v-else-if="userStore.errorProfile" class="error-message">
           Ошибка загрузки профиля: {{ userStore.errorProfile }}
@@ -142,6 +152,31 @@ onMounted(async () => {
         await userStore.fetchHistory();
         console.log("[PersonalAccount onMounted] History fetched.");
     }
+
+    // Загрузка истории из DeviceStorage
+    if (tg) {
+        tg.DeviceStorage.getItem('analyses_history', (error, value) => {
+            if (error) {
+                console.error('[PersonalAccount] Error loading history from DeviceStorage:', error);
+            } else if (value) {
+                try {
+                    userStore.history = JSON.parse(value);
+                    console.log('[PersonalAccount] History loaded from DeviceStorage:', userStore.history);
+                } catch (parseError) {
+                    console.error('[PersonalAccount] Error parsing history from DeviceStorage:', parseError);
+                }
+            } else {
+                console.log('[PersonalAccount] No history found in DeviceStorage.');
+            }
+        });
+    }
+});
+
+// Сохранение истории в DeviceStorage при изменении
+watch(() => userStore.history, (newHistory) => {
+    if (tg) {
+        tg.DeviceStorage.setItem('analyses_history', JSON.stringify(newHistory), (error, success) => { if (error) { console.error('[PersonalAccount] Error saving history to DeviceStorage:', error); } else if (success) { console.log('[PersonalAccount] History saved to DeviceStorage.'); } });
+    }
 });
 
 // Форматирование даты (без изменений)
@@ -160,14 +195,18 @@ watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
   padding: 10px;
   font-family: var(--tg-theme-font-type); /* Используем шрифт Telegram */
 }
-
+.user-info-top{text-align:center;margin-bottom:20px}
 h1 {
   margin-bottom: 15px;
   font-size: 20px;
   color: var(--tg-theme-text-color); /* Используем цвет текста Telegram */
 }
-
-.card {
+.user-info-top {
+  text-align: center;
+  margin-bottom: 20px;
+}
+/* Цветовая схема */
+:root{--background-color:#121212;/* Темный фон */--text-color:#e0e0e0;/* Светлый текст */--accent-color:#64b5f6;/* Синий акцент */--secondary-background:rgba(255,255,255,.1);/* Полупрозрачный фон для карточек */}.personal-account{padding:20px;font-family:sans-serif;/* Современный шрифт */background:linear-gradient(135deg,var(--background-color),#1f1f1f);color:var(--text-color);min-height:100vh;/* Занимать всю высоту */}h1{text-align:center;/* Центрирование заголовка */margin-bottom:30px;font-size:28px;color:var(--accent-color);text-shadow:0 0 10px rgba(100,181,246,.5);/* Свечение заголовка */}.user-info-block{text-align:center;margin-bottom:20px}.user-info-block p{margin:5px 0;font-size:16px;color:#bdbdbd}.card{background-color:var(--secondary-background);border-radius:8px;padding:20px;margin-bottom:20px;border:1px solid var(--accent-color);transition:transform .2s ease,box-shadow .2s ease;animation:card-appear .3s ease-out forwards;opacity:0;/* Initially hidden for animation */}.card:hover{transform:translateY(-5px);box-shadow:0 0 15px rgba(100,181,246,.3)}.user-info h2,.history h2{margin-top:0;margin-bottom:15px;font-size:20px;color:var(--text-color);border-bottom:1px solid var(--accent-color);padding-bottom:5px}.user-info p{margin:5px 0;color:#ccc}.user-info strong{color:var(--accent-color);font-weight:500}.capitalize{text-transform:capitalize}.change-plan-button,.subscribe-button-main{display:inline-block;padding:12px 20px;border:2px solid var(--accent-color);border-radius:4px;font-size:16px;cursor:pointer;text-align:center;text-decoration:none;transition:all .2s ease;background-color:transparent;color:var(--accent-color);box-shadow:0 0 5px rgba(100,181,246,.3)}.change-plan-button:hover,.subscribe-button-main:hover{background-color:var(--accent-color);color:var(--background-color);box-shadow:0 0 10px rgba(100,181,246,.7);transform:translateY(-2px)}/* Стили для спиннера загрузки */.spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:#fff;animation:spin 1s ease-in-out infinite;margin-left:5px}@keyframes spin{to{transform:rotate(360deg)}}/* Стили для сообщений об ошибках */.error-message{color:#f44336;/* Красный цвет для ошибок */margin-top:10px;font-weight:700;/* Выделение ошибок */text-shadow:0 0 5px rgba(244,67,54,.5)}/* Стили для сообщений об успехе */.success-message{color:#4caf50;/* Зеленый цвет для успеха */margin-top:10px;display:flex;align-items:center;gap:10px;font-weight:700;text-shadow:0 0 5px rgba(76,175,80,.5)}/* Анимации */@keyframes fadeIn{from{opacity:0}to{opacity:1}}.fade-in{animation:fadeIn .5s ease}@keyframes card-appear{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   background-color: transparent; /* Прозрачный фон */
   padding: 10px;
   margin-bottom: 10px;
