@@ -210,7 +210,6 @@ h1 {
   background-color: transparent; /* Прозрачный фон */
   padding: 10px;
   margin-bottom: 10px;
-}
 
 .user-info h2,
 .history h2 {
