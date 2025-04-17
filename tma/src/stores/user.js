@@ -75,6 +75,7 @@ export const useUserStore = defineStore('user', {
                 if (!initData) {
                     throw new Error("Telegram InitData не найден.");
                 }
+                console.log("[UserStore:fetchTelegramUser] initData:", initData);
                 const baseURL = apiClient.defaults.baseURL;
                 const requestURL = baseURL ? new URL('/.netlify/functions/telegram-user', baseURL).toString() : '/.netlify/functions/telegram-user';
                 console.log(`[UserStore:fetchTelegramUser] Requesting: ${requestURL}`);
