@@ -9,8 +9,13 @@
         Ошибка загрузки профиля: {{ userStore.errorProfile }}
       </div>
       <div v-else-if="userStore.profile" class="user-info-top">
-        ID: {{ userStore.profile.id }}, Username: {{ userStore.profile.username }},<br>
-        Дата регистрации: {{ formatDate(userStore.profile.created_at) }}
+        <template v-if="userStore.profile.id && userStore.profile.username && userStore.profile.created_at">
+          ID: {{ userStore.profile.id }}, Username: {{ userStore.profile.username }},<br>
+          Дата регистрации: {{ formatDate(userStore.profile.created_at) }}
+        </template>
+        <template v-else>
+          Данные профиля отсутствуют или неполные.
+        </template>
       </div>
 
 
@@ -218,8 +223,16 @@ watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
   padding: 10px;
   font-family: var(--tg-theme-font-type); /* Используем шрифт Telegram */
 }
+
 .history {
     width: 100%; /* Растягиваем на всю ширину */
+    min-height: 300px; /* Минимальная высота, чтобы занимать пространство даже при пустой истории */
+    display: flex;
+    flex-direction: column;
+}
+
+.history > div {
+    flex-grow: 1;
 }
 .user-info-top{text-align:center;margin-bottom:20px}
 h1 {

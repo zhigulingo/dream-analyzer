@@ -38,8 +38,10 @@ const formatDate = (dateString) => {
 
 <style scoped>
 .history-list {
-  max-height: 400px; /* Ограничим высоту, чтобы не было слишком длинно */
-  overflow-y: auto; /* Добавим скролл */
+  max-height: 80vh; /* Ограничение высоты в 80% viewport */
+  overflow: auto; /* Автоматическое добавление скролла при необходимости */
+  width: 100%; /* Занимать всю доступную ширину */
+  box-sizing: border-box; /* Учитывать padding и border в общей ширине */
 }
 .history-item {
   border: 1px solid var(--tg-theme-hint-color); /* Граница для аккордеона */
@@ -55,9 +57,12 @@ const formatDate = (dateString) => {
   padding: 10px;
   cursor: pointer;
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; 
   align-items: center;
   font-weight: 500;
+  white-space: nowrap; /* Предотвращение переноса текста в summary */
+  width: 100%; /* Занимать всю доступную ширину */
+  box-sizing: border-box; /* Учитывать padding и border в общей ширине */
 }
 .history-summary:hover {
     background-color: rgba(0,0,0,0.05);

@@ -13,7 +13,15 @@ export const useUserStore = defineStore('user', {
     rewardAlreadyClaimed: false,
     userCheckedSubscription: false,
     // --- Основное состояние ---
-    profile: { tokens: null, subscription_type: 'free', subscription_end: null, channel_reward_claimed: false },
+    profile: {
+      id: null,
+      username: null,
+      created_at: null,
+      tokens: null,
+      subscription_type: 'free',
+      subscription_end: null,
+      channel_reward_claimed: false
+    },
     history: [],
     isLoadingProfile: false,
     isLoadingHistory: false,
@@ -63,9 +71,16 @@ export const useUserStore = defineStore('user', {
       try {
         console.log(`[UserStore:fetchProfile] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
         const response = await api.getUserProfile();
-        this.profile = { ...this.profile, ...response.data };
-        this.rewardAlreadyClaimed = this.profile?.channel_reward_claimed ?? false;
-        console.log("[UserStore] Profile loaded:", this.profile);
+        const data = response.data;
+        this.profile.id = data.id ?? null;
+        this.profile.username = data.username ?? null;
+        this.profile.created_at = data.created_at ?? null;
+        this.profile.tokens = data.tokens ?? null;
+        this.profile.subscription_type = data.subscription_type ?? 'free';
+        this.profile.subscription_end = data.subscription_end ?? null;
+        this.profile.channel_reward_claimed = data.channel_reward_claimed ?? false;
+        this.rewardAlreadyClaimed = this.profile.channel_reward_claimed;
+        console.log("[UserStore] Profile loaded:", this.profile); // Лог после обновления
       } catch (err) {
         console.error("[UserStore:fetchProfile] Error:", err);
         this.errorProfile = err.response?.data?.error || err.message || 'Network Error';
