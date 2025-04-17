@@ -142,9 +142,16 @@ onMounted(async () => {
     } else { console.warn("[PersonalAccount] Telegram WebApp API not available."); }
 
     // Загружаем профиль всегда
-    console.log("[PersonalAccount onMounted] Fetching profile...");
+    console.log("[PersonalAccount] Start loading profile and history");
+    const profileLoadStart = Date.now();
     await userStore.fetchProfile();
-    console.log("[PersonalAccount onMounted] Profile fetched.");
+    const profileLoadTime = Date.now() - profileLoadStart;
+    console.log(`[PersonalAccount] Profile loaded in ${profileLoadTime}ms`);
+
+    // Проверка данных профиля
+    if (!userStore.profile) {
+        console.error("[PersonalAccount] Profile data is missing after fetchProfile().");
+    }
 
     // Историю грузим только если мы в основном ЛК
     if (!showRewardClaimView.value) {
@@ -155,7 +162,10 @@ onMounted(async () => {
 
     // Загрузка истории из DeviceStorage
     if (tg) {
+        console.log("[PersonalAccount] Start loading history from DeviceStorage");
+        const historyLoadStart = Date.now();
         tg.DeviceStorage.getItem('analyses_history', (error, value) => {
+            const historyLoadTime = Date.now() - historyLoadStart;
             if (error) {
                 console.error('[PersonalAccount] Error loading history from DeviceStorage:', error);
             } else if (value) {
@@ -165,19 +175,32 @@ onMounted(async () => {
                 } catch (parseError) {
                     console.error('[PersonalAccount] Error parsing history from DeviceStorage:', parseError);
                 }
+                console.log(`[PersonalAccount] History loaded from DeviceStorage in ${historyLoadTime}ms`);
             } else {
                 console.log('[PersonalAccount] No history found in DeviceStorage.');
+                console.log(`[PersonalAccount] History loaded from DeviceStorage in ${historyLoadTime}ms`); // Log time even if no history
             }
         });
     }
 });
 
 // Сохранение истории в DeviceStorage при изменении
+
 watch(() => userStore.history, (newHistory) => {
     if (tg) {
-        tg.DeviceStorage.setItem('analyses_history', JSON.stringify(newHistory), (error, success) => { if (error) { console.error('[PersonalAccount] Error saving history to DeviceStorage:', error); } else if (success) { console.log('[PersonalAccount] History saved to DeviceStorage.'); } });
+        const saveStart = Date.now();
+        tg.DeviceStorage.setItem('analyses_history', JSON.stringify(newHistory), (error, success) => {
+            const saveTime = Date.now() - saveStart;
+            if (error) {
+                console.error('[PersonalAccount] Error saving history to DeviceStorage:', error);
+            } else if (success) {
+                console.log(`[PersonalAccount] History saved to DeviceStorage in ${saveTime}ms`);
+            }
+        });
     }
 });
+
+
 
 // Форматирование даты (без изменений)
 const formatDate = (dateString) => { if (!dateString) return ''; try { return new Date(dateString).toLocaleDateString(); } catch (e) { return dateString; } };
@@ -194,6 +217,9 @@ watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
 <style scoped>.personal-account {
   padding: 10px;
   font-family: var(--tg-theme-font-type); /* Используем шрифт Telegram */
+}
+.history {
+    width: 100%; /* Растягиваем на всю ширину */
 }
 .user-info-top{text-align:center;margin-bottom:20px}
 h1 {
