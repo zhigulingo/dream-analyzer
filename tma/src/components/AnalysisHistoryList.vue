@@ -42,6 +42,7 @@ const formatDate = (dateString) => {
   overflow: auto; /* Автоматическое добавление скролла при необходимости */
   width: 100%; /* Занимать всю доступную ширину */
   box-sizing: border-box; /* Учитывать padding и border в общей ширине */
+  overflow-x: hidden; /* Предотвращение горизонтальной прокрутки */
 }
 .history-item {
   border: 1px solid var(--tg-theme-hint-color); /* Граница для аккордеона */
