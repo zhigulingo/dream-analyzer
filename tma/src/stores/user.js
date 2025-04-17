@@ -70,13 +70,17 @@ export const useUserStore = defineStore('user', {
     actions: {
         async fetchTelegramUser() {
             try {
-                // Попытка определить базовый URL из конфигурации api-клиента
+                const tg = window.Telegram?.WebApp;
+                const initData = tg?.initData;
+                if (!initData) {
+                    throw new Error("Telegram InitData не найден.");
+                }
                 const baseURL = apiClient.defaults.baseURL;
-                // Формирование URL запроса с учетом базового URL (если есть)
                 const requestURL = baseURL ? new URL('/.netlify/functions/telegram-user', baseURL).toString() : '/.netlify/functions/telegram-user';
-                console.log(`[UserStore:fetchTelegramUser] Requesting: ${requestURL}`); // Добавлено логирование URL
-                const response = await apiClient.get(requestURL);
+                console.log(`[UserStore:fetchTelegramUser] Requesting: ${requestURL}`);
+                const response = await apiClient.get(requestURL, { headers: { 'X-Telegram-Init-Data': initData } });
 
+                // Обновляем профиль данными пользователя Telegram
                 this.profile = { ...this.profile, ...response.data };
                 console.log('[UserStore] Telegram user data loaded:', response.data);
             } catch (error) {

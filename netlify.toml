@@ -4,3 +4,6 @@
   # Путь к папке с функциями бота
   directory = "bot/functions/"
   node_bundler = "esbuild"
+
+[template.environment]
+  ALLOWED_TMA_ORIGIN = "https://tourmaline-eclair-9d40ea.netlify.app"

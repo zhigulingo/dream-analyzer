@@ -4,15 +4,13 @@
 
     <!-- Отображение данных пользователя -->
     <div class="user-info">
-      <div v-if="user.photo_url" class="avatar">
-        <img :src="user.photo_url" alt="Аватар">
-      </div>
-        <img :src="user.photo_url" alt="Аватар">
-      </div>
+      <div v-if="user.photo_url" class="avatar"><img :src="user.photo_url" alt="Аватар"></div>
       <div class="details">
-        <p>{{ user.first_name }} {{ user.last_name }}</p>
-        <p>@{{ user.username }}</p>
+        <p v-if="user.first_name">{{ user.first_name }} <span v-if="user.last_name">{{ user.last_name }}</span></p>
+        <p v-if="user.username">@{{ user.username }}</p>
+        <p v-else>Имя отсутствует</p>
       </div>
+
     </div>
 
     <!-- Остальной контент компонента (токены, история, и т.д.) -->
