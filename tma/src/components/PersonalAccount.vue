@@ -46,12 +46,14 @@ const { profile, history, isLoadingProfile, errorProfile } = storeToRefs(userSto
 
 // Получение данных пользователя из Telegram WebApp с задержкой и отладкой
 const tg = window.Telegram.WebApp;
-    console.log(tg.initDataUnsafe); // Добавьте эту строку
-    const user = computed(() => tg.initDataUnsafe?.user || {});
+const user = computed(() => tg.initDataUnsafe?.user || {});
 
 
 const loadUserData = () => {
-  console.log('[PersonalAccount] tg.initDataUnsafe:', tg.initDataUnsafe); // Отладочный вывод
+  if (!tg.initDataUnsafe?.user) {
+    console.error('Ошибка: Данные пользователя отсутствуют в tg.initDataUnsafe. Проверьте настройки Telegram Web App.');
+    return;
+  }
   user.value = tg.initDataUnsafe?.user || {};
 };
 
