@@ -5,5 +5,9 @@
   directory = "bot/functions/"
   node_bundler = "esbuild"
 
+  [[functions."user-profile"]]
+    path = "/user-profile"
+    method = ["GET"]
+
 [template.environment]
   ALLOWED_TMA_ORIGIN = "https://tourmaline-eclair-9d40ea.netlify.app"

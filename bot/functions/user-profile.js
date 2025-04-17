@@ -1,4 +1,5 @@
 // bot/functions/user-profile.js (Исправлено: без внешних библиотек)
+// Trigger Netlify redeploy
 const { createClient } = require("@supabase/supabase-js");
 const crypto = require('crypto'); // Используем встроенный crypto
 
@@ -74,11 +75,11 @@ const generateCorsHeaders = () => {
 exports.handler = async (event) => {
     const corsHeaders = generateCorsHeaders();
 
-    // // --- Обработка Preflight запроса (OPTIONS) ---
-    // if (event.httpMethod === 'OPTIONS') {
-    //     console.log("[user-profile] Responding to OPTIONS request");
-    //     return { statusCode: 204, headers: corsHeaders, body: '' };
-    // }
+    // --- Обработка Preflight запроса (OPTIONS) ---
+    if (event.httpMethod === 'OPTIONS') {
+        console.log("[user-profile] Responding to OPTIONS request");
+        return { statusCode: 204, headers: corsHeaders, body: '' };
+    }
 
     // --- Проверка метода ---
     if (event.httpMethod !== 'GET') {
