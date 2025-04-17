@@ -1,4 +1,4 @@
-<template>
+  <!-- Ваши стили для компонента -->
   <div class="personal-account">
     <h1>Личный кабинет</h1>
 
@@ -7,11 +7,11 @@
       <div v-if="user.photo_url" class="avatar">
         <img :src="user.photo_url" alt="Аватар">
       </div>
+        <img :src="user.photo_url" alt="Аватар">
+      </div>
       <div class="details">
-        <p v-if="user.first_name">{{ user.first_name }} {{ user.last_name }}</p>
-        <p v-else>Имя не указано</p>
-        <p v-if="user.username">@{{ user.username }}</p>
-        <p v-else>Username не указан</p>
+        <p>{{ user.first_name }} {{ user.last_name }}</p>
+        <p>@{{ user.username }}</p>
       </div>
     </div>
 
