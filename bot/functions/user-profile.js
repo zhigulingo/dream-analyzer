@@ -143,12 +143,32 @@ exports.handler = async (event) => {
             responseBody = userData;
         }
 
+        // Combine data from Supabase with user data from initData
+        const { first_name, last_name, username, photo_url } = validationResult.data;
+        responseBody = {
+            ...responseBody,
+            first_name: first_name || null,
+            last_name: last_name || null,
+            username: username || null,
+            photo_url: photo_url || null,
+        };
+        
+        // Ensure all expected fields are present, even if null
+        responseBody = {
+          tokens: responseBody.tokens !== undefined ? responseBody.tokens : 0,
+          subscription_type: responseBody.subscription_type !== undefined ? responseBody.subscription_type : 'free',
+          subscription_end: responseBody.subscription_end !== undefined ? responseBody.subscription_end : null,
+          first_name: responseBody.first_name,
+          last_name: responseBody.last_name,
+          username: responseBody.username,
+          photo_url: responseBody.photo_url,
+        };
+
         return {
             statusCode: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify(responseBody)
+            body: JSON.stringify(responseBody),
         };
-
     } catch (error) {
         console.error(`[user-profile] Catch block error for tg_id ${verifiedUserId}:`, error.message);
         return {

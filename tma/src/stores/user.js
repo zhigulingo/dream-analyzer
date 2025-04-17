@@ -20,7 +20,10 @@ export const useUserStore = defineStore('user', {
       tokens: null,
       subscription_type: 'free',
       subscription_end: null,
-      channel_reward_claimed: false
+      channel_reward_claimed: false,
+      first_name: null,
+      last_name: null,
+      photo_url: null
     },
     history: [],
     isLoadingProfile: false,
@@ -91,22 +94,14 @@ export const useUserStore = defineStore('user', {
                     // TODO: возможно лучше вообще разделить ответственность и вызывать api.getUserProfile  внутри fetchTelegramUser
                     // Сейчас это сделано только для минимальных изменений в коде, чтобы не сломать ничего другого.
                     // Если будет время - лучше отрефакторить.
-                    this.fetchTelegramUser(),
-                    api.getUserProfile().then(response => {
-                        this.profile = { ...this.profile, ...response.data };
-                        console.log('[UserStore] Profile (Supabase) loaded:', response.data);
-                    }),
+                    this.fetchTelegramUser(), // Загружаем данные Telegram
+                    api.getUserProfile()
                 ]);
-                // Обновленная обработка данных профиля
-                this.profile.id = this.profile.id ?? null; // Сохраняем существующее значение, если оно есть
-                this.profile.username = this.profile.username ?? null;
-                this.profile.created_at = this.profile.created_at ?? null;
-                this.profile.tokens = this.profile.tokens ?? null;
-                this.profile.subscription_type = this.profile.subscription_type ?? 'free';
-                this.profile.subscription_end = this.profile.subscription_end ?? null;
-                this.profile.channel_reward_claimed = this.profile.channel_reward_claimed ?? false;
-                this.rewardAlreadyClaimed = this.profile.channel_reward_claimed;
-                console.log('[UserStore] Combined profile data:', this.profile);
+                // После успешного ответа сервера обновляем профиль
+                const profileData = await api.getUserProfile(); // Делаем запрос явно чтобы получить данные
+                this.profile = { ...this.profile, ...profileData.data };
+                console.log('[UserStore] Profile (Supabase + Telegram) loaded:', this.profile);
+
             } catch (err) {
                 console.error('[UserStore:fetchProfile] Error:', err, err.response?.data?.error);
                 this.errorProfile = err.response?.data?.error || err.message || 'Network Error';
