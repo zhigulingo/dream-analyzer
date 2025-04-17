@@ -5,7 +5,7 @@
   directory = "bot/functions/"
   node_bundler = "esbuild"
 
-  [[functions."user-profile"]]
+  [functions."user-profile"]
     path = "/user-profile"
     method = ["GET"]
 
