@@ -10,8 +10,8 @@
       </div>
       <div v-else-if="userStore.profile" class="user-info-top">
         <template v-if="userStore.profile.id && userStore.profile.username && userStore.profile.created_at">
-          ID: {{ userStore.profile.id }}, Username: {{ userStore.profile.username }},<br>
-          Дата регистрации: {{ formatDate(userStore.profile.created_at) }}
+          ID: {{ userStore.profile.id ?? 'N/A' }}, Username: {{ userStore.profile.username ?? 'N/A' }},<br>
+          Дата регистрации: {{ formatDate(userStore.profile.created_at) ?? 'N/A' }}
         </template>
         <template v-else>
           Данные профиля отсутствуют или неполные.
@@ -27,12 +27,12 @@
           Ошибка загрузки профиля: {{ userStore.errorProfile }}
         </div>
         <div v-else-if="userStore.profile.tokens !== null">
-          <p>Остаток токенов: <strong>{{ userStore.profile.tokens }}</strong></p>
+          <p>Остаток токенов: <strong>{{ userStore.profile.tokens ?? 0 }}</strong></p>
           <p>
-            Текущий тариф: <strong class="capitalize">{{ userStore.profile.subscription_type }}</strong>
+            Текущий тариф: <strong class="capitalize">{{ userStore.profile.subscription_type ?? 'free' }}</strong>
             <span v-if="userStore.profile.subscription_end">
-              (до {{ formatDate(userStore.profile.subscription_end) }})
-            </span>
+              (до {{ formatDate(userStore.profile.subscription_end) ?? 'N/A' }})
+             </span>
           </p>
           <button
               v-if="userStore.profile.subscription_type !== 'free' || userStore.profile.channel_reward_claimed"
@@ -166,7 +166,7 @@ onMounted(async () => {
     }
 
     // Загрузка истории из DeviceStorage
-    if (tg) {
+    /* if (tg) {  // DeviceStorage отключен
         console.log("[PersonalAccount] Start loading history from DeviceStorage");
         const historyLoadStart = Date.now();
         tg.DeviceStorage.getItem('analyses_history', (error, value) => {
@@ -186,8 +186,9 @@ onMounted(async () => {
                 console.log(`[PersonalAccount] History loaded from DeviceStorage in ${historyLoadTime}ms`); // Log time even if no history
             }
         });
-    }
-});
+    } */
+     console.log("[PersonalAccount] DeviceStorage loading disabled.");
+  });
 
 // Сохранение истории в DeviceStorage при изменении
 
@@ -202,7 +203,7 @@ watch(() => userStore.history, (newHistory) => {
                 console.log(`[PersonalAccount] History saved to DeviceStorage in ${saveTime}ms`);
             }
         });
-    }
+    } 
 });
 
 

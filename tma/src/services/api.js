@@ -78,8 +78,7 @@ apiClient.interceptors.response.use(
 // Объект с методами API для вызова из сторов/компонентов
 const apiMethods = {
   getUserProfile () {
-    const url = '/user-profile';
-    console.log("[api.js] Calling GET", url, apiClient.getUri({ url })); return apiClient.get(url);
+    const url = '/user-profile';    console.log("[api.js] Calling GET", url, apiClient.getUri({ url })); return apiClient.get(url);
   }, // <--- Запятая
 
   // Метод для получения награды за подписку

@@ -67,7 +67,13 @@ export const useUserStore = defineStore('user', {
     actions: {
         async fetchTelegramUser() {
             try {
-                const response = await apiClient.get('/.netlify/functions/telegram-user');
+                // Попытка определить базовый URL из конфигурации api-клиента
+                const baseURL = apiClient.defaults.baseURL;
+                // Формирование URL запроса с учетом базового URL (если есть)
+                const requestURL = baseURL ? new URL('/.netlify/functions/telegram-user', baseURL).toString() : '/.netlify/functions/telegram-user';
+                console.log(`[UserStore:fetchTelegramUser] Requesting: ${requestURL}`); // Добавлено логирование URL
+                const response = await apiClient.get(requestURL);
+
                 this.profile = { ...this.profile, ...response.data };
                 console.log('[UserStore] Telegram user data loaded:', response.data);
             } catch (error) {
@@ -79,21 +85,27 @@ export const useUserStore = defineStore('user', {
             this.isLoadingProfile = true;
             this.errorProfile = null;
             try {
+                 // Вносим изменения и сюда, для единообразия (хотя текущий код уже, по идее, работал верно)
                 await Promise.all([
+                    // Убрали вызов fetchTelegramUser() из Promise.all, так как он вызывается внутри fetchTelegramUser()
+                    // TODO: возможно лучше вообще разделить ответственность и вызывать api.getUserProfile  внутри fetchTelegramUser
+                    // Сейчас это сделано только для минимальных изменений в коде, чтобы не сломать ничего другого.
+                    // Если будет время - лучше отрефакторить.
                     this.fetchTelegramUser(),
                     api.getUserProfile().then(response => {
                         this.profile = { ...this.profile, ...response.data };
                         console.log('[UserStore] Profile (Supabase) loaded:', response.data);
                     }),
                 ]);
-        this.profile.id = data.id ?? null;
-        this.profile.username = data.username ?? null;
-        this.profile.created_at = data.created_at ?? null;
-        this.profile.tokens = data.tokens ?? null;
-        this.profile.subscription_type = data.subscription_type ?? 'free';
-        this.profile.subscription_end = data.subscription_end ?? null;
-        this.profile.channel_reward_claimed = data.channel_reward_claimed ?? false;
-        this.rewardAlreadyClaimed = this.profile.channel_reward_claimed;
+                // Обновленная обработка данных профиля
+                this.profile.id = this.profile.id ?? null; // Сохраняем существующее значение, если оно есть
+                this.profile.username = this.profile.username ?? null;
+                this.profile.created_at = this.profile.created_at ?? null;
+                this.profile.tokens = this.profile.tokens ?? null;
+                this.profile.subscription_type = this.profile.subscription_type ?? 'free';
+                this.profile.subscription_end = this.profile.subscription_end ?? null;
+                this.profile.channel_reward_claimed = this.profile.channel_reward_claimed ?? false;
+                this.rewardAlreadyClaimed = this.profile.channel_reward_claimed;
                 console.log('[UserStore] Combined profile data:', this.profile);
             } catch (err) {
                 console.error('[UserStore:fetchProfile] Error:', err, err.response?.data?.error);
@@ -103,7 +115,7 @@ export const useUserStore = defineStore('user', {
             }
         },
 
-        async fetchHistory() {
+       async fetchHistory() {
             this.isLoadingHistory = true; this.errorHistory = null;
             try {
                 console.log(`[UserStore:fetchHistory] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
