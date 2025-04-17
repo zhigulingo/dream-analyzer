@@ -77,9 +77,7 @@ const generateCorsHeaders = () => {
 
 exports.handler = async (event) => {
     const corsHeaders = generateCorsHeaders();
-    try {
-        corsHeaders = generateCorsHeaders();
-    } catch (error) {
+    try {} catch (error) {
         console.error("[user-profile] CORS configuration error:", error.message);
         return {
             statusCode: 500,
@@ -102,6 +100,7 @@ exports.handler = async (event) => {
     switch (event.path) {
         case '/.netlify/functions/telegram-user': // Обработка /telegram-user
             console.log("[telegram-user] Handling request to /telegram-user");
+            console.log("[telegram-user] Request Origin:", event.headers.origin);
             // --- Валидация InitData с использованием ВАШЕЙ функции ---
             const initDataHeader = event.headers['x-telegram-init-data'];
             if (!initDataHeader) {
