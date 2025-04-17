@@ -44,11 +44,18 @@ import { storeToRefs } from 'pinia';
 const userStore = useUserStore();
 const { profile, history, isLoadingProfile, errorProfile } = storeToRefs(userStore);
 
-// Получение данных пользователя из Telegram WebApp
+// Получение данных пользователя из Telegram WebApp с задержкой и отладкой
 const tg = window.Telegram.WebApp;
-const user = computed(() => tg.initDataUnsafe?.user || {});
+const user = ref({}); // Используем ref для возможности обновления после задержки
+
+const loadUserData = () => {
+  console.log('[PersonalAccount] tg.initDataUnsafe:', tg.initDataUnsafe); // Отладочный вывод
+  user.value = tg.initDataUnsafe?.user || {};
+};
 
 onMounted(async () => {
+  // Небольшая задержка перед получением данных (возможно, требуется для инициализации)
+  setTimeout(loadUserData, 500);
   console.log('[PersonalAccount onMounted] Initial view: Main Account');
   tg.ready();
   console.log('[PersonalAccount] Telegram WebApp is ready.');
