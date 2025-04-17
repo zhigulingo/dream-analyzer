@@ -4,10 +4,10 @@
 
     <!-- Отображение данных пользователя -->
     <div class="user-info">
-      <div v-if="user.photo_url" class="avatar"><img :src="user.photo_url" alt="Аватар"></div>
+      <div v-if="tgUser.photo_url" class="avatar"><img :src="tgUser.photo_url" alt="Аватар"></div>
       <div class="details">
-        <p v-if="user.first_name">{{ user.first_name }} <span v-if="user.last_name">{{ user.last_name }}</span></p>
-        <p v-if="user.username">@{{ user.username }}</p>
+        <p v-if="tgUser.first_name">{{ tgUser.first_name }} <span v-if="tgUser.last_name">{{ tgUser.last_name }}</span></p>
+        <p v-if="tgUser.username">@{{ tgUser.username }}</p>
         <p v-else>Имя отсутствует</p>
       </div>
 
@@ -29,7 +29,7 @@
         </div>
       </div>
     </div>
-    <p v-else-if="isLoadingProfile">Загрузка профиля...</p>
+    <p v-if="isLoadingProfile">Загрузка профиля...</p>
     <p v-else-if="errorProfile">Ошибка загрузки профиля: {{ errorProfile }}</p>
   </div>
 </template>
@@ -42,27 +42,18 @@ import { storeToRefs } from 'pinia';
 const userStore = useUserStore();
 const { profile, history, isLoadingProfile, errorProfile } = storeToRefs(userStore);
 
-// Получение данных пользователя из Telegram WebApp с задержкой и отладкой
 const tg = window.Telegram.WebApp;
-const user = computed(() => tg.initDataUnsafe?.user || {});
-
-
-const loadUserData = () => {
-  if (!tg.initDataUnsafe?.user) {
-    console.error('Ошибка: Данные пользователя отсутствуют в tg.initDataUnsafe. Проверьте настройки Telegram Web App.');
-    return;
-  }
-  user.value = tg.initDataUnsafe?.user || {};
-};
+const tgUser = computed(() => tg.initDataUnsafe?.user || {});
 
 onMounted(async () => {
-  // Небольшая задержка перед получением данных (возможно, требуется для инициализации)
-  setTimeout(loadUserData, 500);
   console.log('[PersonalAccount onMounted] Initial view: Main Account');
   tg.ready();
   console.log('[PersonalAccount] Telegram WebApp is ready.');
   tg.BackButton.show();
 
+  if (!tg.initDataUnsafe?.user) {
+      console.error('Ошибка: Данные пользователя отсутствуют в tg.initDataUnsafe. Проверьте настройки Telegram Web App.');
+  }
   console.log('[PersonalAccount] Start loading profile and history');
 
   // Загрузка данных профиля и истории
@@ -70,10 +61,6 @@ onMounted(async () => {
   await userStore.fetchHistory();
 
   console.log('[PersonalAccount onMounted] History fetched.');
-
-  // Больше не запрашиваем данные пользователя с сервера, используем локальные
-  // // await userStore.fetchTelegramUser(); // Удалено или закомментировано
-  // console.log('[PersonalAccount] Telegram user data loaded (from server).'); // Удалено или закомментировано
 
   console.log('[PersonalAccount] Profile loaded in', performance.now() - window.APP_START, 'ms');
 
