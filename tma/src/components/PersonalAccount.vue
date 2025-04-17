@@ -46,7 +46,9 @@ const { profile, history, isLoadingProfile, errorProfile } = storeToRefs(userSto
 
 // Получение данных пользователя из Telegram WebApp с задержкой и отладкой
 const tg = window.Telegram.WebApp;
-const user = ref({}); // Используем ref для возможности обновления после задержки
+    console.log(tg.initDataUnsafe); // Добавьте эту строку
+    const user = computed(() => tg.initDataUnsafe?.user || {});
+
 
 const loadUserData = () => {
   console.log('[PersonalAccount] tg.initDataUnsafe:', tg.initDataUnsafe); // Отладочный вывод
