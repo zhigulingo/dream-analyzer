@@ -108,7 +108,7 @@ exports.handler = async (event) => {
       auth: { autoRefreshToken: false, persistSession: false }
     });
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-light" }); //  Используйте подходящую модель
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" }); //  Используйте подходящую модель
 
     // 1. Получаем ID пользователя из тела запроса (вместо InitData)
     const { userId } = JSON.parse(event.body);
