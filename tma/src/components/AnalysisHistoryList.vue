@@ -1,6 +1,6 @@
 <template>
   <div class="history-list">
-    <details v-for="item in history" :key="item.id" class="history-item">
+    <details v-for="item in history" :key="item.id" class="history-item" v-if="!item.is_deep_analysis">
       <summary class="history-summary">
         <span>{{ formatDate(item.created_at) }}</span>
         <span class="dream-preview">{{ item.dream_text.substring(0, 50) }}...</span>
@@ -13,22 +13,27 @@
         <p class="analysis-text">{{ item.analysis }}</p>
       </div>
     </details>
+    <div v-if="deepAnalysis" class="deep-analysis-item">
+      <h2>Глубокий анализ</h2>
+      <div class="analysis-text" v-html="deepAnalysis.analysis"></div>
+    </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
   history: {
     type: Array,
     required: true,
   },
 });
 
-// Функция форматирования даты/времени
+const deepAnalysis = computed(() => props.history.find(item => item.is_deep_analysis));
 const formatDate = (dateString) => {
   if (!dateString) return '';
   try {
-    // Показываем дату и время
     return new Date(dateString).toLocaleString();
   } catch (e) {
     return dateString;
@@ -38,60 +43,79 @@ const formatDate = (dateString) => {
 
 <style scoped>
 .history-list {
-  max-height: 80vh; /* Ограничение высоты в 80% viewport */
-  overflow: auto; /* Автоматическое добавление скролла при необходимости */
-  width: 100%; /* Занимать всю доступную ширину */
-  box-sizing: border-box; /* Учитывать padding и border в общей ширине */
-  overflow-x: hidden; /* Предотвращение горизонтальной прокрутки */
+  max-height: 80vh;
+  overflow: auto;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
+
 .history-item {
-  border: 1px solid var(--tg-theme-hint-color); /* Граница для аккордеона */
+  border: 1px solid var(--tg-theme-hint-color);
   border-radius: 6px;
   margin-bottom: 8px;
-  background-color: var(--tg-theme-bg-color); /* Фон элемента */
+  background-color: var(--tg-theme-bg-color);
 }
-.history-item[open] { /* Стиль для открытого аккордеона */
-     background-color: var(--tg-theme-secondary-bg-color);
+
+.history-item[open] {
+  background-color: var(--tg-theme-secondary-bg-color);
 }
 
 .history-summary {
   padding: 10px;
   cursor: pointer;
   display: flex;
-  justify-content: space-between; 
+  justify-content: space-between;
   align-items: center;
   font-weight: 500;
-  white-space: nowrap; /* Предотвращение переноса текста в summary */
-  width: 100%; /* Занимать всю доступную ширину */
-  box-sizing: border-box; /* Учитывать padding и border в общей ширине */
+  white-space: nowrap;
+  width: 100%;
+  box-sizing: border-box;
 }
+
 .history-summary:hover {
-    background-color: rgba(0,0,0,0.05);
+  background-color: rgba(0, 0, 0, 0.05);
 }
+
 .dream-preview {
-    font-size: 0.9em;
-    color: var(--tg-theme-hint-color);
-    margin-left: 10px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 60%; /* Ограничим ширину превью */
+  font-size: 0.9em;
+  color: var(--tg-theme-hint-color);
+  margin-left: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
 }
 
 .history-details {
-  padding: 0 15px 15px 15px; /* Отступы для контента */
+  padding: 0 15px 15px 15px;
   border-top: 1px solid var(--tg-theme-hint-color);
-  margin-top: 10px; /* Отступ сверху */
+  margin-top: 10px;
 }
-.dream-text, .analysis-text {
-    white-space: pre-wrap; /* Сохраняем переносы строк */
-    word-wrap: break-word; /* Переносим длинные слова */
-    font-size: 0.95em;
-    line-height: 1.5;
+
+.dream-text,
+.analysis-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 0.95em;
+  line-height: 1.5;
 }
+
 hr {
-    border: none;
-    border-top: 1px solid var(--tg-theme-hint-color);
-    margin: 10px 0;
+  border: none;
+  border-top: 1px solid var(--tg-theme-hint-color);
+  margin: 10px 0;
+}
+
+.deep-analysis-item {
+  border: 2px solid var(--tg-theme-accent-text-color);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  padding: 10px;
+  background-color: var(--tg-theme-secondary-bg-color);
+}
+
+.deep-analysis-item h2 {
+  margin-top: 0;
 }
 </style>
