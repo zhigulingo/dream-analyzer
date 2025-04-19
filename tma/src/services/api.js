@@ -1,119 +1,169 @@
 // tma/src/services/api.js
 import axios from 'axios';
 
-// Используем переменную окружения Vite. Убедитесь, что она ЗАДАНА в Netlify UI для сайта TMA
-// и содержит ПОЛНЫЙ путь к функциям (включая /.netlify/functions)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// Определяем базовый URL для функций Netlify
+// В режиме разработки используем локальный адрес Netlify Dev,
+// в продакшене - реальный URL сайта.
+const baseURL = import.meta.env.DEV
+  ? '/.netlify/functions' // Для локальной разработки (проксируется Vite)
+  : '/.netlify/functions'; // Для продакшена
 
-// Логируем URL для проверки при запуске TMA
-if (!API_BASE_URL) {
-    console.error("CRITICAL: VITE_API_BASE_URL is not set in environment variables!");
-    // Можно показать ошибку пользователю или просто логировать
-    // alert("Ошибка конфигурации: не удалось определить адрес API.");
-} else {
-    console.log('[api.js] Using API Base URL:', API_BASE_URL);
-}
-
-// Создаем экземпляр Axios с базовым URL
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 15000 // Добавим таймаут на 15 секунд для запросов
+  baseURL: baseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  }
 });
 
-// Перехватчик запросов для автоматического добавления заголовка X-Telegram-Init-Data
-apiClient.interceptors.request.use(
-  (config) => {
-    const initData = window.Telegram?.WebApp?.initData;
-    if (initData) {
-      config.headers['X-Telegram-Init-Data'] = initData;
-      // console.log("[api.js] Sending InitData header");
-    } else {
-        // Если initData нет, бэкенд должен вернуть 401/403.
-        // Прерывать запрос здесь не стоит, лучше пусть сервер решает.
-        console.warn("[api.js] Telegram WebApp initData not available when creating request. API calls might fail authorization.");
-    }
-    return config;
-  },
-  (error) => {
-    // Ошибка при формировании запроса (редко)
-    console.error("[api.js] Axios request interceptor error:", error);
-    return Promise.reject(error);
+// Перехватчик для добавления ID пользователя из Telegram в заголовки
+apiClient.interceptors.request.use(config => {
+  const tgData = window.Telegram?.WebApp?.initDataUnsafe;
+//   console.log("TG Init Data Unsafe:", tgData); // Логирование для отладки
+  if (tgData?.user?.id) {
+    config.headers['X-Telegram-User-Id'] = tgData.user.id;
+     // console.log("Attaching X-Telegram-User-Id:", tgData.user.id); // Логирование для отладки
   }
-);
-
-// Перехватчик ответов для централизованного логирования ошибок
-apiClient.interceptors.response.use(
-  (response) => {
-    // Успешный ответ просто пропускаем
-    return response;
-  },
-  (error) => {
-    // Логируем детали ошибки ответа (сетевая ошибка или ошибка от сервера)
-    if (error.response) {
-      // Ошибка от сервера (статус не 2xx)
-      console.error('[api.js] Axios response error (from server):', {
-          message: error.message,
-          url: error.config?.url,
-          method: error.config?.method,
-          status: error.response?.status,
-          data: error.response?.data, // Тело ответа с ошибкой от бэкенда
-      });
-    } else if (error.request) {
-      // Запрос был сделан, но ответ не получен (сетевая проблема, таймаут)
-      console.error('[api.js] Axios network error (no response):', {
-          message: error.message,
-          url: error.config?.url,
-          method: error.config?.method,
-          code: error.code, // e.g., 'ECONNABORTED' for timeout
-      });
-    } else {
-      // Ошибка на этапе настройки запроса
-      console.error('[api.js] Axios request setup error:', error.message);
-    }
-    // Пробрасываем ошибку дальше для обработки в сторе или компоненте
-    return Promise.reject(error);
+  // Важно: передаем все initData для валидации на бэкенде
+  if (window.Telegram?.WebApp?.initData) {
+       config.headers['X-Telegram-Init-Data'] = window.Telegram.WebApp.initData;
+       // console.log("Attaching X-Telegram-Init-Data"); // Логирование для отладки
   }
-);
 
-// Объект с методами API для вызова из сторов/компонентов
-const apiMethods = {
-  getUserProfile() {
-    console.log("[api.js] Calling GET /user-profile");
-    return apiClient.get('/user-profile');
-  },
+  return config;
+}, error => {
+  console.error("Error in request interceptor:", error); // Логирование ошибок интерцептора
+  return Promise.reject(error);
+});
 
-  // Метод для получения награды за подписку
-  claimChannelReward() {
-    console.log("[api.js] Calling POST /claim-channel-token");
-    // Используем POST, так как это действие изменяет состояние (начисляет токен)
-    return apiClient.post('/claim-channel-token'); // Тело запроса не нужно, вся информация в initData
-  },
+// --- Методы API ---
 
-  // Метод для получения истории анализов
-  getAnalysesHistory() {
-    console.log("[api.js] Calling GET /analyses-history");
-    return apiClient.get('/analyses-history');
-  },
-
-  // Метод для создания ссылки на инвойс
-  createInvoiceLink(plan, duration, amount, payload) {
-     console.log("[api.js] Calling POST /create-invoice");
-     // Передаем данные в теле POST-запроса
-    return apiClient.post('/create-invoice', {
-        plan,
-        duration,
-        amount,
-        payload
-    });
-  },
-  // Метод для отправки запроса на deep_analysis
-  createDeepAnalysis(dream_text) {
-    console.log("[api.js] Calling POST /create-deep-analysis");
-    return apiClient.post('/create-deep-analysis', { dream_text });
-  },
+// Получить профиль пользователя
+const getUserProfile = async (userId) => {
+    console.log(`[api.js] getUserProfile called for userId: ${userId}`); // Отладка
+    if (!userId) {
+        console.error('[api.js] getUserProfile: userId is missing');
+        throw new Error('User ID is required');
+    }
+    try {
+        // Передаем userId в URL, т.к. GET запросы не имеют тела
+        const response = await apiClient.get(`/user-profile?userId=${userId}`);
+        console.log('[api.js] getUserProfile response:', response.data); // Отладка
+        return response.data;
+    } catch (error) {
+        console.error('[api.js] Error fetching user profile:', error.response?.data || error.message);
+        throw error;
+    }
 };
 
-// Экспортируем именованный клиент Axios (если нужен доступ к нему напрямую)
-// и дефолтный объект с готовыми методами API
-export { apiClient };
-export default apiMethods;
+// Получить историю анализов пользователя
+const getAnalysesHistory = async (userId) => {
+    console.log(`[api.js] getAnalysesHistory called for userId: ${userId}`); // Отладка
+     if (!userId) {
+        console.error('[api.js] getAnalysesHistory: userId is missing');
+        throw new Error('User ID is required');
+    }
+    try {
+        // Передаем userId в URL
+        const response = await apiClient.get(`/analyses-history?userId=${userId}`);
+        console.log('[api.js] getAnalysesHistory response:', response.data); // Отладка
+        // Убедимся, что возвращаем массив, даже если ответ пустой
+        return response.data?.analyses || [];
+    } catch (error) {
+        console.error('[api.js] Error fetching analyses history:', error.response?.data || error.message);
+        throw error;
+    }
+};
+
+// Запросить анализ сна
+const analyzeDream = async (userId, dreamText) => {
+    console.log(`[api.js] analyzeDream called for userId: ${userId}`); // Отладка
+    if (!userId || !dreamText) {
+        console.error('[api.js] analyzeDream: userId or dreamText is missing');
+        throw new Error('User ID and dream text are required');
+    }
+    try {
+        const response = await apiClient.post('/bot', { // Отправляем на основной endpoint /bot
+            action: 'analyze', // Добавляем 'action' для маршрутизации на бэкенде
+            userId: userId,     // Передаем userId в теле запроса
+            dreamText: dreamText
+        });
+        console.log('[api.js] analyzeDream response:', response.data); // Отладка
+        return response.data; // Ожидаем { success: true, analysis: {...} } или { success: false, error: '...' }
+    } catch (error) {
+        console.error('[api.js] Error analyzing dream:', error.response?.data || error.message);
+        throw error; // Пробрасываем ошибку дальше
+    }
+};
+
+// Запросить токен за подписку на канал
+const claimChannelToken = async (userId) => {
+    console.log(`[api.js] claimChannelToken called for userId: ${userId}`); // Отладка
+     if (!userId) {
+        console.error('[api.js] claimChannelToken: userId is missing');
+        throw new Error('User ID is required');
+    }
+    try {
+        const response = await apiClient.post('/claim-channel-token', { userId }); // Передаем userId в теле
+        console.log('[api.js] claimChannelToken response:', response.data); // Отладка
+        return response.data; // Ожидаем { success: true } или { success: false, error: '...' }
+    } catch (error) {
+        console.error('[api.js] Error claiming channel token:', error.response?.data || error.message);
+        throw error;
+    }
+};
+
+// Создать инвойс для покупки подписки
+const createSubscriptionInvoice = async (userId) => {
+    console.log(`[api.js] createSubscriptionInvoice called for userId: ${userId}`);
+     if (!userId) {
+        console.error('[api.js] createSubscriptionInvoice: userId is missing');
+        throw new Error('User ID is required');
+    }
+    try {
+        // Передаем userId в теле запроса
+        const response = await apiClient.post('/create-invoice', { userId: userId, type: 'subscription' });
+        console.log('[api.js] createSubscriptionInvoice response:', response.data);
+        // Ожидаем ответ вида { invoice_slug: '...' }
+        if (!response.data?.invoice_slug) {
+            throw new Error('Invoice slug not received from server.');
+        }
+        return response.data;
+    } catch (error) {
+        console.error('[api.js] Error creating subscription invoice:', error.response?.data || error.message);
+        throw error;
+    }
+};
+
+// *** НОВЫЙ МЕТОД ***
+// Создать инвойс для покупки Глубокого Анализа
+const createDeepAnalysisInvoice = async (userId) => {
+    console.log(`[api.js] createDeepAnalysisInvoice called for userId: ${userId}`);
+     if (!userId) {
+        console.error('[api.js] createDeepAnalysisInvoice: userId is missing');
+        throw new Error('User ID is required');
+    }
+    try {
+        // Передаем userId и тип 'deepAnalysis' в теле запроса
+        // Бэкенд должен ожидать этот 'type' в функции /create-invoice
+        const response = await apiClient.post('/create-invoice', { userId: userId, type: 'deepAnalysis' });
+        console.log('[api.js] createDeepAnalysisInvoice response:', response.data);
+        // Ожидаем ответ вида { invoice_slug: '...' }
+        if (!response.data?.invoice_slug) {
+            throw new Error('Invoice slug not received from server for deep analysis.');
+        }
+        return response.data;
+    } catch (error) {
+        console.error('[api.js] Error creating deep analysis invoice:', error.response?.data || error.message);
+        throw error;
+    }
+};
+
+
+export default {
+  getUserProfile,
+  getAnalysesHistory,
+  analyzeDream,
+  claimChannelToken,
+  createSubscriptionInvoice,
+  createDeepAnalysisInvoice // Экспортируем новую функцию
+};

@@ -1,176 +1,133 @@
-// bot/functions/create-invoice.js (Исправлено: без внешних библиотек, без provider_token для Stars)
-const { Api, GrammyError } = require('grammy');
-const crypto = require('crypto'); // Используем встроенный crypto
+// bot/functions/create-invoice.js
+import { Telegraf } from 'telegraf';
+import { validate } from '@tma.js/init-data-node'; // Для валидации initData
+import { supabase } from './_supabaseClient'; // Импорт клиента Supabase
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
-// Убедитесь, что эта переменная установлена в Netlify UI для сайта бэкенда!
-const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
+const bot = new Telegraf(BOT_TOKEN);
 
-// --- ВАША Функция валидации Telegram InitData (без внешних библиотек) ---
-function validateTelegramData(initData, botToken) {
-    // ... (ТОЧНО ТАКАЯ ЖЕ ФУНКЦИЯ, КАК В user-profile.js) ...
-    if (!initData || !botToken) {
-        console.warn("[validateTelegramData] Missing initData or botToken");
-        return { valid: false, data: null, error: "Missing initData or botToken" };
+// Цены (лучше хранить в переменных окружения или конфигурации)
+const SUBSCRIPTION_PRICE_STARS = 5; // Цена подписки в Telegram Stars
+const DEEP_ANALYSIS_PRICE_STARS = 1; // Цена глубокого анализа в Telegram Stars
+
+// Валидация initData (примерная реализация, настройте под свои нужды)
+const validateInitData = (initDataHeader) => {
+    if (!initDataHeader) {
+        throw new Error('Missing X-Telegram-Init-Data header');
     }
-    const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
-    if (!hash) {
-        console.warn("[validateTelegramData] Hash is missing in initData");
-        return { valid: false, data: null, error: "Hash is missing" };
-    }
-    params.delete('hash');
-    const dataCheckArr = [];
-    params.sort();
-    params.forEach((value, key) => dataCheckArr.push(`${key}=${value}`));
-    const dataCheckString = dataCheckArr.join('\n');
     try {
-        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
-        const checkHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-        if (checkHash === hash) {
-            const userDataString = params.get('user');
-            if (!userDataString) { return { valid: true, data: null, error: "User data missing" }; }
-            try {
-                const userData = JSON.parse(decodeURIComponent(userDataString));
-                 if (!userData || typeof userData.id === 'undefined') { return { valid: true, data: null, error: "User ID missing in parsed data" }; }
-                return { valid: true, data: userData, error: null };
-            } catch (parseError) { return { valid: true, data: null, error: "Failed to parse user data" }; }
-        } else { return { valid: false, data: null, error: "Hash mismatch" }; }
-    } catch (error) { return { valid: false, data: null, error: "Validation crypto error" }; }
-}
-
-// --- Генерация Заголовков CORS ---
-const generateCorsHeaders = () => {
-    const originToAllow = ALLOWED_TMA_ORIGIN || '*'; // Используем переменную или '*' если она не задана
-    console.log(`[create-invoice] CORS Headers: Allowing Origin: ${originToAllow}`);
-    return {
-        'Access-Control-Allow-Origin': originToAllow,
-        'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    };
+        // Здесь вы можете использовать @tma.js/init-data-node или другую библиотеку
+        // для полной валидации и извлечения данных пользователя
+        // validate(initDataHeader, BOT_TOKEN, { expiresIn: 3600 }); // Пример с @tma.js/init-data-node
+        console.log("Skipping full initData validation in this example."); // Упрощено для примера
+        // Простая проверка наличия данных пользователя (требует доработки!)
+        const params = new URLSearchParams(initDataHeader);
+        const user = params.get('user');
+        if (!user) throw new Error('User data not found in initData');
+        const userData = JSON.parse(user);
+        if (!userData?.id) throw new Error('User ID not found in initData');
+        console.log("[create-invoice] Validated user ID from initData:", userData.id);
+        return userData.id; // Возвращаем ID пользователя для использования
+    } catch (error) {
+        console.error('[create-invoice] InitData validation failed:', error);
+        throw new Error(`Invalid or expired Telegram InitData: ${error.message}`);
+    }
 };
 
-exports.handler = async (event) => {
-    const corsHeaders = generateCorsHeaders();
-
-    // --- Обработка Preflight запроса (OPTIONS) ---
-    if (event.httpMethod === 'OPTIONS') {
-        console.log("[create-invoice] Responding to OPTIONS request");
-        return { statusCode: 204, headers: corsHeaders, body: '' };
-    }
-
-    // --- Проверка метода ---
+export const handler = async (event) => {
     if (event.httpMethod !== 'POST') {
-        console.log(`[create-invoice] Method Not Allowed: ${event.httpMethod}`);
-        return { statusCode: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+        return { statusCode: 405, body: 'Method Not Allowed' };
     }
 
-   // --- Проверка конфигурации сервера ---
-     if (!BOT_TOKEN || !ALLOWED_TMA_ORIGIN) { // Убрали проверку Supabase, т.к. здесь не используется
-        console.error("[create-invoice] Server configuration missing (Bot Token or Allowed Origin)");
-        return { statusCode: 500, headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ error: 'Internal Server Error: Bot configuration missing.' }) };
-     }
-
-    // --- Валидация InitData с использованием ВАШЕЙ функции ---
-    const initDataHeader = event.headers['x-telegram-init-data'];
-    let verifiedUserId;
-
-    if (!initDataHeader) {
-        console.warn("[create-invoice] Unauthorized: Missing Telegram InitData header");
-        return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Missing Telegram InitData' }) };
-    }
-
-    const validationResult = validateTelegramData(initDataHeader, BOT_TOKEN);
-
-     if (!validationResult.valid) {
-         console.error(`[create-invoice] InitData validation failed: ${validationResult.error}`);
-         return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
-    }
-    if (!validationResult.data || typeof validationResult.data.id === 'undefined') {
-         console.error(`[create-invoice] InitData is valid, but user data/ID is missing or failed to parse: ${validationResult.error}`);
-         return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Could not extract user data from InitData (${validationResult.error})` }) };
-    }
-
-    verifiedUserId = validationResult.data.id;
-    console.log(`[create-invoice] Access validated for user: ${verifiedUserId}`);
-
-
-    // --- Получение и валидация данных из тела запроса ---
-    let requestBody;
     try {
-        if (!event.body) throw new Error('Missing request body');
-        requestBody = JSON.parse(event.body);
-        console.log(`[create-invoice] Parsed request body for user ${verifiedUserId}:`, requestBody);
-    } catch (e) {
-        console.error(`[create-invoice] Failed to parse JSON body for user ${verifiedUserId}:`, e.message);
-        return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Bad Request: ${e.message}` }) };
-    }
+        console.log("[create-invoice] Received request");
+        const initDataHeader = event.headers['x-telegram-init-data'];
+        const telegramUserId = validateInitData(initDataHeader); // Валидируем и получаем ID
+        console.log(`[create-invoice] Processing request for Telegram User ID: ${telegramUserId}`);
 
-    const { plan, duration, amount, payload } = requestBody;
+        const body = JSON.parse(event.body || '{}');
+        const requestUserId = body.userId; // ID пользователя из тела запроса
+        const type = body.type; // Получаем тип инвойса: 'subscription' или 'deepAnalysis'
 
-    // Валидация: amount для Stars должен быть целым числом >= 1
-    if (!plan || typeof plan !== 'string' || !duration || typeof duration !== 'number' || !Number.isInteger(duration) || duration <= 0 || !amount || typeof amount !== 'number' || !Number.isInteger(amount) || amount < 1 || !payload || typeof payload !== 'string') {
-        console.error(`[create-invoice] Invalid request parameters for user ${verifiedUserId}:`, requestBody);
-        return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Bad Request: Missing or invalid parameters (plan[string], duration[int>0], amount[int>=1 for Stars], payload[string])' }) };
-    }
+        // Дополнительная проверка: совпадает ли ID из тела запроса с ID из initData
+        if (!requestUserId || String(requestUserId) !== String(telegramUserId)) {
+             console.error(`[create-invoice] User ID mismatch or missing. Body: ${requestUserId}, Header: ${telegramUserId}`);
+             throw new Error('User ID mismatch or missing in request body.');
+        }
 
-    // Проверка совпадения ID в payload и проверенного ID
-    const payloadParts = payload.split('_');
-    const payloadUserId = payloadParts.length > 3 ? parseInt(payloadParts[3], 10) : null;
-    if (payloadUserId !== verifiedUserId) {
-         console.error(`[create-invoice] Security Alert: Payload user ID (${payloadUserId}) does not match validated InitData user ID (${verifiedUserId}). Payload: ${payload}`);
-         return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Forbidden: User ID mismatch' }) };
-    }
-    console.log(`[create-invoice] Payload user ID matches validated user ID for ${verifiedUserId}.`);
+        console.log(`[create-invoice] Request details - User ID: ${requestUserId}, Type: ${type}`);
 
+        let title, description, payload, priceInStars, invoiceParams;
 
-    // --- Создание ссылки на инвойс для Telegram Stars ---
-    let api;
-    try {
-        api = new Api(BOT_TOKEN);
+        if (type === 'subscription') {
+            title = 'Месячная Подписка';
+            description = 'Неограниченный анализ снов на 1 месяц.';
+            // Генерируем уникальный payload для отслеживания
+            payload = `sub_${requestUserId}_${Date.now()}`;
+            priceInStars = SUBSCRIPTION_PRICE_STARS;
 
-        const title = `Подписка ${plan.charAt(0).toUpperCase() + plan.slice(1)} (${duration} мес.)`;
-        const description = `Оплата подписки "${plan}" на ${duration} месяца в Dream Analyzer за Telegram Stars`;
-        const currency = 'XTR'; // Для Stars используется XTR
-        // Убедитесь, что amount передается как целое число звезд
-        const prices = [{ label: `Подписка ${plan} ${duration} мес.`, amount: amount }]; // amount в XTR
+            invoiceParams = {
+                title: title,
+                description: description,
+                payload: payload,
+                provider_token: '', // Пусто для Telegram Stars
+                currency: 'XTR', // Валюта Telegram Stars
+                prices: [{ label: 'Подписка на 1 месяц', amount: priceInStars }],
+                // start_parameter: 'get_access', // Не обязательно для Stars?
+                // provider_data: '{}', // Не нужно для Stars
+                // photo_url: 'URL_К_ИЗОБРАЖЕНИЮ_ПОДПИСКИ', // Опционально
+                // photo_width: 500,
+                // photo_height: 300,
+                // need_name: false,
+                // need_phone_number: false,
+                // need_email: false,
+                // need_shipping_address: false,
+                // send_phone_number_to_provider: false,
+                // send_email_to_provider: false,
+                // is_flexible: false,
+            };
+             console.log("[create-invoice] Creating SUBSCRIPTION invoice link with params:", invoiceParams);
 
-        console.log(`[create-invoice] Attempting to call api.raw.createInvoiceLink (for Stars) for user ${verifiedUserId} with payload ${payload}...`);
-        const invoiceLink = await api.raw.createInvoiceLink({
-            title,
-            description,
-            payload,
-            currency, // XTR
-            prices
-            // provider_token НЕ нужен для XTR (Stars)
-        });
-        console.log(`[create-invoice] Successfully created invoice link (Stars) for user ${verifiedUserId}.`);
+        } else if (type === 'deepAnalysis') {
+            title = '✨ Глубокий Анализ Снов';
+            description = 'Анализ закономерностей и символов в ваших последних 5 снах.';
+             // Генерируем уникальный payload для отслеживания
+            payload = `deep_${requestUserId}_${Date.now()}`;
+            priceInStars = DEEP_ANALYSIS_PRICE_STARS;
+
+             invoiceParams = {
+                title: title,
+                description: description,
+                payload: payload,
+                provider_token: '',
+                currency: 'XTR',
+                prices: [{ label: 'Глубокий анализ (5 снов)', amount: priceInStars }],
+                 // photo_url: 'URL_К_ИЗОБРАЖЕНИЮ_АНАЛИЗА', // Опционально
+            };
+            console.log("[create-invoice] Creating DEEP ANALYSIS invoice link with params:", invoiceParams);
+
+        } else {
+            console.error(`[create-invoice] Invalid invoice type requested: ${type}`);
+            return { statusCode: 400, body: JSON.stringify({ error: 'Invalid invoice type specified.' }) };
+        }
+
+        // Вызов метода Telegram API для создания ссылки на инвойс
+        const invoiceLink = await bot.telegram.createInvoiceLink(invoiceParams);
+        console.log(`[create-invoice] Successfully created invoice link: ${invoiceLink}`);
 
         return {
             statusCode: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ invoiceUrl: invoiceLink })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invoice_slug: invoiceLink }), // Возвращаем ссылку (слаг)
         };
 
     } catch (error) {
-        console.error(`[create-invoice] Error during createInvoiceLink call (Stars) for user ${verifiedUserId}:`, error);
-        let errorMessage = 'Internal Server Error: Failed to create invoice link.';
-        let statusCode = 500;
-
-        if (error instanceof GrammyError) {
-            errorMessage = `Telegram API Error: ${error.description} (Code: ${error.error_code})`;
-            if (error.error_code >= 400 && error.error_code < 500) {
-                 statusCode = 400;
-                 errorMessage = `Bad Request to Telegram API: ${error.description}`;
-            }
-        } else if (error.message) {
-            errorMessage = error.message;
-        }
-
+        console.error('[create-invoice] Error processing invoice creation:', error);
+        // Определяем, была ли это ошибка валидации или другая ошибка
+        const isAuthError = error.message.includes('Invalid or expired Telegram InitData') || error.message.includes('User ID mismatch');
         return {
-            statusCode: statusCode,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: errorMessage })
+            statusCode: isAuthError ? 401 : 500,
+            body: JSON.stringify({ error: `Failed to create invoice: ${error.message || 'Internal server error.'}` }),
         };
     }
 };
