@@ -22,6 +22,9 @@ export const useUserStore = defineStore('user', {
     showSubscriptionModal: false,
     selectedPlan: 'premium',
     selectedDuration: 3,
+    currentSubscriptionType: 'subscription', // subscription или deep_analysis
+    isDeepAnalysisPurchased: false,
+    deepAnalysis: null,
   }),
 
   getters: {
@@ -85,8 +88,8 @@ export const useUserStore = defineStore('user', {
       } finally { this.isLoadingHistory = false; }
     },
 
-    openSubscriptionModal() { this.showSubscriptionModal = true; this.selectedPlan = 'premium'; this.selectedDuration = 3; console.log("[UserStore] Opening modal"); },
-    closeSubscriptionModal() { this.showSubscriptionModal = false; console.log("[UserStore] Closing modal"); },
+    openSubscriptionModal(subscriptionType = 'subscription') { this.currentSubscriptionType = subscriptionType; this.showSubscriptionModal = true; this.selectedPlan = 'premium'; this.selectedDuration = 3; console.log("[UserStore] Opening modal"); },
+    closeSubscriptionModal() { this.showSubscriptionModal = false; this.currentSubscriptionType = 'subscription'; console.log("[UserStore] Closing modal"); },
     selectPlan(plan) { this.selectedPlan = plan; this.selectedDuration = 3; console.log(`[UserStore] Plan selected: ${plan}`); },
     selectDuration(duration) { this.selectedDuration = duration; console.log(`[UserStore] Duration selected: ${duration}`); },
 
@@ -94,7 +97,7 @@ export const useUserStore = defineStore('user', {
         console.log("[UserStore:initiatePayment] Action started.");
         const tg = window.Telegram?.WebApp;
         let amount = null, tgUserId = null, plan = null, duration = null, payload = null, initDataHeader = null;
-        try {
+      try {
             amount = this.selectedInvoiceAmount;
             tgUserId = tg?.initDataUnsafe?.user?.id;
             plan = this.selectedPlan;
@@ -111,7 +114,7 @@ export const useUserStore = defineStore('user', {
             if (!baseUrl) { throw new Error("Конфигурация API не загружена (VITE_API_BASE_URL)."); }
             const targetUrl = `${baseUrl}/create-invoice`;
             const requestOptions = { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initDataHeader }, body: JSON.stringify({ plan, duration, amount, payload }) };
-            console.log("[UserStore:initiatePayment] Sending fetch request...");
+          console.log("[UserStore:initiatePayment] Sending fetch request...", { targetUrl, requestOptions });
             const response = await fetch(targetUrl, requestOptions);
             console.log("[UserStore:initiatePayment] Fetch response:", response.status, response.ok);
             if (!response.ok) { let errorText = `HTTP error ${response.status}`; try { const errorData = await response.json(); errorText = errorData.error || JSON.stringify(errorData); } catch (e) { try { errorText = await response.text(); } catch (e2) {} } console.error("[UserStore:initiatePayment] Backend error:", errorText); throw new Error(`Ошибка сервера: ${errorText}`); }
@@ -123,8 +126,12 @@ export const useUserStore = defineStore('user', {
                 tg.openInvoice(invoiceUrl, (status) => {
                     console.log("[UserStore:initiatePayment] Invoice callback status:", status);
                     if (tg?.MainButton) { tg.MainButton.hideProgress(); tg.MainButton.enable(); }
-                    if (status === 'paid') { alert("Оплата прошла успешно! Профиль будет обновлен."); this.closeSubscriptionModal(); setTimeout(() => this.fetchProfile(), 4000); }
-                    else if (status === 'failed') { alert(`Платеж не удался: ${status}`); }
+                  if (status === 'paid') {
+                      alert("Оплата прошла успешно! Профиль будет обновлен.");
+                      this.closeSubscriptionModal();
+                      if (this.currentSubscriptionType === 'deep_analysis') { this.isDeepAnalysisPurchased = true; }
+                      setTimeout(() => this.fetchProfile(), 4000);
+                  } else if (status === 'failed') { alert(`Платеж не удался: ${status}`); }
                     else if (status === 'cancelled') { alert("Платеж отменен."); }
                     else { alert(`Статус платежа: ${status}.`); } });
             } else { throw new Error("Метод Telegram openInvoice недоступен."); }
@@ -134,7 +141,7 @@ export const useUserStore = defineStore('user', {
             if (error instanceof TypeError && error.message.toLowerCase().includes('failed to fetch')) { alertMessage = 'Сетевая ошибка. Проверьте интернет.'; }
             alert(alertMessage);
             if (tg?.MainButton) { tg.MainButton.hideProgress(); tg.MainButton.enable(); }
-        }
+      }
     },
 
     async claimChannelReward() {

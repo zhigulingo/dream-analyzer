@@ -49,7 +49,19 @@
         </div>
         <!-- Отображаем список ТОЛЬКО если история НЕ пуста -->
         <div v-else-if="userStore.history && userStore.history.length > 0">
-          <AnalysisHistoryList :history="userStore.history" />
+          <AnalysisHistoryList :history="userStore.history">
+            <template v-if="userStore.history.length >= 5">
+              <button
+                @click="userStore.openSubscriptionModal('deep_analysis')"
+                :disabled="userStore.isDeepAnalysisInProgress"
+                class="deep-analysis-button"
+              >
+                {{
+                  userStore.isDeepAnalysisInProgress ? 'В процессе' : 'Глубокий анализ'
+                }}
+              </button>
+            </template>
+          </AnalysisHistoryList>
         </div>
         <div v-else>
           <p>У вас пока нет сохраненных анализов.</p>
@@ -58,7 +70,9 @@
 
       <!-- Модальное окно смены тарифа -->
       <SubscriptionModal
-        v-if="userStore.showSubscriptionModal"
+        v-if="userStore.showSubscriptionModal && userStore.subscriptionModalType === 'deep_analysis'"
+        :type="'deep_analysis'"
+        @buy="handleDeepAnalysisBuy"
         @close="userStore.closeSubscriptionModal"
       />
     </template>
@@ -92,6 +106,7 @@ import SubscriptionModal from '@/components/SubscriptionModal.vue';
 const userStore = useUserStore();
 const tg = window.Telegram?.WebApp;
 const showRewardClaimView = ref(false);
+const isDeepAnalysisModalOpen = ref(false);
 
 const goBackToAccount = () => {
     showRewardClaimView.value = false;
@@ -101,6 +116,14 @@ const goBackToAccount = () => {
     // Обновляем профиль И историю при возврате в ЛК
     userStore.fetchProfile();
     userStore.fetchHistory(); // <<<--- ДОБАВЛЕНА ЗАГРУЗКА ИСТОРИИ ПРИ ВОЗВРАТЕ
+};
+
+const handleDeepAnalysisBuy = async () => {
+  userStore.isDeepAnalysisInProgress = true;
+  // Здесь нужно вызвать API для создания глубокого анализа
+  // После успешного создания анализа нужно обновить историю и скрыть кнопку
+  await userStore.createDeepAnalysis();
+  userStore.fetchHistory();
 };
 
 const handleClaimRewardClick = async () => { await userStore.claimChannelReward(); };
@@ -118,11 +141,12 @@ onMounted(async () => {
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
             // <<<--- ДОБАВЛЕН ЛОГ ВНУТРИ КНОПКИ НАЗАД ---
-            console.log(`[PersonalAccount BackButton] Clicked. Modal open: ${userStore.showSubscriptionModal}, Reward view: ${showRewardClaimView.value}`);
+            console.log(`[PersonalAccount BackButton] Clicked. Modal open: ${userStore.showSubscriptionModal}, Reward view: ${showRewardClaimView.value}, Deep Analysis Modal: ${isDeepAnalysisModalOpen.value}`);
             if (userStore.showSubscriptionModal) {
                 userStore.closeSubscriptionModal();
             } else if (showRewardClaimView.value === true) { // <<<--- Явная проверка на true
                 goBackToAccount(); // Если на странице награды, возвращаемся в ЛК
+
             } else {
                 console.log("[PersonalAccount BackButton] Closing TMA.");
                 tg.close(); // Иначе (в основном ЛК) закрываем приложение

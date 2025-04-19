@@ -1,10 +1,10 @@
 <template>
   <div class="modal-overlay" @click.self="closeModal">
     <div class="modal-content">
-      <button class="close-button" @click="closeModal">×</button>
-      <h2>Выберите план подписки</h2>
+      <button v-if="subscriptionType !== 'deep_analysis'" class="close-button" @click="closeModal">×</button>
+      <h2 v-if="subscriptionType !== 'deep_analysis'">Выберите план подписки</h2>
 
-      <!-- Табы Basic/Premium -->
+      <!-- Табы Basic/Premium (только для обычной подписки) -->
       <div class="tabs">
         <button
           :class="{ active: userStore.selectedPlan === 'basic' }"
@@ -20,7 +20,7 @@
         </button>
       </div>
 
-      <!-- Опции длительности -->
+      <!-- Опции длительности (только для обычной подписки) -->
       <div class="duration-options">
         <label v-for="duration in [1, 3, 12]" :key="duration" class="duration-label">
           <input
@@ -43,15 +43,16 @@
         </label>
       </div>
 
-       <!-- Описание фич -->
+       <!-- Описание фич (только для обычной подписки) -->
       <div class="features-list">
         <h3>Что вы получаете:</h3>
         <ul>
           <li v-for="(feature, index) in getPlanDetails(userStore.selectedPlan, userStore.selectedDuration).features" :key="index">
-            ✔️ {{ feature }}
+            ✔️ {{ feature }} <span v-if="subscriptionType === 'deep_analysis'">Глубокий анализ</span>
           </li>
         </ul>
       </div>
+      <p v-if="subscriptionType === 'deep_analysis'">Глубокий анализ позволит выявить закономерности и общие символы в ваших снах на основе последних 5 записей.</p>
 
       <!-- HTML Кнопка оплаты убрана -->
 
@@ -59,10 +60,12 @@
   </div>
 </template>
 
-<script setup>
+<script setup >
 import { useUserStore } from '@/stores/user';
 import { watchEffect, onUnmounted, ref, onMounted } from 'vue'; // Импортируем все нужное
 
+const props = defineProps({ subscriptionType: { type: String, default: 'subscription' } });
+const subscriptionType = props.subscriptionType;
 const userStore = useUserStore();
 const { getPlanDetails } = userStore; // Это геттер, его можно использовать напрямую
 const tg = window.Telegram?.WebApp;
@@ -81,6 +84,13 @@ const closeModal = () => {
 
 // Обработчик нажатия Main Button
 const handleMainButtonClick = () => {
+    if (subscriptionType === 'deep_analysis') {
+      console.log("[SubscriptionModal] Buy deep analysis!");
+      userStore.buyDeepAnalysis();
+      closeModal();
+      return;
+    }
+
     console.log("[SubscriptionModal] Main Button clicked!");
     if (tg?.MainButton?.isActive) {
         userStore.initiatePayment(); // Вызываем action
@@ -101,10 +111,15 @@ watchEffect(() => {
       return; // Выходим
   }
 
-  // Компонент смонтирован, API есть
-  const amount = userStore.selectedInvoiceAmount; // Получаем актуальную цену
+  let buttonText, amount;
+  if (subscriptionType === 'deep_analysis') {
+    buttonText = 'Купить глубокий анализ за 1 ⭐';
+    amount = 1;
+  } else {
+    amount = userStore.selectedInvoiceAmount; // Получаем актуальную цену
+    buttonText = `Оплатить ${amount} ⭐`;
+  }
 
-  if (amount) {
     // Настраиваем и показываем кнопку
     console.log(`[SubscriptionModal] Setting Main Button: Pay ${amount} Stars`);
     tg.MainButton.setParams({
@@ -117,14 +132,6 @@ watchEffect(() => {
     // ВАЖНО: Переназначаем обработчик каждый раз при обновлении кнопки
     tg.MainButton.offClick(handleMainButtonClick);
     tg.MainButton.onClick(handleMainButtonClick);
-  } else {
-    // Если цена не выбрана (ошибка в логике цен?)
-     console.log("[SubscriptionModal] Setting Main Button: Inactive (no amount)");
-    tg.MainButton.setParams({
-        text: 'Выберите план',
-        is_active: false,
-        is_visible: true // Оставляем видимой, но неактивной
-    });
      tg.MainButton.offClick(handleMainButtonClick); // Снимаем обработчик
   }
 });

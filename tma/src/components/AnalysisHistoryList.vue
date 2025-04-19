@@ -1,16 +1,24 @@
 <template>
   <div class="history-list">
-    <details v-for="item in history" :key="item.id" class="history-item">
-      <summary class="history-summary">
-        <span>{{ formatDate(item.created_at) }}</span>
+    <details v-for="item in history" :key="item.id" class="history-item" :class="{ 'deep-analysis': isDeepAnalysis }">
+      <summary class="history-summary" v-if="isDeepAnalysis">
+          Глубокий анализ твоих снов
+      </summary>
+      <summary class="history-summary" v-else>
+          <span>{{ formatDate(item.created_at) }}</span>
         <span class="dream-preview">{{ item.dream_text.substring(0, 50) }}...</span>
       </summary>
       <div class="history-details">
-        <p><strong>Сон:</strong></p>
+        <template v-if="isDeepAnalysis">
+          <p><strong>Анализ:</strong><br><span class="analysis-text">{{ item.analysis }}</span></p>
+          <p><strong>Общие символы:</strong><br><span class="analysis-text">{{ item.common_symbols }}</span></p>
+        </template>
+        <template v-else>
         <p class="dream-text">{{ item.dream_text }}</p>
         <hr>
         <p><strong>Анализ:</strong></p>
         <p class="analysis-text">{{ item.analysis }}</p>
+        </template>
       </div>
     </details>
   </div>
@@ -21,6 +29,10 @@ defineProps({
   history: {
     type: Array,
     required: true,
+  },
+  isDeepAnalysis: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -47,6 +59,11 @@ const formatDate = (dateString) => {
   margin-bottom: 8px;
   background-color: var(--tg-theme-bg-color); /* Фон элемента */
 }
+.history-item.deep-analysis {
+  border-color: #3498db; /* Синий контур для глубокого анализа */
+  order: -1; /* Всегда наверху списка */
+}
+
 .history-item[open] { /* Стиль для открытого аккордеона */
      background-color: var(--tg-theme-secondary-bg-color);
 }

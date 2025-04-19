@@ -1,4 +1,4 @@
-// tma/src/services/api.js (Исправлено: добавлена запятая)
+// tma/src/services/api.js
 import axios from 'axios';
 
 // Используем переменную окружения Vite. Убедитесь, что она ЗАДАНА в Netlify UI для сайта TMA
@@ -80,20 +80,20 @@ const apiMethods = {
   getUserProfile() {
     console.log("[api.js] Calling GET /user-profile");
     return apiClient.get('/user-profile');
-  }, // <--- Запятая
+  },
 
   // Метод для получения награды за подписку
   claimChannelReward() {
     console.log("[api.js] Calling POST /claim-channel-token");
     // Используем POST, так как это действие изменяет состояние (начисляет токен)
     return apiClient.post('/claim-channel-token'); // Тело запроса не нужно, вся информация в initData
-  }, // <<<--- ВОТ ИСПРАВЛЕНИЕ: ДОБАВЛЕНА ЗАПЯТАЯ
+  },
 
   // Метод для получения истории анализов
   getAnalysesHistory() {
     console.log("[api.js] Calling GET /analyses-history");
     return apiClient.get('/analyses-history');
-  }, // <--- Запятая
+  },
 
   // Метод для создания ссылки на инвойс
   createInvoiceLink(plan, duration, amount, payload) {
@@ -105,7 +105,12 @@ const apiMethods = {
         amount,
         payload
     });
-  } // <--- Запятая у последнего элемента не нужна
+  },
+  // Метод для отправки запроса на deep_analysis
+  createDeepAnalysis(dream_text) {
+    console.log("[api.js] Calling POST /create-deep-analysis");
+    return apiClient.post('/create-deep-analysis', { dream_text });
+  },
 };
 
 // Экспортируем именованный клиент Axios (если нужен доступ к нему напрямую)
