@@ -132,7 +132,6 @@ watchEffect(() => {
     // ВАЖНО: Переназначаем обработчик каждый раз при обновлении кнопки
     tg.MainButton.offClick(handleMainButtonClick);
     tg.MainButton.onClick(handleMainButtonClick);
-     tg.MainButton.offClick(handleMainButtonClick); // Снимаем обработчик
   }
 });
 
