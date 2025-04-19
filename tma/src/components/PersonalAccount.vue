@@ -15,8 +15,8 @@
       <p>Токены: {{ profile.tokens }}</p>
       <p>Подписка: {{ profile.subscription_type }}</p>
 
-      <!-- Кнопка отображается если есть 5+ обычных анализов -->
-      <button v-if="showDeepAnalysisButton" @click="openDeepAnalysisModal" :disabled="isDeepAnalysisLoading" class="deep-analysis-button">
+      <!-- ИЗМЕНЕНИЕ ЗДЕСЬ: Вызываем функцию напрямую -->
+      <button v-if="shouldShowDeepAnalysisButton()" @click="openDeepAnalysisModal" :disabled="isDeepAnalysisLoading" class="deep-analysis-button">
         {{ isDeepAnalysisLoading ? 'Загрузка...' : 'Получить глубокий анализ' }}
       </button>
 
@@ -33,13 +33,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch, toRefs } from 'vue'; // Добавлен watch и toRefs
 import { useUserStore } from '@/stores/user';
 import { storeToRefs } from 'pinia';
 import DeepAnalysisModal from '@/components/DeepAnalysisModal.vue';
 import AnalysisHistoryList from '@/components/AnalysisHistoryList.vue';
 
 const userStore = useUserStore();
+// Используем storeToRefs как и раньше
 const { profile, history, isLoadingProfile, errorProfile } = storeToRefs(userStore);
 
 const tg = window.Telegram.WebApp;
@@ -48,22 +49,35 @@ const tgUser = computed(() => tg.initDataUnsafe?.user || {});
 const isDeepAnalysisModalOpen = ref(false);
 const isDeepAnalysisLoading = ref(false);
 
-// Вычисляемое свойство для отображения кнопки глубокого анализа
-const showDeepAnalysisButton = computed(() => {
-  // Добавляем проверку на существование item и явное сравнение с false
-  const regularAnalysesCount = history.value.filter(item => item && item.is_deep_analysis === false).length;
+// --- УБИРАЕМ COMPUTED ---
+// const showDeepAnalysisButton = computed(() => { ... });
 
-  // --- ДОБАВЛЕННЫЙ ЛОГ ---
+// --- ДОБАВЛЯЕМ ФУНКЦИЮ ---
+const shouldShowDeepAnalysisButton = () => {
+  // Проверяем, существует ли history.value и является ли массивом
+  if (!Array.isArray(history.value)) {
+      console.log('[PersonalAccount] shouldShowDeepAnalysisButton: History is not an array yet.');
+      return false;
+  }
+  const regularAnalysesCount = history.value.filter(item => item && item.is_deep_analysis === false).length;
+  const shouldShow = regularAnalysesCount >= 5;
+  // Логгируем каждый раз при вызове функции (например, при рендеринге)
   console.log(
-    '[PersonalAccount] Computed showDeepAnalysisButton:',
+    '[PersonalAccount] Calculated shouldShowDeepAnalysisButton:',
     `History length: ${history.value.length}`,
     `Regular analyses count: ${regularAnalysesCount}`,
-    `Should show button: ${regularAnalysesCount >= 5}`
+    `Should show: ${shouldShow}`
   );
-  // --- КОНЕЦ ДОБАВЛЕННОГО ЛОГА ---
+  return shouldShow;
+};
 
-  return regularAnalysesCount >= 5;
-});
+// --- ДОБАВЛЯЕМ WATCH ---
+// Следим за изменениями в history и логируем результат проверки
+watch(history, (newHistory, oldHistory) => {
+  console.log('[PersonalAccount] Watch triggered: History changed.');
+  // Дополнительно логируем значение именно в момент изменения
+  shouldShowDeepAnalysisButton();
+}, { deep: true }); // deep: true нужен для отслеживания изменений внутри массива
 
 const openDeepAnalysisModal = () => {
   isDeepAnalysisModalOpen.value = true;
@@ -107,11 +121,8 @@ const sendDeepAnalysisRequest = async () => {
     });
 
     if (!response.ok) {
-        // Попробуем прочитать тело ошибки, если есть
         let errorBody = 'Unknown error';
-        try {
-            errorBody = await response.text();
-        } catch (e) { /* игнорируем ошибку чтения тела */ }
+        try { errorBody = await response.text(); } catch (e) {}
         console.error(`[PersonalAccount] Deep analysis request failed: ${response.status} ${response.statusText}. Body: ${errorBody}`);
         throw new Error(`Ошибка запроса глубокого анализа: ${response.status}`);
     }
@@ -143,19 +154,20 @@ onMounted(async () => {
   }
   console.log('[PersonalAccount] Start loading profile and history');
 
+  // Загружаем профиль и историю последовательно, чтобы гарантировать наличие history при первом рендеринге
   await userStore.fetchProfile();
   console.log('[PersonalAccount onMounted] Profile fetched.');
   await userStore.fetchHistory();
   console.log('[PersonalAccount onMounted] History fetched.');
 
-  // Убрали лишние логи времени и DeviceStorage
+  // Дополнительно вызовем проверку после загрузки истории на случай, если watch не сработал сразу
+  shouldShowDeepAnalysisButton();
 });
 </script>
 
 <style scoped>
 .personal-account {
-  /* Ваши стили для компонента */
-  padding: 15px; /* Добавим немного отступов */
+  padding: 15px;
 }
 
 .user-info {
@@ -165,11 +177,11 @@ onMounted(async () => {
 }
 
 .avatar {
-  width: 60px; /* Уменьшим аватар */
+  width: 60px;
   height: 60px;
   border-radius: 50%;
   overflow: hidden;
-  margin-right: 15px; /* Уменьшим отступ */
+  margin-right: 15px;
 }
 
 .avatar img {
@@ -179,25 +191,25 @@ onMounted(async () => {
 }
 
 .details p {
-  margin: 3px 0; /* Уменьшим вертикальные отступы */
+  margin: 3px 0;
 }
 
 .account-details {
-  margin-bottom: 20px; /* Отступ после данных профиля */
+  margin-bottom: 20px;
 }
 
 .deep-analysis-button {
   background-color: #007bff;
   color: white;
-  padding: 10px 15px; /* Немного уменьшим паддинг */
+  padding: 10px 15px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  margin-top: 10px; /* Добавим отступ сверху */
-  margin-bottom: 20px; /* Отступ снизу */
-  display: block; /* Сделаем блочным для центрирования, если нужно */
-  width: 100%; /* Растянем на всю ширину */
-  box-sizing: border-box; /* Учитываем padding и border */
+  margin-top: 10px;
+  margin-bottom: 20px;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .deep-analysis-button:disabled {
@@ -206,7 +218,6 @@ onMounted(async () => {
 }
 
 .history h2 {
-    margin-bottom: 10px; /* Отступ под заголовком истории */
+    margin-bottom: 10px;
 }
-
 </style>
