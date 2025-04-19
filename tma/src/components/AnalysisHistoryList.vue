@@ -1,18 +1,25 @@
 <template>
   <div class="history-list">
-    <details v-for="item in history" :key="item.id" class="history-item" v-if="!item.is_deep_analysis">
-      <summary class="history-summary">
-        <span>{{ formatDate(item.created_at) }}</span>
-        <span class="dream-preview">{{ item.dream_text.substring(0, 50) }}...</span>
-      </summary>
-      <div class="history-details">
-        <p><strong>Сон:</strong></p>
-        <p class="dream-text">{{ item.dream_text }}</p>
-        <hr>
-        <p><strong>Анализ:</strong></p>
-        <p class="analysis-text">{{ item.analysis }}</p>
-      </div>
-    </details>
+    <!-- Используем v-for для итерации -->
+    <template v-for="item in history" :key="item.id">
+      <!-- Отображаем обычный анализ, если is_deep_analysis === false -->
+      <details v-if="item && item.is_deep_analysis === false" class="history-item">
+        <summary class="history-summary">
+          <span>{{ formatDate(item.created_at) }}</span>
+          <!-- Добавляем optional chaining на случай отсутствия dream_text -->
+          <span class="dream-preview">{{ item.dream_text?.substring(0, 50) }}...</span>
+        </summary>
+        <div class="history-details">
+          <p><strong>Сон:</strong></p>
+          <p class="dream-text">{{ item.dream_text }}</p>
+          <hr>
+          <p><strong>Анализ:</strong></p>
+          <p class="analysis-text">{{ item.analysis }}</p>
+        </div>
+      </details>
+    </template>
+
+    <!-- Отображаем глубокий анализ отдельно, если он есть -->
     <div v-if="deepAnalysis" class="deep-analysis-item">
       <h2>Глубокий анализ</h2>
       <div class="analysis-text" v-html="deepAnalysis.analysis"></div>
@@ -21,7 +28,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+// Добавляем импорты onMounted и toRefs
+import { computed, onMounted, toRefs } from 'vue';
 
 const props = defineProps({
   history: {
@@ -30,7 +38,17 @@ const props = defineProps({
   },
 });
 
-const deepAnalysis = computed(() => props.history.find(item => item.is_deep_analysis));
+// Используем toRefs для получения реактивной ссылки на пропсы
+const { history } = toRefs(props);
+
+// Логгируем данные, которые компонент получил при монтировании
+onMounted(() => {
+  console.log('[AnalysisHistoryList] History prop on mount:', JSON.stringify(history.value));
+});
+
+// Вычисляемое свойство для глубокого анализа стало немного безопаснее
+const deepAnalysis = computed(() => history.value.find(item => item && item.is_deep_analysis === true));
+
 const formatDate = (dateString) => {
   if (!dateString) return '';
   try {
@@ -42,6 +60,7 @@ const formatDate = (dateString) => {
 </script>
 
 <style scoped>
+/* Стили остаются без изменений */
 .history-list {
   max-height: 80vh;
   overflow: auto;
@@ -108,14 +127,15 @@ hr {
 }
 
 .deep-analysis-item {
-  border: 2px solid var(--tg-theme-accent-text-color);
+  border: 2px solid var(--tg-theme-accent-text-color); /* Используем акцентный цвет для выделения */
   border-radius: 6px;
   margin-bottom: 8px;
   padding: 10px;
-  background-color: var(--tg-theme-secondary-bg-color);
+  background-color: var(--tg-theme-secondary-bg-color); /* Используем вторичный фон */
 }
 
 .deep-analysis-item h2 {
   margin-top: 0;
+  color: var(--tg-theme-text-color); /* Цвет текста заголовка */
 }
 </style>
