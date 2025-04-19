@@ -1,7 +1,7 @@
 // bot/functions/create-invoice.js
 import { Telegraf } from 'telegraf';
 import { validate } from '@tma.js/init-data-node'; // Для валидации initData
-import { supabase } from './_supabaseClient'; // Импорт клиента Supabase
+import { supabase } from './_supabaseClient.js'; // Импорт клиента Supabase - ДОБАВЛЕНО .js
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const bot = new Telegraf(BOT_TOKEN);

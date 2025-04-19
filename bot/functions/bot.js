@@ -1,6 +1,6 @@
 // bot/functions/bot.js
 import { Telegraf, Markup } from 'telegraf';
-import { supabase } from './_supabaseClient'; // Импорт клиента Supabase
+import { supabase } from './_supabaseClient.js'; // Импорт клиента Supabase - ДОБАВЛЕНО .js
 import { validate as validateTma } from '@tma.js/init-data-node'; // Для валидации данных из Web App
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -49,7 +49,9 @@ bot.start(async (ctx) => {
 
         // Отправляем приветственное сообщение с кнопкой для открытия Web App
         await ctx.reply(
-            `👋 Привет, ${telegramUser.first_name || 'пользователь'}!\n\nЯ бот для анализа снов. Откройте Личный Кабинет, чтобы начать!`,
+            `👋 Привет, ${telegramUser.first_name || 'пользователь'}!
+
+Я бот для анализа снов. Откройте Личный Кабинет, чтобы начать!`,
             Markup.inlineKeyboard([
                 Markup.button.webApp('Личный кабинет', WEB_APP_URL)
             ])
@@ -213,10 +215,18 @@ bot.on('message', async (ctx) => {
                 // 2. (ЗАГЛУШКА) Генерация глубокого анализа
                 // !!! ЗДЕСЬ ДОЛЖЕН БЫТЬ ВЫЗОВ AI ДЛЯ ГЕНЕРАЦИИ АНАЛИЗА !!!
                 // Собираем тексты снов
-                const dreamTexts = recentAnalyses.map(a => a.dream_text).join('\n\n---\n\n'); // Объединяем тексты
+                const dreamTexts = recentAnalyses.map(a => a.dream_text).join('
+
+---
+
+'); // Объединяем тексты
                 console.log(`[bot.js successful_payment] Generating deep analysis based on ${recentAnalyses.length} dreams for user ${userId}.`);
                 // Пример заглушки
-                const deepAnalysisResultText = `(Заглушка) Глубокий анализ ${recentAnalyses.length} снов пользователя ${userId}:\n\nОбнаружены повторяющиеся темы [тема1] и [тема2]. Частые символы: [символ1], [символ2]. Общий эмоциональный фон: [эмоция].\n\n(Полный анализ будет доступен после интеграции с AI.)`;
+                const deepAnalysisResultText = `(Заглушка) Глубокий анализ ${recentAnalyses.length} снов пользователя ${userId}:
+
+Обнаружены повторяющиеся темы [тема1] и [тема2]. Частые символы: [символ1], [символ2]. Общий эмоциональный фон: [эмоция].
+
+(Полный анализ будет доступен после интеграции с AI.)`;
 
                 // 3. Сохраняем результат глубокого анализа в Supabase
                 const { data: insertData, error: insertError } = await supabase
