@@ -132,7 +132,7 @@ watchEffect(() => {
     // ВАЖНО: Переназначаем обработчик каждый раз при обновлении кнопки
     tg.MainButton.offClick(handleMainButtonClick);
     tg.MainButton.onClick(handleMainButtonClick);
-  });
+   });
 
 // При размонтировании компонента (закрытии модалки)
 onUnmounted(() => {
