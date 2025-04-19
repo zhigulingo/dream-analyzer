@@ -1,16 +1,14 @@
-// bot/functions/analyses-history.js (Исправлено: без внешних библиотек)
+// bot/functions/analyses-history.js
 const { createClient } = require("@supabase/supabase-js");
-const crypto = require('crypto'); // Используем встроенный crypto
+const crypto = require('crypto');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BOT_TOKEN = process.env.BOT_TOKEN;
-// Убедитесь, что эта переменная установлена в Netlify UI для сайта бэкенда!
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
 
-// --- ВАША Функция валидации Telegram InitData (без внешних библиотек) ---
+// --- Функция валидации Telegram InitData ---
 function validateTelegramData(initData, botToken) {
-    // ... (ТОЧНО ТАКАЯ ЖЕ ФУНКЦИЯ, КАК В user-profile.js) ...
     if (!initData || !botToken) {
         console.warn("[validateTelegramData] Missing initData or botToken");
         return { valid: false, data: null, error: "Missing initData or botToken" };
@@ -43,37 +41,33 @@ function validateTelegramData(initData, botToken) {
 
 // --- Генерация Заголовков CORS ---
 const generateCorsHeaders = () => {
-    const originToAllow = ALLOWED_TMA_ORIGIN || '*'; // Используем переменную или '*' если она не задана
+    const originToAllow = ALLOWED_TMA_ORIGIN || '*';
     console.log(`[analyses-history] CORS Headers: Allowing Origin: ${originToAllow}`);
     return {
         'Access-Control-Allow-Origin': originToAllow,
         'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', // Оставляем POST на всякий случай, если понадобится
     };
 };
 
 exports.handler = async (event) => {
     const corsHeaders = generateCorsHeaders();
 
-    // --- Обработка Preflight запроса (OPTIONS) ---
     if (event.httpMethod === 'OPTIONS') {
         console.log("[analyses-history] Responding to OPTIONS request");
         return { statusCode: 204, headers: corsHeaders, body: '' };
     }
 
-    // --- Проверка метода ---
     if (event.httpMethod !== 'GET') {
          console.log(`[analyses-history] Method Not Allowed: ${event.httpMethod}`);
         return { statusCode: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Method Not Allowed' }) };
     }
 
-   // --- Проверка конфигурации сервера ---
-     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN || !ALLOWED_TMA_ORIGIN) { // Добавили проверку ALLOWED_TMA_ORIGIN
-        console.error("[analyses-history] Server configuration missing (Supabase URL/Key, Bot Token, or Allowed Origin)");
+     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN || !ALLOWED_TMA_ORIGIN) {
+        console.error("[analyses-history] Server configuration missing");
         return { statusCode: 500, headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ error: 'Internal Server Error: Configuration missing.' }) };
      }
 
-    // --- Валидация InitData с использованием ВАШЕЙ функции ---
     const initDataHeader = event.headers['x-telegram-init-data'];
     let verifiedUserId;
 
@@ -89,20 +83,18 @@ exports.handler = async (event) => {
          return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
     }
     if (!validationResult.data || typeof validationResult.data.id === 'undefined') {
-         console.error(`[analyses-history] InitData is valid, but user data/ID is missing or failed to parse: ${validationResult.error}`);
-         return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Could not extract user data from InitData (${validationResult.error})` }) };
+         console.error(`[analyses-history] InitData is valid, but user data/ID is missing: ${validationResult.error}`);
+         return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Could not extract user data (${validationResult.error})` }) };
     }
 
     verifiedUserId = validationResult.data.id;
     console.log(`[analyses-history] Access validated for user: ${verifiedUserId}`);
 
-    // --- Основная логика ---
     try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
              auth: { autoRefreshToken: false, persistSession: false }
         });
 
-        // 1. Найти ID пользователя в нашей БД по проверенному tg_id
         const { data: user, error: userFindError } = await supabase
             .from('users')
             .select('id')
@@ -122,13 +114,14 @@ exports.handler = async (event) => {
         const userDbId = user.id;
         console.log(`[analyses-history] Found internal user ID: ${userDbId} for tg_id: ${verifiedUserId}`);
 
-        // 2. Получить историю анализов по внутреннему user_id
+        // 2. Получить историю анализов по внутреннему user_id, ВКЛЮЧАЯ is_deep_analysis
         const { data: history, error: historyError } = await supabase
             .from('analyses')
-            .select('id, dream_text, analysis, created_at')
+            // ИЗМЕНЕНИЕ ЗДЕСЬ: добавлено is_deep_analysis
+            .select('id, dream_text, analysis, created_at, is_deep_analysis')
             .eq('user_id', userDbId)
             .order('created_at', { ascending: false })
-            .limit(50);
+            .limit(50); // Можно увеличить лимит, если нужно
 
         if (historyError) {
             console.error(`[analyses-history] Supabase error fetching history for user_id ${userDbId}:`, historyError);
@@ -136,10 +129,17 @@ exports.handler = async (event) => {
         }
 
         console.log(`[analyses-history] History fetched for user_id ${userDbId}. Count: ${history?.length ?? 0}`);
+        // Добавляем к каждому элементу is_deep_analysis: false, если поле null (для старых записей)
+        const processedHistory = history.map(item => ({
+            ...item,
+            is_deep_analysis: item.is_deep_analysis === true // Приводим к булевому типу, null станет false
+        }));
+
+
         return {
             statusCode: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify(history || [])
+            body: JSON.stringify(processedHistory || []) // Отправляем обработанную историю
         };
 
     } catch (error) {
