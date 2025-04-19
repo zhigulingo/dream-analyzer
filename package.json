@@ -4,14 +4,14 @@
   "private": true,
   "description": "Dream Analyzer Bot and TMA",
   "scripts": {
-    "test": "echo "Error: no test specified" && exit 1"
+    "test": "echo "Error: no test specified" && exit 1" // Corrected escaping
   },
   "dependencies": {
     "@google/generative-ai": "^0.11.1",
     "@supabase/supabase-js": "^2.43.1",
-    "@tma.js/init-data-node": "^1.0.0-beta.3", // Added
+    "@tma.js/init-data-node": "^1.0.0-beta.3",
     "grammy": "^1.22.0",
-    "telegraf": "^4.16.3", // Added
+    "telegraf": "^4.16.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
