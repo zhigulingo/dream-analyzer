@@ -15,8 +15,8 @@
       <p>Токены: {{ profile.tokens }}</p>
       <p>Подписка: {{ profile.subscription_type }}</p>
 
-      <!-- ИЗМЕНЕНИЕ ЗДЕСЬ: Вызываем функцию напрямую -->
-      <button v-if="(console.log('Вызывается shouldShowDeepAnalysisButton в шаблоне'), shouldShowDeepAnalysisButton())" @click="openDeepAnalysisModal" :disabled="isDeepAnalysisLoading" class="deep-analysis-button">
+      <!-- ИЗМЕНЕНИЕ ЗДЕСЬ: Используем вычисляемое свойство -->
+      <button v-if="showDeepAnalysisButton" @click="openDeepAnalysisModal" :disabled="isDeepAnalysisLoading" class="deep-analysis-button">
         {{ isDeepAnalysisLoading ? 'Загрузка...' : 'Получить глубокий анализ' }}
       </button>
 
@@ -49,10 +49,10 @@ const tgUser = computed(() => tg.initDataUnsafe?.user || {});
 const isDeepAnalysisModalOpen = ref(false);
 const isDeepAnalysisLoading = ref(false);
 
-// --- УБИРАЕМ COMPUTED ---
+// --- УБИРАЕМ COMPUTED (если было) ---
 // const showDeepAnalysisButton = computed(() => { ... });
 
-// --- ДОБАВЛЯЕМ ФУНКЦИЮ ---
+// --- ДОБАВЛЯЕМ ФУНКЦИЮ (если еще нет) ---
 const shouldShowDeepAnalysisButton = () => {
   // Проверяем, существует ли history.value и является ли массивом
   if (!Array.isArray(history.value)) {
@@ -71,7 +71,14 @@ const shouldShowDeepAnalysisButton = () => {
   return shouldShow;
 };
 
-// --- ДОБАВЛЯЕМ WATCH ---
+// --- ДОБАВЛЯЕМ ВЫЧИСЛЯЕМОЕ СВОЙСТВО ---
+const showDeepAnalysisButton = computed(() => {
+  const shouldShow = shouldShowDeepAnalysisButton();
+  console.log('Вызывается shouldShowDeepAnalysisButton в шаблоне:', shouldShow);  // Логгируем результат
+  return shouldShow;
+});
+
+// --- ДОБАВЛЯЕМ WATCH (оставляем как есть) ---
 // Следим за изменениями в history и логируем результат проверки
 watch(history, (newHistory, oldHistory) => {
   console.log('[PersonalAccount] Watch triggered: History changed.');
