@@ -16,7 +16,7 @@
       <p>Подписка: {{ profile.subscription_type }}</p>
 
       <!-- ИЗМЕНЕНИЕ ЗДЕСЬ: Вызываем функцию напрямую -->
-      <button v-if="shouldShowDeepAnalysisButton()" @click="openDeepAnalysisModal" :disabled="isDeepAnalysisLoading" class="deep-analysis-button">
+      <button v-if="(console.log('Вызывается shouldShowDeepAnalysisButton в шаблоне'), shouldShowDeepAnalysisButton())" @click="openDeepAnalysisModal" :disabled="isDeepAnalysisLoading" class="deep-analysis-button">
         {{ isDeepAnalysisLoading ? 'Загрузка...' : 'Получить глубокий анализ' }}
       </button>
 
