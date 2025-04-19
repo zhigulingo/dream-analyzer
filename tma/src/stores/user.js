@@ -1,7 +1,6 @@
-// tma/src/stores/user.js (Исправлено: цены = 1)
+// tma/src/stores/user.js (Добавлено логгирование в fetchHistory)
 
 import { defineStore } from 'pinia';
-// Импортируем и дефолтный экспорт (методы), и именованный (клиент)
 import api, { apiClient } from '@/services/api';
 
 export const useUserStore = defineStore('user', {
@@ -41,9 +40,7 @@ export const useUserStore = defineStore('user', {
     showClaimRewardSection: (state) => !state.isLoadingProfile && state.profile && !state.profile.channel_reward_claimed,
     // --- Основные геттеры ---
     isPremium: (state) => state.profile.subscription_type === 'premium',
-    // <<<--- НАЧАЛО ИСПРАВЛЕНИЯ ЦЕН ---
     getPlanDetails: (state) => (plan, duration) => {
-      // ВАШИ ЦЕНЫ ДЛЯ ТЕСТОВ = 1 ЗВЕЗДА
       const prices = { premium: { 1: 1, 3: 1, 12: 1 }, basic: { 1: 1, 3: 1, 12: 1 } };
       const features = {
             premium: ["Безлимитные токены", "Ранний доступ к фичам", "Без рекламы"],
@@ -52,7 +49,7 @@ export const useUserStore = defineStore('user', {
         };
       const durationTextMap = { 1: '1 месяц', 3: '3 месяца', 12: '1 год' };
       return {
-            price: prices[plan]?.[duration] ?? null, // Используем ваши цены = 1
+            price: prices[plan]?.[duration] ?? null,
             features: features[plan] ?? [],
             durationText: durationTextMap[duration] ?? `${duration} месяцев`
         };
@@ -61,10 +58,8 @@ export const useUserStore = defineStore('user', {
       const details = this.getPlanDetails(state.selectedPlan, state.selectedDuration);
       const price = details.price;
       if (price === null) return null;
-      // Для звезд нужно ЦЕЛОЕ число >= 1. Так как у вас 1, все ок.
       return Math.max(1, Math.round(price));
     }
-    // <<<--- КОНЕЦ ИСПРАВЛЕНИЯ ЦЕН ---
   },
 
     actions: {
@@ -75,17 +70,18 @@ export const useUserStore = defineStore('user', {
                 if (!initData) {
                     throw new Error("Telegram InitData не найден.");
                 }
-                console.log("[UserStore:fetchTelegramUser] initData:", initData);
+                // Убираем лишний лог initData отсюда, он есть ниже
                 const headers = { 'X-Telegram-Init-Data': initData };
                 const baseURL = apiClient.defaults.baseURL;
                 const requestURL = baseURL ? new URL('/.netlify/functions/telegram-user', baseURL).toString() : '/.netlify/functions/telegram-user';
-                console.log("[UserStore:fetchTelegramUser] Requesting:", requestURL, "with headers:", headers);
+                console.log("[UserStore:fetchTelegramUser] Requesting:", requestURL, "with headers:", headers); // Оставляем этот лог
                 const response = await apiClient.get(requestURL, { headers });
-                
-                this.profile = { ...this.profile, ...response.data }; // Обновляем профиль данными пользователя Telegram
+
+                this.profile = { ...this.profile, ...response.data };
                 console.log('[UserStore] Telegram user data loaded:', response.data);
             } catch (error) {
                 console.error('[UserStore] Error fetching Telegram user data:', error);
+                // Не прерываем выполнение, чтобы fetchProfile мог запросить профиль из Supabase
             }
         },
 
@@ -93,18 +89,17 @@ export const useUserStore = defineStore('user', {
             this.isLoadingProfile = true;
             this.errorProfile = null;
             try {
-                 // Вносим изменения и сюда, для единообразия (хотя текущий код уже, по идее, работал верно)
-                await Promise.all([
-                    // Убрали вызов fetchTelegramUser() из Promise.all, так как он вызывается внутри fetchTelegramUser()
-                    // TODO: возможно лучше вообще разделить ответственность и вызывать api.getUserProfile  внутри fetchTelegramUser
-                    // Сейчас это сделано только для минимальных изменений в коде, чтобы не сломать ничего другого.
-                    // Если будет время - лучше отрефакторить.
-                    this.fetchTelegramUser(), // Загружаем данные Telegram
-                    api.getUserProfile()
-                ]);
-                // После успешного ответа сервера обновляем профиль
-                const profileData = await api.getUserProfile(); // Делаем запрос явно чтобы получить данные
-                this.profile = { ...this.profile, ...profileData.data };
+                 await this.fetchTelegramUser(); // Сначала получаем данные из Telegram
+
+                 // Затем получаем данные из Supabase и объединяем
+                 const profileData = await api.getUserProfile();
+                 // Объединяем данные: сначала базовый профиль, потом данные из Telegram, потом из Supabase
+                 this.profile = {
+                    ...this.profile, // Начальное состояние
+                     ...(this.profile || {}), // Данные из Telegram (уже должны быть там после fetchTelegramUser)
+                    ...(profileData.data || {}) // Данные из getUserProfile (Supabase)
+                 };
+
                 console.log('[UserStore] Profile (Supabase + Telegram) loaded:', this.profile);
 
             } catch (err) {
@@ -119,8 +114,14 @@ export const useUserStore = defineStore('user', {
             this.isLoadingHistory = true; this.errorHistory = null;
             try {
                 console.log(`[UserStore:fetchHistory] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
-                const response = await api.getAnalysesHistory();
-                this.history = response.data;
+                const response = await api.getAnalysesHistory(); // Получаем ответ
+
+                // --- ДОБАВЛЕННЫЙ ЛОГ ---
+                // Выводим сырые данные ДО того, как они попадут в state
+                console.log('[UserStore:fetchHistory] Raw data received:', JSON.stringify(response.data));
+                // --- КОНЕЦ ДОБАВЛЕННОГО ЛОГА ---
+
+                this.history = response.data; // Сохраняем данные в state
                 console.log("[UserStore] History loaded, count:", this.history.length);
             } catch (err) {
                 console.error("[UserStore:fetchHistory] Error:", err);
@@ -187,7 +188,7 @@ export const useUserStore = defineStore('user', {
             if (!initDataHeader) { this.claimRewardError = "Telegram InitData не найден."; this.isClaimingReward = false; console.error("[UserStore:claimChannelReward] Missing InitData."); return; }
             try {
                 console.log(`[UserStore:claimChannelReward] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
-                const response = await api.claimChannelReward(); // Axios добавит заголовок
+                const response = await api.claimChannelReward();
                 console.log("[UserStore:claimChannelReward] Response received:", response.data);
                 const data = response.data;
                 if (data.success) {
@@ -206,5 +207,5 @@ export const useUserStore = defineStore('user', {
                 this.claimRewardError = errorMsg;
             } finally { this.isClaimingReward = false; console.log("[UserStore:claimChannelReward] Action finished."); }
         }
-    } // Конец actions
-}); // Конец defineStore
+    }
+});
