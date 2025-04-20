@@ -62,7 +62,7 @@
           <p>Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов. Стоимость: 1 ⭐️ (Telegram Star).</p>
 
           <button
-              @click="userStore.initiateDeepAnalysisPayment" <!-- <<<--- Вызываем оплату -->
+              @click="userStore.initiateDeepAnalysisPayment"
               :disabled="!userStore.canAttemptDeepAnalysis || userStore.isInitiatingDeepPayment || userStore.isDoingDeepAnalysis"
               class="deep-analysis-button"
           >
@@ -194,7 +194,84 @@ watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
 </script>
 
 <style scoped>
-  /* --- Добавьте стили для нового блока и кнопки --- */
+.personal-account { 
+  padding: 15px; 
+  color: var(--tg-theme-text-color); 
+  background-color: var(--tg-theme-bg-color); 
+  min-height: 100vh; 
+}
+.card { 
+  background-color: var(--tg-theme-secondary-bg-color); 
+  border-radius: 8px; 
+  padding: 15px; 
+  margin-bottom: 15px; 
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+}
+h1, h2 { 
+  color: var(--tg-theme-text-color); 
+  margin-top: 0; 
+  margin-bottom: 10px; 
+}
+h1 { 
+  font-size: 1.5em; 
+}
+h2 { 
+  font-size: 1.2em; 
+}
+p { 
+  margin-bottom: 10px; 
+  line-height: 1.5; 
+}
+strong { 
+  font-weight: 600; 
+}
+.capitalize { 
+  text-transform: capitalize; 
+}
+button, a.subscribe-button { 
+  display: inline-block; 
+  padding: 10px 15px; 
+  border-radius: 6px; 
+  text-decoration: none; 
+  font-weight: bold; 
+  cursor: pointer; 
+  border: none; 
+  text-align: center; 
+  margin-top: 5px; 
+  width: auto; 
+  transition: background-color 0.2s ease, opacity 0.2s ease; 
+  font-size: 1em; 
+}
+button:disabled {
+  background-color: #cccccc !important; 
+  color: #666666 !important; 
+  cursor: not-allowed; 
+  opacity: 0.7; 
+}
+button:hover:not(:disabled), a.subscribe-button:hover { 
+  opacity: 0.9; 
+}
+.error-message { color: var(--tg-theme-destructive-text-color); background-color: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.2); padding: 10px; border-radius: 4px; margin-top: 10px; }
+.success-message { color: #28a745; font-weight: bold; margin-top: 15px; }
+.info-message { color: var(--tg-theme-hint-color); font-size: 0.9em; margin-top: 10px; }
+.hint { color: var(--tg-theme-hint-color); font-size: 0.85em; display: block; margin-top: 3px; }
+.user-info { /* ... */ }
+.change-plan-button { background-color: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); margin-top: 10px; }
+.subscribe-button-main { background-color: var(--tg-theme-link-color); color: white; margin-top: 15px; display: block; width: 100%; }
+.reward-claimed-info p { color: #198754; font-weight: 500; margin-top: 15px; padding: 8px; background-color: rgba(25, 135, 84, 0.1); border-radius: 4px; text-align: center; }
+.history { /* ... */ }
+.reward-claim-view { text-align: center; }
+.reward-claim-view h1 { font-size: 1.4em; margin-bottom: 15px; }
+.reward-claim-view p { text-align: left; margin-bottom: 20px; }
+.steps { list-style: none; padding-left: 0; margin-top: 20px; text-align: left; }
+.steps li { margin-bottom: 25px; }
+.steps li span:first-child { display: block; margin-bottom: 8px; font-weight: 500; }
+.subscribe-button { background-color: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); width: 100%; margin-bottom: 5px; }
+.claim-button { background-color: #28a745; color: white; width: 100%; }
+.back-button { margin-top: 20px; background-color: var(--tg-theme-secondary-bg-color); color: var(--tg-theme-link-color); border: 1px solid var(--tg-theme-hint-color); }
+.back-button.secondary { background-color: transparent; }
+.spinner { display: inline-block; border: 2px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; width: 1em; height: 1em; animation: spin 1s ease-in-out infinite; margin-left: 8px; vertical-align: -0.15em; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .deep-analysis { /* Стили для карточки глубокого анализа */ }
 .deep-analysis-button {
     background-color: var(--tg-theme-link-color); /* Цвет ссылки для акцента */
