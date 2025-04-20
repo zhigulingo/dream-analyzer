@@ -30,7 +30,55 @@ const DEEP_ANALYSIS_PROMPT = `Ты — опытный психоаналитик
 Твой глубокий анализ:`;
 
 // --- Функция валидации InitData (такая же, как в других функциях) ---
-function validateTelegramData(initData, botToken) { /* ... ваш код валидации ... */ }
+function validateTelegramData(initData, botToken) {
+    if (!initData || !botToken) {
+        console.warn("[validateTelegramData] Missing initData or botToken");
+        return { valid: false, data: null, error: "Missing initData or botToken" };
+    }
+    const params = new URLSearchParams(initData);
+    const hash = params.get('hash');
+    if (!hash) {
+        console.warn("[validateTelegramData] Hash is missing in initData");
+        return { valid: false, data: null, error: "Hash is missing" };
+    }
+    params.delete('hash'); // Удаляем hash для проверки
+    const dataCheckArr = [];
+    params.sort(); // Важно сортировать параметры
+    params.forEach((value, key) => dataCheckArr.push(`${key}=${value}`));
+    const dataCheckString = dataCheckArr.join('\n');
+
+    try {
+        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+        const checkHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+        if (checkHash === hash) {
+            // Валидация успешна, пытаемся извлечь данные пользователя
+            const userDataString = params.get('user');
+            if (!userDataString) {
+                console.warn("[validateTelegramData] User data is missing in initData");
+                return { valid: true, data: null, error: "User data missing" }; // Валидно, но данных нет
+            }
+            try {
+                const userData = JSON.parse(decodeURIComponent(userDataString));
+                 // Проверяем наличие ID пользователя
+                 if (!userData || typeof userData.id === 'undefined') {
+                    console.warn("[validateTelegramData] Parsed user data is missing ID");
+                    return { valid: true, data: null, error: "User ID missing in parsed data" };
+                 }
+                return { valid: true, data: userData, error: null };
+            } catch (parseError) {
+                console.error("[validateTelegramData] Error parsing user data JSON:", parseError);
+                return { valid: true, data: null, error: "Failed to parse user data" }; // Валидно, но данные пользователя не распарсились
+            }
+        } else {
+            console.warn("[validateTelegramData] Hash mismatch during validation.");
+            return { valid: false, data: null, error: "Hash mismatch" };
+        }
+    } catch (error) {
+        console.error("[validateTelegramData] Crypto error during validation:", error);
+        return { valid: false, data: null, error: "Validation crypto error" };
+    }
+}
 // --- Вставьте сюда ТОЧНО ТАКУЮ ЖЕ функцию validateTelegramData, как в user-profile.js ---
 // (Важно: не забудьте скопировать ее сюда полностью)
 
