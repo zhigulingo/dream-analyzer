@@ -56,6 +56,40 @@
         </div>
       </section>
 
+      <!-- <<<--- НАЧАЛО НОВОГО БЛОКА ГЛУБОКОГО АНАЛИЗА --- -->
+      <section class="deep-analysis card">
+          <h2>Глубокий анализ</h2>
+          <p>Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов, чтобы выявить скрытые темы и закономерности. Требуется 1 токен.</p>
+
+          <button
+              @click="userStore.performDeepAnalysis"
+              :disabled="!userStore.canAttemptDeepAnalysis || userStore.isDoingDeepAnalysis"
+              class="deep-analysis-button"
+          >
+              <span v-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
+              <span v-else>Провести глубокий анализ (1 токен)</span>
+          </button>
+
+          <!-- Подсказка, почему кнопка может быть неактивна -->
+          <p v-if="!userStore.canAttemptDeepAnalysis && !userStore.isDoingDeepAnalysis" class="info-message hint">
+              <span v-if="userStore.isLoadingProfile || userStore.isLoadingHistory">Дождитесь загрузки данных...</span>
+              <span v-else-if="(userStore.profile?.tokens ?? 0) <= 0">Недостаточно токенов.</span>
+              <span v-else-if="(userStore.history?.length ?? 0) < REQUIRED_DREAMS">Нужно еще {{ REQUIRED_DREAMS - (userStore.history?.length ?? 0) }} сна/снов для анализа.</span>
+          </p>
+
+          <!-- Область для вывода результата -->
+          <div v-if="userStore.deepAnalysisResult" class="analysis-result card">
+              <h3>Результат глубокого анализа:</h3>
+              <pre>{{ userStore.deepAnalysisResult }}</pre>
+          </div>
+
+          <!-- Область для вывода ошибки -->
+          <div v-if="userStore.deepAnalysisError" class="error-message">
+              ⚠️ {{ userStore.deepAnalysisError }}
+          </div>
+      </section>
+      <!-- <<<--- КОНЕЦ НОВОГО БЛОКА ГЛУБОКОГО АНАЛИЗА --- -->
+
       <!-- Модальное окно смены тарифа -->
       <SubscriptionModal
         v-if="userStore.showSubscriptionModal"
@@ -84,7 +118,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch, computed } from 'vue';
 import { useUserStore } from '@/stores/user';
 import AnalysisHistoryList from '@/components/AnalysisHistoryList.vue';
 import SubscriptionModal from '@/components/SubscriptionModal.vue';
@@ -92,6 +126,8 @@ import SubscriptionModal from '@/components/SubscriptionModal.vue';
 const userStore = useUserStore();
 const tg = window.Telegram?.WebApp;
 const showRewardClaimView = ref(false);
+// Константа для шаблона
+const REQUIRED_DREAMS = 5;
 
 const goBackToAccount = () => {
     showRewardClaimView.value = false;
@@ -157,6 +193,38 @@ watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
 </script>
 
 <style scoped>
+  /* --- Добавьте стили для нового блока и кнопки --- */
+.deep-analysis { /* Стили для карточки глубокого анализа */ }
+.deep-analysis-button {
+    background-color: var(--tg-theme-link-color); /* Цвет ссылки для акцента */
+    color: white; /* Или другой контрастный цвет */
+    display: block;
+    width: 100%;
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+.deep-analysis-button .spinner.white { border-top-color: white; }
+
+.analysis-result {
+    margin-top: 20px;
+    background-color: var(--tg-theme-bg-color); /* Фон чуть темнее/светлее */
+    border: 1px solid var(--tg-theme-hint-color);
+    padding: 15px;
+    text-align: left;
+}
+.analysis-result h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+.analysis-result pre {
+    white-space: pre-wrap; /* Перенос строк */
+    word-wrap: break-word; /* Перенос слов */
+    font-family: inherit; /* Наследуем шрифт */
+    font-size: 0.95em;
+    line-height: 1.6;
+    color: var(--tg-theme-text-color);
+}
 /* --- Стили без изменений --- */
 /* ... (все ваши стили) ... */
 </style>
