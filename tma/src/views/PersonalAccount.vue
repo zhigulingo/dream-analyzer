@@ -2,8 +2,8 @@
   <div class="personal-account">
     <!-- Показываем или основной ЛК, или страницу получения награды -->
     <template v-if="!showRewardClaimView">
-      <h1>Личный кабинет</h1>
-
+      
+     <FactsCarousel />
       <!-- Блок 1: Информация о пользователе -->
       <section class="user-info card">
         <h2>Ваш профиль</h2>
