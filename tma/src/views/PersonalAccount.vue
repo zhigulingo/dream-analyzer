@@ -119,18 +119,11 @@
 </template>
 
 <script setup>
-  // <<<--- НАЧАЛО: ИМПОРТ НОВОГО КОМПОНЕНТА ---
 import { onMounted, ref, watch, computed } from 'vue';
 import { useUserStore } from '@/stores/user';
 import AnalysisHistoryList from '@/components/AnalysisHistoryList.vue';
 import SubscriptionModal from '@/components/SubscriptionModal.vue';
-import FactsCarousel from '@/components/FactsCarousel.vue'; // <<<--- ИМПОРТ
-// <<<--- КОНЕЦ: ИМПОРТ НОВОГО КОМПОНЕНТА ---
-
-import { onMounted, ref, watch, computed } from 'vue';
-import { useUserStore } from '@/stores/user';
-import AnalysisHistoryList from '@/components/AnalysisHistoryList.vue';
-import SubscriptionModal from '@/components/SubscriptionModal.vue';
+import FactsCarousel from '@/components/FactsCarousel.vue';
 
 const userStore = useUserStore();
 const tg = window.Telegram?.WebApp;
