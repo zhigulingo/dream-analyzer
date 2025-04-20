@@ -94,10 +94,124 @@ try {
         }
     });
 
-    // Другие обработчики (без изменений)
-    bot.on('pre_checkout_query', async (ctx) => { /* ... */ });
-    bot.on('message:successful_payment', async (ctx) => { /* ... */ });
-    bot.catch((err) => { /* ... */ });
+   // Обработчик pre_checkout_query (БЕЗ ИЗМЕНЕНИЙ)
+    bot.on('pre_checkout_query', async (ctx) => {
+        console.log("[Bot:Handler pre_checkout_query] Received:", JSON.stringify(ctx.preCheckoutQuery));
+        try {
+            await ctx.answerPreCheckoutQuery(true);
+            console.log("[Bot:Handler pre_checkout_query] Answered TRUE.");
+        } catch (error) { console.error("[Bot:Handler pre_checkout_query] Failed to answer:", error); try { await ctx.answerPreCheckoutQuery(false, "Internal error"); } catch (e) {} }
+    });
+
+    // Обработчик successful_payment (БЕЗ ИЗМЕНЕНИЙ)
+    bot.on('message:successful_payment', async (ctx) => {
+        console.log("[Bot:Handler successful_payment] Received:", JSON.stringify(ctx.message.successful_payment));
+        const payment = ctx.message.successful_payment; const userId = ctx.from.id;
+        // Убедимся, что invoice_payload существует
+        const payload = payment.invoice_payload;
+        if (!payload) { console.error(`[Bot] Missing invoice_payload in successful_payment from user ${userId}`); return; }
+
+        const parts = payload.split('_');
+        // Проверка формата payload (sub_plan_duration_tgUserId)
+        if (parts.length < 4 || parts[0] !== 'sub') { console.error(`[Bot] Invalid payload format: ${payload} from user ${userId}`); return; }
+
+        const plan = parts[1];
+        const durationMonths = parseInt(parts[2].replace('mo', ''), 10);
+        const payloadUserId = parseInt(parts[3], 10);
+
+        // Проверка корректности данных из payload
+        if (isNaN(durationMonths) || isNaN(payloadUserId) || payloadUserId !== userId) {
+            console.error(`[Bot] Payload data error or mismatch: Payload=${payload}, Sender=${userId}`);
+             // Можно уведомить пользователя о проблеме
+             await ctx.reply("Получен платеж с некорректными данными. Свяжитесь с поддержкой, если средства списаны.").catch(logReplyError);
+            return;
+        }
+
+        console.log(`[Bot] Processing payment for ${userId}: Plan=${plan}, Duration=${durationMonths}mo.`);
+        try {
+            if (!supabaseAdmin) { throw new Error("Supabase client unavailable"); } // Проверка на всякий случай
+
+            // Используем транзакцию для надежности
+            const { error: txError } = await supabaseAdmin.rpc('process_successful_payment', {
+                user_tg_id: userId,
+                plan_type: plan,
+                duration_months: durationMonths
+            });
+
+            if (txError) {
+                 console.error(`[Bot] Error calling process_successful_payment RPC for ${userId}:`, txError);
+                 throw new Error("Database update failed during payment processing.");
+            }
+
+            // RPC сама вычислит дату и добавит токены
+            console.log(`[Bot] Successfully processed payment via RPC for user ${userId}. Plan=${plan}, Duration=${durationMonths}mo`);
+            await ctx.reply(`Спасибо! Ваша подписка "${plan.toUpperCase()}" успешно активирована/продлена. Токены начислены. Приятного анализа снов! ✨`).catch(logReplyError);
+
+        } catch (error) {
+            console.error(`[Bot] Failed to process payment for ${userId}:`, error);
+            await ctx.reply("Ваш платеж получен, но произошла ошибка при обновлении подписки. Пожалуйста, свяжитесь с поддержкой.").catch(logReplyError);
+        }
+    });
+
+    // Обработчик successful_payment (ИСПРАВЛЕНО)
+    bot.on('message:successful_payment', async (ctx) => {
+        console.log("[Bot Handler successful_payment] Received:", JSON.stringify(ctx.message.successful_payment));
+        const payment = ctx.message.successful_payment;
+        const userId = ctx.from.id;
+        const payload = payment.invoice_payload;
+    
+        if (!payload) { console.error(`[Bot Handler successful_payment] Missing payload from user ${userId}`); return; }
+    
+        const parts = payload.split('_');
+        const paymentType = parts[0]; // 'sub' или 'deepanalysis'
+    
+        try {
+            if (!supabaseAdmin) { throw new Error("Supabase client unavailable"); }
+    
+            if (paymentType === 'sub' && parts.length >= 4) {
+                // --- Обработка покупки ПОДПИСКИ (как раньше, через RPC) ---
+                const plan = parts[1];
+                const durationMonths = parseInt(parts[2].replace('mo', ''), 10);
+                const payloadUserId = parseInt(parts[3], 10);
+                if (isNaN(durationMonths) || isNaN(payloadUserId) || payloadUserId !== userId) { console.error(`[Bot Handler successful_payment] Sub Payload error/mismatch: ${payload}`); await ctx.reply("Ошибка данных платежа подписки.").catch(logReplyError); return; }
+    
+                console.log(`[Bot Handler successful_payment] Processing SUBSCRIPTION payment for ${userId}: Plan=${plan}, Duration=${durationMonths}mo.`);
+                const { error: txError } = await supabaseAdmin.rpc('process_successful_payment', { user_tg_id: userId, plan_type: plan, duration_months: durationMonths });
+                if (txError) { console.error(`[Bot Handler successful_payment] RPC error for sub payment ${userId}:`, txError); throw new Error("DB update failed for subscription."); }
+                console.log(`[Bot Handler successful_payment] Subscription payment processed via RPC for ${userId}.`);
+                await ctx.reply(`Спасибо! Ваша подписка "${plan.toUpperCase()}" успешно активирована/продлена. ✨`).catch(logReplyError);
+    
+            } else if (paymentType === 'deepanalysis' && parts.length >= 2) {
+                // --- Обработка покупки ГЛУБОКОГО АНАЛИЗА ---
+                const payloadUserId = parseInt(parts[1], 10);
+                 if (isNaN(payloadUserId) || payloadUserId !== userId) { console.error(`[Bot Handler successful_payment] Deep Analysis Payload error/mismatch: ${payload}`); await ctx.reply("Ошибка данных платежа глубокого анализа.").catch(logReplyError); return; }
+    
+                console.log(`[Bot Handler successful_payment] Processing DEEP ANALYSIS payment for ${userId}.`);
+                // Здесь можно просто залогировать или записать в отдельную таблицу покупок, если нужно
+                // Ничего не делаем с таблицей users (токены/подписка)
+                 await ctx.reply("Спасибо за покупку! Глубокий анализ будет доступен в приложении.").catch(logReplyError); // Можно и не отправлять ответ
+    
+            } else {
+                // Неизвестный формат payload
+                console.error(`[Bot Handler successful_payment] Unknown or invalid payload format: ${payload} from user ${userId}`);
+                await ctx.reply("Получен платеж с неизвестным назначением.").catch(logReplyError);
+            }
+    
+        } catch (error) {
+            console.error(`[Bot Handler successful_payment] Failed process payment for ${userId}:`, error);
+            await ctx.reply("Платеж получен, но произошла ошибка при его обработке. Свяжитесь с поддержкой.").catch(logReplyError);
+        }
+    });
+
+    // Обработчик ошибок (БЕЗ ИЗМЕНЕНИЙ)
+    bot.catch((err) => {
+        const ctx = err.ctx; const e = err.error;
+        console.error(`[Bot] Error caught by bot.catch for update ${ctx?.update?.update_id}:`);
+        if (e instanceof GrammyError) console.error("GrammyError:", e.description, e.payload);
+        else if (e instanceof HttpError) console.error("HttpError:", e);
+        else if (e instanceof Error) console.error("Error:", e.stack || e.message); // Логируем стек для обычных ошибок
+        else console.error("Unknown error object:", e);
+    });
 
     console.log("[Bot Global Init] Handlers setup complete.");
     botInitializedAndHandlersSet = true;
