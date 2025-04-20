@@ -12,6 +12,10 @@ export const useUserStore = defineStore('user', {
     claimRewardSuccessMessage: null,
     rewardAlreadyClaimed: false,
     userCheckedSubscription: false,
+     // --- Состояние для глубокого анализа ---
+    isDoingDeepAnalysis: false,
+    deepAnalysisResult: null,
+    deepAnalysisError: null,
     // --- Основное состояние ---
     profile: { tokens: null, subscription_type: 'free', subscription_end: null, channel_reward_claimed: false },
     history: [],
@@ -28,6 +32,15 @@ export const useUserStore = defineStore('user', {
     // --- Геттеры для UI награды ---
     canAttemptClaim: (state) => !state.profile?.channel_reward_claimed && !state.isClaimingReward,
     showClaimRewardSection: (state) => !state.isLoadingProfile && state.profile && !state.profile.channel_reward_claimed,
+    // --- Геттер для кнопки глубокого анализа ---
+    // Активна, если профиль загружен, не идет другой анализ, есть токены И есть достаточно истории
+    canAttemptDeepAnalysis: (state) =>
+        !state.isLoadingProfile &&
+        state.profile &&
+        !state.isDoingDeepAnalysis && // Не идет уже глубокий анализ
+        !state.isLoadingHistory && // Не грузится история (на всякий случай)
+        (state.profile.tokens ?? 0) > 0 && // Есть хотя бы 1 токен
+        state.history && state.history.length >= 5, // Есть 5 или больше записей в истории
     // --- Основные геттеры ---
     isPremium: (state) => state.profile.subscription_type === 'premium',
     // <<<--- НАЧАЛО ИСПРАВЛЕНИЯ ЦЕН ---
@@ -162,6 +175,55 @@ export const useUserStore = defineStore('user', {
              let errorMsg = 'Ошибка сети/сервера.'; if (err.response?.data?.error) { errorMsg = err.response.data.error; } else if (err.message) { errorMsg = err.message; }
              this.claimRewardError = errorMsg;
         } finally { this.isClaimingReward = false; console.log("[UserStore:claimChannelReward] Action finished."); }
+    },
+    
+  // <<<--- НОВЫЙ ЭКШЕН ДЛЯ ГЛУБОКОГО АНАЛИЗА ---
+    async performDeepAnalysis() {
+      console.log("[UserStore:performDeepAnalysis] Action started.");
+      this.isDoingDeepAnalysis = true;
+      this.deepAnalysisResult = null; // Сбрасываем предыдущий результат
+      this.deepAnalysisError = null;  // Сбрасываем предыдущую ошибку
+
+      // Проверка initData (на всякий случай)
+      const tg = window.Telegram?.WebApp;
+      const initDataHeader = tg?.initData;
+      if (!initDataHeader) {
+          this.deepAnalysisError = "Telegram InitData не найден. Перезапустите приложение.";
+          this.isDoingDeepAnalysis = false;
+          console.error("[UserStore:performDeepAnalysis] Missing InitData.");
+          return;
+      }
+
+      try {
+          console.log("[UserStore:performDeepAnalysis] Calling API...");
+          const response = await api.getDeepAnalysis(); // Вызываем новый метод API
+          console.log("[UserStore:performDeepAnalysis] Response received:", response.data);
+
+          if (response.data.success) {
+              this.deepAnalysisResult = response.data.analysis; // Сохраняем результат
+              // Важно: Обновляем профиль, т.к. токен был списан
+              await this.fetchProfile();
+          } else {
+              // Ошибка, возвращенная бэкендом (недостаточно токенов, снов и т.д.)
+              this.deepAnalysisError = response.data.error || "Не удалось выполнить глубокий анализ.";
+          }
+
+      } catch (err) {
+          console.error("[UserStore:performDeepAnalysis] API Error caught:", err);
+          // Обработка ошибок сети или других ошибок Axios/бэкенда
+          let errorMsg = 'Ошибка сети или сервера при выполнении глубокого анализа.';
+          if (err.response?.status === 402) { // Конкретная ошибка нехватки токенов
+              errorMsg = err.response.data.error || 'Недостаточно токенов для глубокого анализа.';
+          } else if (err.response?.data?.error) {
+              errorMsg = err.response.data.error; // Используем сообщение от бэкенда
+          } else if (err.message) {
+              errorMsg = err.message;
+          }
+          this.deepAnalysisError = errorMsg;
+      } finally {
+          this.isDoingDeepAnalysis = false;
+          console.log("[UserStore:performDeepAnalysis] Action finished.");
+      }
     }
   } // Конец actions
 }); // Конец defineStore
