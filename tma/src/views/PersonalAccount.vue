@@ -56,39 +56,40 @@
         </div>
       </section>
 
-      <!-- <<<--- НАЧАЛО НОВОГО БЛОКА ГЛУБОКОГО АНАЛИЗА --- -->
+      <!-- Блок глубокого анализа (ИЗМЕНЕНО) -->
       <section class="deep-analysis card">
           <h2>Глубокий анализ</h2>
-          <p>Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов, чтобы выявить скрытые темы и закономерности. Требуется 1 токен.</p>
+          <p>Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов. Стоимость: 1 ⭐️ (Telegram Star).</p>
 
           <button
-              @click="userStore.performDeepAnalysis"
-              :disabled="!userStore.canAttemptDeepAnalysis || userStore.isDoingDeepAnalysis"
+              @click="userStore.initiateDeepAnalysisPayment" <!-- <<<--- Вызываем оплату -->
+              :disabled="!userStore.canAttemptDeepAnalysis || userStore.isInitiatingDeepPayment || userStore.isDoingDeepAnalysis"
               class="deep-analysis-button"
           >
-              <span v-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
-              <span v-else>Провести глубокий анализ (1 токен)</span>
+              <!-- Показываем разные состояния кнопки -->
+              <span v-if="userStore.isInitiatingDeepPayment">Создаем счет... <span class="spinner white"></span></span>
+              <span v-else-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
+              <span v-else>Провести глубокий анализ (1 ⭐️)</span>
           </button>
 
-          <!-- Подсказка, почему кнопка может быть неактивна -->
-          <p v-if="!userStore.canAttemptDeepAnalysis && !userStore.isDoingDeepAnalysis" class="info-message hint">
+          <!-- Подсказка -->
+          <p v-if="!userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis" class="info-message hint">
               <span v-if="userStore.isLoadingProfile || userStore.isLoadingHistory">Дождитесь загрузки данных...</span>
-              <span v-else-if="(userStore.profile?.tokens ?? 0) <= 0">Недостаточно токенов.</span>
+              <!-- Токены больше не проверяем -->
               <span v-else-if="(userStore.history?.length ?? 0) < REQUIRED_DREAMS">Нужно еще {{ REQUIRED_DREAMS - (userStore.history?.length ?? 0) }} сна/снов для анализа.</span>
           </p>
 
-          <!-- Область для вывода результата -->
+          <!-- Результат анализа -->
           <div v-if="userStore.deepAnalysisResult" class="analysis-result card">
               <h3>Результат глубокого анализа:</h3>
               <pre>{{ userStore.deepAnalysisResult }}</pre>
           </div>
 
-          <!-- Область для вывода ошибки -->
-          <div v-if="userStore.deepAnalysisError" class="error-message">
-              ⚠️ {{ userStore.deepAnalysisError }}
+          <!-- Ошибка анализа ИЛИ Ошибка инициации платежа -->
+          <div v-if="userStore.deepAnalysisError || userStore.deepPaymentError" class="error-message">
+              ⚠️ {{ userStore.deepAnalysisError || userStore.deepPaymentError }}
           </div>
       </section>
-      <!-- <<<--- КОНЕЦ НОВОГО БЛОКА ГЛУБОКОГО АНАЛИЗА --- -->
 
       <!-- Модальное окно смены тарифа -->
       <SubscriptionModal
