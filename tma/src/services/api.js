@@ -95,6 +95,14 @@ const apiMethods = {
     return apiClient.get('/analyses-history');
   }, // <--- Запятая
 
+  // <<<--- НОВЫЙ МЕТОД ДЛЯ ГЛУБОКОГО АНАЛИЗА ---
+  getDeepAnalysis() {
+    console.log("[api.js] Calling POST /deep-analysis");
+    // Используем POST, так как это действие потребляет токен
+    // Тело запроса не нужно, ID пользователя берется из InitData на бэкенде
+    return apiClient.post('/deep-analysis');
+  },
+
   // Метод для создания ссылки на инвойс
   createInvoiceLink(plan, duration, amount, payload) {
      console.log("[api.js] Calling POST /create-invoice");
