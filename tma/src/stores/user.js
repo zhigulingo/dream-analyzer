@@ -226,7 +226,7 @@ export const useUserStore = defineStore('user', {
 
         const tg = window.Telegram?.WebApp;
         let tgUserId = null, initDataHeader = null;
-        const amount = 1; // Цена - 1 звезда
+        const amount = 50; // Цена - 1 звезда
         const plan = 'deep_analysis'; // Идентификатор продукта
 
         try {
