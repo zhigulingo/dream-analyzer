@@ -153,7 +153,7 @@ onMounted(async () => {
     if (tg) {
         tg.ready();
         console.log("[PersonalAccount] Telegram WebApp is ready.");
-        tg.expand();
+        tg.requestFullscreen();
         console.log("[PersonalAccount] Attempted to expand WebApp.");
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
