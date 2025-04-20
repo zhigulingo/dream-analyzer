@@ -165,21 +165,7 @@ exports.handler = async (event) => {
 
 
     try {
-        // 1. Списать токен (используем ту же RPC, что и для обычного анализа)
-        console.log(`[deep-analysis] Attempting to decrement token for user ${verifiedUserId}...`);
-        const { data: tokenDecremented, error: rpcError } = await supabase
-            .rpc('decrement_token_if_available', { user_tg_id: verifiedUserId });
-
-        if (rpcError) {
-            console.error(`[deep-analysis] RPC error decrementing token for ${verifiedUserId}:`, rpcError);
-            throw new Error("Ошибка базы данных при проверке токенов.");
-        }
-        if (!tokenDecremented) {
-            console.log(`[deep-analysis] Not enough tokens for deep analysis for user ${verifiedUserId}.`);
-            return { statusCode: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: false, error: 'Недостаточно токенов для глубокого анализа.' }) }; // 402 Payment Required
-        }
-        console.log(`[deep-analysis] Token successfully decremented for user ${verifiedUserId}.`);
-
+        
         // 2. Получить ID пользователя в нашей базе
         const { data: user, error: userFindError } = await supabase
             .from('users').select('id').eq('tg_id', verifiedUserId).single();
