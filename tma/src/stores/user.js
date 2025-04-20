@@ -12,8 +12,10 @@ export const useUserStore = defineStore('user', {
     claimRewardSuccessMessage: null,
     rewardAlreadyClaimed: false,
     userCheckedSubscription: false,
-     // --- Состояние для глубокого анализа ---
-    isDoingDeepAnalysis: false,
+    // --- Состояние для глубокого анализа (оплата + выполнение) ---
+    isInitiatingDeepPayment: false, // Флаг инициации платежа
+    deepPaymentError: null,         // Ошибка инициации платежа
+    isDoingDeepAnalysis: false,     // Флаг выполнения анализа (ПОСЛЕ оплаты)
     deepAnalysisResult: null,
     deepAnalysisError: null,
     // --- Основное состояние ---
@@ -32,15 +34,15 @@ export const useUserStore = defineStore('user', {
     // --- Геттеры для UI награды ---
     canAttemptClaim: (state) => !state.profile?.channel_reward_claimed && !state.isClaimingReward,
     showClaimRewardSection: (state) => !state.isLoadingProfile && state.profile && !state.profile.channel_reward_claimed,
-    // --- Геттер для кнопки глубокого анализа ---
-    // Активна, если профиль загружен, не идет другой анализ, есть токены И есть достаточно истории
+       // <<<--- ИЗМЕНЕН ГЕТТЕР ДЛЯ ГЛУБОКОГО АНАЛИЗА ---
+    // Теперь проверяем только наличие 5 снов и не идет ли процесс оплаты/анализа
     canAttemptDeepAnalysis: (state) =>
-        !state.isLoadingProfile &&
-        state.profile &&
-        !state.isDoingDeepAnalysis && // Не идет уже глубокий анализ
-        !state.isLoadingHistory && // Не грузится история (на всякий случай)
-        (state.profile.tokens ?? 0) > 0 && // Есть хотя бы 1 токен
-        state.history && state.history.length >= 5, // Есть 5 или больше записей в истории
+        !state.isLoadingProfile && // Профиль загружен
+        !state.isInitiatingDeepPayment && // Не идет оплата
+        !state.isDoingDeepAnalysis &&    // Не идет анализ
+        !state.isLoadingHistory &&
+        state.history && state.history.length >= 5, // Есть 5 или больше записей
+    // >>>--- КОНЕЦ ИЗМЕНЕНИЯ ГЕТТЕРА ---
     // --- Основные геттеры ---
     isPremium: (state) => state.profile.subscription_type === 'premium',
     // <<<--- НАЧАЛО ИСПРАВЛЕНИЯ ЦЕН ---
@@ -179,51 +181,126 @@ export const useUserStore = defineStore('user', {
     
   // <<<--- НОВЫЙ ЭКШЕН ДЛЯ ГЛУБОКОГО АНАЛИЗА ---
     async performDeepAnalysis() {
-      console.log("[UserStore:performDeepAnalysis] Action started.");
-      this.isDoingDeepAnalysis = true;
-      this.deepAnalysisResult = null; // Сбрасываем предыдущий результат
-      this.deepAnalysisError = null;  // Сбрасываем предыдущую ошибку
+        console.log("[UserStore:performDeepAnalysis] Action started (post-payment).");
+        this.isDoingDeepAnalysis = true;
+        this.deepAnalysisResult = null;
+        this.deepAnalysisError = null;
 
       // Проверка initData (на всякий случай)
-      const tg = window.Telegram?.WebApp;
-      const initDataHeader = tg?.initData;
-      if (!initDataHeader) {
-          this.deepAnalysisError = "Telegram InitData не найден. Перезапустите приложение.";
-          this.isDoingDeepAnalysis = false;
-          console.error("[UserStore:performDeepAnalysis] Missing InitData.");
-          return;
-      }
+     const tg = window.Telegram?.WebApp; const initDataHeader = tg?.initData;
+        if (!initDataHeader) { this.deepAnalysisError = "Telegram InitData не найден."; this.isDoingDeepAnalysis = false; return; }
 
-      try {
-          console.log("[UserStore:performDeepAnalysis] Calling API...");
-          const response = await api.getDeepAnalysis(); // Вызываем новый метод API
-          console.log("[UserStore:performDeepAnalysis] Response received:", response.data);
+        try {
+            console.log("[UserStore:performDeepAnalysis] Calling API /deep-analysis...");
+            // Вызываем эндпоинт анализа (токен больше не списывается там)
+            const response = await api.getDeepAnalysis();
+            console.log("[UserStore:performDeepAnalysis] Response received:", response.data);
 
-          if (response.data.success) {
-              this.deepAnalysisResult = response.data.analysis; // Сохраняем результат
-              // Важно: Обновляем профиль, т.к. токен был списан
-              await this.fetchProfile();
-          } else {
-              // Ошибка, возвращенная бэкендом (недостаточно токенов, снов и т.д.)
-              this.deepAnalysisError = response.data.error || "Не удалось выполнить глубокий анализ.";
-          }
+            if (response.data.success) {
+                this.deepAnalysisResult = response.data.analysis;
+                // Профиль обновлять не нужно, т.к. токены не менялись
+            } else {
+                // Ошибка от бэкенда (мало снов и т.д.)
+                this.deepAnalysisError = response.data.error || "Не удалось выполнить глубокий анализ.";
+            }
+        } catch (err) {
+            console.error("[UserStore:performDeepAnalysis] API Error:", err);
+            let errorMsg = 'Ошибка сети/сервера при выполнении анализа.';
+            if (err.response?.data?.error) { errorMsg = err.response.data.error; }
+            else if (err.message) { errorMsg = err.message; }
+            this.deepAnalysisError = errorMsg;
+        } finally {
+            this.isDoingDeepAnalysis = false;
+            console.log("[UserStore:performDeepAnalysis] Action finished.");
+        }
+    },
+    // >>>--- КОНЕЦ ЭКШЕНА ЗАПУСКА АНАЛИЗА ---
 
-      } catch (err) {
-          console.error("[UserStore:performDeepAnalysis] API Error caught:", err);
-          // Обработка ошибок сети или других ошибок Axios/бэкенда
-          let errorMsg = 'Ошибка сети или сервера при выполнении глубокого анализа.';
-          if (err.response?.status === 402) { // Конкретная ошибка нехватки токенов
-              errorMsg = err.response.data.error || 'Недостаточно токенов для глубокого анализа.';
-          } else if (err.response?.data?.error) {
-              errorMsg = err.response.data.error; // Используем сообщение от бэкенда
-          } else if (err.message) {
-              errorMsg = err.message;
-          }
-          this.deepAnalysisError = errorMsg;
-      } finally {
-          this.isDoingDeepAnalysis = false;
-          console.log("[UserStore:performDeepAnalysis] Action finished.");
-      }
+    // <<<--- НОВЫЙ ЭКШЕН ДЛЯ ИНИЦИАЦИИ ОПЛАТЫ STARS ЗА АНАЛИЗ ---
+    async initiateDeepAnalysisPayment() {
+        console.log("[UserStore:initiateDeepPayment] Action started.");
+        this.isInitiatingDeepPayment = true;
+        this.deepPaymentError = null;
+        this.deepAnalysisResult = null; // Сбросим старый результат
+        this.deepAnalysisError = null;  // Сбросим старую ошибку анализа
+
+        const tg = window.Telegram?.WebApp;
+        let tgUserId = null, initDataHeader = null;
+        const amount = 1; // Цена - 1 звезда
+        const plan = 'deep_analysis'; // Идентификатор продукта
+
+        try {
+            tgUserId = tg?.initDataUnsafe?.user?.id;
+            initDataHeader = tg?.initData;
+            if (!tgUserId || !initDataHeader) { throw new Error("Не удалось получить данные Telegram."); }
+
+            // Формируем payload: deepanalysis_tgUserId
+            const payload = `deepanalysis_${tgUserId}`;
+            console.log("[UserStore:initiateDeepPayment] Payload:", payload, "Amount:", amount);
+
+            // Блокируем кнопку на время запроса инвойса
+            // (Индикатор загрузки будет управляться isInitiatingDeepPayment)
+
+            console.log("[UserStore:initiateDeepPayment] Preparing invoice request...");
+            const baseUrl = import.meta.env.VITE_API_BASE_URL;
+            if (!baseUrl) { throw new Error("VITE_API_BASE_URL не настроен."); }
+            const targetUrl = `${baseUrl}/create-invoice`;
+
+            const requestOptions = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initDataHeader },
+                body: JSON.stringify({ plan: plan, amount: amount, payload: payload, duration: 0 }) // duration не важен
+            };
+
+            console.log("[UserStore:initiateDeepPayment] Sending invoice request...");
+            const response = await fetch(targetUrl, requestOptions);
+            console.log("[UserStore:initiateDeepPayment] Invoice response:", response.status, response.ok);
+
+            if (!response.ok) {
+                let errorText = `HTTP ${response.status}`;
+                try { const d = await response.json(); errorText = d.error || JSON.stringify(d); } catch (e) {}
+                throw new Error(`Ошибка создания счета: ${errorText}`);
+            }
+
+            const responseData = await response.json();
+            const invoiceUrl = responseData?.invoiceUrl;
+            if (!invoiceUrl) { throw new Error("Не удалось получить ссылку на счет от сервера."); }
+            console.log("[UserStore:initiateDeepPayment] Received invoice URL:", invoiceUrl);
+
+            // Открываем инвойс
+            if (tg?.openInvoice) {
+                console.log("[UserStore:initiateDeepPayment] Calling tg.openInvoice...");
+                tg.openInvoice(invoiceUrl, (status) => {
+                    console.log("[UserStore:initiateDeepPayment] Invoice status callback:", status);
+                    if (status === 'paid') {
+                        alert("Оплата прошла успешно! Начинаем глубокий анализ...");
+                        // <<<--- ВЫЗЫВАЕМ АНАЛИЗ ПОСЛЕ ОПЛАТЫ ---
+                        this.performDeepAnalysis();
+                        // >>>------------------------------------
+                    } else if (status === 'failed') {
+                        this.deepPaymentError = "Платеж не удался.";
+                        alert("Платеж не удался.");
+                    } else if (status === 'cancelled') {
+                        this.deepPaymentError = "Платеж отменен.";
+                        // alert("Платеж отменен."); // Можно не показывать alert при отмене
+                    } else {
+                        this.deepPaymentError = `Неизвестный статус платежа: ${status}.`;
+                        alert(`Статус платежа: ${status}.`);
+                    }
+                    // Сбрасываем флаг инициации в любом случае после закрытия окна
+                    this.isInitiatingDeepPayment = false;
+                });
+            } else { throw new Error("Метод Telegram openInvoice недоступен."); }
+
+        } catch (error) {
+            console.error("[UserStore:initiateDeepPayment] Error caught:", error);
+            this.deepPaymentError = `Ошибка: ${error.message || 'Неизвестная ошибка'}`;
+            alert(this.deepPaymentError);
+            this.isInitiatingDeepPayment = false; // Сбрасываем флаг при ошибке
+        }
+        // Не сбрасываем флаг isInitiatingDeepPayment здесь, если openInvoice был вызван,
+        // он сбросится в колбэке openInvoice.
     }
-  } // Конец actions
-}); // Конец defineStore
+    // >>>--- КОНЕЦ НОВОГО ЭКШЕНА ОПЛАТЫ ---
+  }
+});
