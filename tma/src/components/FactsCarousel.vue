@@ -22,7 +22,7 @@
         <div
           v-for="(fact, index) in facts"
           :key="fact.id"
-          class="fact-card" /* Добавим фон и отступы для вида "объекта" */
+          class="fact-card"
         >
           <p>{{ fact.text }}</p>
         </div>
