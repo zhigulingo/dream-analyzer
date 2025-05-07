@@ -134,6 +134,13 @@ const goBackToAccount = () => {
 
 const handleClaimRewardClick = async () => { await userStore.claimChannelReward(); };
 
+// --- НОВАЯ ФУНКЦИЯ ДЛЯ ОПРЕДЕЛЕНИЯ МОБИЛЬНОГО УСТРОЙСТВА ---
+const isMobileDevice = () => {
+  if (!navigator?.userAgent) return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+// --- КОНЕЦ НОВОЙ ФУНКЦИИ ---
+
 onMounted(async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const isClaimRewardAction = urlParams.get('action') === 'claim_reward';
@@ -145,31 +152,48 @@ onMounted(async () => {
         tg.ready();
         console.log("[PersonalAccount] Telegram WebApp is ready.");
 
-        // Ваш вызов для полноэкранного режима (оставляем, как было)
-        if (typeof tg.requestFullscreen === 'function') {
-             tg.requestFullscreen();
-             console.log("[PersonalAccount] tg.requestFullscreen() called.");
+        // --- НАЧАЛО ИНТЕГРАЦИИ ЛОГИКИ РАЗМЕРА И ПОВЕДЕНИЯ ---
+        const isMobile = isMobileDevice(); // Определяем тип устройства
+
+        // 1. Управление размером окна
+        if (isMobile) {
+            if (typeof tg.requestFullscreen === 'function') {
+                tg.requestFullscreen();
+                console.log("[PersonalAccount] tg.requestFullscreen() called for mobile.");
+            } else {
+                console.warn("[PersonalAccount] tg.requestFullscreen is not a function for mobile.");
+            }
         } else {
-            console.warn("[PersonalAccount] tg.requestFullscreen is not a function.");
+            // На десктопе НЕ вызываем requestFullscreen, чтобы остался компактный вид
+            console.log("[PersonalAccount] Desktop device detected, not calling requestFullscreen.");
         }
 
-        // <<<--- НАЧАЛО ИЗМЕНЕНИЙ ДЛЯ СВАЙПА И ЗАКРЫТИЯ ---
-        // 1. Отключаем вертикальный свайп для закрытия (если доступно)
+        // Всегда расширяем приложение до максимальной высоты после готовности
+        // Это повлияет на высоту и на десктопе (в рамках его панели), и на мобильном.
+        if (typeof tg.expand === 'function') {
+            tg.expand();
+            console.log("[PersonalAccount] tg.expand() called.");
+        } else {
+            console.warn("[PersonalAccount] tg.expand is not a function.");
+        }
+
+        // 2. Отключаем вертикальный свайп для закрытия
         if (typeof tg.disableVerticalSwipes === 'function') {
             tg.disableVerticalSwipes();
             console.log("[PersonalAccount] Vertical swipes disabled.");
         } else {
-            console.warn("[PersonalAccount] tg.disableVerticalSwipes is not a function. Swipe behavior might not change.");
+            console.warn("[PersonalAccount] tg.disableVerticalSwipes is not a function.");
         }
 
-        // 2. Включаем подтверждение закрытия (для кнопки "Назад" и других способов)
+        // 3. Включаем подтверждение закрытия
         if (typeof tg.enableClosingConfirmation === 'function') {
             tg.enableClosingConfirmation();
             console.log("[PersonalAccount] Closing confirmation enabled.");
         } else {
             console.warn("[PersonalAccount] tg.enableClosingConfirmation is not a function.");
         }
-        // <<<--- КОНЕЦ ИЗМЕНЕНИЙ ДЛЯ СВАЙПА И ЗАКРЫТИЯ ---
+        // --- КОНЕЦ ИНТЕГРАЦИИ ЛОГИКИ РАЗМЕРА И ПОВЕДЕНИЯ ---
+
 
         // Настройка кнопки "Назад"
         if (typeof tg.BackButton?.show === 'function' && typeof tg.BackButton?.onClick === 'function') {
