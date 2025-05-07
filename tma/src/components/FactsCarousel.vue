@@ -1,36 +1,10 @@
 <template>
-  <div class="facts-carousel-swipe card">
-    <!-- Верхняя часть: Заголовок и Таймер -->
+  <div class="facts-carousel-horizontal card">
+    <!-- Верхняя часть: Заголовок и Пагинация/Таймер -->
     <div class="carousel-header">
       <h2>💡 Знаете ли вы?</h2>
-      <div class="progress-bar-container">
-        <div class="progress-bar" :style="{ animationDuration: `${autoAdvanceInterval}ms` }" :key="progressKey"></div>
-      </div>
-    </div>
-
-    <!-- Область для свайпа -->
-    <div
-      class="swipe-area"
-      ref="swipeAreaRef"
-      @touchstart.passive.stop="handleTouchStart"  <!-- Добавлен .stop -->
-      @touchmove.passive.stop="handleTouchMove"    <!-- Добавлен .stop -->
-      @touchend.stop="handleTouchEnd"              <!-- Добавлен .stop -->
-    >
-      <!-- Обертка для всех карточек -->
-      <div class="facts-wrapper" :style="wrapperStyle">
-        <!-- Карточки фактов -->
-        <div
-          v-for="(fact) in facts" <!-- Убрал index, если не используется в v-for -->
-          :key="fact.id"
-          class="fact-card"
-        >
-          <p>{{ fact.text }}</p>
-        </div>
-      </div>
-    </div>
-
-     <!-- Пагинация точками -->
-     <div class="pagination">
+      <!-- Пагинация точками теперь здесь для удобства -->
+      <div class="pagination">
         <span
           v-for="(fact, index) in facts"
           :key="`dot-${fact.id}`"
@@ -39,11 +13,40 @@
           @click="goToFact(index)"
         ></span>
       </div>
+      <!-- Контейнер для прогресс-бара (под пагинацией) -->
+      <div class="progress-bar-container">
+        <div class="progress-bar" :style="{ animationDuration: `${autoAdvanceInterval}ms` }" :key="progressKey"></div>
+      </div>
+    </div>
+
+    <!-- Область для свайпа/скролла -->
+    <div
+      class="swipe-area"
+      ref="swipeAreaRef"
+      @touchstart.passive.stop="handleTouchStart"
+      @touchmove.passive.stop="handleTouchMove"
+      @touchend.stop="handleTouchEnd"
+      @wheel.passive.stop="handleWheel" <!-- Добавим обработку колеса для десктопа -->
+    >
+      <!-- Обертка для всех карточек -->
+      <div class="facts-wrapper">
+        <!-- Карточки фактов -->
+        <div
+          v-for="(fact, index) in facts"
+          :key="fact.id"
+          :id="`fact-card-${index}`" <!-- Добавляем ID для scrollTo -->
+          class="fact-card"
+        >
+          <p>{{ fact.text }}</p>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 
 // --- Данные фактов ---
 const facts = ref([
@@ -66,55 +69,62 @@ const timerId = ref(null);
 const progressKey = ref(0); // Для перезапуска анимации прогресс-бара
 
 // --- Состояние для свайпа ---
-const swipeAreaRef = ref(null); // Реф для DOM-элемента
-const touchStartY = ref(0);
-const touchCurrentY = ref(0); // Текущая позиция для возможного live-смещения
-const isSwiping = ref(false); // Флаг, что свайп активен
+const swipeAreaRef = ref(null); // Реф для DOM-элемента .swipe-area
+const touchStartX = ref(0);
+const touchCurrentX = ref(0);
+const isSwiping = ref(false); // Флаг, что свайп пальцем активен
 const swipeThreshold = 50; // Порог свайпа в пикселях для смены слайда
-
-// --- Вычисляемые свойства ---
-const wrapperStyle = computed(() => {
-  let translateY = currentIndex.value * 100; // Базовое смещение в %
-
-  // Если идет активный свайп, можно добавить live-смещение (опционально, делает свайп "резиновым")
-  // Это усложняет, но может улучшить UX. Пока оставим без этого для простоты.
-  // if (isSwiping.value && swipeAreaRef.value) {
-  //   const swipeAreaHeight = swipeAreaRef.value.clientHeight;
-  //   if (swipeAreaHeight > 0) {
-  //      const dragOffset = touchStartY.value - touchCurrentY.value;
-  //      const dragOffsetPercent = (dragOffset / swipeAreaHeight) * 100;
-  //      translateY += dragOffsetPercent; // Добавляем смещение от перетаскивания
-  //   }
-  // }
-
-  return {
-    transform: `translateY(-${translateY}%)`,
-    // Анимация применяется только при смене индекса, а не во время "перетаскивания"
-    transition: isSwiping.value ? 'none' : 'transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1)',
-  };
-});
-
+const isWheeling = ref(false); // Флаг, что идет прокрутка колесом
 
 // --- Методы навигации и таймера ---
-const goToFact = (index) => {
-  const newIndex = Math.max(0, Math.min(index, facts.value.length - 1)); // Ограничиваем индекс
-  if (newIndex !== currentIndex.value) {
-    currentIndex.value = newIndex;
+const goToFact = async (index) => {
+  const newIndex = Math.max(0, Math.min(index, facts.value.length - 1));
+  currentIndex.value = newIndex; // Обновляем индекс для пагинации и логики
+
+  // Прокручиваем контейнер к выбранной карточке
+  if (swipeAreaRef.value) {
+    // Ждем следующего тика, чтобы DOM обновился (если карточки создаются динамически)
+    await nextTick();
+    const targetCard = swipeAreaRef.value.querySelector(`#fact-card-${newIndex}`);
+    if (targetCard) {
+        // Вычисляем позицию для центрирования карточки (или выравнивания по левому краю с учетом паддинга)
+        const container = swipeAreaRef.value;
+        const containerPaddingLeft = parseFloat(getComputedStyle(container).paddingLeft) || 0;
+        // Считаем позицию левого края карточки относительно контейнера + половина ширины контейнера - половина ширины карточки для центрирования
+        // Или проще - используем scrollIntoView с опциями, если поддерживается хорошо
+        // targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); // 'center' может не везде работать
+
+        // Более надежный способ - scrollLeft
+        const scrollLeftTarget = targetCard.offsetLeft - container.offsetLeft - containerPaddingLeft; // Выравнивание по левому краю (с учетом паддинга)
+        // Для центрирования:
+        // const scrollLeftTarget = targetCard.offsetLeft - container.offsetLeft - (container.offsetWidth / 2) + (targetCard.offsetWidth / 2);
+
+        container.scrollTo({
+          left: scrollLeftTarget,
+          behavior: 'smooth' // Плавная прокрутка
+        });
+        console.log(`[Carousel] Scrolling to index ${newIndex}, target scrollLeft: ${scrollLeftTarget}`);
+    } else {
+        console.warn(`[Carousel] Target card #fact-card-${newIndex} not found for scrolling.`);
+    }
   }
-  resetAutoAdvanceTimer(); // Перезапускаем таймер при любом взаимодействии
+  resetAutoAdvanceTimer(); // Перезапускаем таймер при любом программном переходе
 };
 
+
 const nextFact = () => {
-  goToFact(currentIndex.value + 1 < facts.value.length ? currentIndex.value + 1 : 0); // Циклический переход к первому
+  const nextIndex = currentIndex.value + 1 < facts.value.length ? currentIndex.value + 1 : 0;
+  goToFact(nextIndex);
 };
 
 const prevFact = () => {
-  goToFact(currentIndex.value - 1 >= 0 ? currentIndex.value - 1 : facts.value.length - 1); // Циклический переход к последнему
+  const prevIndex = currentIndex.value - 1 >= 0 ? currentIndex.value - 1 : facts.value.length - 1;
+  goToFact(prevIndex);
 };
 
 const startAutoAdvanceTimer = () => {
-  clearInterval(timerId.value); // Очищаем предыдущий таймер
-  progressKey.value++;        // Обновляем ключ для перезапуска CSS-анимации прогресс-бара
+  clearInterval(timerId.value);
+  progressKey.value++;
   timerId.value = setInterval(nextFact, autoAdvanceInterval.value);
 };
 
@@ -122,61 +132,79 @@ const resetAutoAdvanceTimer = () => {
   startAutoAdvanceTimer();
 };
 
-// --- Обработчики свайпа ---
+// --- Обработчики свайпа (Touch) ---
 const handleTouchStart = (event) => {
-  // event.stopPropagation() вызывается Vue из-за модификатора .stop
   if (event.touches.length === 1) {
-    touchStartY.value = event.touches[0].clientY;
-    touchCurrentY.value = touchStartY.value; // Инициализируем текущую позицию
-    isSwiping.value = true; // Начинаем свайп (для отключения transition)
-    clearInterval(timerId.value); // Пауза таймера во время свайпа
-    console.log(`[CarouselSwipe] TouchStart Y: ${touchStartY.value}`);
+    touchStartX.value = event.touches[0].clientX;
+    touchCurrentX.value = touchStartX.value;
+    isSwiping.value = true;
+    clearInterval(timerId.value);
+    console.log(`[CarouselSwipe] TouchStart X: ${touchStartX.value}`);
   }
 };
 
 const handleTouchMove = (event) => {
-  // event.stopPropagation() вызывается Vue из-за модификатора .stop
   if (!isSwiping.value || event.touches.length !== 1) return;
-  touchCurrentY.value = event.touches[0].clientY; // Обновляем текущую позицию
-  // Для live-смещения (если решите добавить):
-  // const deltaY = touchStartY.value - touchCurrentY.value;
-  // swipeAreaRef.value.querySelector('.facts-wrapper').style.transform = `translateY(calc(-${currentIndex.value * 100}% - ${deltaY}px))`;
-  console.log(`[CarouselSwipe] TouchMove Y: ${touchCurrentY.value}`);
+  touchCurrentX.value = event.touches[0].clientX;
+  // Можно добавить live-смещение здесь, но scroll-snap должен справляться
 };
 
-const handleTouchEnd = (event) => {
-  // event.stopPropagation() вызывается Vue из-за модификатора .stop
+const handleTouchEnd = () => {
   if (!isSwiping.value) return;
+  isSwiping.value = false;
 
-  const deltaY = touchStartY.value - touchCurrentY.value; // Положительный -> свайп вверх
-  console.log(`[CarouselSwipe] TouchEnd. Delta Y: ${deltaY}`);
+  const deltaX = touchStartX.value - touchCurrentX.value; // Положительный -> свайп влево
+  console.log(`[CarouselSwipe] TouchEnd. Delta X: ${deltaX}`);
 
-  isSwiping.value = false; // Важно: заканчиваем свайп ДО смены индекса, чтобы transition сработал
-
-  if (Math.abs(deltaY) > swipeThreshold) {
-    if (deltaY > 0) { // Свайп вверх (пользователь тянет контент снизу вверх)
+  if (Math.abs(deltaX) > swipeThreshold) {
+    if (deltaX > 0) { // Свайп влево
       console.log('[CarouselSwipe] Trigger NEXT fact');
-      nextFact(); // Показываем следующий факт (индекс увеличится)
-    } else { // Свайп вниз (пользователь тянет контент сверху вниз)
+      nextFact();
+    } else { // Свайп вправо
       console.log('[CarouselSwipe] Trigger PREV fact');
-      prevFact(); // Показываем предыдущий факт (индекс уменьшится)
+      prevFact();
     }
   } else {
-    // Свайп слишком короткий, или это был просто тап
     console.log('[CarouselSwipe] Swipe too short or tap, restarting timer.');
-    resetAutoAdvanceTimer(); // Просто перезапускаем таймер
+    resetAutoAdvanceTimer(); // Перезапускаем если свайп был коротким
   }
+  touchStartX.value = 0;
+  touchCurrentX.value = 0;
+};
 
-  // Сбрасываем координаты после обработки
-  touchStartY.value = 0;
-  touchCurrentY.value = 0;
+// --- Обработчик колеса мыши (Wheel) для десктопа ---
+const handleWheel = (event) => {
+    // Предотвращаем стандартный скролл страницы, если крутим над каруселью
+    // и есть горизонтальная прокрутка в карусели
+    const container = swipeAreaRef.value;
+    if (container && container.scrollWidth > container.clientWidth) {
+        // event.preventDefault(); // Может быть слишком агрессивно, мешает вертикальному скроллу страницы
+        event.stopPropagation(); // Останавливаем всплытие
+
+        // Плавно прокручиваем карусель
+        container.scrollBy({
+            left: event.deltaY > 0 ? 150 : -150, // Прокрутка на 150px влево/вправо
+            behavior: 'smooth'
+        });
+
+        // Перезапускаем таймер при скролле колесом
+        // Делаем это с небольшой задержкой, чтобы не перезапускать на каждый микро-шаг колеса
+        if (!isWheeling.value) {
+             isWheeling.value = true;
+             clearInterval(timerId.value); // Останавливаем таймер
+             setTimeout(() => {
+                resetAutoAdvanceTimer();
+                isWheeling.value = false;
+                console.log('[CarouselWheel] Restarting timer after wheel scroll.');
+             }, 300); // Задержка 300 мс
+        }
+    }
 };
 
 
 // --- Хуки жизненного цикла ---
 onMounted(() => {
   startAutoAdvanceTimer();
-  // Можно добавить слушатели для drag на мыши для десктопа, если нужно
 });
 
 onUnmounted(() => {
@@ -186,117 +214,134 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.facts-carousel-swipe {
-  padding: 0; /* Убираем внутренние отступы у родителя карточки */
-  overflow: hidden; /* Важно для обрезки контента */
+.facts-carousel-horizontal {
+  padding: 0;
+  overflow: hidden; /* Важно */
   position: relative;
-  /* margin-top: 20px; -- убрал, т.к. .card уже имеет margin-bottom */
   background-color: var(--tg-theme-secondary-bg-color);
-  border-radius: 8px; /* Уже есть от .card, но можно оставить для явности */
-  /* box-shadow: 0 1px 3px rgba(0,0,0,0.1); -- уже есть от .card */
+  border-radius: 8px;
+  /* margin-top: 20px; */
 }
 
 .carousel-header {
-  padding: 15px 15px 10px 15px;
-  position: relative; /* Изменено с sticky на relative, чтобы быть частью потока */
-  /* top: 0; left: 0; right: 0; -- не нужно для relative */
-  background-color: var(--tg-theme-secondary-bg-color); /* Фон такой же, как у карточки */
-  z-index: 10; /* Чтобы быть поверх swipe-area, если будут пересечения */
-  border-bottom: 1px solid var(--tg-theme-hint-color); /* Разделитель */
+  padding: 15px 15px 5px 15px; /* Уменьшил нижний паддинг */
+  position: relative; /* Не sticky */
+  background-color: var(--tg-theme-secondary-bg-color);
+  z-index: 10;
+  /* border-bottom: 1px solid var(--tg-theme-hint-color); -- Убрал границу здесь */
 }
 .carousel-header h2 {
   margin: 0 0 10px 0;
-  font-size: 1.1em; /* Соответствует h2 в PersonalAccount */
+  font-size: 1.1em;
   text-align: center;
   color: var(--tg-theme-text-color);
 }
 
+/* Перенес пагинацию в хедер */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 10px; /* Отступ под точками */
+}
+.dot {
+  height: 7px; width: 7px; /* Чуть меньше */
+  background-color: var(--tg-theme-hint-color);
+  border-radius: 50%; display: inline-block; margin: 0 4px; /* Ближе друг к другу */
+  cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease; /* Добавил transform */
+}
+.dot:hover { transform: scale(1.2); }
+.dot.active { background-color: var(--tg-theme-button-color); }
+
 .progress-bar-container {
-  width: 100%;
-  height: 3px;
-  background-color: var(--tg-theme-hint-color); /* Более контрастный фон для прогресса */
-  border-radius: 1.5px;
-  overflow: hidden;
+  width: 100%; height: 3px;
+  background-color: var(--tg-theme-hint-color);
+  border-radius: 1.5px; overflow: hidden;
+  margin-top: 5px; /* Небольшой отступ от пагинации */
 }
 .progress-bar {
-  height: 100%;
-  width: 100%; /* Анимация будет двигать transform */
-  background-color: var(--tg-theme-button-color); /* Яркий цвет для прогресса */
+  height: 100%; width: 100%;
+  background-color: var(--tg-theme-button-color);
   border-radius: 1.5px;
   transform: translateX(-100%);
   animation-name: progressAnimation;
   animation-timing-function: linear;
-  animation-fill-mode: forwards; /* Остается в конечном состоянии */
+  animation-fill-mode: forwards;
 }
 @keyframes progressAnimation {
   from { transform: translateX(-100%); }
   to { transform: translateX(0%); }
 }
 
+/* === Контейнер для свайпа и скролла === */
 .swipe-area {
-  /* Определяем высоту области свайпа. Можно фиксированную или относительно viewport */
-  height: 120px; /* Например, фиксированная высота. Подберите под ваш контент. */
-  /* Или, если хотите относительно экрана:
-  min-height: 100px;
-  max-height: 20vh;
-  height: 15vh;
-  */
-  overflow: hidden; /* ОБЯЗАТЕЛЬНО, чтобы translateY работал корректно */
-  position: relative; /* Для позиционирования .facts-wrapper */
-  touch-action: pan-y; /* Разрешаем ТОЛЬКО вертикальный свайп внутри этого блока, браузер обработает */
-  cursor: grab; /* Визуальная подсказка для десктопа */
+  display: flex; /* Нужно для flex-элементов внутри */
+  overflow-x: auto;  /* Горизонтальный скролл */
+  overflow-y: hidden; /* Запрет вертикального скролла */
+  position: relative;
+  padding: 15px 0; /* Добавил вертикальный отступ для воздуха */
+  /* === Scroll Snap === */
+  scroll-snap-type: x mandatory; /* Привязка по горизонтали, обязательная */
+  /* === Поведение скролла === */
+  scroll-behavior: smooth; /* Для плавной программной прокрутки */
+  /* === Отключение стандартных скроллбаров === */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE/Edge */
+  /* === Для тач устройств === */
+  -webkit-overflow-scrolling: touch; /* Плавность на iOS */
+  touch-action: pan-x; /* Разрешаем ТОЛЬКО горизонтальный свайп браузеру */
 }
-.swipe-area:active {
-  cursor: grabbing;
+.swipe-area::-webkit-scrollbar {
+  display: none; /* WebKit/Blink */
 }
 
+/* === Обертка для карточек === */
 .facts-wrapper {
-  display: flex;
-  flex-direction: column; /* Факты располагаются вертикально */
-  height: 100%; /* Занимает всю высоту swipe-area */
-  /* Плавный переход будет применен через JS при необходимости */
+  display: flex; /* Карточки в ряд */
+  flex-direction: row;
+  /* === Отступы для "подглядывания" === */
+  /* Добавляем паддинг слева и справа, чтобы первая и последняя карточка не прилипали к краям */
+  /* Значение должно быть таким, чтобы было видно часть соседней карточки */
+  padding-left: calc((100% - var(--card-width-percent, 80%)) / 2);
+  padding-right: calc((100% - var(--card-width-percent, 80%)) / 2);
+  /* Плюс небольшой отступ, если нужно больше "воздуха" */
+  /* padding-left: calc((100% - 80%) / 2 + 10px); */
+  /* padding-right: calc((100% - 80%) / 2 + 10px); */
 }
 
+/* === Сама карточка факта === */
 .fact-card {
-  flex-shrink: 0; /* Предотвращает сжатие карточек */
-  height: 100%; /* Каждая карточка занимает 100% высоты .swipe-area */
-  width: 100%;  /* И 100% ширины */
+  flex-shrink: 0; /* ОБЯЗАТЕЛЬНО: предотвращает сжатие карточек */
+  width: var(--card-width-percent, 80%); /* Ширина карточки в % от контейнера */
+  /* height: 100px; -- Убрал фиксированную высоту, пусть определяется контентом */
+  min-height: 80px; /* Минимальная высота для читаемости */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 15px; /* Отступы внутри карточки */
+  padding: 15px; /* Внутренние отступы */
   box-sizing: border-box;
   color: var(--tg-theme-text-color);
-  background-color: var(--tg-theme-secondary-bg-color); /* Фон карточки */
-  /* Убрал border-bottom, т.к. карточки перекрывают друг друга через transform */
+  background-color: var(--tg-theme-bg-color); /* Фон чуть отличается от фона контейнера */
+  border-radius: 8px; /* Скругляем углы */
+  margin: 0 5px; /* Небольшой отступ МЕЖДУ карточками */
+  /* === Scroll Snap === */
+  scroll-snap-align: center; /* Привязка карточки к ЦЕНТРУ контейнера */
+  /* Или start, если хотите привязку к левому краю */
+  /* scroll-snap-align: start; */
 }
 
 .fact-card p {
   margin: 0;
-  font-size: 0.95em; /* Немного меньше основного текста */
+  font-size: 0.9em; /* Чуть меньше */
   line-height: 1.5;
 }
 
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 10px 0; /* Отступы для пагинации */
-  border-top: 1px solid var(--tg-theme-hint-color); /* Разделитель */
-}
-.dot {
-  height: 8px;
-  width: 8px;
-  background-color: var(--tg-theme-hint-color); /* Неактивная точка */
-  border-radius: 50%;
-  display: inline-block;
-  margin: 0 5px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-.dot.active {
-  background-color: var(--tg-theme-button-color); /* Активная точка */
-}
+/* Переопределение --card-width-percent для разных экранов (опционально) */
+/* @media (max-width: 600px) {
+  .facts-wrapper {
+    --card-width-percent: 85%;
+  }
+} */
 </style>
