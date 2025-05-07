@@ -26,21 +26,24 @@
       @touchstart.passive.stop="handleTouchStart"
       @touchmove.passive.stop="handleTouchMove"
       @touchend.stop="handleTouchEnd"
-      @wheel.passive.stop="handleWheel" <!-- Добавим обработку колеса для десктопа -->
-    >
+      @wheel.passive.stop="handleWheel"   
+      
+    > <!-- Комментарий удален отсюда -->
       <!-- Обертка для всех карточек -->
       <div class="facts-wrapper">
         <!-- Карточки фактов -->
         <div
           v-for="(fact, index) in facts"
           :key="fact.id"
-          :id="`fact-card-${index}`" <!-- Добавляем ID для scrollTo -->
+          :id="`fact-card-${index}`"
           class="fact-card"
         >
           <p>{{ fact.text }}</p>
         </div>
       </div>
     </div>
+     <!-- Комментарий можно разместить здесь, если нужно -->
+     <!-- @wheel.passive.stop="handleWheel" // Добавлена обработка колеса для десктопа -->
 
   </div>
 </template>
@@ -79,36 +82,33 @@ const isWheeling = ref(false); // Флаг, что идет прокрутка �
 // --- Методы навигации и таймера ---
 const goToFact = async (index) => {
   const newIndex = Math.max(0, Math.min(index, facts.value.length - 1));
-  currentIndex.value = newIndex; // Обновляем индекс для пагинации и логики
+  currentIndex.value = newIndex;
 
-  // Прокручиваем контейнер к выбранной карточке
   if (swipeAreaRef.value) {
-    // Ждем следующего тика, чтобы DOM обновился (если карточки создаются динамически)
     await nextTick();
     const targetCard = swipeAreaRef.value.querySelector(`#fact-card-${newIndex}`);
     if (targetCard) {
-        // Вычисляем позицию для центрирования карточки (или выравнивания по левому краю с учетом паддинга)
         const container = swipeAreaRef.value;
-        const containerPaddingLeft = parseFloat(getComputedStyle(container).paddingLeft) || 0;
-        // Считаем позицию левого края карточки относительно контейнера + половина ширины контейнера - половина ширины карточки для центрирования
-        // Или проще - используем scrollIntoView с опциями, если поддерживается хорошо
-        // targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); // 'center' может не везде работать
+        const containerPaddingLeft = parseFloat(getComputedStyle(container).paddingLeft) || 0; // Используем paddingLeft контейнера wrapper'а
+        const wrapperPaddingLeft = parseFloat(getComputedStyle(container.querySelector('.facts-wrapper')).paddingLeft) || 0; // Используем paddingLeft wrapper'а
 
-        // Более надежный способ - scrollLeft
-        const scrollLeftTarget = targetCard.offsetLeft - container.offsetLeft - containerPaddingLeft; // Выравнивание по левому краю (с учетом паддинга)
-        // Для центрирования:
-        // const scrollLeftTarget = targetCard.offsetLeft - container.offsetLeft - (container.offsetWidth / 2) + (targetCard.offsetWidth / 2);
+        // Целевой scrollLeft: позиция карточки относительно wrapper'а минус половина разницы ширин контейнера и карточки (для центрирования),
+        // Плюс добавляем обратно паддинг wrapper'а, т.к. offsetLeft его не учитывает
+        const scrollLeftTarget = targetCard.offsetLeft
+                               - (container.offsetWidth / 2)
+                               + (targetCard.offsetWidth / 2)
+                               - wrapperPaddingLeft; // Корректируем на паддинг wrapper'а
 
         container.scrollTo({
           left: scrollLeftTarget,
-          behavior: 'smooth' // Плавная прокрутка
+          behavior: 'smooth'
         });
         console.log(`[Carousel] Scrolling to index ${newIndex}, target scrollLeft: ${scrollLeftTarget}`);
     } else {
-        console.warn(`[Carousel] Target card #fact-card-${newIndex} not found for scrolling.`);
+        console.warn(`[Carousel] Target card #fact-card-${newIndex} not found.`);
     }
   }
-  resetAutoAdvanceTimer(); // Перезапускаем таймер при любом программном переходе
+  resetAutoAdvanceTimer();
 };
 
 
@@ -146,58 +146,74 @@ const handleTouchStart = (event) => {
 const handleTouchMove = (event) => {
   if (!isSwiping.value || event.touches.length !== 1) return;
   touchCurrentX.value = event.touches[0].clientX;
-  // Можно добавить live-смещение здесь, но scroll-snap должен справляться
 };
 
 const handleTouchEnd = () => {
   if (!isSwiping.value) return;
   isSwiping.value = false;
 
-  const deltaX = touchStartX.value - touchCurrentX.value; // Положительный -> свайп влево
+  const deltaX = touchStartX.value - touchCurrentX.value;
   console.log(`[CarouselSwipe] TouchEnd. Delta X: ${deltaX}`);
 
   if (Math.abs(deltaX) > swipeThreshold) {
-    if (deltaX > 0) { // Свайп влево
-      console.log('[CarouselSwipe] Trigger NEXT fact');
-      nextFact();
-    } else { // Свайп вправо
-      console.log('[CarouselSwipe] Trigger PREV fact');
-      prevFact();
-    }
+    if (deltaX > 0) { console.log('[CarouselSwipe] Trigger NEXT fact'); nextFact(); }
+    else { console.log('[CarouselSwipe] Trigger PREV fact'); prevFact(); }
   } else {
     console.log('[CarouselSwipe] Swipe too short or tap, restarting timer.');
-    resetAutoAdvanceTimer(); // Перезапускаем если свайп был коротким
+    // Если свайп короткий, плавно возвращаем на текущий слайд (через goToFact)
+    goToFact(currentIndex.value); // Это также перезапустит таймер
+    // resetAutoAdvanceTimer(); // Можно убрать, т.к. goToFact его перезапустит
   }
   touchStartX.value = 0;
   touchCurrentX.value = 0;
 };
 
-// --- Обработчик колеса мыши (Wheel) для десктопа ---
+// --- Обработчик колеса мыши (Wheel) ---
 const handleWheel = (event) => {
-    // Предотвращаем стандартный скролл страницы, если крутим над каруселью
-    // и есть горизонтальная прокрутка в карусели
     const container = swipeAreaRef.value;
     if (container && container.scrollWidth > container.clientWidth) {
-        // event.preventDefault(); // Может быть слишком агрессивно, мешает вертикальному скроллу страницы
-        event.stopPropagation(); // Останавливаем всплытие
+        event.stopPropagation();
+        // Прокручиваем контейнер напрямую, а не через goToFact, чтобы не менять активный индекс
+        container.scrollBy({ left: event.deltaY > 0 ? 150 : -150, behavior: 'smooth' });
 
-        // Плавно прокручиваем карусель
-        container.scrollBy({
-            left: event.deltaY > 0 ? 150 : -150, // Прокрутка на 150px влево/вправо
-            behavior: 'smooth'
-        });
-
-        // Перезапускаем таймер при скролле колесом
-        // Делаем это с небольшой задержкой, чтобы не перезапускать на каждый микро-шаг колеса
+        // Обновляем текущий индекс на основе видимой карточки после скролла колесом (с debounce)
         if (!isWheeling.value) {
-             isWheeling.value = true;
-             clearInterval(timerId.value); // Останавливаем таймер
-             setTimeout(() => {
-                resetAutoAdvanceTimer();
+            isWheeling.value = true;
+            clearInterval(timerId.value);
+            setTimeout(() => {
+                updateCurrentIndexFromScroll(); // Обновляем индекс
+                resetAutoAdvanceTimer(); // Перезапускаем таймер с правильным индексом
                 isWheeling.value = false;
-                console.log('[CarouselWheel] Restarting timer after wheel scroll.');
-             }, 300); // Задержка 300 мс
+                console.log('[CarouselWheel] Updated index and restarted timer after wheel.');
+            }, 400); // Задержка чуть больше времени анимации скролла
         }
+    }
+};
+
+// --- Новая функция для определения индекса по позиции скролла ---
+const updateCurrentIndexFromScroll = () => {
+    if (!swipeAreaRef.value) return;
+    const container = swipeAreaRef.value;
+    const scrollLeft = container.scrollLeft;
+    const containerWidth = container.offsetWidth;
+    let closestIndex = 0;
+    let minDistance = Infinity;
+
+    // Проходим по всем карточкам, чтобы найти ближайшую к центру
+    const cards = container.querySelectorAll('.fact-card');
+    cards.forEach((card, index) => {
+        const cardCenter = card.offsetLeft - container.offsetLeft + card.offsetWidth / 2;
+        const containerCenter = scrollLeft + containerWidth / 2;
+        const distance = Math.abs(cardCenter - containerCenter);
+        if (distance < minDistance) {
+            minDistance = distance;
+            closestIndex = index;
+        }
+    });
+
+    if (closestIndex !== currentIndex.value) {
+        console.log(`[CarouselWheel] Index updated by scroll: ${closestIndex}`);
+        currentIndex.value = closestIndex; // Обновляем индекс без вызова goToFact
     }
 };
 
@@ -205,10 +221,18 @@ const handleWheel = (event) => {
 // --- Хуки жизненного цикла ---
 onMounted(() => {
   startAutoAdvanceTimer();
+  // Добавляем слушатель скролла для обновления индекса при ручном скролле пользователем
+  // (например, на тачпаде десктопа или просто перетаскиванием скроллбара, если он видим)
+  if (swipeAreaRef.value) {
+      swipeAreaRef.value.addEventListener('scroll', updateCurrentIndexFromScroll);
+  }
 });
 
 onUnmounted(() => {
   clearInterval(timerId.value);
+  if (swipeAreaRef.value) {
+      swipeAreaRef.value.removeEventListener('scroll', updateCurrentIndexFromScroll);
+  }
 });
 
 </script>
@@ -216,19 +240,17 @@ onUnmounted(() => {
 <style scoped>
 .facts-carousel-horizontal {
   padding: 0;
-  overflow: hidden; /* Важно */
+  overflow: hidden;
   position: relative;
   background-color: var(--tg-theme-secondary-bg-color);
   border-radius: 8px;
-  /* margin-top: 20px; */
 }
 
 .carousel-header {
-  padding: 15px 15px 5px 15px; /* Уменьшил нижний паддинг */
-  position: relative; /* Не sticky */
+  padding: 15px 15px 5px 15px;
+  position: relative;
   background-color: var(--tg-theme-secondary-bg-color);
   z-index: 10;
-  /* border-bottom: 1px solid var(--tg-theme-hint-color); -- Убрал границу здесь */
 }
 .carousel-header h2 {
   margin: 0 0 10px 0;
@@ -237,18 +259,17 @@ onUnmounted(() => {
   color: var(--tg-theme-text-color);
 }
 
-/* Перенес пагинацию в хедер */
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-bottom: 10px; /* Отступ под точками */
+  padding-bottom: 10px;
 }
 .dot {
-  height: 7px; width: 7px; /* Чуть меньше */
+  height: 7px; width: 7px;
   background-color: var(--tg-theme-hint-color);
-  border-radius: 50%; display: inline-block; margin: 0 4px; /* Ближе друг к другу */
-  cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease; /* Добавил transform */
+  border-radius: 50%; display: inline-block; margin: 0 4px;
+  cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;
 }
 .dot:hover { transform: scale(1.2); }
 .dot.active { background-color: var(--tg-theme-button-color); }
@@ -257,7 +278,7 @@ onUnmounted(() => {
   width: 100%; height: 3px;
   background-color: var(--tg-theme-hint-color);
   border-radius: 1.5px; overflow: hidden;
-  margin-top: 5px; /* Небольшой отступ от пагинации */
+  margin-top: 5px;
 }
 .progress-bar {
   height: 100%; width: 100%;
@@ -273,75 +294,62 @@ onUnmounted(() => {
   to { transform: translateX(0%); }
 }
 
-/* === Контейнер для свайпа и скролла === */
 .swipe-area {
-  display: flex; /* Нужно для flex-элементов внутри */
-  overflow-x: auto;  /* Горизонтальный скролл */
-  overflow-y: hidden; /* Запрет вертикального скролла */
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
   position: relative;
-  padding: 15px 0; /* Добавил вертикальный отступ для воздуха */
-  /* === Scroll Snap === */
-  scroll-snap-type: x mandatory; /* Привязка по горизонтали, обязательная */
-  /* === Поведение скролла === */
-  scroll-behavior: smooth; /* Для плавной программной прокрутки */
-  /* === Отключение стандартных скроллбаров === */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none;  /* IE/Edge */
-  /* === Для тач устройств === */
-  -webkit-overflow-scrolling: touch; /* Плавность на iOS */
-  touch-action: pan-x; /* Разрешаем ТОЛЬКО горизонтальный свайп браузеру */
+  padding: 15px 0; /* Вертикальный отступ */
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x; /* Важно для горизонтального свайпа */
 }
-.swipe-area::-webkit-scrollbar {
-  display: none; /* WebKit/Blink */
-}
+.swipe-area::-webkit-scrollbar { display: none; }
 
-/* === Обертка для карточек === */
 .facts-wrapper {
-  display: flex; /* Карточки в ряд */
+  display: flex;
   flex-direction: row;
-  /* === Отступы для "подглядывания" === */
-  /* Добавляем паддинг слева и справа, чтобы первая и последняя карточка не прилипали к краям */
-  /* Значение должно быть таким, чтобы было видно часть соседней карточки */
-  padding-left: calc((100% - var(--card-width-percent, 80%)) / 2);
-  padding-right: calc((100% - var(--card-width-percent, 80%)) / 2);
-  /* Плюс небольшой отступ, если нужно больше "воздуха" */
-  /* padding-left: calc((100% - 80%) / 2 + 10px); */
-  /* padding-right: calc((100% - 80%) / 2 + 10px); */
+  /* Отступы для "подглядывания", используем переменную --card-width-percent */
+  /* Значение по умолчанию 80%, можно переопределить */
+  --card-width-percent: 80%;
+  padding-left: calc((100% - var(--card-width-percent)) / 2);
+  padding-right: calc((100% - var(--card-width-percent)) / 2);
 }
 
-/* === Сама карточка факта === */
 .fact-card {
-  flex-shrink: 0; /* ОБЯЗАТЕЛЬНО: предотвращает сжатие карточек */
-  width: var(--card-width-percent, 80%); /* Ширина карточки в % от контейнера */
-  /* height: 100px; -- Убрал фиксированную высоту, пусть определяется контентом */
-  min-height: 80px; /* Минимальная высота для читаемости */
+  flex-shrink: 0;
+  width: var(--card-width-percent); /* Используем переменную */
+  min-height: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 15px; /* Внутренние отступы */
+  padding: 15px;
   box-sizing: border-box;
   color: var(--tg-theme-text-color);
-  background-color: var(--tg-theme-bg-color); /* Фон чуть отличается от фона контейнера */
-  border-radius: 8px; /* Скругляем углы */
-  margin: 0 5px; /* Небольшой отступ МЕЖДУ карточками */
-  /* === Scroll Snap === */
-  scroll-snap-align: center; /* Привязка карточки к ЦЕНТРУ контейнера */
-  /* Или start, если хотите привязку к левому краю */
-  /* scroll-snap-align: start; */
+  background-color: var(--tg-theme-bg-color);
+  border-radius: 8px;
+  margin: 0 5px; /* Отступ между карточками */
+  scroll-snap-align: center; /* Привязка к центру */
 }
 
 .fact-card p {
   margin: 0;
-  font-size: 0.9em; /* Чуть меньше */
+  font-size: 0.9em;
   line-height: 1.5;
 }
 
-/* Переопределение --card-width-percent для разных экранов (опционально) */
-/* @media (max-width: 600px) {
+/* Адаптивность (опционально) */
+@media (max-width: 480px) {
   .facts-wrapper {
-    --card-width-percent: 85%;
+    --card-width-percent: 85%; /* Делаем карточки шире на маленьких экранах */
   }
-} */
+  .fact-card {
+     margin: 0 4px; /* Уменьшаем отступ */
+  }
+}
 </style>
