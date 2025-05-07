@@ -1,10 +1,8 @@
 <template>
   <div class="personal-account">
-    <!-- Показываем или основной ЛК, или страницу получения награды -->
+    <!-- ... (ваш шаблон без изменений) ... -->
     <template v-if="!showRewardClaimView">
-      
-     <FactsCarousel />
-      <!-- Блок 1: Информация о пользователе -->
+      <h1>Личный кабинет</h1>
       <section class="user-info card">
         <h2>Ваш профиль</h2>
         <div v-if="userStore.isLoadingProfile">Загрузка профиля...</div>
@@ -23,7 +21,7 @@
               v-if="userStore.profile.subscription_type !== 'free' || userStore.profile.channel_reward_claimed"
               @click="userStore.openSubscriptionModal"
               class="change-plan-button">
-            Сменить тариф <!-- Ваш текст -->
+            Сменить тариф
           </button>
            <button
                 v-else-if="userStore.profile.subscription_type === 'free' && !userStore.profile.channel_reward_claimed"
@@ -32,76 +30,29 @@
                 🎁 Получить бесплатный токен за подписку
            </button>
         </div>
-        <div v-else>
-          <p>Не удалось загрузить данные профиля.</p>
-        </div>
+        <div v-else><p>Не удалось загрузить данные профиля.</p></div>
          <div v-if="!userStore.isLoadingProfile && userStore.profile?.channel_reward_claimed" class="reward-claimed-info">
              <p>✅ Награда за подписку на канал получена!</p>
          </div>
       </section>
-
-      <!-- Блок 2: История анализов -->
       <section class="history card">
         <h2>История анализов</h2>
         <div v-if="userStore.isLoadingHistory">Загрузка истории...</div>
         <div v-else-if="userStore.errorHistory" class="error-message">
           Ошибка загрузки истории: {{ userStore.errorHistory }}
         </div>
-        <!-- Отображаем список ТОЛЬКО если история НЕ пуста -->
         <div v-else-if="userStore.history && userStore.history.length > 0">
           <AnalysisHistoryList :history="userStore.history" />
         </div>
-        <div v-else>
-          <p>У вас пока нет сохраненных анализов.</p>
-        </div>
+        <div v-else><p>У вас пока нет сохраненных анализов.</p></div>
       </section>
-
-      <!-- Блок глубокого анализа (ИЗМЕНЕНО) -->
-      <section class="deep-analysis card">
-          <h2>Глубокий анализ</h2>
-          <p>Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов. Стоимость: 1 ⭐️ (Telegram Star).</p>
-
-          <button
-              @click="userStore.initiateDeepAnalysisPayment"
-              :disabled="!userStore.canAttemptDeepAnalysis || userStore.isInitiatingDeepPayment || userStore.isDoingDeepAnalysis"
-              class="deep-analysis-button"
-          >
-              <!-- Показываем разные состояния кнопки -->
-              <span v-if="userStore.isInitiatingDeepPayment">Создаем счет... <span class="spinner white"></span></span>
-              <span v-else-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
-              <span v-else>Провести глубокий анализ (1 ⭐️)</span>
-          </button>
-
-          <!-- Подсказка -->
-          <p v-if="!userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis" class="info-message hint">
-              <span v-if="userStore.isLoadingProfile || userStore.isLoadingHistory">Дождитесь загрузки данных...</span>
-              <!-- Токены больше не проверяем -->
-              <span v-else-if="(userStore.history?.length ?? 0) < REQUIRED_DREAMS">Нужно еще {{ REQUIRED_DREAMS - (userStore.history?.length ?? 0) }} сна/снов для анализа.</span>
-          </p>
-
-          <!-- Результат анализа -->
-          <div v-if="userStore.deepAnalysisResult" class="analysis-result card">
-              <h3>Результат глубокого анализа:</h3>
-              <pre>{{ userStore.deepAnalysisResult }}</pre>
-          </div>
-
-          <!-- Ошибка анализа ИЛИ Ошибка инициации платежа -->
-          <div v-if="userStore.deepAnalysisError || userStore.deepPaymentError" class="error-message">
-              ⚠️ {{ userStore.deepAnalysisError || userStore.deepPaymentError }}
-          </div>
-      </section>
-
-      <!-- Модальное окно смены тарифа -->
       <SubscriptionModal
         v-if="userStore.showSubscriptionModal"
         @close="userStore.closeSubscriptionModal"
       />
     </template>
-
-    <!-- "Отдельная страница" для получения награды -->
     <template v-else>
        <div class="reward-claim-view card">
-           <!-- ... (содержимое страницы награды без изменений) ... -->
            <h1>🎁 Бесплатный токен за подписку</h1>
            <p>Чтобы получить 1 токен для анализа вашего первого сна, пожалуйста, выполните два простых шага:</p>
             <ol class="steps">
@@ -114,86 +65,107 @@
             <button v-if="!userStore.claimRewardSuccessMessage && !userStore.claimRewardError" @click="goBackToAccount" class="back-button secondary">Назад в Личный кабинет</button>
        </div>
     </template>
-
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref, watch, computed } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useUserStore } from '@/stores/user';
 import AnalysisHistoryList from '@/components/AnalysisHistoryList.vue';
 import SubscriptionModal from '@/components/SubscriptionModal.vue';
-import FactsCarousel from '@/components/FactsCarousel.vue';
 
 const userStore = useUserStore();
 const tg = window.Telegram?.WebApp;
 const showRewardClaimView = ref(false);
-// Константа для шаблона
-const REQUIRED_DREAMS = 5;
 
 const goBackToAccount = () => {
     showRewardClaimView.value = false;
     userStore.claimRewardError = null;
     userStore.claimRewardSuccessMessage = null;
     userStore.userCheckedSubscription = false;
-    // Обновляем профиль И историю при возврате в ЛК
     userStore.fetchProfile();
-    userStore.fetchHistory(); // <<<--- ДОБАВЛЕНА ЗАГРУЗКА ИСТОРИИ ПРИ ВОЗВРАТЕ
+    userStore.fetchHistory();
 };
 
 const handleClaimRewardClick = async () => { await userStore.claimChannelReward(); };
 
+// Функция для определения, является ли устройство мобильным
+const isMobileDevice = () => {
+  if (!navigator?.userAgent) return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
 onMounted(async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const isClaimRewardAction = urlParams.get('action') === 'claim_reward';
-    showRewardClaimView.value = isClaimRewardAction; // Устанавливаем вид сразу
+    showRewardClaimView.value = isClaimRewardAction;
 
     console.log(`[PersonalAccount onMounted] Initial view: ${isClaimRewardAction ? 'Reward Claim' : 'Main Account'}`);
 
     if (tg) {
-        tg.ready();
+        tg.ready(); // Сообщаем Telegram, что приложение готово
         console.log("[PersonalAccount] Telegram WebApp is ready.");
-        tg.requestFullscreen();
-        console.log("[PersonalAccount] Attempted to expand WebApp.");
+
+        // --- УПРАВЛЕНИЕ РАЗМЕРОМ ОКНА ---
+        if (isMobileDevice()) {
+            console.log("[PersonalAccount] Mobile device detected, expanding WebApp.");
+            tg.expand(); // Развернуть на полный экран на мобильных
+        } else {
+            console.log("[PersonalAccount] Desktop device detected, not expanding.");
+            // На десктопе ничего не делаем, оно должно открыться в компактном виде по умолчанию
+        }
+
+        // --- УПРАВЛЕНИЕ ЗАКРЫТИЕМ ---
+        // 1. Включаем подтверждение закрытия
+        tg.enableClosingConfirmation();
+        console.log("[PersonalAccount] Closing confirmation enabled.");
+
+        // 2. Настраиваем кнопку "Назад"
         tg.BackButton.show();
         tg.BackButton.onClick(() => {
-            // <<<--- ДОБАВЛЕН ЛОГ ВНУТРИ КНОПКИ НАЗАД ---
-            console.log(`[PersonalAccount BackButton] Clicked. Modal open: ${userStore.showSubscriptionModal}, Reward view: ${showRewardClaimView.value}`);
+            console.log(`[PersonalAccount BackButton] Clicked. Modal: ${userStore.showSubscriptionModal}, Reward View: ${showRewardClaimView.value}, Closing Confirmation: ${tg.isClosingConfirmationEnabled}`);
             if (userStore.showSubscriptionModal) {
                 userStore.closeSubscriptionModal();
-            } else if (showRewardClaimView.value === true) { // <<<--- Явная проверка на true
-                goBackToAccount(); // Если на странице награды, возвращаемся в ЛК
+            } else if (showRewardClaimView.value === true) {
+                goBackToAccount();
             } else {
-                console.log("[PersonalAccount BackButton] Closing TMA.");
-                tg.close(); // Иначе (в основном ЛК) закрываем приложение
+                // Если подтверждение включено, Telegram сам покажет диалог.
+                // Если бы мы хотели свое поведение, то тут бы проверяли tg.isClosingConfirmationEnabled
+                // и если false, то вызывали бы tg.close() напрямую.
+                // Но т.к. мы его включили, просто позволяем Telegram обработать закрытие.
+                console.log("[PersonalAccount BackButton] Attempting to close TMA (confirmation should appear).");
+                tg.close(); // Telegram обработает это с подтверждением
             }
         });
-        if (tg.MainButton.isVisible) { tg.MainButton.hide(); }
-    } else { console.warn("[PersonalAccount] Telegram WebApp API not available."); }
 
-    // Загружаем профиль всегда
+        // Если необходимо, управляем основной кнопкой
+        if (tg.MainButton.isVisible) {
+            tg.MainButton.hide();
+        }
+    } else {
+        console.warn("[PersonalAccount] Telegram WebApp API not available.");
+    }
+
+    // Загрузка данных
     console.log("[PersonalAccount onMounted] Fetching profile...");
     await userStore.fetchProfile();
     console.log("[PersonalAccount onMounted] Profile fetched.");
-
-    // Историю грузим только если мы в основном ЛК
     if (!showRewardClaimView.value) {
-         console.log("[PersonalAccount onMounted] Fetching history...");
+        console.log("[PersonalAccount onMounted] Fetching history...");
         await userStore.fetchHistory();
         console.log("[PersonalAccount onMounted] History fetched.");
     }
 });
 
-// Форматирование даты (без изменений)
 const formatDate = (dateString) => { if (!dateString) return ''; try { return new Date(dateString).toLocaleDateString(); } catch (e) { return dateString; } };
 
-// Слежение за получением награды для авто-возврата (без изменений)
 watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
   if (newValue === true && oldValue === false && showRewardClaimView.value) {
     console.log("[PersonalAccount] Reward claimed successfully, auto-returning to account view soon.");
     setTimeout(() => { if (showRewardClaimView.value) { goBackToAccount(); } }, 3500);
   }
 });
+
 </script>
 
 <style scoped>
