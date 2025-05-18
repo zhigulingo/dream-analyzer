@@ -31,6 +31,11 @@
                 class="subscribe-button-main">
                 🎁 Получить бесплатный токен за подписку
            </button>
+           
+          <!-- Кнопка выхода из аккаунта -->
+          <button @click="handleLogout" class="logout-button">
+            Выйти из аккаунта
+          </button>
         </div>
         <div v-else>
           <p>Не удалось загрузить данные профиля.</p>
@@ -114,11 +119,13 @@
 <script setup>
 import { onMounted, ref, watch, computed } from 'vue';
 import { useUserStore } from '@/stores/user';
+import { useRouter } from 'vue-router';
 import AnalysisHistoryList from '@/components/AnalysisHistoryList.vue';
 import SubscriptionModal from '@/components/SubscriptionModal.vue';
 import FactsCarousel from '@/components/FactsCarousel.vue';
 
 const userStore = useUserStore();
+const router = useRouter();
 const tg = window.Telegram?.WebApp;
 const showRewardClaimView = ref(false);
 const REQUIRED_DREAMS = 5;
@@ -133,6 +140,12 @@ const goBackToAccount = () => {
 };
 
 const handleClaimRewardClick = async () => { await userStore.claimChannelReward(); };
+
+// Logout function
+const handleLogout = () => {
+  userStore.logout(); // Clear user data from store
+  router.push('/'); // Redirect to login page
+};
 
 // --- НОВАЯ ФУНКЦИЯ ДЛЯ ОПРЕДЕЛЕНИЯ МОБИЛЬНОГО УСТРОЙСТВА ---
 const isMobileDevice = () => {
@@ -245,6 +258,23 @@ watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
 </script>
 
 <style scoped>
+/* Add styles for the logout button */
+.logout-button {
+  display: block;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.logout-button:hover {
+  background-color: #d32f2f;
+}
+
 /* --- Ваши стили без изменений --- */
 /* ... (все ваши стили) ... */
 .personal-account { 
