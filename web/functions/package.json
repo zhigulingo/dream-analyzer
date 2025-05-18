@@ -1,0 +1,13 @@
+{
+  "name": "dream-analyzer-web-functions",
+  "version": "1.0.0",
+  "description": "Netlify functions for Dream Analyzer web app",
+  "main": "user-profile.js",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "crypto": "^1.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 

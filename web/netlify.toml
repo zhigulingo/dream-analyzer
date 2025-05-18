@@ -8,8 +8,8 @@
   publish = "dist"
 
 [functions]
-  # Путь к папке с функциями бота
-  directory = "../bot/functions/"
+  # Путь к папке с функциями веб-приложения
+  directory = "functions/"
   node_bundler = "esbuild"
 
 [[plugins]]
