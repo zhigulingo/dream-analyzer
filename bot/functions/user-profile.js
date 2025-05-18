@@ -66,7 +66,7 @@ const generateCorsHeaders = () => {
     console.log(`[user-profile] CORS Headers: Allowing Origin: ${originToAllow}`);
     return {
         'Access-Control-Allow-Origin': originToAllow,
-        'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, X-Web-Auth-User',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     };
 };
@@ -92,30 +92,50 @@ exports.handler = async (event) => {
         return { statusCode: 500, headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ error: 'Internal Server Error: Configuration missing.' }) };
      }
 
-    // --- Валидация InitData с использованием ВАШЕЙ функции ---
+    // --- Валидация InitData или Web Auth с использованием ВАШЕЙ функции ---
     const initDataHeader = event.headers['x-telegram-init-data'];
+    const webAuthHeader = event.headers['x-web-auth-user'];
     let verifiedUserId;
 
-    if (!initDataHeader) {
-        console.warn("[user-profile] Unauthorized: Missing Telegram InitData header");
-        return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Missing Telegram InitData' }) };
+    // Check for web authentication first
+    if (webAuthHeader) {
+        try {
+            const webUserData = JSON.parse(webAuthHeader);
+            if (webUserData && webUserData.id) {
+                verifiedUserId = webUserData.id;
+                console.log(`[user-profile] Web authentication successful for user: ${verifiedUserId}`);
+            } else {
+                console.warn("[user-profile] Web Auth header exists but missing user ID");
+                return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid Web Auth data' }) };
+            }
+        } catch (error) {
+            console.error("[user-profile] Failed to parse Web Auth header:", error);
+            return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid Web Auth format' }) };
+        }
+    } 
+    // If no web auth, try Telegram InitData
+    else if (initDataHeader) {
+        const validationResult = validateTelegramData(initDataHeader, BOT_TOKEN);
+
+        if (!validationResult.valid) {
+            console.error(`[user-profile] InitData validation failed: ${validationResult.error}`);
+            return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
+        }
+
+        // Проверяем, что ID пользователя был успешно извлечен
+        if (!validationResult.data || typeof validationResult.data.id === 'undefined') {
+            console.error(`[user-profile] InitData is valid, but user data/ID is missing or failed to parse: ${validationResult.error}`);
+            return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Could not extract user data from InitData (${validationResult.error})` }) };
+        }
+
+        verifiedUserId = validationResult.data.id;
+        console.log(`[user-profile] Telegram InitData validation successful for user: ${verifiedUserId}`);
+    } 
+    // No authentication provided
+    else {
+        console.warn("[user-profile] Unauthorized: Missing both Telegram InitData and Web Auth headers");
+        return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: No authentication provided' }) };
     }
-
-    const validationResult = validateTelegramData(initDataHeader, BOT_TOKEN);
-
-    if (!validationResult.valid) {
-        console.error(`[user-profile] InitData validation failed: ${validationResult.error}`);
-        return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
-    }
-
-    // Проверяем, что ID пользователя был успешно извлечен
-    if (!validationResult.data || typeof validationResult.data.id === 'undefined') {
-         console.error(`[user-profile] InitData is valid, but user data/ID is missing or failed to parse: ${validationResult.error}`);
-         return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Could not extract user data from InitData (${validationResult.error})` }) };
-    }
-
-    verifiedUserId = validationResult.data.id;
-    console.log(`[user-profile] Access validated for user: ${verifiedUserId}`);
 
     // --- Основная логика ---
     try {
