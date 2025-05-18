@@ -9,6 +9,7 @@ export const useUserStore = defineStore('user', {
     // --- Web Authentication State ---
     webUser: null,
     isWebAuthenticated: false,
+    isTelegramWebApp: false,
     
     // --- Состояние для получения награды ---
     isClaimingReward: false,
@@ -48,9 +49,9 @@ export const useUserStore = defineStore('user', {
       return hasEnoughDreams && !this.isLoadingProfile && !this.isLoadingHistory && !this.isInitiatingDeepPayment && !this.isDoingDeepAnalysis;
     },
     
-    // Check if user is authenticated either via Telegram WebApp or web login
+    // Check if user is authenticated via any method
     isAuthenticated() {
-      return this.isWebAuthenticated || !!window.Telegram?.WebApp?.initData;
+      return this.isWebAuthenticated || this.isTelegramWebApp;
     },
 
     // --- Геттеры для UI награды ---
@@ -86,19 +87,38 @@ export const useUserStore = defineStore('user', {
   actions: {
     // Initialize the store
     init() {
-      // Check for web authentication
-      const storedUser = localStorage.getItem('telegram_user');
-      if (storedUser) {
-        try {
-          this.webUser = JSON.parse(storedUser);
-          this.isWebAuthenticated = true;
-        } catch (err) {
-          console.error('Failed to parse stored user data', err);
-          localStorage.removeItem('telegram_user');
+      console.log("[UserStore] Initializing user store");
+      
+      // Check if we're running inside Telegram WebApp
+      if (window.Telegram?.WebApp) {
+        console.log("[UserStore] Running inside Telegram WebApp");
+        this.isTelegramWebApp = true;
+        
+        // Notify Telegram that we're ready
+        window.Telegram.WebApp.ready();
+        
+        // Optionally expand the web app to take full height
+        // window.Telegram.WebApp.expand();
+      } else {
+        console.log("[UserStore] Not running inside Telegram WebApp, checking for stored credentials");
+      }
+      
+      // Check for web authentication (only needed when not in Telegram WebApp)
+      if (!this.isTelegramWebApp) {
+        const storedUser = localStorage.getItem('telegram_user');
+        if (storedUser) {
+          try {
+            this.webUser = JSON.parse(storedUser);
+            this.isWebAuthenticated = true;
+            console.log("[UserStore] Found stored credentials for web authentication");
+          } catch (err) {
+            console.error('[UserStore] Failed to parse stored user data', err);
+            localStorage.removeItem('telegram_user');
+          }
         }
       }
       
-      // Fetch user data
+      // Fetch user data regardless of auth method
       this.fetchProfile();
       this.fetchHistory();
     },

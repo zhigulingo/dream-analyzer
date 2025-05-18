@@ -1,20 +1,29 @@
 <template>
   <div class="web-login">
     <h1>Dream Analyzer</h1>
-    <p>Please login with your Telegram account to access the application</p>
     
-    <div class="login-container">
-      <!-- Placeholder for Telegram Login Widget -->
-      <div id="telegram-login"></div>
+    <!-- Only show login prompts when not in Telegram -->
+    <div v-if="!isTelegramWebApp">
+      <p>Please login with your Telegram account to access the application</p>
       
-      <div v-if="error" class="error-message">
-        {{ error }}
+      <div class="login-container">
+        <!-- Placeholder for Telegram Login Widget -->
+        <div id="telegram-login"></div>
+        
+        <div v-if="error" class="error-message">
+          {{ error }}
+        </div>
+        
+        <div v-if="user" class="success-message">
+          Successfully logged in as {{ user.first_name }} {{ user.last_name }}
+          <button @click="proceedToApp" class="proceed-button">Continue to App</button>
+        </div>
       </div>
-      
-      <div v-if="user" class="success-message">
-        Successfully logged in as {{ user.first_name }} {{ user.last_name }}
-        <button @click="proceedToApp" class="proceed-button">Continue to App</button>
-      </div>
+    </div>
+    
+    <!-- Show loading message when in Telegram -->
+    <div v-else class="loading-container">
+      <p>Initializing Dream Analyzer...</p>
     </div>
   </div>
 </template>
@@ -29,6 +38,7 @@ const router = useRouter();
 const userStore = useUserStore();
 const user = ref(null);
 const error = ref(null);
+const isTelegramWebApp = ref(false);
 
 // Function to handle successful Telegram authentication
 const onTelegramAuth = (userData) => {
@@ -67,8 +77,20 @@ const proceedToApp = () => {
 };
 
 onMounted(() => {
-  // Initialize the Telegram Widget
-  // First check if it's already loaded
+  // Check if running inside Telegram WebApp
+  if (window.Telegram?.WebApp) {
+    console.log("Running inside Telegram WebApp");
+    isTelegramWebApp.value = true;
+    
+    // Auto-redirect to app since we're already authenticated
+    setTimeout(() => {
+      router.push('/account');
+    }, 500); // Small delay for UI transitions
+    
+    return;
+  }
+  
+  // Initialize the Telegram Widget for web login only if not in Telegram
   if (!document.getElementById('telegram-login-script')) {
     // Create script element for Telegram Login Widget
     const script = document.createElement('script');
@@ -103,6 +125,13 @@ h1 {
 }
 
 .login-container {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.loading-container {
   margin-top: 2rem;
   display: flex;
   flex-direction: column;

@@ -24,9 +24,12 @@ const router = createRouter({
 
 // Navigation guard for authentication
 router.beforeEach((to, from, next) => {
-  // Check if user is logged in by looking for stored Telegram user data
+  // Check if we're running inside Telegram WebApp (which means we're already authenticated)
+  const isTelegramWebApp = !!window.Telegram?.WebApp;
+  
+  // Check if user is logged in by looking for stored Telegram user data for web version
   const telegramUser = localStorage.getItem('telegram_user')
-  const isAuthenticated = !!telegramUser
+  const isAuthenticated = isTelegramWebApp || !!telegramUser
   
   // Redirect logic
   if (to.meta.requiresAuth && !isAuthenticated) {
