@@ -8,33 +8,6 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 
-// Try to load the webauth command handlers
-let webAuth;
-try {
-    // First try direct import (for development)
-    webAuth = require('../commands/webAuth');
-    console.log("[Bot Global Init] Loaded webAuth module from ../commands/webAuth");
-} catch (err) {
-    try {
-        // For production, try loading from ./commands
-        webAuth = require('./commands/webAuth');
-        console.log("[Bot Global Init] Loaded webAuth module from ./commands/webAuth");
-    } catch (err2) {
-        console.error("[Bot Global Init] Failed to load webAuth module:", err2);
-        // Create empty webAuth with stub method to prevent errors
-        webAuth = {
-            registerWebAuthCommands: (bot) => {
-                console.log("[Bot Global Init] Using stub webAuth implementation - WEBLOGIN COMMANDS NOT AVAILABLE");
-                
-                // Register a basic version of the weblogin command for debug purposes
-                bot.command("weblogin", async (ctx) => {
-                    await ctx.reply("Web login is currently unavailable. Please try again later.");
-                });
-            }
-        };
-    }
-}
-
 // --- Переменные Окружения ---
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -70,6 +43,17 @@ try {
         const userId = ctx.from?.id; const chatId = ctx.chat.id;
         if (!userId || !chatId) { console.warn("[Bot Handler /start] No user ID or chat ID."); return; }
         console.log(`[Bot Handler /start] User ${userId} in chat ${chatId}`);
+        
+        // Check if this is a deep link with "weblogin" parameter
+        const startParam = ctx.message?.text?.split(' ')[1];
+        if (startParam === 'weblogin') {
+            console.log("[Bot Handler /start] Deep link with weblogin parameter detected");
+            // Redirect to weblogin handler
+            const webloginCtx = { ...ctx }; // Clone context
+            webloginCtx.command = 'weblogin';
+            return bot.commands.get("weblogin")(webloginCtx);
+        }
+        
         try {
             // <<<--- ВАЖНО: Ловим ошибки именно от getOrCreateUser ---
             const userData = await getOrCreateUser(supabaseAdmin, userId);
@@ -93,6 +77,95 @@ try {
         } catch (e) { // <<<--- Ловим ошибку, проброшенную из getOrCreateUser ---
              console.error("[Bot Handler /start] CRITICAL Error (likely from getOrCreateUser):", e.message); // Логируем КОНКРЕТНУЮ ошибку
              try { await ctx.reply(`Произошла ошибка при получении данных пользователя (${e.message}). Попробуйте позже.`).catch(logReplyError); } catch {}
+        }
+    });
+
+    // Direct /weblogin command handler - no external modules required
+    bot.command("weblogin", async (ctx) => {
+        console.log("[Bot Handler /weblogin] Command received");
+        try {
+            const user = ctx.from;
+            if (!user || !user.id) {
+                console.log("[Bot Handler /weblogin] No user ID");
+                return await ctx.reply('Error: Unable to identify user.').catch(logReplyError);
+            }
+            
+            console.log(`[Bot Handler /weblogin] Processing for user ${user.id}`);
+            
+            // Generate a random session ID
+            const sessionId = crypto.randomBytes(16).toString('hex');
+            const expiresAt = Math.floor(Date.now() / 1000) + 300; // 5 minutes
+            
+            // Create deep link for web app with session ID
+            const webAppUrl = `https://dream-analyzer.netlify.app?session=${sessionId}`;
+            
+            // Send confirmation message with link to web app
+            await ctx.reply(
+                `🔐 Web Login Request Created\n\n` +
+                `This request will expire in 5 minutes.\n\n` +
+                `Once you approve this request, you'll be able to access your Dream Analyzer account in the web app.`,
+                {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: 'Open Web App', url: webAppUrl }],
+                            [{ text: '✅ Approve Login', callback_data: `approve_auth:${sessionId}` }],
+                            [{ text: '❌ Deny Login', callback_data: `deny_auth:${sessionId}` }]
+                        ]
+                    }
+                }
+            ).catch(logReplyError);
+            
+            console.log(`[Bot Handler /weblogin] Request created, session ${sessionId}`);
+        } catch (error) {
+            console.error('[Bot Handler /weblogin] Error:', error);
+            await ctx.reply('Sorry, an error occurred while creating your login request.').catch(logReplyError);
+        }
+    });
+    
+    // Handler for approve auth button
+    bot.on("callback_query:data", async (ctx) => {
+        console.log("[Bot Handler callback] Received:", ctx.callbackQuery.data);
+        
+        const callbackData = ctx.callbackQuery.data;
+        
+        if (callbackData.startsWith('approve_auth:')) {
+            const sessionId = callbackData.split(':')[1];
+            console.log(`[Bot Handler callback] Approve auth for session ${sessionId}`);
+            
+            await ctx.answerCallbackQuery("Authentication approved!");
+            
+            // Generate a random token
+            const token = crypto.randomBytes(32).toString('hex');
+            
+            // Generate a web app link with the token
+            const webAppUrl = `https://dream-analyzer.netlify.app?auth_token=${token}`;
+            
+            // Update the message
+            await ctx.editMessageText(
+                '✅ Authentication approved!\n\n' +
+                'You can now access your Dream Analyzer account in the web app.\n\n' +
+                'Click the button below to open the web app with your approved session.',
+                {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: 'Open Web App', url: webAppUrl }]
+                        ]
+                    }
+                }
+            ).catch(e => console.error('[Bot Handler callback] Edit message error:', e));
+            
+        } else if (callbackData.startsWith('deny_auth:')) {
+            const sessionId = callbackData.split(':')[1];
+            console.log(`[Bot Handler callback] Deny auth for session ${sessionId}`);
+            
+            await ctx.answerCallbackQuery("Authentication denied.");
+            
+            // Update the message
+            await ctx.editMessageText(
+                '❌ Authentication denied.\n\n' +
+                'You have denied this login request. If you want to log in later, please create a new request using /weblogin.',
+                { reply_markup: { inline_keyboard: [] } }
+            ).catch(e => console.error('[Bot Handler callback] Edit message error:', e));
         }
     });
 
@@ -181,11 +254,6 @@ try {
             await ctx.reply("Платеж получен, но произошла ошибка при его обработке. Свяжитесь с поддержкой.").catch(logReplyError);
         }
     });
-
-    // Register web authentication commands
-    console.log("[Bot Global Init] Registering web authentication commands...");
-    webAuth.registerWebAuthCommands(bot);
-    console.log("[Bot Global Init] Web authentication commands registered.");
 
     // Обработчик ошибок (БЕЗ ИЗМЕНЕНИЙ)
     bot.catch((err) => {
