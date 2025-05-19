@@ -12,11 +12,15 @@ if (!import.meta.env.VITE_API_BASE_URL) {
     console.log('[api.js] Using API Base URL:', API_BASE_URL);
 }
 
-// Создаем экземпляр Axios с базовым URL
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 15000 // Добавим таймаут на 15 секунд для запросов
-});
+// Safe JSON parse helper
+function safeJsonParse(str) {
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    console.error('[api.js] Error parsing JSON:', e);
+    return null;
+  }
+}
 
 // Debug helper to dump all localStorage items
 function debugLocalStorage() {
@@ -36,125 +40,127 @@ function debugLocalStorage() {
   }
 }
 
-// Safe JSON parse helper
-function safeJsonParse(str) {
+// Get authentication headers
+function getAuthHeaders() {
+  const headers = {
+    'Content-Type': 'application/json' 
+  };
+  
   try {
-    return JSON.parse(str);
+    // Try Telegram WebApp first
+    let initData = null;
+    try {
+      initData = window.Telegram?.WebApp?.initData;
+    } catch (err) {
+      console.warn('[api.js] Failed to access Telegram WebApp:', err);
+    }
+    
+    if (initData) {
+      headers['X-Telegram-Init-Data'] = initData;
+      console.log("[api.js] Using Telegram WebApp authentication");
+      return headers;
+    }
+    
+    // If no Telegram WebApp, try stored user data
+    const storedUser = localStorage.getItem('telegram_user');
+    if (storedUser) {
+      const userData = safeJsonParse(storedUser);
+      if (userData && userData.id) {
+        const headerData = JSON.stringify({
+          id: userData.id,
+          username: userData.username || "",
+          first_name: userData.first_name || "",
+          last_name: userData.last_name || ""
+        });
+        
+        headers['x-web-auth-user'] = headerData;
+        headers['X-Web-Auth-User'] = headerData;
+        
+        console.log(`[api.js] Using Web Auth, User ID: ${userData.id}`);
+        return headers;
+      }
+    }
+    
+    // No authentication found
+    console.warn("[api.js] ⚠️ NO AUTHENTICATION AVAILABLE. API calls will fail authorization.");
+    debugLocalStorage();
   } catch (e) {
-    console.error('[api.js] Error parsing JSON:', e);
-    return null;
+    console.error('[api.js] Error getting auth headers:', e);
   }
+  
+  return headers;
 }
 
-// Перехватчик запросов для автоматического добавления заголовка X-Telegram-Init-Data
-apiClient.interceptors.request.use(
-  (config) => {
-    try {
-      // Always log the URL being called for debugging
-      console.log(`[api.js] Making request to: ${config.method.toUpperCase()} ${config.url}`);
-      
-      // Dump all localStorage items to aid debugging
-      debugLocalStorage();
-      
-      // Initialize headers object if it doesn't exist
-      config.headers = config.headers || {};
-      
-      // APPROACH 1: Telegram WebApp initData
-      let initData = null;
-      try {
-        initData = window.Telegram?.WebApp?.initData;
-      } catch (err) {
-        console.warn('[api.js] Failed to access Telegram WebApp:', err);
-      }
-      
-      if (initData) {
-        config.headers['X-Telegram-Init-Data'] = initData;
-        console.log("[api.js] USING APPROACH 1: Telegram WebApp");
-        return config;
-      }
-      
-      // APPROACH 2: Web Auth from localStorage
-      try {
-        const storedUser = localStorage.getItem('telegram_user');
-        if (storedUser) {
-          const userData = safeJsonParse(storedUser);
-          if (userData && userData.id) {
-            // Force to use custom header format
-            const headerData = JSON.stringify({
-              id: userData.id,
-              username: userData.username || "",
-              first_name: userData.first_name || "",
-              last_name: userData.last_name || ""
-            });
-            
-            // Set header in both formats to ensure compatibility with server expectations
-            config.headers['x-web-auth-user'] = headerData;
-            config.headers['X-Web-Auth-User'] = headerData;
-            
-            // Log that we're sending authentication 
-            console.log(`[api.js] USING APPROACH 2: Web Auth, User ID: ${userData.id}`);
-            console.log(`[api.js] Headers being sent: ${Object.keys(config.headers).join(', ')}`);
-            console.log(`[api.js] Auth header content: ${headerData}`);
-            
-            return config;
-          }
-        }
-      } catch (err) {
-        console.error("[api.js] Failed to parse stored user data:", err);
-      }
-      
-      // NO AUTH AVAILABLE
-      console.warn("[api.js] ⚠️ NO AUTHENTICATION AVAILABLE. API calls will fail authorization.");
-      console.warn("[api.js] ⚠️ To debug, localStorage contains:", Object.keys(localStorage));
-      console.warn("[api.js] ⚠️ Headers being sent without auth:", Object.keys(config.headers).join(', '));
-      
-      return config;
-    } catch (error) {
-      console.error("[api.js] Critical error in request interceptor:", error);
-      // Return the config even if there was an error to allow the request to proceed
-      return config;
-    }
-  },
-  (error) => {
-    console.error("[api.js] Axios request interceptor error:", error);
-    return Promise.reject(error);
+// Создаем экземпляр Axios с базовым URL
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 15000, // Добавим таймаут на 15 секунд для запросов
+  headers: {
+    'Content-Type': 'application/json'
   }
-);
+});
 
-// Перехватчик ответов для централизованного логирования ошибок
-apiClient.interceptors.response.use(
-  (response) => {
-    // Успешный ответ просто пропускаем
-    return response;
-  },
-  async (error) => {
-    // Логируем детали ошибки ответа (сетевая ошибка или ошибка от сервера)
+// Simple request wrapper that adds auth headers
+const makeRequest = async (method, url, data = null) => {
+  try {
+    const headers = getAuthHeaders();
+    console.log(`[api.js] Making ${method.toUpperCase()} request to: ${url}`);
+    console.log(`[api.js] Headers being sent: ${Object.keys(headers).join(', ')}`);
+    
+    const config = { 
+      method, 
+      url, 
+      headers
+    };
+    
+    if (data) {
+      config.data = data;
+    }
+    
+    // Try the request with proper error handling
+    try {
+      const response = await apiClient(config);
+      
+      // Transform null responses to appropriate defaults
+      if (url.includes('user-profile') && response.data) {
+        if (response.data.tokens === null || response.data.tokens === undefined) {
+          response.data.tokens = 0;
+        }
+        if (response.data.subscription_type === null || response.data.subscription_type === undefined) {
+          response.data.subscription_type = 'free';
+        }
+      }
+      
+      // Make sure history is always an array
+      if (url.includes('analyses-history')) {
+        if (!response.data || !Array.isArray(response.data)) {
+          response.data = [];
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  } catch (error) {
     if (error.response) {
-      // Ошибка от сервера (статус не 2xx)
-      console.error('[api.js] Axios response error (from server):', {
-          message: error.message,
-          url: error.config?.url,
-          method: error.config?.method,
-          status: error.response?.status,
-          data: error.response?.data, // Тело ответа с ошибкой от бэкенда
+      // Server responded with an error status
+      console.error('[api.js] Server error:', {
+        status: error.response.status,
+        data: error.response.data,
+        url: url
       });
       
-      // Special handling for 401 (Unauthorized) errors
+      // Handle 401 Unauthorized errors
       if (error.response.status === 401) {
-        console.error('[api.js] UNAUTHORIZED (401) detected - marking as auth_error');
-        
-        // Mark auth error in session storage to trigger router handling
+        console.error('[api.js] UNAUTHORIZED (401) detected');
         sessionStorage.setItem('auth_error', 'true');
         
-        // Load auth service dynamically to avoid circular dependencies
+        // Dynamically import auth service to avoid circular dependencies
         try {
           const authService = await import('./authService');
+          const isAuthUrl = url.includes('verify-web-auth') || url.includes('login');
           
-          // Only redirect on non-auth URLs (avoid infinite loop)
-          const isAuthUrl = error.config.url.includes('verify-web-auth') || 
-                           error.config.url.includes('login');
-                           
-          // If this is not an auth endpoint, trigger emergency redirect
           if (!isAuthUrl) {
             console.log('[api.js] Triggering emergency redirect due to 401');
             authService.emergencyRedirect();
@@ -164,85 +170,73 @@ apiClient.interceptors.response.use(
         }
       }
     } else if (error.request) {
-      // Запрос был сделан, но ответ не получен (сетевая проблема, таймаут)
-      console.error('[api.js] Axios network error (no response):', {
-          message: error.message,
-          url: error.config?.url,
-          method: error.config?.method,
-          code: error.code, // e.g., 'ECONNABORTED' for timeout
+      // The request was made but no response was received
+      console.error('[api.js] Network error:', {
+        message: error.message,
+        url: url
       });
     } else {
-      // Ошибка на этапе настройки запроса
-      console.error('[api.js] Axios request setup error:', error.message);
+      // Something happened in setting up the request
+      console.error('[api.js] Request setup error:', error.message);
     }
-    // Пробрасываем ошибку дальше для обработки в сторе или компоненте
-    return Promise.reject(error);
-  }
-);
-
-// Wrapper for API requests with better error handling
-const safeApiRequest = async (requestFn) => {
-  try {
-    return await requestFn();
-  } catch (error) {
-    console.error('[api.js] Safe API request failed:', error);
+    
     throw error;
   }
 };
 
-// Объект с методами API для вызова из сторов/компонентов
+// API methods
 const apiMethods = {
   getUserProfile() {
-    console.log("[api.js] Calling GET /user-profile");
-    return safeApiRequest(() => apiClient.get('/user-profile'));
-  },
-
-  // Метод для получения награды за подписку
-  claimChannelReward() {
-    console.log("[api.js] Calling POST /claim-channel-token");
-    // Используем POST, так как это действие изменяет состояние (начисляет токен)
-    return safeApiRequest(() => apiClient.post('/claim-channel-token')); // Тело запроса не нужно, вся информация в initData
-  },
-
-  // Метод для получения истории анализов
-  getAnalysesHistory() {
-    console.log("[api.js] Calling GET /analyses-history");
-    return safeApiRequest(() => apiClient.get('/analyses-history'));
-  },
-
-  // <<<--- НОВЫЙ МЕТОД ДЛЯ ГЛУБОКОГО АНАЛИЗА ---
-  getDeepAnalysis() {
-    console.log("[api.js] Calling POST /deep-analysis");
-    // Используем POST, так как это действие потребляет токен
-    // Тело запроса не нужно, ID пользователя берется из InitData на бэкенде
-    return safeApiRequest(() => apiClient.post('/deep-analysis'));
-  },
-
-  // Метод для создания ссылки на инвойс
-  createInvoiceLink(plan, duration, amount, payload) {
-     console.log("[api.js] Calling POST /create-invoice");
-     // Передаем данные в теле POST-запроса
-    return safeApiRequest(() => apiClient.post('/create-invoice', {
-        plan,
-        duration,
-        amount,
-        payload
-    }));
-  },
-
-  // Web authentication verification
-  verifyWebAuth(userData) {
-    console.log("[api.js] Calling POST /verify-web-auth");
-    return safeApiRequest(() => apiClient.post('/verify-web-auth', userData));
+    return makeRequest('get', '/user-profile')
+      .catch(error => {
+        // Return a minimal default profile if the request fails
+        console.error('[api.js] getUserProfile failed, returning default:', error);
+        return {
+          data: {
+            tokens: 0,
+            subscription_type: 'free',
+            subscription_end: null,
+            channel_reward_claimed: false
+          }
+        };
+      });
   },
   
-  // Logout helper - not an actual API call but helps with cleanup
+  getAnalysesHistory() {
+    return makeRequest('get', '/analyses-history')
+      .catch(error => {
+        // Return an empty array if the request fails
+        console.error('[api.js] getAnalysesHistory failed, returning empty array:', error);
+        return { data: [] };
+      });
+  },
+  
+  claimChannelReward() {
+    return makeRequest('post', '/claim-channel-token');
+  },
+  
+  getDeepAnalysis() {
+    return makeRequest('post', '/deep-analysis');
+  },
+  
+  createInvoiceLink(plan, duration, amount, payload) {
+    return makeRequest('post', '/create-invoice', {
+      plan,
+      duration,
+      amount,
+      payload
+    });
+  },
+  
+  verifyWebAuth(userData) {
+    return makeRequest('post', '/verify-web-auth', userData);
+  },
+  
   logout() {
     console.log("[api.js] Performing API cleanup for logout");
-    // Clear any cached auth tokens or session data in the API client
     try {
       delete apiClient.defaults.headers.common['x-web-auth-user'];
-      delete apiClient.defaults.headers.common['X-Web-Auth-User'];
+      delete apiClient.defaults.headers.common['X-Web-Auth-User']; 
       delete apiClient.defaults.headers.common['X-Telegram-Init-Data'];
     } catch (error) {
       console.error('[api.js] Error while clearing headers during logout:', error);
@@ -251,7 +245,5 @@ const apiMethods = {
   }
 };
 
-// Экспортируем именованный клиент Axios (если нужен доступ к нему напрямую)
-// и дефолтный объект с готовыми методами API
 export { apiClient };
 export default apiMethods;

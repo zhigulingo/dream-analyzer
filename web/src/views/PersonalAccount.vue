@@ -31,20 +31,20 @@
                 class="subscribe-button-main">
                 🎁 Получить бесплатный токен за подписку
            </button>
-           
-          <!-- Кнопки выхода из аккаунта -->
-          <div class="logout-buttons">
-            <button @click="handleLogout" class="logout-button">
-              Выйти из аккаунта
-            </button>
-            <button @click="handleEmergencyLogout" class="logout-button emergency">
-              Экстренный выход
-            </button>
-          </div>
         </div>
          <div v-if="!userStore.isLoadingProfile && userStore.profile?.channel_reward_claimed" class="reward-claimed-info">
              <p>✅ Награда за подписку на канал получена!</p>
          </div>
+         
+        <!-- Always show logout buttons outside of any v-if conditions -->
+        <div class="logout-buttons always-visible">
+          <button @click="handleLogout" class="logout-button">
+            Выйти из аккаунта
+          </button>
+          <button @click="handleEmergencyLogout" class="logout-button emergency">
+            Экстренный выход
+          </button>
+        </div>
       </section>
 
       <!-- Блок 2: История анализов -->
@@ -324,6 +324,13 @@ watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
   gap: 10px;
   margin-top: 10px;
   flex-wrap: wrap;
+}
+
+/* Style for always visible logout section */
+.logout-buttons.always-visible {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--tg-theme-hint-color, rgba(0,0,0,0.1));
 }
 
 /* Emergency logout button */
