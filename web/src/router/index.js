@@ -60,6 +60,20 @@ const router = createRouter({
 
 // Navigation guard for authentication
 router.beforeEach((to, from, next) => {
+  // Check for emergency logout flag
+  const forceLogout = localStorage.getItem('force_logout') === 'true' || 
+    to.query.force_logout === 'true';
+    
+  if (forceLogout) {
+    console.log('[Router] EMERGENCY LOGOUT detected - blocking auto-login');
+    // If heading to login page, allow it and clear the flag
+    if (to.name === 'WebLogin') {
+      localStorage.removeItem('force_logout');
+      console.log('[Router] Proceeding to login page and clearing logout flag');
+      return next();
+    }
+  }
+
   // DIRECT CHECK: Look for stored Telegram user data directly from localStorage
   const telegramUser = localStorage.getItem('telegram_user');
   const isTelegramWebApp = !!window.Telegram?.WebApp;
@@ -76,7 +90,8 @@ router.beforeEach((to, from, next) => {
     isTelegramWebApp, 
     hasStoredUser: !!telegramUser, 
     isAuthenticated,
-    isLoggingOut
+    isLoggingOut,
+    forceLogout
   });
   
   // If user is logging out, always allow navigation to login page

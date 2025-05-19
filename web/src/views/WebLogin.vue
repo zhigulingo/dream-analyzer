@@ -88,7 +88,36 @@ const checkTelegramWebApp = () => {
 };
 
 onMounted(() => {
-  // Clear any existing auth sessions on mount - critical for proper logout
+  // EMERGENCY CLEAR - Check for forced logout flag
+  const forceLogout = 
+    localStorage.getItem('force_logout') === 'true' || 
+    window.location.search.includes('force_logout=true');
+    
+  if (forceLogout) {
+    console.log('[WebLogin] EMERGENCY LOGOUT detected!');
+    
+    // Clear all possible storage
+    try {
+      // Clear user store
+      userStore.webUser = null;
+      userStore.isWebAuthenticated = false;
+      
+      // Clear storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Clear cookies
+      document.cookie.split(";").forEach(function(c) {
+        document.cookie = c.trim().split("=")[0] + "=;expires=" + new Date(0).toUTCString() + ";path=/";
+      });
+      
+      console.log('[WebLogin] Emergency cleanup complete');
+    } catch (e) {
+      console.error('[WebLogin] Error during cleanup:', e);
+    }
+  }
+
+  // Normal logout detection (preserve for compatibility)
   if (window.location.search.includes('logout=true')) {
     console.log('[WebLogin] Detected logout parameter, ensuring cleanout');
     localStorage.removeItem('telegram_user');
