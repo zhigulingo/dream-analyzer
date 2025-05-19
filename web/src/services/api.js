@@ -407,6 +407,19 @@ const apiMethods = {
       });
   },
   
+  /**
+   * Check the status of an authentication session
+   * @param {string} sessionId - The session ID to check
+   * @returns {Promise<Object>} - Session status information
+   */
+  checkSessionStatus(sessionId) {
+    return makeRequest('get', `/web-auth?session_id=${sessionId}`)
+      .catch(error => {
+        console.error('[api.js] checkSessionStatus failed:', error);
+        throw error;
+      });
+  },
+  
   logout() {
     console.log("[api.js] Performing API cleanup for logout");
     try {

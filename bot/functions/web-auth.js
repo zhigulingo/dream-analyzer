@@ -1,24 +1,10 @@
 const { createClient } = require("@supabase/supabase-js");
-let webAuthFlow;
-
-try {
-  // Try relative path for development
-  webAuthFlow = require("../auth/webAuthFlow");
-  console.log("[web-auth] Loaded webAuthFlow from ../auth/webAuthFlow");
-} catch (err) {
-  try {
-    // Try local path for production
-    webAuthFlow = require("./auth/webAuthFlow");
-    console.log("[web-auth] Loaded webAuthFlow from ./auth/webAuthFlow");
-  } catch (err2) {
-    console.error("[web-auth] Failed to load webAuthFlow:", err2);
-    throw new Error("Could not load webAuthFlow module");
-  }
-}
+const crypto = require('crypto');
 
 // Environment variables
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const BOT_SECRET = process.env.BOT_SECRET || 'default_bot_secret_key_change_this';
 
 // Initialize Supabase client
 const supabaseAdmin = createClient(
@@ -27,151 +13,177 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
+// Import the pendingAuthSessions map from bot.js
+// This is a bit hacky but works for serverless functions
+let pendingAuthSessions;
+try {
+  const botModule = require('./bot');
+  pendingAuthSessions = botModule.pendingAuthSessions;
+  console.log('[web-auth] Successfully imported pendingAuthSessions from bot.js');
+} catch (err) {
+  console.error('[web-auth] Failed to import pendingAuthSessions:', err);
+  // Create a fallback map if we can't import it
+  pendingAuthSessions = new Map();
+}
+
+/**
+ * Verify that a token is valid
+ * @param {string} token - The token to verify
+ * @returns {object} The token payload if valid, null otherwise
+ */
+function verifyToken(token) {
+  try {
+    // Decode the token
+    const tokenData = JSON.parse(Buffer.from(token, 'base64').toString('utf8'));
+    
+    // Check if the token has the expected format
+    if (!tokenData.payload || !tokenData.signature) {
+      console.error('[web-auth] Invalid token format');
+      return null;
+    }
+    
+    // Recreate the signature to verify
+    const payloadStr = JSON.stringify(tokenData.payload);
+    const expectedSignature = crypto
+      .createHmac('sha256', BOT_SECRET)
+      .update(payloadStr)
+      .digest('hex');
+    
+    // Check if the signatures match
+    if (tokenData.signature !== expectedSignature) {
+      console.error('[web-auth] Token signature verification failed');
+      return null;
+    }
+    
+    // Check if the token has expired
+    const now = Math.floor(Date.now() / 1000);
+    if (tokenData.payload.expires_at < now) {
+      console.error('[web-auth] Token has expired');
+      return null;
+    }
+    
+    return tokenData.payload;
+  } catch (err) {
+    console.error('[web-auth] Token verification error:', err);
+    return null;
+  }
+}
+
 /**
  * Handle GET requests to check session status
  */
 async function handleGetRequest(event) {
   const params = new URLSearchParams(event.queryStringParameters || {});
   const sessionId = params.get('session_id');
+  const authToken = params.get('auth_token');
   
-  if (!sessionId) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: 'Missing session_id parameter' })
-    };
+  // If auth_token is provided, verify it
+  if (authToken) {
+    const payload = verifyToken(authToken);
+    
+    if (payload) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          valid: true,
+          user_id: payload.user_id,
+          expires_at: payload.expires_at
+        })
+      };
+    } else {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          valid: false,
+          error: 'Invalid or expired token'
+        })
+      };
+    }
   }
   
-  // Check session status
-  const sessionStatus = webAuthFlow.checkAuthRequestStatus(sessionId);
-  
-  if (!sessionStatus.exists) {
+  // If session_id is provided, check its status
+  if (sessionId) {
+    // Check if the session exists
+    if (!pendingAuthSessions.has(sessionId)) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ 
+          exists: false, 
+          expired: true,
+          message: 'Session expired or not found' 
+        })
+      };
+    }
+    
+    const session = pendingAuthSessions.get(sessionId);
+    const now = Math.floor(Date.now() / 1000);
+    
+    // Check if the session has expired
+    if (session.expiresAt < now) {
+      pendingAuthSessions.delete(sessionId);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          exists: false,
+          expired: true,
+          message: 'Session expired'
+        })
+      };
+    }
+    
+    // If the session is approved, generate a token
+    if (session.approved) {
+      // Create a token similar to the one in bot.js
+      const timestamp = Math.floor(Date.now() / 1000);
+      const payload = {
+        user_id: session.userId,
+        user_data: session.userData,
+        session_id: sessionId,
+        issued_at: timestamp,
+        expires_at: timestamp + 604800 // 7 days
+      };
+      
+      // Sign the token
+      const payloadStr = JSON.stringify(payload);
+      const signature = crypto
+        .createHmac('sha256', BOT_SECRET)
+        .update(payloadStr)
+        .digest('hex');
+      
+      // Create the final token
+      const token = Buffer.from(JSON.stringify({
+        payload,
+        signature
+      })).toString('base64');
+      
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          exists: true,
+          approved: true,
+          token: token,
+          user_id: session.userId,
+          expires_at: payload.expires_at
+        })
+      };
+    }
+    
+    // Return the current session status
     return {
       statusCode: 200,
-      body: JSON.stringify({ 
-        exists: false, 
-        expired: true,
-        message: 'Session expired or not found' 
+      body: JSON.stringify({
+        exists: true,
+        approved: session.approved,
+        expires_in: session.expiresAt - now,
+        message: 'Waiting for approval'
       })
     };
   }
   
-  // Return status without token (tokens are only returned on approval)
   return {
-    statusCode: 200,
-    body: JSON.stringify({
-      exists: true,
-      approved: sessionStatus.approved,
-      expires_in: sessionStatus.expiresIn,
-      message: sessionStatus.approved ? 'Session approved' : 'Waiting for approval'
-    })
+    statusCode: 400,
+    body: JSON.stringify({ error: 'Missing session_id or auth_token parameter' })
   };
-}
-
-/**
- * Handle POST requests for creating new sessions or approving existing ones
- */
-async function handlePostRequest(event) {
-  try {
-    const body = JSON.parse(event.body || '{}');
-    const action = body.action;
-    
-    // Create a new session
-    if (action === 'create_session' && body.user_id) {
-      const userId = parseInt(body.user_id, 10);
-      if (isNaN(userId)) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ error: 'Invalid user_id' })
-        };
-      }
-      
-      // Get user data from Supabase
-      const { data: userData, error: userError } = await supabaseAdmin
-        .from('users')
-        .select('tg_id, username, first_name, last_name')
-        .eq('tg_id', userId)
-        .single();
-        
-      if (userError) {
-        console.error('Error fetching user data:', userError);
-        return {
-          statusCode: 500,
-          body: JSON.stringify({ error: 'Error fetching user data' })
-        };
-      }
-      
-      if (!userData) {
-        return {
-          statusCode: 404,
-          body: JSON.stringify({ error: 'User not found' })
-        };
-      }
-      
-      // Create auth request
-      const authRequest = webAuthFlow.createAuthRequest(userId, {
-        username: userData.username,
-        first_name: userData.first_name,
-        last_name: userData.last_name
-      });
-      
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          session_id: authRequest.sessionId,
-          expires_at: authRequest.expiresAt
-        })
-      };
-    }
-    
-    // Approve an existing session
-    if (action === 'approve_session' && body.session_id) {
-      const result = await webAuthFlow.approveAuthRequest(body.session_id);
-      
-      if (!result.success) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ error: result.error })
-        };
-      }
-      
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          success: true,
-          token: result.token,
-          expires_at: result.expiresAt
-        })
-      };
-    }
-    
-    // Deny a session
-    if (action === 'deny_session' && body.session_id) {
-      const result = webAuthFlow.denyAuthRequest(body.session_id);
-      
-      if (!result.success) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ error: result.error })
-        };
-      }
-      
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ success: true })
-      };
-    }
-    
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: 'Invalid action or missing parameters' })
-    };
-  } catch (error) {
-    console.error('Error processing request:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Internal server error' })
-    };
-  }
 }
 
 // Main handler function
@@ -181,7 +193,7 @@ exports.handler = async (event) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Bot-Auth-Token',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
   };
   
@@ -199,8 +211,6 @@ exports.handler = async (event) => {
     // Handle based on HTTP method
     if (event.httpMethod === 'GET') {
       response = await handleGetRequest(event);
-    } else if (event.httpMethod === 'POST') {
-      response = await handlePostRequest(event);
     } else {
       response = {
         statusCode: 405,
@@ -220,4 +230,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: 'Internal server error' })
     };
   }
-}; 
+};
+
+// Export the verifyToken function for use in other files
+exports.verifyToken = verifyToken; 

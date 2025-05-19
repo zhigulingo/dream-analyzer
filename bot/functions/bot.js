@@ -23,6 +23,9 @@ let geminiModel = null; // Сам model будет инициализирова�
 let initializationError = null;
 let botInitializedAndHandlersSet = false;
 
+// Simple in-memory session storage for web authentication
+const pendingAuthSessions = new Map();
+
 try {
     console.log("[Bot Global Init] Starting initialization...");
     if (!BOT_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_KEY || !GEMINI_API_KEY || !TMA_URL) {
@@ -96,8 +99,21 @@ try {
             const sessionId = crypto.randomBytes(16).toString('hex');
             const expiresAt = Math.floor(Date.now() / 1000) + 300; // 5 minutes
             
+            // Store the session in our in-memory map
+            pendingAuthSessions.set(sessionId, {
+                userId: user.id,
+                userData: {
+                    username: user.username || '',
+                    first_name: user.first_name || '',
+                    last_name: user.last_name || ''
+                },
+                expiresAt,
+                approved: false
+            });
+            
             // Create deep link for web app with session ID
-            const webAppUrl = `https://dream-analyzer.netlify.app?session=${sessionId}`;
+            // Use TMA_URL environment variable to ensure consistency
+            const webAppUrl = `${TMA_URL}/login?session=${sessionId}`;
             
             // Send confirmation message with link to web app
             await ctx.reply(
@@ -116,6 +132,14 @@ try {
             ).catch(logReplyError);
             
             console.log(`[Bot Handler /weblogin] Request created, session ${sessionId}`);
+            
+            // Set a timeout to clean up expired sessions
+            setTimeout(() => {
+                if (pendingAuthSessions.has(sessionId)) {
+                    pendingAuthSessions.delete(sessionId);
+                    console.log(`[Bot Handler /weblogin] Session ${sessionId} expired and removed`);
+                }
+            }, 300000); // 5 minutes
         } catch (error) {
             console.error('[Bot Handler /weblogin] Error:', error);
             await ctx.reply('Sorry, an error occurred while creating your login request.').catch(logReplyError);
@@ -132,13 +156,54 @@ try {
             const sessionId = callbackData.split(':')[1];
             console.log(`[Bot Handler callback] Approve auth for session ${sessionId}`);
             
+            // Check if the session exists
+            if (!pendingAuthSessions.has(sessionId)) {
+                await ctx.answerCallbackQuery("Authentication session expired or not found.");
+                return await ctx.editMessageText(
+                    '❌ Authentication session expired or not found.\n\nPlease create a new login request with /weblogin.',
+                    { reply_markup: { inline_keyboard: [] } }
+                );
+            }
+            
+            const session = pendingAuthSessions.get(sessionId);
+            
+            // Check if the user approving is the same who created the session
+            if (session.userId !== ctx.from.id) {
+                return await ctx.answerCallbackQuery("You are not authorized to approve this request.");
+            }
+            
+            // Mark the session as approved
+            session.approved = true;
+            pendingAuthSessions.set(sessionId, session);
+            
+            // Create a secure token based on user data
+            const timestamp = Math.floor(Date.now() / 1000);
+            const payload = {
+                user_id: session.userId,
+                user_data: session.userData,
+                session_id: sessionId,
+                issued_at: timestamp,
+                expires_at: timestamp + 604800 // 7 days
+            };
+            
+            // Sign the token with HMAC
+            const secret = process.env.BOT_SECRET || 'default_bot_secret_key_change_this';
+            const payloadStr = JSON.stringify(payload);
+            const signature = crypto
+                .createHmac('sha256', secret)
+                .update(payloadStr)
+                .digest('hex');
+            
+            // Create the final token
+            const token = Buffer.from(JSON.stringify({
+                payload,
+                signature
+            })).toString('base64');
+            
             await ctx.answerCallbackQuery("Authentication approved!");
             
-            // Generate a random token
-            const token = crypto.randomBytes(32).toString('hex');
-            
             // Generate a web app link with the token
-            const webAppUrl = `https://dream-analyzer.netlify.app?auth_token=${token}`;
+            const webAppUrl = `${TMA_URL}/login?auth_token=${token}`;
             
             // Update the message
             await ctx.editMessageText(
@@ -157,6 +222,25 @@ try {
         } else if (callbackData.startsWith('deny_auth:')) {
             const sessionId = callbackData.split(':')[1];
             console.log(`[Bot Handler callback] Deny auth for session ${sessionId}`);
+            
+            // Check if the session exists
+            if (!pendingAuthSessions.has(sessionId)) {
+                await ctx.answerCallbackQuery("Authentication session expired or not found.");
+                return await ctx.editMessageText(
+                    '❌ Authentication session expired or not found.',
+                    { reply_markup: { inline_keyboard: [] } }
+                );
+            }
+            
+            const session = pendingAuthSessions.get(sessionId);
+            
+            // Check if the user denying is the same who created the session
+            if (session.userId !== ctx.from.id) {
+                return await ctx.answerCallbackQuery("You are not authorized to deny this request.");
+            }
+            
+            // Remove the session
+            pendingAuthSessions.delete(sessionId);
             
             await ctx.answerCallbackQuery("Authentication denied.");
             
@@ -447,3 +531,6 @@ exports.handler = async (event) => {
 };
 
 console.log("[Bot Global Init] Netlify handler exported.");
+
+// Export the pendingAuthSessions map for use in other files
+exports.pendingAuthSessions = pendingAuthSessions;

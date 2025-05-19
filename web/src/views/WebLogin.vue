@@ -237,11 +237,6 @@ const checkSessionStatus = async () => {
         error.value = 'Authentication approved but no token received';
         sessionStatus.value = 'error';
       }
-    } else if (response.data.denied) {
-      // Session denied
-      stopPolling();
-      sessionStatus.value = 'denied';
-      error.value = 'Authentication request was denied.';
     } else if (response.data.expired) {
       // Session expired
       stopPolling();
