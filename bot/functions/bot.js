@@ -5,7 +5,35 @@ const { Bot, Api, GrammyError, HttpError, webhookCallback } = require("grammy");
 const { createClient } = require("@supabase/supabase-js");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const crypto = require('crypto');
-const webAuth = require('../commands/webAuth'); // Import web auth module
+const path = require('path');
+const fs = require('fs');
+
+// Try to load the webauth command handlers
+let webAuth;
+try {
+    // First try direct import (for development)
+    webAuth = require('../commands/webAuth');
+    console.log("[Bot Global Init] Loaded webAuth module from ../commands/webAuth");
+} catch (err) {
+    try {
+        // For production, try loading from ./commands
+        webAuth = require('./commands/webAuth');
+        console.log("[Bot Global Init] Loaded webAuth module from ./commands/webAuth");
+    } catch (err2) {
+        console.error("[Bot Global Init] Failed to load webAuth module:", err2);
+        // Create empty webAuth with stub method to prevent errors
+        webAuth = {
+            registerWebAuthCommands: (bot) => {
+                console.log("[Bot Global Init] Using stub webAuth implementation - WEBLOGIN COMMANDS NOT AVAILABLE");
+                
+                // Register a basic version of the weblogin command for debug purposes
+                bot.command("weblogin", async (ctx) => {
+                    await ctx.reply("Web login is currently unavailable. Please try again later.");
+                });
+            }
+        };
+    }
+}
 
 // --- Переменные Окружения ---
 const BOT_TOKEN = process.env.BOT_TOKEN;

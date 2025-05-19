@@ -1,5 +1,20 @@
 const { createClient } = require("@supabase/supabase-js");
-const webAuthFlow = require("../auth/webAuthFlow");
+let webAuthFlow;
+
+try {
+  // Try relative path for development
+  webAuthFlow = require("../auth/webAuthFlow");
+  console.log("[web-auth] Loaded webAuthFlow from ../auth/webAuthFlow");
+} catch (err) {
+  try {
+    // Try local path for production
+    webAuthFlow = require("./auth/webAuthFlow");
+    console.log("[web-auth] Loaded webAuthFlow from ./auth/webAuthFlow");
+  } catch (err2) {
+    console.error("[web-auth] Failed to load webAuthFlow:", err2);
+    throw new Error("Could not load webAuthFlow module");
+  }
+}
 
 // Environment variables
 const SUPABASE_URL = process.env.SUPABASE_URL;
