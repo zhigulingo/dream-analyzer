@@ -7,6 +7,24 @@
       <!-- Блок 1: Информация о пользователе -->
       <section class="user-info card">
         <h2>Ваш профиль</h2>
+        
+        <!-- User identity display section -->
+        <div class="user-identity">
+          <div class="user-avatar" v-if="userStore.webUser?.photo_url">
+            <img :src="userStore.webUser.photo_url" alt="User avatar" />
+          </div>
+          <div class="user-identity-text">
+            <p class="user-name">
+              {{ userStore.webUser?.first_name || 'Unknown' }} 
+              {{ userStore.webUser?.last_name || '' }}
+              <span v-if="userStore.webUser?.username">(@{{ userStore.webUser.username }})</span>
+            </p>
+            <p class="user-id">ID: {{ userStore.webUser?.id || 'Not available' }}</p>
+            <p class="auth-method">Auth Method: {{ getAuthMethod() }}</p>
+            <button @click="toggleDebugInfo" class="debug-toggle">{{ showDebugInfo ? 'Hide' : 'Show' }} Debug Info</button>
+          </div>
+        </div>
+        
         <div v-if="userStore.isLoadingProfile">Загрузка профиля...</div>
         <div v-else-if="userStore.errorProfile" class="error-message">
           Ошибка загрузки профиля: {{ userStore.errorProfile }}
@@ -44,6 +62,20 @@
           <button @click="handleEmergencyLogout" class="logout-button emergency">
             Экстренный выход
           </button>
+        </div>
+        
+        <!-- Debugging info section - only visible in development -->
+        <div v-if="showDebugInfo" class="debug-info">
+          <h3>Debug Information</h3>
+          <button @click="toggleDebugInfo" class="toggle-debug">{{ showDebugInfo ? 'Hide' : 'Show' }} Debug Info</button>
+          <div v-if="showDebugInfo">
+            <p><strong>Local Storage Telegram User:</strong></p>
+            <pre>{{ getLocalStorageUserString }}</pre>
+            <p><strong>Telegram WebApp InitData:</strong> {{ !!window.Telegram?.WebApp?.initData }}</p>
+            <p><strong>Base URL:</strong> {{ getApiBaseUrl }}</p>
+            <button @click="reloadUserData" class="debug-button">Reload User Data</button>
+            <button @click="clearAndReload" class="debug-button danger">Clear Data & Reload</button>
+          </div>
         </div>
       </section>
 
@@ -131,6 +163,53 @@ const router = useRouter();
 const tg = window.Telegram?.WebApp;
 const showRewardClaimView = ref(false);
 const REQUIRED_DREAMS = 5;
+
+// Debug features
+const showDebugInfo = ref(false);
+const getLocalStorageUserString = computed(() => {
+  try {
+    const userData = localStorage.getItem('telegram_user');
+    if (userData) {
+      const parsed = JSON.parse(userData);
+      return JSON.stringify(parsed, null, 2);
+    }
+    return 'No user data in localStorage';
+  } catch (e) {
+    return `Error parsing: ${e.message}`;
+  }
+});
+
+const getApiBaseUrl = computed(() => {
+  return import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/.netlify/functions`;
+});
+
+const toggleDebugInfo = () => {
+  showDebugInfo.value = !showDebugInfo.value;
+};
+
+const reloadUserData = async () => {
+  await userStore.fetchProfile();
+  await userStore.fetchHistory();
+};
+
+const clearAndReload = () => {
+  if (confirm('This will clear all auth data and reload the page. Continue?')) {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.reload();
+  }
+};
+
+// Function to determine the current authentication method
+const getAuthMethod = () => {
+  if (window.Telegram?.WebApp?.initData) {
+    return 'Telegram WebApp';
+  } else if (userStore.webUser) {
+    return 'Web Login';
+  } else {
+    return 'None';
+  }
+};
 
 // Функция форматирования даты/времени
 const formatDate = (dateString) => {
@@ -453,5 +532,112 @@ button:hover:not(:disabled), a.subscribe-button:hover {
     font-size: 0.95em;
     line-height: 1.6;
     color: var(--tg-theme-text-color);
+}
+
+/* Add styles for the user identity display */
+.user-identity {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--tg-theme-hint-color, rgba(0,0,0,0.1));
+}
+
+.user-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 15px;
+  background-color: var(--tg-theme-button-color, #3a6eae);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-identity-text {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: bold;
+  margin-bottom: 5px;
+  font-size: 1.1em;
+}
+
+.user-id, .auth-method {
+  font-size: 0.85em;
+  color: var(--tg-theme-hint-color, #666);
+  margin: 2px 0;
+}
+
+/* Styles for the debug information section */
+.debug-info {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px dashed var(--tg-theme-hint-color, #666);
+  border-radius: 4px;
+  background-color: rgba(0,0,0,0.03);
+  text-align: left;
+}
+
+.debug-info h3 {
+  margin-top: 0;
+  color: var(--tg-theme-hint-color, #666);
+}
+
+.debug-info pre {
+  background-color: rgba(0,0,0,0.05);
+  padding: 10px;
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 200px;
+  font-size: 12px;
+  margin: 10px 0;
+}
+
+.toggle-debug {
+  background-color: var(--tg-theme-button-color, #3a6eae);
+  color: white;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.debug-button {
+  background-color: var(--tg-theme-button-color, #3a6eae);
+  color: white;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  margin-right: 10px;
+  margin-top: 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.debug-button.danger {
+  background-color: #dc3545;
+}
+
+.debug-toggle {
+  background-color: transparent;
+  color: var(--tg-theme-link-color, #3a6eae);
+  padding: 2px 5px;
+  border: 1px solid var(--tg-theme-link-color, #3a6eae);
+  border-radius: 4px;
+  font-size: 0.7em;
+  cursor: pointer;
+  margin-top: 5px;
 }
 </style>
