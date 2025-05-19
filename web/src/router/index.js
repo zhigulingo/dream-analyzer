@@ -50,6 +50,11 @@ const routes = [
         });
       }
     }
+  },
+  // Catch-all route for 404 pages
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 
@@ -61,8 +66,49 @@ const router = createRouter({
 // Import auth service
 import * as authService from '@/services/authService';
 
+// Debug helper function to print auth state
+function debugAuthState() {
+  try {
+    // Check auth methods
+    const telegramAuth = !!window.Telegram?.WebApp?.initData;
+    
+    // Check localStorage
+    const storedUser = localStorage.getItem('telegram_user');
+    let userJSON = null;
+    try {
+      userJSON = storedUser ? JSON.parse(storedUser) : null;
+    } catch (e) {
+      console.error('[Router] Failed to parse stored user:', e);
+    }
+    
+    // Build debug info
+    const debugInfo = {
+      telegramAuth,
+      webAuth: !!storedUser,
+      localStorage: Object.keys(localStorage),
+      sessionStorage: Object.keys(sessionStorage),
+      userInfo: userJSON ? {
+        id: userJSON.id,
+        username: userJSON.username,
+        hasName: !!(userJSON.first_name || userJSON.last_name)
+      } : null
+    };
+    
+    console.log('[Router] 🔍 AUTH DEBUG:', debugInfo);
+    return debugInfo;
+  } catch (e) {
+    console.error('[Router] Error in debug helper:', e);
+    return { error: e.message };
+  }
+}
+
 // Navigation guard for authentication
 router.beforeEach(async (to, from, next) => {
+  console.log(`[Router] Navigation started to: ${to.path}`);
+  
+  // Debug auth state
+  debugAuthState();
+  
   // CRITICAL: Check for redirect loop prevention
   if (authService.isInRedirectLoop()) {
     console.error('[Router] REDIRECT LOOP DETECTED - EMERGENCY BREAK');
@@ -89,7 +135,14 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // Check authentication method
-  const authMethod = authService.getAuthenticationMethod();
+  let authMethod;
+  try {
+    authMethod = authService.getAuthenticationMethod();
+  } catch (e) {
+    console.error('[Router] Error detecting auth method:', e);
+    authMethod = null;
+  }
+  
   const isAuthenticated = authMethod !== null;
   
   // Special handling for logout detection - if coming from a logout action
@@ -104,6 +157,13 @@ router.beforeEach(async (to, from, next) => {
     forceLogout,
     redirectCount: currentCount
   });
+  
+  // Special handling for auth=timestamp query parameter
+  if (to.query.auth && !isAuthenticated) {
+    console.log('[Router] Auth timestamp detected in URL, reloading page');
+    window.location.reload();
+    return;
+  }
   
   // Handle API 401 errors that might have happened
   const hasAuthError = sessionStorage.getItem('auth_error') === 'true';

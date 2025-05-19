@@ -3,6 +3,31 @@
  * Provides global authentication utilities and ensures consistent auth behavior
  */
 
+// Helper function to safely check for Telegram WebApp
+function hasTelegramAuth() {
+  try {
+    return !!window.Telegram?.WebApp?.initData;
+  } catch (e) {
+    console.error('[AuthService] Error checking Telegram WebApp:', e);
+    return false;
+  }
+}
+
+// Helper function to safely check for web auth
+function hasWebAuth() {
+  try {
+    const userData = localStorage.getItem('telegram_user');
+    if (!userData) return false;
+    
+    // Attempt to parse the user data to verify it's valid JSON
+    const parsedData = JSON.parse(userData);
+    return !!parsedData && !!parsedData.id;
+  } catch (e) {
+    console.error('[AuthService] Error checking web auth:', e);
+    return false;
+  }
+}
+
 // Create a function to completely clear all app data
 export function clearAllAuthData() {
   console.log('[AuthService] Performing complete auth data cleanup');
@@ -34,34 +59,56 @@ export function clearAllAuthData() {
 
 // Check if the user is experiencing a redirect loop
 export function isInRedirectLoop() {
-  const redirectCount = parseInt(sessionStorage.getItem('redirect_count') || '0');
-  return redirectCount > 3;
+  try {
+    const redirectCount = parseInt(sessionStorage.getItem('redirect_count') || '0');
+    return redirectCount > 3;
+  } catch (e) {
+    console.error('[AuthService] Error checking redirect loop:', e);
+    return false;
+  }
 }
 
 // Increment redirect counter
 export function incrementRedirectCount() {
-  const current = parseInt(sessionStorage.getItem('redirect_count') || '0');
-  sessionStorage.setItem('redirect_count', (current + 1).toString());
-  return current + 1;
+  try {
+    const current = parseInt(sessionStorage.getItem('redirect_count') || '0');
+    const newCount = current + 1;
+    sessionStorage.setItem('redirect_count', newCount.toString());
+    return newCount;
+  } catch (e) {
+    console.error('[AuthService] Error incrementing redirect count:', e);
+    return 0;
+  }
 }
 
 // Reset redirect counter
 export function resetRedirectCount() {
-  sessionStorage.setItem('redirect_count', '0');
+  try {
+    sessionStorage.setItem('redirect_count', '0');
+  } catch (e) {
+    console.error('[AuthService] Error resetting redirect count:', e);
+  }
 }
 
 // Check if a force logout is active
 export function isForceLogoutActive() {
-  return localStorage.getItem('force_logout') === 'true';
+  try {
+    return localStorage.getItem('force_logout') === 'true';
+  } catch (e) {
+    console.error('[AuthService] Error checking force logout state:', e);
+    return false;
+  }
 }
 
 // Get authentication method - returns 'telegram', 'web', or null
 export function getAuthenticationMethod() {
-  if (window.Telegram?.WebApp?.initData) {
+  // Try telegram WebApp first
+  if (hasTelegramAuth()) {
     return 'telegram';
   }
   
-  if (localStorage.getItem('telegram_user')) {
+  // Then try web auth
+  if (hasWebAuth()) {
     return 'web';
   }
   
