@@ -25,27 +25,31 @@ apiClient.interceptors.request.use(
     const initData = window.Telegram?.WebApp?.initData;
     if (initData) {
       config.headers['X-Telegram-Init-Data'] = initData;
-      // console.log("[api.js] Sending InitData header");
+      console.log("[api.js] Sending Telegram InitData header");
     } else {
       // If no Telegram WebApp data, check for web authentication
       const storedUser = localStorage.getItem('telegram_user');
       if (storedUser) {
         try {
           const userData = JSON.parse(storedUser);
-          config.headers['X-Web-Auth-User'] = JSON.stringify(userData);
-          console.log("[api.js] Sending Web Auth User header");
+          // Ensure we're sending the complete user object
+          config.headers['X-Web-Auth-User'] = JSON.stringify({
+            id: userData.id,
+            username: userData.username,
+            first_name: userData.first_name,
+            last_name: userData.last_name
+          });
+          console.log("[api.js] Sending Web Auth User header for user:", userData.id);
         } catch (err) {
-          console.error("[api.js] Failed to parse stored user data", err);
+          console.error("[api.js] Failed to parse stored user data:", err);
         }
       } else {
-        // If neither is available, log a warning
         console.warn("[api.js] No authentication data available. API calls might fail authorization.");
       }
     }
     return config;
   },
   (error) => {
-    // Ошибка при формировании запроса (редко)
     console.error("[api.js] Axios request interceptor error:", error);
     return Promise.reject(error);
   }

@@ -33,12 +33,19 @@ const error = ref(null);
 // Function to handle successful Telegram authentication
 const onTelegramAuth = (userData) => {
   console.log('Telegram auth success:', userData);
-  user.value = userData;
+  
+  // Ensure we have the required user data
+  if (!userData || !userData.id) {
+    error.value = 'Invalid user data received from Telegram';
+    console.error('Invalid user data:', userData);
+    return;
+  }
   
   // Save the user data to the store
   userStore.setWebUser(userData);
+  user.value = userData;
   
-  // Call your backend API to verify the user if needed
+  // Call your backend API to verify the user
   verifyUser(userData);
 };
 
@@ -50,7 +57,10 @@ const verifyUser = async (userData) => {
     
     if (response.data.success) {
       console.log('User verified successfully:', response.data);
-      // You can update the user store with additional data from the response if needed
+      // Update the user store with any additional data from the response
+      if (response.data.user) {
+        userStore.setWebUser({ ...userData, ...response.data.user });
+      }
     } else {
       error.value = response.data.error || 'Verification failed';
       console.error('Verification failed:', response.data);
@@ -66,7 +76,29 @@ const proceedToApp = () => {
   router.push('/account');
 };
 
+// Check if we're inside Telegram WebApp
+const checkTelegramWebApp = () => {
+  if (window.Telegram?.WebApp) {
+    console.log('Running inside Telegram WebApp, redirecting to account');
+    // No need for login widget in Telegram WebApp
+    router.push('/account');
+    return true;
+  }
+  return false;
+};
+
 onMounted(() => {
+  // First check if we're in Telegram WebApp
+  if (checkTelegramWebApp()) {
+    return; // Skip widget initialization if in Telegram
+  }
+  
+  // Check for existing login
+  if (userStore.isWebAuthenticated) {
+    user.value = userStore.webUser;
+    return; // User is already authenticated
+  }
+
   // Initialize the Telegram Widget
   // First check if it's already loaded
   if (!document.getElementById('telegram-login-script')) {
