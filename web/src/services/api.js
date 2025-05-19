@@ -79,7 +79,7 @@ apiClient.interceptors.response.use(
     // Успешный ответ просто пропускаем
     return response;
   },
-  (error) => {
+  async (error) => {
     // Логируем детали ошибки ответа (сетевая ошибка или ошибка от сервера)
     if (error.response) {
       // Ошибка от сервера (статус не 2xx)
@@ -90,6 +90,31 @@ apiClient.interceptors.response.use(
           status: error.response?.status,
           data: error.response?.data, // Тело ответа с ошибкой от бэкенда
       });
+      
+      // Special handling for 401 (Unauthorized) errors
+      if (error.response.status === 401) {
+        console.error('[api.js] UNAUTHORIZED (401) detected - marking as auth_error');
+        
+        // Mark auth error in session storage to trigger router handling
+        sessionStorage.setItem('auth_error', 'true');
+        
+        // Load auth service dynamically to avoid circular dependencies
+        try {
+          const authService = await import('./authService');
+          
+          // Only redirect on non-auth URLs (avoid infinite loop)
+          const isAuthUrl = error.config.url.includes('verify-web-auth') || 
+                           error.config.url.includes('login');
+                           
+          // If this is not an auth endpoint, trigger emergency redirect
+          if (!isAuthUrl) {
+            console.log('[api.js] Triggering emergency redirect due to 401');
+            authService.emergencyRedirect();
+          }
+        } catch (e) {
+          console.error('[api.js] Failed to load auth service for 401 handling', e);
+        }
+      }
     } else if (error.request) {
       // Запрос был сделан, но ответ не получен (сетевая проблема, таймаут)
       console.error('[api.js] Axios network error (no response):', {

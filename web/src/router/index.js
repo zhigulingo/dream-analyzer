@@ -58,11 +58,24 @@ const router = createRouter({
   routes
 })
 
+// Import auth service
+import * as authService from '@/services/authService';
+
 // Navigation guard for authentication
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+  // CRITICAL: Check for redirect loop prevention
+  if (authService.isInRedirectLoop()) {
+    console.error('[Router] REDIRECT LOOP DETECTED - EMERGENCY BREAK');
+    authService.emergencyRedirect();
+    return;
+  }
+  
+  // Increment redirect count (will be reset after successful navigation)
+  const currentCount = authService.incrementRedirectCount();
+  console.log(`[Router] Navigation redirect count: ${currentCount}`);
+  
   // Check for emergency logout flag
-  const forceLogout = localStorage.getItem('force_logout') === 'true' || 
-    to.query.force_logout === 'true';
+  const forceLogout = authService.isForceLogoutActive() || to.query.force_logout === 'true';
     
   if (forceLogout) {
     console.log('[Router] EMERGENCY LOGOUT detected - blocking auto-login');
@@ -70,16 +83,14 @@ router.beforeEach((to, from, next) => {
     if (to.name === 'WebLogin') {
       localStorage.removeItem('force_logout');
       console.log('[Router] Proceeding to login page and clearing logout flag');
+      authService.resetRedirectCount();
       return next();
     }
   }
 
-  // DIRECT CHECK: Look for stored Telegram user data directly from localStorage
-  const telegramUser = localStorage.getItem('telegram_user');
-  const isTelegramWebApp = !!window.Telegram?.WebApp;
-  
-  // Force a FRESH check of authentication state on each route change
-  const isAuthenticated = isTelegramWebApp || !!telegramUser;
+  // Check authentication method
+  const authMethod = authService.getAuthenticationMethod();
+  const isAuthenticated = authMethod !== null;
   
   // Special handling for logout detection - if coming from a logout action
   const isLoggingOut = from.name === 'PersonalAccount' && to.name === 'WebLogin';
@@ -87,16 +98,27 @@ router.beforeEach((to, from, next) => {
   // Log authentication state for debugging
   console.log('[Router] Auth check:', { 
     path: to.path,
-    isTelegramWebApp, 
-    hasStoredUser: !!telegramUser, 
+    authMethod,
     isAuthenticated,
     isLoggingOut,
-    forceLogout
+    forceLogout,
+    redirectCount: currentCount
   });
+  
+  // Handle API 401 errors that might have happened
+  const hasAuthError = sessionStorage.getItem('auth_error') === 'true';
+  if (hasAuthError && isAuthenticated && !isLoggingOut) {
+    console.error('[Router] Auth error detected, forcing logout');
+    sessionStorage.removeItem('auth_error');
+    authService.clearAllAuthData();
+    authService.resetRedirectCount();
+    return next({ name: 'WebLogin', query: { error: 'auth_expired' }});
+  }
   
   // If user is logging out, always allow navigation to login page
   if (isLoggingOut) {
     console.log('[Router] Detected logout action, allowing navigation to login');
+    authService.resetRedirectCount();
     return next();
   }
   
@@ -104,13 +126,16 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !isAuthenticated) {
     // Redirect to login if trying to access protected route without auth
     console.log('[Router] Unauthorized access attempt, redirecting to login');
+    authService.resetRedirectCount();
     next({ name: 'WebLogin' });
   } else if (to.meta.requiresNoAuth && isAuthenticated) {
     // Redirect to account if trying to access login page when already logged in
     console.log('[Router] Already authenticated, redirecting to account');
+    authService.resetRedirectCount();
     next({ name: 'PersonalAccount' });
   } else {
     // Allow navigation
+    authService.resetRedirectCount();
     next();
   }
 })

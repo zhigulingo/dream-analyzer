@@ -32,10 +32,15 @@
                 🎁 Получить бесплатный токен за подписку
            </button>
            
-          <!-- Кнопка выхода из аккаунта -->
-          <button @click="handleLogout" class="logout-button">
-            Выйти из аккаунта
-          </button>
+          <!-- Кнопки выхода из аккаунта -->
+          <div class="logout-buttons">
+            <button @click="handleLogout" class="logout-button">
+              Выйти из аккаунта
+            </button>
+            <button @click="handleEmergencyLogout" class="logout-button emergency">
+              Экстренный выход
+            </button>
+          </div>
         </div>
         <div v-else>
           <p>Не удалось загрузить данные профиля.</p>
@@ -142,8 +147,11 @@ const goBackToAccount = () => {
 const handleClaimRewardClick = async () => { await userStore.claimChannelReward(); };
 
 // Logout function
+// Import auth service
+import { clearAllAuthData, emergencyRedirect } from '@/services/authService';
+
 const handleLogout = async () => {
-  console.log('Initiating EMERGENCY logout process...');
+  console.log('Initiating standard logout process...');
   
   try {
     // First, call the store logout (now async)
@@ -156,12 +164,24 @@ const handleLogout = async () => {
   // FORCE REDIRECT - multiple mechanisms to ensure it works
   console.log('Forcing hard redirect to login page...');
   
-  // 1. Clear critical auth data again
-  localStorage.removeItem('telegram_user');
-  sessionStorage.clear();
-  
-  // 2. Direct window location change with special parameter
+  // Direct window location change with special parameter
   window.location.href = '/?logout=true';
+};
+
+// Emergency logout bypasses the Vue router entirely
+const handleEmergencyLogout = () => {
+  console.log('Initiating EMERGENCY logout process...');
+  if (confirm('Вы действительно хотите выполнить экстренный выход? Это очистит все данные приложения.')) {
+    try {
+      // Redirect directly to emergency page
+      emergencyRedirect();
+    } catch (e) {
+      console.error('Error during emergency logout:', e);
+      // Fallback if imported function fails
+      clearAllAuthData();
+      window.location.href = '/emergency.html';
+    }
+  }
 };
 
 // --- НОВАЯ ФУНКЦИЯ ДЛЯ ОПРЕДЕЛЕНИЯ МОБИЛЬНОГО УСТРОЙСТВА ---
@@ -290,6 +310,24 @@ watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
 
 .logout-button:hover {
   background-color: #d32f2f;
+}
+
+/* Styles for logout buttons container */
+.logout-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+/* Emergency logout button */
+.logout-button.emergency {
+  background-color: #dc3545;
+  color: white;
+}
+
+.logout-button.emergency:hover {
+  background-color: #bd2130;
 }
 
 /* --- Ваши стили без изменений --- */

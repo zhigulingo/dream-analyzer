@@ -87,29 +87,26 @@ const checkTelegramWebApp = () => {
   return false;
 };
 
-onMounted(() => {
+onMounted(async () => {
+  // Import auth service
+  const authService = await import('@/services/authService');
+  
   // EMERGENCY CLEAR - Check for forced logout flag
   const forceLogout = 
-    localStorage.getItem('force_logout') === 'true' || 
+    authService.default.isForceLogoutActive() || 
     window.location.search.includes('force_logout=true');
     
   if (forceLogout) {
     console.log('[WebLogin] EMERGENCY LOGOUT detected!');
     
-    // Clear all possible storage
+    // Use auth service for cleanup
     try {
       // Clear user store
       userStore.webUser = null;
       userStore.isWebAuthenticated = false;
       
-      // Clear storage
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      // Clear cookies
-      document.cookie.split(";").forEach(function(c) {
-        document.cookie = c.trim().split("=")[0] + "=;expires=" + new Date(0).toUTCString() + ";path=/";
-      });
+      // Clear all auth data
+      authService.default.clearAllAuthData();
       
       console.log('[WebLogin] Emergency cleanup complete');
     } catch (e) {
@@ -117,11 +114,15 @@ onMounted(() => {
     }
   }
 
+  // Check for auth error parameter
+  if (window.location.search.includes('error=auth_expired')) {
+    error.value = 'Your session has expired. Please login again.';
+  }
+
   // Normal logout detection (preserve for compatibility)
   if (window.location.search.includes('logout=true')) {
     console.log('[WebLogin] Detected logout parameter, ensuring cleanout');
-    localStorage.removeItem('telegram_user');
-    sessionStorage.clear();
+    authService.default.clearAllAuthData();
     userStore.webUser = null;
     userStore.isWebAuthenticated = false;
   }

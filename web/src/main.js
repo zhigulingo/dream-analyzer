@@ -2,9 +2,13 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import router from './router'
+import { installFetchInterceptor } from './services/fetchInterceptor' 
 
 import App from './App.vue' // Ваш корневой компонент Vue
 import { useUserStore } from './stores/user'
+
+// Install global fetch interceptor for handling auth errors
+installFetchInterceptor();
 
 // Импортируйте ваши глобальные стили, если есть
 // import './assets/main.css'

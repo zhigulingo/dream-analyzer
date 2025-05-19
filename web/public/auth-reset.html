@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Reset - Dream Analyzer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            color: #333;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #e2f0fb;
+            color: #0c5460;
+        }
+        .button-group {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #4681c9;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .button:hover {
+            background-color: #3a6eae;
+        }
+        .button.danger {
+            background-color: #dc3545;
+        }
+        .button.danger:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Authentication Reset</h1>
+        <p>If you're experiencing authentication issues with the Dream Analyzer app, use the options below to reset your session.</p>
+        
+        <div id="status" class="status info">
+            Choose an option below.
+        </div>
+        
+        <div class="button-group">
+            <button onclick="clearAllData()" class="button danger">Clear All Data</button>
+            <a href="/emergency.html" class="button">Emergency Login</a>
+            <a href="/" class="button">Return to Main App</a>
+        </div>
+    </div>
+    
+    <script>
+        const statusEl = document.getElementById('status');
+        
+        function setStatus(message, type = 'info') {
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        function clearAllData() {
+            try {
+                setStatus('Clearing all application data...', 'info');
+                
+                // Clear localStorage
+                localStorage.clear();
+                
+                // Clear sessionStorage
+                sessionStorage.clear();
+                
+                // Clear cookies
+                document.cookie.split(";").forEach(function(c) {
+                    const eqPos = c.indexOf("=");
+                    const name = eqPos > -1 ? c.substring(0, eqPos).trim() : c.trim();
+                    document.cookie = name + "=;expires=" + new Date(0).toUTCString() + ";path=/";
+                });
+                
+                // Set force logout flag
+                localStorage.setItem('force_logout', 'true');
+                
+                setStatus('Data cleared successfully. You can now return to the app or use emergency login.', 'success');
+            } catch (e) {
+                setStatus('Error clearing data: ' + e.message, 'error');
+                console.error('Error:', e);
+            }
+        }
+    </script>
+</body>
+</html> 

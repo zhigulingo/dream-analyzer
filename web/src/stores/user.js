@@ -114,6 +114,9 @@ export const useUserStore = defineStore('user', {
     async logout() {
       console.log('[UserStore] Forcefully clearing all user data and authentication');
       
+      // Import auth service
+      const { clearAllAuthData } = await import('@/services/authService');
+      
       // Call API cleanup first
       try {
         await api.logout();
@@ -133,24 +136,12 @@ export const useUserStore = defineStore('user', {
       };
       this.history = [];
       
-      // Clear various storage mechanisms
-      localStorage.removeItem('telegram_user');
-      sessionStorage.removeItem('telegram_user');
-      
-      // Try to clear all localStorage used in the app
+      // Use our robust auth clearing function
       try {
-        // Clear any cached tokens or session data
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        // Try to remove cookies that might be related
-        document.cookie.split(";").forEach(function(c) {
-          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-        });
-        
-        console.log('[UserStore] All storage mechanisms cleared');
+        clearAllAuthData();
+        console.log('[UserStore] All authentication data cleared');
       } catch (e) {
-        console.error('[UserStore] Error while clearing storage:', e);
+        console.error('[UserStore] Error while clearing auth data:', e);
       }
     },
 
