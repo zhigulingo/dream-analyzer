@@ -18,11 +18,28 @@ const apiClient = axios.create({
   timeout: 15000 // Добавим таймаут на 15 секунд для запросов
 });
 
+// Debug helper to dump all localStorage items
+function debugLocalStorage() {
+  console.log('[api.js] 🔍 DEBUG localStorage contents:');
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    try {
+      const value = localStorage.getItem(key);
+      console.log(`[api.js] 🔑 ${key}: ${value.substring(0, 50)}${value.length > 50 ? '...' : ''}`);
+    } catch (e) {
+      console.log(`[api.js] 🔑 ${key}: [Error reading value]`);
+    }
+  }
+}
+
 // Перехватчик запросов для автоматического добавления заголовка X-Telegram-Init-Data
 apiClient.interceptors.request.use(
   (config) => {
     // Always log the URL being called for debugging
     console.log(`[api.js] Making request to: ${config.method.toUpperCase()} ${config.url}`);
+    
+    // Dump all localStorage items to aid debugging
+    debugLocalStorage();
     
     // APPROACH 1: Telegram WebApp initData
     const initData = window.Telegram?.WebApp?.initData;
@@ -46,12 +63,14 @@ apiClient.interceptors.request.use(
             last_name: userData.last_name || ""
           });
           
-          // Ensure special headers are set in lowercase (what Netlify actually expects)
+          // Set header in both formats to ensure compatibility with server expectations
           config.headers['x-web-auth-user'] = headerData;
+          config.headers['X-Web-Auth-User'] = headerData;
           
           // Log that we're sending authentication 
           console.log(`[api.js] USING APPROACH 2: Web Auth, User ID: ${userData.id}`);
           console.log(`[api.js] Headers being sent: ${Object.keys(config.headers).join(', ')}`);
+          console.log(`[api.js] Auth header content: ${headerData}`);
           
           return config;
         }

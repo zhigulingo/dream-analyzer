@@ -90,7 +90,7 @@
         <p>This is an emergency login page that bypasses the Vue router.</p>
         
         <div id="status" class="status info">
-            Clearing all previous authentication data...
+            Please log in with your Telegram account
         </div>
         
         <div id="telegram-login">
@@ -130,9 +130,6 @@
                     document.cookie = c.trim().split("=")[0] + "=;expires=" + new Date(0).toUTCString() + ";path=/";
                 });
                 
-                // Set special flags
-                localStorage.setItem('force_logout', 'true');
-                
                 logStatus('All data cleared successfully!', 'success');
                 
                 // Reload after a short delay
@@ -152,8 +149,21 @@
             
             // Store the user data
             try {
+                // First, make sure force_logout flag is removed
+                localStorage.removeItem('force_logout');
+                
+                // Remove any auth_error flags
+                sessionStorage.removeItem('auth_error');
+                
+                // Store the user data
                 localStorage.setItem('telegram_user', JSON.stringify(user));
-                logStatus('User data stored. You can now return to the main app.', 'success');
+                
+                logStatus('User data stored. Redirecting to main app...', 'success');
+                
+                // Redirect to main app with authentication timestamp
+                setTimeout(() => {
+                    window.location.href = '/?auth=' + Date.now();
+                }, 1500);
             } catch (e) {
                 logStatus('Error storing user data: ' + e.message, 'error');
                 console.error('Error storing user:', e);
@@ -162,8 +172,12 @@
         
         // Initialize the page
         function initPage() {
-            // Clear any existing authentication data
-            clearAllData();
+            // Check if we're coming back from a Telegram auth redirect
+            const params = new URLSearchParams(window.location.search);
+            if (!params.has('id') && !params.has('auth_date')) {
+                // Only clear data if this is a fresh load, not a Telegram callback
+                clearAllData();
+            }
             
             // Initialize Telegram Login Widget
             const script = document.createElement('script');
