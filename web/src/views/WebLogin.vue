@@ -41,7 +41,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import api from '@/services/api';
@@ -53,6 +53,9 @@ const user = ref(null);
 const error = ref(null);
 const authCode = ref('');
 const isVerifying = ref(false);
+const sessionId = ref('');
+const sessionStatus = ref('waiting');
+const pollInterval = ref(null);
 
 // Function to handle successful Telegram authentication
 const onTelegramAuth = (userData) => {
@@ -111,32 +114,151 @@ const checkTelegramWebApp = () => {
   return false;
 };
 
-// Check URL for bot authentication token
-const checkUrlForAuthToken = async () => {
+// Check URL for session ID or auth token
+const checkUrlParams = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('auth_token');
+  const session = urlParams.get('session');
   
   if (token) {
     console.log('Found auth token in URL');
-    
+    handleAuthToken(token);
+    return true;
+  }
+  
+  if (session) {
+    console.log('Found session ID in URL');
+    handleSessionId(session);
+    return true;
+  }
+  
+  return false;
+};
+
+// Handle auth token from URL
+const handleAuthToken = (token) => {
+  try {
     // Clean up URL - remove token parameter
     const url = new URL(window.location);
     url.searchParams.delete('auth_token');
     window.history.replaceState({}, document.title, url);
     
-    try {
-      // Store the token
-      localStorage.setItem('bot_auth_token', token);
-      
-      // Fetch user profile
-      await userStore.fetchProfile();
-      
-      // Redirect to account page
-      router.push('/account');
-    } catch (e) {
-      console.error('Error processing token from URL:', e);
-      error.value = 'Failed to authenticate with token';
+    // Store the token
+    localStorage.setItem('bot_auth_token', token);
+    
+    // Show success message
+    sessionStatus.value = 'approved';
+    
+    // Fetch user profile
+    userStore.fetchProfile()
+      .then(() => {
+        user.value = userStore.webUser;
+        
+        // Auto-proceed to app
+        setTimeout(() => {
+          proceedToApp();
+        }, 2000);
+      })
+      .catch(e => {
+        console.error('Error fetching profile after authentication:', e);
+        error.value = 'Authentication successful, but failed to load your profile.';
+      });
+  } catch (e) {
+    console.error('Error processing token from URL:', e);
+    error.value = 'Failed to authenticate with token';
+  }
+};
+
+// Handle session ID from URL
+const handleSessionId = (session) => {
+  // Store the session ID
+  sessionId.value = session;
+  
+  // Clean up URL - remove session parameter
+  const url = new URL(window.location);
+  url.searchParams.delete('session');
+  window.history.replaceState({}, document.title, url);
+  
+  // Start polling for session status
+  startPolling();
+};
+
+// Poll for session status
+const startPolling = () => {
+  if (pollInterval.value) {
+    clearInterval(pollInterval.value);
+  }
+  
+  sessionStatus.value = 'waiting';
+  
+  // Poll every 2 seconds
+  pollInterval.value = setInterval(() => {
+    checkSessionStatus();
+  }, 2000);
+  
+  // Stop polling after 5 minutes (same as session expiry)
+  setTimeout(() => {
+    stopPolling();
+    if (sessionStatus.value === 'waiting') {
+      sessionStatus.value = 'expired';
+      error.value = 'Authentication session expired. Please try again.';
     }
+  }, 300000);
+};
+
+// Check if session has been approved
+const checkSessionStatus = async () => {
+  if (!sessionId.value) return;
+  
+  try {
+    // Make API call to check session status
+    const response = await api.checkSessionStatus(sessionId.value);
+    
+    if (response.data.approved) {
+      // Session approved, stop polling
+      stopPolling();
+      
+      // Set the auth token
+      if (response.data.token) {
+        localStorage.setItem('bot_auth_token', response.data.token);
+        
+        // Show success message
+        sessionStatus.value = 'approved';
+        
+        // Fetch user profile and proceed to app
+        await userStore.fetchProfile();
+        user.value = userStore.webUser;
+        
+        // Auto-proceed to app
+        setTimeout(() => {
+          proceedToApp();
+        }, 2000);
+      } else {
+        error.value = 'Authentication approved but no token received';
+        sessionStatus.value = 'error';
+      }
+    } else if (response.data.denied) {
+      // Session denied
+      stopPolling();
+      sessionStatus.value = 'denied';
+      error.value = 'Authentication request was denied.';
+    } else if (response.data.expired) {
+      // Session expired
+      stopPolling();
+      sessionStatus.value = 'expired';
+      error.value = 'Authentication session expired. Please try again.';
+    }
+  } catch (e) {
+    console.error('Error checking session status:', e);
+    // Don't stop polling on error, just log it
+  }
+};
+
+// Stop polling
+const stopPolling = () => {
+  if (pollInterval.value) {
+    clearInterval(pollInterval.value);
+    pollInterval.value = null;
   }
 };
 
@@ -184,6 +306,11 @@ const verifyBotCode = async () => {
     isVerifying.value = false;
   }
 };
+
+// Clean up on unmount
+onUnmounted(() => {
+  stopPolling();
+});
 
 onMounted(async () => {
   // Import auth service
@@ -256,8 +383,13 @@ onMounted(async () => {
     document.getElementById('telegram-login').appendChild(script);
   }
 
-  // Check for auth token in URL first
-  await checkUrlForAuthToken();
+  // Check for authentication params in URL first
+  const hasAuthParams = checkUrlParams();
+  
+  // Handle Telegram login widget if no auth params
+  if (!hasAuthParams) {
+    // Existing Telegram login widget code here...
+  }
 });
 </script>
 
