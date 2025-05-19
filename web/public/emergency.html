@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Login - Dream Analyzer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            color: #333;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .info {
+            background-color: #e2f0fb;
+            color: #0c5460;
+        }
+        #telegram-login {
+            margin: 30px 0;
+            min-height: 60px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #4681c9;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .button:hover {
+            background-color: #3a6eae;
+        }
+        .button.danger {
+            background-color: #dc3545;
+        }
+        .button.danger:hover {
+            background-color: #c82333;
+        }
+        .button-group {
+            margin-top: 30px;
+        }
+        .button-group .button {
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dream Analyzer - Emergency Login</h1>
+        <p>This is an emergency login page that bypasses the Vue router.</p>
+        
+        <div id="status" class="status info">
+            Clearing all previous authentication data...
+        </div>
+        
+        <div id="telegram-login">
+            <!-- Telegram Login Widget will be inserted here -->
+        </div>
+        
+        <div class="button-group">
+            <a href="/" class="button">Return to Main App</a>
+            <button onclick="clearAllData()" class="button danger">Clear All Data</button>
+        </div>
+    </div>
+    
+    <script>
+        // Function to log messages to the status div
+        function logStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.className = 'status ' + type;
+            }
+            console.log('[Emergency Login]', message);
+        }
+        
+        // Function to clear all application data
+        function clearAllData() {
+            try {
+                logStatus('Clearing all application data...', 'warning');
+                
+                // Clear localStorage
+                localStorage.clear();
+                
+                // Clear sessionStorage
+                sessionStorage.clear();
+                
+                // Clear cookies
+                document.cookie.split(";").forEach(function(c) {
+                    document.cookie = c.trim().split("=")[0] + "=;expires=" + new Date(0).toUTCString() + ";path=/";
+                });
+                
+                // Set special flags
+                localStorage.setItem('force_logout', 'true');
+                
+                logStatus('All data cleared successfully!', 'success');
+                
+                // Reload after a short delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } catch (e) {
+                logStatus('Error clearing data: ' + e.message, 'error');
+                console.error('Error:', e);
+            }
+        }
+        
+        // Function to handle Telegram login
+        function onTelegramAuth(user) {
+            logStatus('Telegram authentication successful!', 'success');
+            console.log('Telegram user:', user);
+            
+            // Store the user data
+            try {
+                localStorage.setItem('telegram_user', JSON.stringify(user));
+                logStatus('User data stored. You can now return to the main app.', 'success');
+            } catch (e) {
+                logStatus('Error storing user data: ' + e.message, 'error');
+                console.error('Error storing user:', e);
+            }
+        }
+        
+        // Initialize the page
+        function initPage() {
+            // Clear any existing authentication data
+            clearAllData();
+            
+            // Initialize Telegram Login Widget
+            const script = document.createElement('script');
+            script.async = true;
+            script.src = "https://telegram.org/js/telegram-widget.js?22";
+            script.setAttribute('data-telegram-login', 'dreamtestaibot');
+            script.setAttribute('data-size', 'large');
+            script.setAttribute('data-auth-url', window.location.href);
+            script.setAttribute('data-request-access', 'write');
+            
+            // Add the onTelegramAuth function to the window object
+            window.onTelegramAuth = onTelegramAuth;
+            script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+            
+            // Append the script to the telegram-login div
+            document.getElementById('telegram-login').appendChild(script);
+        }
+        
+        // Run initialization when the page loads
+        window.onload = initPage;
+    </script>
+</body>
+</html> 
