@@ -65,16 +65,31 @@
         </div>
         
         <!-- Debugging info section - only visible in development -->
-        <div v-if="showDebugInfo" class="debug-info">
+        <div class="debug-info">
           <h3>Debug Information</h3>
           <button @click="toggleDebugInfo" class="toggle-debug">{{ showDebugInfo ? 'Hide' : 'Show' }} Debug Info</button>
           <div v-if="showDebugInfo">
+            <p><strong>Telegram WebApp Available:</strong> {{ isTelegramAvailable }}</p>
+            <p><strong>Telegram InitData Available:</strong> {{ !!getTelegramInitData }}</p>
+            <p><strong>API Base URL:</strong> {{ getApiBaseUrl }}</p>
+            <p><strong>Auth Method:</strong> {{ getAuthMethod() }}</p>
+            <p><strong>User ID from Auth:</strong> {{ userStore.webUser?.id || 'Not available' }}</p>
+            <hr>
             <p><strong>Local Storage Telegram User:</strong></p>
             <pre>{{ getLocalStorageUserString }}</pre>
-            <p><strong>Telegram WebApp InitData:</strong> {{ !!window.Telegram?.WebApp?.initData }}</p>
-            <p><strong>Base URL:</strong> {{ getApiBaseUrl }}</p>
-            <button @click="reloadUserData" class="debug-button">Reload User Data</button>
-            <button @click="clearAndReload" class="debug-button danger">Clear Data & Reload</button>
+            
+            <div>
+              <p><strong>Debug Actions:</strong></p>
+              <button @click="reloadUserData" class="debug-button">Reload User Data</button>
+              <button @click="clearAndReload" class="debug-button danger">Clear Data & Reload</button>
+              <button @click="checkCORS" class="debug-button">Test CORS</button>
+              <button @click="forceTelegramAuth" class="debug-button">Force Telegram Auth</button>
+            </div>
+            
+            <div v-if="debugResponse" class="debug-response">
+              <p><strong>Debug Response:</strong></p>
+              <pre>{{ debugResponse }}</pre>
+            </div>
           </div>
         </div>
       </section>
@@ -157,15 +172,22 @@ import { useRouter } from 'vue-router';
 import AnalysisHistoryList from '@/components/AnalysisHistoryList.vue';
 import SubscriptionModal from '@/components/SubscriptionModal.vue';
 import FactsCarousel from '@/components/FactsCarousel.vue';
+import { safeCheckTelegram, safeGetTelegramInitData } from '@/services/api';
 
 const userStore = useUserStore();
 const router = useRouter();
-const tg = window.Telegram?.WebApp;
+const tg = typeof window !== 'undefined' && safeCheckTelegram() ? window.Telegram?.WebApp : null;
 const showRewardClaimView = ref(false);
 const REQUIRED_DREAMS = 5;
 
 // Debug features
-const showDebugInfo = ref(false);
+const showDebugInfo = ref(true);
+const debugResponse = ref(null);
+
+// Safe computed properties
+const isTelegramAvailable = computed(() => safeCheckTelegram());
+const getTelegramInitData = computed(() => safeGetTelegramInitData());
+
 const getLocalStorageUserString = computed(() => {
   try {
     const userData = localStorage.getItem('telegram_user');
@@ -183,13 +205,27 @@ const getApiBaseUrl = computed(() => {
   return import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/.netlify/functions`;
 });
 
+// Debug functions
 const toggleDebugInfo = () => {
   showDebugInfo.value = !showDebugInfo.value;
 };
 
 const reloadUserData = async () => {
-  await userStore.fetchProfile();
-  await userStore.fetchHistory();
+  debugResponse.value = "Reloading user data...";
+  try {
+    await userStore.fetchProfile();
+    await userStore.fetchHistory();
+    debugResponse.value = {
+      success: true,
+      profile: userStore.profile,
+      historyCount: userStore.history.length
+    };
+  } catch (e) {
+    debugResponse.value = {
+      success: false,
+      error: e.message
+    };
+  }
 };
 
 const clearAndReload = () => {
@@ -200,9 +236,45 @@ const clearAndReload = () => {
   }
 };
 
+const checkCORS = async () => {
+  debugResponse.value = "Testing CORS...";
+  try {
+    const response = await fetch(`${getApiBaseUrl.value}/user-profile`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const headers = {};
+    for (const [key, value] of response.headers.entries()) {
+      headers[key] = value;
+    }
+    
+    debugResponse.value = {
+      success: response.ok,
+      status: response.status,
+      headers: headers,
+      cors: headers['access-control-allow-origin'] || 'No CORS headers'
+    };
+  } catch (e) {
+    debugResponse.value = {
+      success: false,
+      error: e.message
+    };
+  }
+};
+
+const forceTelegramAuth = () => {
+  if (confirm('This will redirect you to login with Telegram. Continue?')) {
+    window.location.href = '/emergency.html';
+  }
+};
+
 // Function to determine the current authentication method
 const getAuthMethod = () => {
-  if (window.Telegram?.WebApp?.initData) {
+  if (safeGetTelegramInitData()) {
     return 'Telegram WebApp';
   } else if (userStore.webUser) {
     return 'Web Login';
@@ -639,5 +711,23 @@ button:hover:not(:disabled), a.subscribe-button:hover {
   font-size: 0.7em;
   cursor: pointer;
   margin-top: 5px;
+}
+
+/* Debug response display */
+.debug-response {
+  margin-top: 15px;
+  border-top: 1px dashed var(--tg-theme-hint-color, #666);
+  padding-top: 15px;
+}
+
+.debug-response pre {
+  background-color: rgba(0,0,0,0.05);
+  padding: 10px;
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 300px;
+  font-size: 12px;
+  margin: 10px 0;
+  white-space: pre-wrap;
 }
 </style>

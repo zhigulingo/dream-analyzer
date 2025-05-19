@@ -40,6 +40,39 @@ function debugLocalStorage() {
   }
 }
 
+// Safely check if Telegram object exists
+function safeCheckTelegram() {
+  try {
+    // Check if window.Telegram exists
+    return typeof window !== 'undefined' && 
+           window.Telegram !== undefined && 
+           typeof window.Telegram === 'object';
+  } catch (e) {
+    console.error('[api.js] Error checking Telegram object:', e);
+    return false;
+  }
+}
+
+// Safely get InitData from Telegram if available
+function safeGetTelegramInitData() {
+  try {
+    if (!safeCheckTelegram()) {
+      return '';
+    }
+    
+    // Now safely access WebApp
+    const webApp = window.Telegram.WebApp;
+    if (!webApp) {
+      return '';
+    }
+    
+    return webApp.initData || '';
+  } catch (e) {
+    console.error('[api.js] Error getting Telegram initData:', e);
+    return '';
+  }
+}
+
 // Get authentication headers - careful handling to avoid type errors
 function getAuthHeaders() {
   try {
@@ -48,8 +81,7 @@ function getAuthHeaders() {
     };
     
     // Try Telegram WebApp first - with careful property access
-    const telegramWebApp = window.Telegram || {};
-    const initData = telegramWebApp.WebApp?.initData || '';
+    const initData = safeGetTelegramInitData();
     
     if (initData) {
       console.log('[api.js] Using Telegram WebApp authentication');
@@ -110,11 +142,12 @@ const makeRequest = async (method, url, data = null) => {
     console.log(`[api.js] Making ${method.toUpperCase()} request to: ${url}`);
     console.log(`[api.js] Headers being sent: ${Object.keys(headers).join(', ')}`);
     
-    // Build config carefully
+    // Safely build config to avoid type errors
     const config = { 
-      method: method, 
-      url: url,
-      headers: headers
+      method: method || 'get', 
+      url: url || '',
+      headers: headers || {},
+      withCredentials: true,  // Include credentials in request
     };
     
     if (data) {
@@ -156,6 +189,7 @@ const makeRequest = async (method, url, data = null) => {
       
       return response;
     } catch (error) {
+      console.error('[api.js] Error during request:', error.message);
       throw error;
     }
   } catch (error) {
@@ -266,5 +300,5 @@ const apiMethods = {
   }
 };
 
-export { apiClient };
+export { apiClient, safeCheckTelegram, safeGetTelegramInitData };
 export default apiMethods;
