@@ -14,6 +14,42 @@ const routes = [
     name: 'PersonalAccount',
     component: PersonalAccount,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/logout',
+    name: 'Logout',
+    component: {
+      template: '<div class="logout-page">Logging out...</div>',
+      setup() {
+        // Import what we need
+        const { onMounted } = require('vue');
+        const { useUserStore } = require('@/stores/user');
+        
+        onMounted(async () => {
+          // Get user store
+          const userStore = useUserStore();
+          
+          // Log the logout attempt
+          console.log('Logout page: performing emergency logout');
+          
+          // Clear storage immediately
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          // Try to run store logout
+          try {
+            await userStore.logout();
+          } catch (e) {
+            console.error('Error in logout:', e);
+          }
+          
+          // Redirect to login with special param
+          setTimeout(() => {
+            window.location.href = '/?logout=true&t=' + Date.now();
+          }, 500);
+        });
+      }
+    }
   }
 ]
 
