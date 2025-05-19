@@ -142,19 +142,24 @@ const goBackToAccount = () => {
 const handleClaimRewardClick = async () => { await userStore.claimChannelReward(); };
 
 // Logout function
-const handleLogout = () => {
-  console.log('Logging out...');
-  userStore.logout(); // Clear user data from store
+const handleLogout = async () => {
+  console.log('Initiating hard logout process...');
   
-  // Force redirect to login page
-  // This needs to be done after a small delay to ensure the store has updated
+  try {
+    // First, call the store logout (now async)
+    await userStore.logout();
+    console.log('Logout successful, redirecting...');
+  } catch (e) {
+    console.error('Error during logout:', e);
+  }
+  
+  // Force redirect to login by modifying window.location directly, bypassing Vue Router
+  console.log('Forcing redirect to login page...');
+  
+  // Use a short delay to ensure the store is updated
   setTimeout(() => {
-    console.log('Redirecting to login page...');
-    router.push({ name: 'WebLogin', replace: true });
-    // Force page reload to clear any cached state
-    if (router.currentRoute.value.path !== '/') {
-      window.location.href = '/';
-    }
+    // Force a full page reload to clear any cached state
+    window.location.href = '/';
   }, 100);
 };
 

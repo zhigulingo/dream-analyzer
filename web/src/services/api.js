@@ -21,32 +21,50 @@ const apiClient = axios.create({
 // Перехватчик запросов для автоматического добавления заголовка X-Telegram-Init-Data
 apiClient.interceptors.request.use(
   (config) => {
-    // Try to get Telegram WebApp initData first
+    // Always log the URL being called for debugging
+    console.log(`[api.js] Making request to: ${config.method.toUpperCase()} ${config.url}`);
+    
+    // APPROACH 1: Telegram WebApp initData
     const initData = window.Telegram?.WebApp?.initData;
     if (initData) {
       config.headers['X-Telegram-Init-Data'] = initData;
-      console.log("[api.js] Sending Telegram InitData header");
-    } else {
-      // If no Telegram WebApp data, check for web authentication
+      console.log("[api.js] USING APPROACH 1: Telegram WebApp");
+      return config;
+    }
+    
+    // APPROACH 2: Web Auth from localStorage
+    try {
       const storedUser = localStorage.getItem('telegram_user');
       if (storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
-          // Ensure we're sending the complete user object
-          config.headers['X-Web-Auth-User'] = JSON.stringify({
+        const userData = JSON.parse(storedUser);
+        if (userData && userData.id) {
+          // Force to use custom header format
+          const headerData = JSON.stringify({
             id: userData.id,
-            username: userData.username,
-            first_name: userData.first_name,
-            last_name: userData.last_name
+            username: userData.username || "",
+            first_name: userData.first_name || "",
+            last_name: userData.last_name || ""
           });
-          console.log("[api.js] Sending Web Auth User header for user:", userData.id);
-        } catch (err) {
-          console.error("[api.js] Failed to parse stored user data:", err);
+          
+          // Ensure special headers are set in lowercase (what Netlify actually expects)
+          config.headers['x-web-auth-user'] = headerData;
+          
+          // Log that we're sending authentication 
+          console.log(`[api.js] USING APPROACH 2: Web Auth, User ID: ${userData.id}`);
+          console.log(`[api.js] Headers being sent: ${Object.keys(config.headers).join(', ')}`);
+          
+          return config;
         }
-      } else {
-        console.warn("[api.js] No authentication data available. API calls might fail authorization.");
       }
+    } catch (err) {
+      console.error("[api.js] Failed to parse stored user data:", err);
     }
+    
+    // NO AUTH AVAILABLE
+    console.warn("[api.js] ⚠️ NO AUTHENTICATION AVAILABLE. API calls will fail authorization.");
+    console.warn("[api.js] ⚠️ To debug, localStorage contains:", Object.keys(localStorage));
+    console.warn("[api.js] ⚠️ Headers being sent without auth:", Object.keys(config.headers).join(', '));
+    
     return config;
   },
   (error) => {
@@ -133,6 +151,16 @@ const apiMethods = {
   verifyWebAuth(userData) {
     console.log("[api.js] Calling POST /verify-web-auth");
     return apiClient.post('/verify-web-auth', userData);
+  },
+  
+  // Logout helper - not an actual API call but helps with cleanup
+  logout() {
+    console.log("[api.js] Performing API cleanup for logout");
+    // Clear any cached auth tokens or session data in the API client
+    delete apiClient.defaults.headers.common['x-web-auth-user'];
+    delete apiClient.defaults.headers.common['X-Web-Auth-User'];
+    delete apiClient.defaults.headers.common['X-Telegram-Init-Data'];
+    return Promise.resolve({ success: true });
   }
 };
 
