@@ -111,10 +111,47 @@ export const useUserStore = defineStore('user', {
     },
     
     // Handle logout
-    logout() {
+    async logout() {
+      console.log('[UserStore] Forcefully clearing all user data and authentication');
+      
+      // Call API cleanup first
+      try {
+        await api.logout();
+        console.log('[UserStore] API cleanup completed');
+      } catch (e) {
+        console.error('[UserStore] API cleanup failed:', e);
+      }
+      
+      // Clear all user-related state
       this.webUser = null;
       this.isWebAuthenticated = false;
+      this.profile = { 
+        tokens: null, 
+        subscription_type: 'free', 
+        subscription_end: null, 
+        channel_reward_claimed: false 
+      };
+      this.history = [];
+      
+      // Clear various storage mechanisms
       localStorage.removeItem('telegram_user');
+      sessionStorage.removeItem('telegram_user');
+      
+      // Try to clear all localStorage used in the app
+      try {
+        // Clear any cached tokens or session data
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Try to remove cookies that might be related
+        document.cookie.split(";").forEach(function(c) {
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+        
+        console.log('[UserStore] All storage mechanisms cleared');
+      } catch (e) {
+        console.error('[UserStore] Error while clearing storage:', e);
+      }
     },
 
     async fetchProfile() {
@@ -345,7 +382,8 @@ export const useUserStore = defineStore('user', {
         }
         // Не сбрасываем флаг isInitiatingDeepPayment здесь, если openInvoice был вызван,
         // он сбросится в колбэке openInvoice.
-    }
+    },
     // >>>--- КОНЕЦ НОВОГО ЭКШЕНА ОПЛАТЫ ---
-  }
+
+  },
 });

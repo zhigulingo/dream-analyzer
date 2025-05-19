@@ -143,24 +143,25 @@ const handleClaimRewardClick = async () => { await userStore.claimChannelReward(
 
 // Logout function
 const handleLogout = async () => {
-  console.log('Initiating hard logout process...');
+  console.log('Initiating EMERGENCY logout process...');
   
   try {
     // First, call the store logout (now async)
     await userStore.logout();
-    console.log('Logout successful, redirecting...');
+    console.log('Logout successful');
   } catch (e) {
     console.error('Error during logout:', e);
   }
   
-  // Force redirect to login by modifying window.location directly, bypassing Vue Router
-  console.log('Forcing redirect to login page...');
+  // FORCE REDIRECT - multiple mechanisms to ensure it works
+  console.log('Forcing hard redirect to login page...');
   
-  // Use a short delay to ensure the store is updated
-  setTimeout(() => {
-    // Force a full page reload to clear any cached state
-    window.location.href = '/';
-  }, 100);
+  // 1. Clear critical auth data again
+  localStorage.removeItem('telegram_user');
+  sessionStorage.clear();
+  
+  // 2. Direct window location change with special parameter
+  window.location.href = '/?logout=true';
 };
 
 // --- НОВАЯ ФУНКЦИЯ ДЛЯ ОПРЕДЕЛЕНИЯ МОБИЛЬНОГО УСТРОЙСТВА ---

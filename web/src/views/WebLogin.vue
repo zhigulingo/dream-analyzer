@@ -88,6 +88,15 @@ const checkTelegramWebApp = () => {
 };
 
 onMounted(() => {
+  // Clear any existing auth sessions on mount - critical for proper logout
+  if (window.location.search.includes('logout=true')) {
+    console.log('[WebLogin] Detected logout parameter, ensuring cleanout');
+    localStorage.removeItem('telegram_user');
+    sessionStorage.clear();
+    userStore.webUser = null;
+    userStore.isWebAuthenticated = false;
+  }
+
   // First check if we're in Telegram WebApp
   if (checkTelegramWebApp()) {
     return; // Skip widget initialization if in Telegram

@@ -24,32 +24,43 @@ const router = createRouter({
 
 // Navigation guard for authentication
 router.beforeEach((to, from, next) => {
-  // Check if user is in Telegram WebApp context
-  const isTelegramWebApp = !!window.Telegram?.WebApp
+  // DIRECT CHECK: Look for stored Telegram user data directly from localStorage
+  const telegramUser = localStorage.getItem('telegram_user');
+  const isTelegramWebApp = !!window.Telegram?.WebApp;
   
-  // Check if user is logged in by looking for stored Telegram user data
-  const telegramUser = localStorage.getItem('telegram_user')
+  // Force a FRESH check of authentication state on each route change
+  const isAuthenticated = isTelegramWebApp || !!telegramUser;
   
-  // User is authenticated if either in Telegram WebApp or has stored user data
-  const isAuthenticated = isTelegramWebApp || !!telegramUser
+  // Special handling for logout detection - if coming from a logout action
+  const isLoggingOut = from.name === 'PersonalAccount' && to.name === 'WebLogin';
   
   // Log authentication state for debugging
   console.log('[Router] Auth check:', { 
+    path: to.path,
     isTelegramWebApp, 
     hasStoredUser: !!telegramUser, 
-    isAuthenticated 
-  })
+    isAuthenticated,
+    isLoggingOut
+  });
+  
+  // If user is logging out, always allow navigation to login page
+  if (isLoggingOut) {
+    console.log('[Router] Detected logout action, allowing navigation to login');
+    return next();
+  }
   
   // Redirect logic
   if (to.meta.requiresAuth && !isAuthenticated) {
     // Redirect to login if trying to access protected route without auth
-    next({ name: 'WebLogin' })
+    console.log('[Router] Unauthorized access attempt, redirecting to login');
+    next({ name: 'WebLogin' });
   } else if (to.meta.requiresNoAuth && isAuthenticated) {
     // Redirect to account if trying to access login page when already logged in
-    next({ name: 'PersonalAccount' })
+    console.log('[Router] Already authenticated, redirecting to account');
+    next({ name: 'PersonalAccount' });
   } else {
     // Allow navigation
-    next()
+    next();
   }
 })
 
