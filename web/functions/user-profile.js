@@ -1,6 +1,7 @@
-// bot/functions/user-profile.js (Исправлено: без внешних библиотек)
+// bot/functions/user-profile.js - Modified for token-based authentication
 const { createClient } = require("@supabase/supabase-js");
 const crypto = require('crypto'); // Используем встроенный crypto
+const { authMiddleware } = require('./auth/middleware');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -8,7 +9,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 // Убедитесь, что эта переменная установлена в Netlify UI для сайта бэкенда!
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
 
-// --- ВАША Функция валидации Telegram InitData (без внешних библиотек) ---
+// --- Function to validate Telegram InitData ---
 function validateTelegramData(initData, botToken) {
     if (!initData || !botToken) {
         console.warn("[validateTelegramData] Missing initData or botToken");
@@ -66,7 +67,7 @@ const generateCorsHeaders = () => {
     console.log(`[user-profile] CORS Headers: Allowing Origin: ${originToAllow}`);
     return {
         'Access-Control-Allow-Origin': originToAllow,
-        'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, X-Web-Auth-User',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, X-Web-Auth-User, X-Bot-Auth-Token, Authorization',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     };
 };
@@ -87,79 +88,97 @@ exports.handler = async (event) => {
     }
 
     // --- Проверка конфигурации сервера ---
-     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN || !ALLOWED_TMA_ORIGIN) { // Добавили проверку ALLOWED_TMA_ORIGIN
-        console.error("[user-profile] Server configuration missing (Supabase URL/Key, Bot Token, or Allowed Origin)");
+     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) { 
+        console.error("[user-profile] Server configuration missing (Supabase URL/Key)");
         return { statusCode: 500, headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ error: 'Internal Server Error: Configuration missing.' }) };
      }
 
-    // --- Валидация InitData или Web Auth с использованием ВАШЕЙ функции ---
-    // Netlify normalizes headers to lowercase
-    const initDataHeader = event.headers['x-telegram-init-data'] || event.headers['X-Telegram-Init-Data'];
-    const webAuthHeader = event.headers['x-web-auth-user'] || event.headers['X-Web-Auth-User'];
+    // --- Authentication using the new middleware ---
+    console.log('[user-profile] Authenticating request...');
+    const authResult = authMiddleware(event, corsHeaders);
+    
+    // If middleware returned an error response, return it
+    if (authResult && authResult.statusCode) {
+        console.warn(`[user-profile] Authentication failed: ${authResult.statusCode}`);
+        return authResult;
+    }
+    
+    // If no userId was returned but no error, try legacy auth methods
     let verifiedUserId;
-
-    // Debug headers
-    console.log("[user-profile] Headers received:", {
-        headerNames: Object.keys(event.headers),
-        webAuthHeader: !!webAuthHeader,
-        initDataHeader: !!initDataHeader,
-        caseSensitiveCheck: {
-            lowercase: !!event.headers['x-web-auth-user'],
-            uppercase: !!event.headers['X-Web-Auth-User']
-        },
-        allHeadersEntries: Object.entries(event.headers).map(([k, v]) => [k, typeof v === 'string' ? v.substring(0, 20) + '...' : typeof v])
-    });
-
-    // Check for web authentication first
-    if (webAuthHeader) {
-        try {
-            console.log("[user-profile] Parsing Web Auth header:", webAuthHeader);
-            const webUserData = JSON.parse(webAuthHeader);
-            
-            console.log("[user-profile] Parsed Web Auth data:", webUserData);
-            
-            if (webUserData && webUserData.id) {
-                // Ensure the ID is treated as a string for consistency
-                verifiedUserId = String(webUserData.id);
-                console.log(`[user-profile] Web authentication successful for user: ${verifiedUserId}`);
-                console.log(`[user-profile] User data:`, {
-                    id: verifiedUserId,
-                    username: webUserData.username || 'none',
-                    firstName: webUserData.first_name || 'none',
-                    lastName: webUserData.last_name || 'none'
-                });
-            } else {
-                console.warn("[user-profile] Web Auth header exists but missing user ID:", webUserData);
-                return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid Web Auth data' }) };
+    
+    if (authResult && authResult.userId) {
+        // Use the user ID from middleware
+        verifiedUserId = authResult.userId;
+        console.log(`[user-profile] Authentication successful via middleware: ${verifiedUserId}`);
+    } else {
+        // --- Legacy Authentication ---
+        // Netlify normalizes headers to lowercase
+        const initDataHeader = event.headers['x-telegram-init-data'] || event.headers['X-Telegram-Init-Data'];
+        const webAuthHeader = event.headers['x-web-auth-user'] || event.headers['X-Web-Auth-User'];
+    
+        // Debug headers
+        console.log("[user-profile] Headers received:", {
+            headerNames: Object.keys(event.headers),
+            webAuthHeader: !!webAuthHeader,
+            initDataHeader: !!initDataHeader,
+            caseSensitiveCheck: {
+                lowercase: !!event.headers['x-web-auth-user'],
+                uppercase: !!event.headers['X-Web-Auth-User']
+            },
+            allHeadersEntries: Object.entries(event.headers).map(([k, v]) => [k, typeof v === 'string' ? v.substring(0, 20) + '...' : typeof v])
+        });
+    
+        // Check for web authentication first
+        if (webAuthHeader) {
+            try {
+                console.log("[user-profile] Parsing Web Auth header:", webAuthHeader);
+                const webUserData = JSON.parse(webAuthHeader);
+                
+                console.log("[user-profile] Parsed Web Auth data:", webUserData);
+                
+                if (webUserData && webUserData.id) {
+                    // Ensure the ID is treated as a string for consistency
+                    verifiedUserId = String(webUserData.id);
+                    console.log(`[user-profile] Web authentication successful for user: ${verifiedUserId}`);
+                    console.log(`[user-profile] User data:`, {
+                        id: verifiedUserId,
+                        username: webUserData.username || 'none',
+                        firstName: webUserData.first_name || 'none',
+                        lastName: webUserData.last_name || 'none'
+                    });
+                } else {
+                    console.warn("[user-profile] Web Auth header exists but missing user ID:", webUserData);
+                    return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid Web Auth data' }) };
+                }
+            } catch (error) {
+                console.error("[user-profile] Failed to parse Web Auth header:", error);
+                console.error("[user-profile] Raw header value:", webAuthHeader);
+                return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid Web Auth format' }) };
             }
-        } catch (error) {
-            console.error("[user-profile] Failed to parse Web Auth header:", error);
-            console.error("[user-profile] Raw header value:", webAuthHeader);
-            return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid Web Auth format' }) };
+        } 
+        // If no web auth, try Telegram InitData
+        else if (initDataHeader && BOT_TOKEN) {
+            const validationResult = validateTelegramData(initDataHeader, BOT_TOKEN);
+    
+            if (!validationResult.valid) {
+                console.error(`[user-profile] InitData validation failed: ${validationResult.error}`);
+                return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
+            }
+    
+            // Проверяем, что ID пользователя был успешно извлечен
+            if (!validationResult.data || typeof validationResult.data.id === 'undefined') {
+                console.error(`[user-profile] InitData is valid, but user data/ID is missing or failed to parse: ${validationResult.error}`);
+                return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Could not extract user data from InitData (${validationResult.error})` }) };
+            }
+    
+            verifiedUserId = validationResult.data.id;
+            console.log(`[user-profile] Telegram InitData validation successful for user: ${verifiedUserId}`);
+        } 
+        // No authentication provided
+        else {
+            console.warn("[user-profile] Unauthorized: No valid authentication provided");
+            return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: No authentication provided' }) };
         }
-    } 
-    // If no web auth, try Telegram InitData
-    else if (initDataHeader) {
-        const validationResult = validateTelegramData(initDataHeader, BOT_TOKEN);
-
-        if (!validationResult.valid) {
-            console.error(`[user-profile] InitData validation failed: ${validationResult.error}`);
-            return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
-        }
-
-        // Проверяем, что ID пользователя был успешно извлечен
-        if (!validationResult.data || typeof validationResult.data.id === 'undefined') {
-            console.error(`[user-profile] InitData is valid, but user data/ID is missing or failed to parse: ${validationResult.error}`);
-            return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Could not extract user data from InitData (${validationResult.error})` }) };
-        }
-
-        verifiedUserId = validationResult.data.id;
-        console.log(`[user-profile] Telegram InitData validation successful for user: ${verifiedUserId}`);
-    } 
-    // No authentication provided
-    else {
-        console.warn("[user-profile] Unauthorized: Missing both Telegram InitData and Web Auth headers");
-        return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: No authentication provided' }) };
     }
 
     // --- Основная логика ---
@@ -170,7 +189,7 @@ exports.handler = async (event) => {
 
         const { data: userData, error: userError } = await supabase
             .from('users')
-            .select('tokens, subscription_type, subscription_end')
+            .select('tokens, subscription_type, subscription_end, channel_reward_claimed')
             .eq('tg_id', verifiedUserId)
             .maybeSingle();
 
@@ -182,9 +201,14 @@ exports.handler = async (event) => {
         let responseBody;
         if (!userData) {
             console.log(`[user-profile] User profile not found for tg_id: ${verifiedUserId}. Returning default free user state.`);
-            responseBody = { tokens: 0, subscription_type: 'free', subscription_end: null };
+            responseBody = { 
+                tokens: 0, 
+                subscription_type: 'free', 
+                subscription_end: null,
+                channel_reward_claimed: false
+            };
         } else {
-            console.log(`[user-profile] Profile data found for tg_id ${verifiedUserId}.`);
+            console.log(`[user-profile] Profile data found for tg_id ${verifiedUserId}:`, userData);
             responseBody = userData;
         }
 

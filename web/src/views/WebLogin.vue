@@ -4,8 +4,29 @@
     <p>Please login with your Telegram account to access the application</p>
     
     <div class="login-container">
-      <!-- Placeholder for Telegram Login Widget -->
+      <!-- Standard Telegram Login Widget -->
       <div id="telegram-login"></div>
+      
+      <!-- New Bot Authentication Option -->
+      <div class="bot-auth-section">
+        <h3>Login via Bot</h3>
+        <p>For better security and reliability, please use our new login method:</p>
+        <a href="https://t.me/dreamtestaibot?start=weblogin" class="bot-login-button" target="_blank">
+          Login with Telegram Bot
+        </a>
+        <p class="hint">After authentication with bot, use the code it provides below:</p>
+        <div class="bot-code-input">
+          <input 
+            type="text" 
+            v-model="authCode" 
+            placeholder="Enter code from bot..." 
+            class="auth-input"
+          />
+          <button @click="verifyBotCode" :disabled="isVerifying || !authCode" class="verify-button">
+            {{ isVerifying ? 'Verifying...' : 'Login' }}
+          </button>
+        </div>
+      </div>
       
       <div v-if="error" class="error-message">
         {{ error }}
@@ -24,11 +45,14 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import api from '@/services/api';
+import botAuthService from '@/services/botAuthService';
 
 const router = useRouter();
 const userStore = useUserStore();
 const user = ref(null);
 const error = ref(null);
+const authCode = ref('');
+const isVerifying = ref(false);
 
 // Function to handle successful Telegram authentication
 const onTelegramAuth = (userData) => {
@@ -85,6 +109,80 @@ const checkTelegramWebApp = () => {
     return true;
   }
   return false;
+};
+
+// Check URL for bot authentication token
+const checkUrlForAuthToken = async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('auth_token');
+  
+  if (token) {
+    console.log('Found auth token in URL');
+    
+    // Clean up URL - remove token parameter
+    const url = new URL(window.location);
+    url.searchParams.delete('auth_token');
+    window.history.replaceState({}, document.title, url);
+    
+    try {
+      // Store the token
+      localStorage.setItem('bot_auth_token', token);
+      
+      // Fetch user profile
+      await userStore.fetchProfile();
+      
+      // Redirect to account page
+      router.push('/account');
+    } catch (e) {
+      console.error('Error processing token from URL:', e);
+      error.value = 'Failed to authenticate with token';
+    }
+  }
+};
+
+// Function to verify bot code
+const verifyBotCode = async () => {
+  if (!authCode.value) return;
+  
+  isVerifying.value = true;
+  error.value = null;
+  
+  try {
+    // Call API to verify the code
+    const response = await api.getBotAuthToken({
+      code: authCode.value,
+      timestamp: Math.floor(Date.now() / 1000)
+    });
+    
+    if (response.data.success) {
+      console.log('Bot authentication successful');
+      
+      // Store auth data
+      botAuthService.storeAuthData(response.data);
+      
+      // Update user store
+      userStore.setWebUser({
+        id: response.data.user.tg_id,
+        username: response.data.user.username || '',
+        first_name: response.data.user.first_name || '',
+        last_name: response.data.user.last_name || ''
+      });
+      
+      user.value = userStore.webUser;
+      
+      // Auto-proceed to app
+      setTimeout(() => {
+        proceedToApp();
+      }, 1000);
+    } else {
+      error.value = response.data.error || 'Authentication failed';
+    }
+  } catch (e) {
+    console.error('Error verifying bot code:', e);
+    error.value = e.response?.data?.error || 'Failed to verify code';
+  } finally {
+    isVerifying.value = false;
+  }
 };
 
 onMounted(async () => {
@@ -157,6 +255,9 @@ onMounted(async () => {
     // Append the script to the telegram-login div
     document.getElementById('telegram-login').appendChild(script);
   }
+
+  // Check for auth token in URL first
+  await checkUrlForAuthToken();
 });
 </script>
 
@@ -206,5 +307,74 @@ h1 {
 
 .proceed-button:hover {
   background-color: #3a6eae;
+}
+
+.bot-auth-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  text-align: center;
+}
+
+.bot-auth-section h3 {
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.bot-login-button {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.8rem 1.5rem;
+  background-color: #4681c9;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.bot-login-button:hover {
+  background-color: #3a6eae;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 1rem;
+}
+
+.bot-code-input {
+  display: flex;
+  margin-top: 0.5rem;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.auth-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px 0 0 4px;
+  font-size: 1rem;
+}
+
+.verify-button {
+  padding: 0.5rem 1rem;
+  background-color: #4681c9;
+  color: white;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.verify-button:hover:not(:disabled) {
+  background-color: #3a6eae;
+}
+
+.verify-button:disabled {
+  background-color: #a0a0a0;
+  cursor: not-allowed;
 }
 </style> 

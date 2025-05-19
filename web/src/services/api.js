@@ -73,6 +73,21 @@ function safeGetTelegramInitData() {
   }
 }
 
+// Safely get auth token if available (new bot auth method)
+function getBotAuthToken() {
+  try {
+    const token = localStorage.getItem('bot_auth_token');
+    if (token) {
+      console.log('[api.js] Using Bot Auth Token');
+      return token;
+    }
+    return null;
+  } catch (e) {
+    console.error('[api.js] Error accessing localStorage for bot token:', e);
+    return null;
+  }
+}
+
 // Get authentication headers - careful handling to avoid type errors
 function getAuthHeaders() {
   try {
@@ -80,7 +95,18 @@ function getAuthHeaders() {
       'Content-Type': 'application/json'
     };
     
-    // Try Telegram WebApp first - with careful property access
+    // Try Bot Auth Token first (new preferred method)
+    const botToken = getBotAuthToken();
+    if (botToken) {
+      console.log('[api.js] Using Bot Token authentication');
+      headers['X-Bot-Auth-Token'] = botToken;
+      
+      // Debug the headers being sent
+      console.log('[api.js] Bot auth headers:', JSON.stringify(headers));
+      return headers;
+    }
+    
+    // Try Telegram WebApp second - with careful property access
     const initData = safeGetTelegramInitData();
     
     if (initData) {
@@ -368,12 +394,26 @@ const apiMethods = {
       });
   },
   
+  /**
+   * Get an authentication token from the server using bot credentials
+   * @param {Object} authData - Authentication data from the bot
+   * @returns {Promise<Object>} - Response with token and user info
+   */
+  getBotAuthToken(authData) {
+    return makeRequest('post', '/auth/token', authData)
+      .catch(error => {
+        console.error('[api.js] getBotAuthToken failed:', error);
+        throw error;
+      });
+  },
+  
   logout() {
     console.log("[api.js] Performing API cleanup for logout");
     try {
       delete apiClient.defaults.headers.common['x-web-auth-user'];
       delete apiClient.defaults.headers.common['X-Web-Auth-User']; 
       delete apiClient.defaults.headers.common['X-Telegram-Init-Data'];
+      delete apiClient.defaults.headers.common['X-Bot-Auth-Token']; // Add clearing bot auth header
     } catch (error) {
       console.error('[api.js] Error while clearing headers during logout:', error);
     }
