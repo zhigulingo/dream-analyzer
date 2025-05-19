@@ -5,6 +5,7 @@ const { Bot, Api, GrammyError, HttpError, webhookCallback } = require("grammy");
 const { createClient } = require("@supabase/supabase-js");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const crypto = require('crypto');
+const webAuth = require('../commands/webAuth'); // Import web auth module
 
 // --- Переменные Окружения ---
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -103,56 +104,6 @@ try {
         } catch (error) { console.error("[Bot:Handler pre_checkout_query] Failed to answer:", error); try { await ctx.answerPreCheckoutQuery(false, "Internal error"); } catch (e) {} }
     });
 
-    // Обработчик successful_payment (БЕЗ ИЗМЕНЕНИЙ)
-    bot.on('message:successful_payment', async (ctx) => {
-        console.log("[Bot:Handler successful_payment] Received:", JSON.stringify(ctx.message.successful_payment));
-        const payment = ctx.message.successful_payment; const userId = ctx.from.id;
-        // Убедимся, что invoice_payload существует
-        const payload = payment.invoice_payload;
-        if (!payload) { console.error(`[Bot] Missing invoice_payload in successful_payment from user ${userId}`); return; }
-
-        const parts = payload.split('_');
-        // Проверка формата payload (sub_plan_duration_tgUserId)
-        if (parts.length < 4 || parts[0] !== 'sub') { console.error(`[Bot] Invalid payload format: ${payload} from user ${userId}`); return; }
-
-        const plan = parts[1];
-        const durationMonths = parseInt(parts[2].replace('mo', ''), 10);
-        const payloadUserId = parseInt(parts[3], 10);
-
-        // Проверка корректности данных из payload
-        if (isNaN(durationMonths) || isNaN(payloadUserId) || payloadUserId !== userId) {
-            console.error(`[Bot] Payload data error or mismatch: Payload=${payload}, Sender=${userId}`);
-             // Можно уведомить пользователя о проблеме
-             await ctx.reply("Получен платеж с некорректными данными. Свяжитесь с поддержкой, если средства списаны.").catch(logReplyError);
-            return;
-        }
-
-        console.log(`[Bot] Processing payment for ${userId}: Plan=${plan}, Duration=${durationMonths}mo.`);
-        try {
-            if (!supabaseAdmin) { throw new Error("Supabase client unavailable"); } // Проверка на всякий случай
-
-            // Используем транзакцию для надежности
-            const { error: txError } = await supabaseAdmin.rpc('process_successful_payment', {
-                user_tg_id: userId,
-                plan_type: plan,
-                duration_months: durationMonths
-            });
-
-            if (txError) {
-                 console.error(`[Bot] Error calling process_successful_payment RPC for ${userId}:`, txError);
-                 throw new Error("Database update failed during payment processing.");
-            }
-
-            // RPC сама вычислит дату и добавит токены
-            console.log(`[Bot] Successfully processed payment via RPC for user ${userId}. Plan=${plan}, Duration=${durationMonths}mo`);
-            await ctx.reply(`Спасибо! Ваша подписка "${plan.toUpperCase()}" успешно активирована/продлена. Токены начислены. Приятного анализа снов! ✨`).catch(logReplyError);
-
-        } catch (error) {
-            console.error(`[Bot] Failed to process payment for ${userId}:`, error);
-            await ctx.reply("Ваш платеж получен, но произошла ошибка при обновлении подписки. Пожалуйста, свяжитесь с поддержкой.").catch(logReplyError);
-        }
-    });
-
     // Обработчик successful_payment (ИСПРАВЛЕНО)
     bot.on('message:successful_payment', async (ctx) => {
         console.log("[Bot Handler successful_payment] Received:", JSON.stringify(ctx.message.successful_payment));
@@ -202,6 +153,11 @@ try {
             await ctx.reply("Платеж получен, но произошла ошибка при его обработке. Свяжитесь с поддержкой.").catch(logReplyError);
         }
     });
+
+    // Register web authentication commands
+    console.log("[Bot Global Init] Registering web authentication commands...");
+    webAuth.registerWebAuthCommands(bot);
+    console.log("[Bot Global Init] Web authentication commands registered.");
 
     // Обработчик ошибок (БЕЗ ИЗМЕНЕНИЙ)
     bot.catch((err) => {
