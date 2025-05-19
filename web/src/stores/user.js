@@ -23,7 +23,12 @@ export const useUserStore = defineStore('user', {
     deepAnalysisResult: null,
     deepAnalysisError: null,
     // --- Основное состояние ---
-    profile: { tokens: null, subscription_type: 'free', subscription_end: null, channel_reward_claimed: false },
+    profile: { 
+      tokens: 0, 
+      subscription_type: 'free', 
+      subscription_end: null, 
+      channel_reward_claimed: false 
+    },
     history: [],
     isLoadingProfile: false,
     isLoadingHistory: false,
@@ -129,7 +134,7 @@ export const useUserStore = defineStore('user', {
       this.webUser = null;
       this.isWebAuthenticated = false;
       this.profile = { 
-        tokens: null, 
+        tokens: 0, 
         subscription_type: 'free', 
         subscription_end: null, 
         channel_reward_claimed: false 
@@ -146,31 +151,64 @@ export const useUserStore = defineStore('user', {
     },
 
     async fetchProfile() {
-      this.isLoadingProfile = true; this.errorProfile = null;
-      this.claimRewardError = null; this.claimRewardSuccessMessage = null; this.userCheckedSubscription = false;
+      this.isLoadingProfile = true; 
+      this.errorProfile = null;
+      this.claimRewardError = null; 
+      this.claimRewardSuccessMessage = null; 
+      this.userCheckedSubscription = false;
+      
       try {
         console.log(`[UserStore:fetchProfile] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
         const response = await api.getUserProfile();
-        this.profile = { ...this.profile, ...response.data };
-        this.rewardAlreadyClaimed = this.profile?.channel_reward_claimed ?? false;
-        console.log("[UserStore] Profile loaded:", this.profile);
+        
+        // Ensure we have a proper response
+        if (response && response.data) {
+          // Create a new profile object with default values for any missing fields
+          const profileData = {
+            tokens: response.data.tokens || 0,
+            subscription_type: response.data.subscription_type || 'free',
+            subscription_end: response.data.subscription_end || null,
+            channel_reward_claimed: response.data.channel_reward_claimed || false
+          };
+          
+          // Update the profile state
+          this.profile = profileData;
+          this.rewardAlreadyClaimed = this.profile.channel_reward_claimed;
+          console.log("[UserStore] Profile loaded:", this.profile);
+        } else {
+          throw new Error('Invalid profile data received');
+        }
       } catch (err) {
         console.error("[UserStore:fetchProfile] Error:", err);
         this.errorProfile = err.response?.data?.error || err.message || 'Network Error';
-      } finally { this.isLoadingProfile = false; }
+      } finally { 
+        this.isLoadingProfile = false; 
+      }
     },
 
     async fetchHistory() {
-      this.isLoadingHistory = true; this.errorHistory = null;
+      this.isLoadingHistory = true; 
+      this.errorHistory = null;
+      
       try {
         console.log(`[UserStore:fetchHistory] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
         const response = await api.getAnalysesHistory();
-        this.history = response.data;
-        console.log("[UserStore] History loaded, count:", this.history.length);
+        
+        // Ensure we have a proper response
+        if (response && response.data) {
+          // Make sure history is always an array
+          this.history = Array.isArray(response.data) ? response.data : [];
+          console.log("[UserStore] History loaded, count:", this.history.length);
+        } else {
+          this.history = [];
+          throw new Error('Invalid history data received');
+        }
       } catch (err) {
         console.error("[UserStore:fetchHistory] Error:", err);
         this.errorHistory = err.response?.data?.error || err.message || 'Network Error';
-      } finally { this.isLoadingHistory = false; }
+      } finally { 
+        this.isLoadingHistory = false; 
+      }
     },
 
     openSubscriptionModal() { this.showSubscriptionModal = true; this.selectedPlan = 'premium'; this.selectedDuration = 3; console.log("[UserStore] Opening modal"); },

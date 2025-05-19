@@ -11,7 +11,7 @@
         <div v-else-if="userStore.errorProfile" class="error-message">
           Ошибка загрузки профиля: {{ userStore.errorProfile }}
         </div>
-        <div v-else-if="userStore.profile.tokens !== null">
+        <div v-else>
           <p>Остаток токенов: <strong>{{ userStore.profile.tokens }}</strong></p>
           <p>
             Текущий тариф: <strong class="capitalize">{{ userStore.profile.subscription_type }}</strong>
@@ -41,9 +41,6 @@
               Экстренный выход
             </button>
           </div>
-        </div>
-        <div v-else>
-          <p>Не удалось загрузить данные профиля.</p>
         </div>
          <div v-if="!userStore.isLoadingProfile && userStore.profile?.channel_reward_claimed" class="reward-claimed-info">
              <p>✅ Награда за подписку на канал получена!</p>
@@ -134,6 +131,17 @@ const router = useRouter();
 const tg = window.Telegram?.WebApp;
 const showRewardClaimView = ref(false);
 const REQUIRED_DREAMS = 5;
+
+// Функция форматирования даты/времени
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  try {
+    // Показываем дату в формате ДД.ММ.ГГГГ
+    return new Date(dateString).toLocaleDateString();
+  } catch (e) {
+    return dateString;
+  }
+};
 
 const goBackToAccount = () => {
     showRewardClaimView.value = false;
@@ -283,8 +291,6 @@ onMounted(async () => {
         console.log("[PersonalAccount onMounted] History fetched.");
     }
 });
-
-const formatDate = (dateString) => { if (!dateString) return ''; try { return new Date(dateString).toLocaleDateString(); } catch (e) { return dateString; } };
 
 watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
   if (newValue === true && oldValue === false && showRewardClaimView.value) {
