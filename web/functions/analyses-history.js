@@ -74,19 +74,32 @@ exports.handler = async (event) => {
      }
 
     // --- Валидация InitData или Web Auth с использованием ВАШЕЙ функции ---
-    const initDataHeader = event.headers['x-telegram-init-data'];
-    const webAuthHeader = event.headers['x-web-auth-user'];
+    // Netlify normalizes headers to lowercase
+    const initDataHeader = event.headers['x-telegram-init-data'] || event.headers['X-Telegram-Init-Data'];
+    const webAuthHeader = event.headers['x-web-auth-user'] || event.headers['X-Web-Auth-User'];
     let verifiedUserId;
+
+    // Debug headers
+    console.log("[analyses-history] Headers received:", {
+        headerNames: Object.keys(event.headers),
+        webAuthHeader: !!webAuthHeader,
+        initDataHeader: !!initDataHeader,
+        caseSensitiveCheck: {
+            lowercase: !!event.headers['x-web-auth-user'],
+            uppercase: !!event.headers['X-Web-Auth-User']
+        }
+    });
 
     // Check for web authentication first
     if (webAuthHeader) {
         try {
+            console.log("[analyses-history] Parsing Web Auth header:", webAuthHeader);
             const webUserData = JSON.parse(webAuthHeader);
             if (webUserData && webUserData.id) {
                 verifiedUserId = webUserData.id;
                 console.log(`[analyses-history] Web authentication successful for user: ${verifiedUserId}`);
             } else {
-                console.warn("[analyses-history] Web Auth header exists but missing user ID");
+                console.warn("[analyses-history] Web Auth header exists but missing user ID:", webUserData);
                 return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid Web Auth data' }) };
             }
         } catch (error) {

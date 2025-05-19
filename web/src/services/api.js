@@ -94,20 +94,20 @@ const apiMethods = {
   getUserProfile() {
     console.log("[api.js] Calling GET /user-profile");
     return apiClient.get('/user-profile');
-  }, // <--- Запятая
+  },
 
   // Метод для получения награды за подписку
   claimChannelReward() {
     console.log("[api.js] Calling POST /claim-channel-token");
     // Используем POST, так как это действие изменяет состояние (начисляет токен)
     return apiClient.post('/claim-channel-token'); // Тело запроса не нужно, вся информация в initData
-  }, // <<<--- ВОТ ИСПРАВЛЕНИЕ: ДОБАВЛЕНА ЗАПЯТАЯ
+  },
 
   // Метод для получения истории анализов
   getAnalysesHistory() {
     console.log("[api.js] Calling GET /analyses-history");
     return apiClient.get('/analyses-history');
-  }, // <--- Запятая
+  },
 
   // <<<--- НОВЫЙ МЕТОД ДЛЯ ГЛУБОКОГО АНАЛИЗА ---
   getDeepAnalysis() {
@@ -127,7 +127,7 @@ const apiMethods = {
         amount,
         payload
     });
-  }, // <--- Запятая у последнего элемента не нужна
+  },
 
   // Web authentication verification
   verifyWebAuth(userData) {

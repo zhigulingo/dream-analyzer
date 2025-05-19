@@ -143,8 +143,19 @@ const handleClaimRewardClick = async () => { await userStore.claimChannelReward(
 
 // Logout function
 const handleLogout = () => {
+  console.log('Logging out...');
   userStore.logout(); // Clear user data from store
-  router.push('/'); // Redirect to login page
+  
+  // Force redirect to login page
+  // This needs to be done after a small delay to ensure the store has updated
+  setTimeout(() => {
+    console.log('Redirecting to login page...');
+    router.push({ name: 'WebLogin', replace: true });
+    // Force page reload to clear any cached state
+    if (router.currentRoute.value.path !== '/') {
+      window.location.href = '/';
+    }
+  }, 100);
 };
 
 // --- НОВАЯ ФУНКЦИЯ ДЛЯ ОПРЕДЕЛЕНИЯ МОБИЛЬНОГО УСТРОЙСТВА ---
