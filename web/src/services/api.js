@@ -86,6 +86,9 @@ function getAuthHeaders() {
     if (initData) {
       console.log('[api.js] Using Telegram WebApp authentication');
       headers['X-Telegram-Init-Data'] = initData;
+      
+      // Debug the headers being sent
+      console.log('[api.js] Telegram auth headers:', headers);
       return headers;
     }
     
@@ -96,27 +99,64 @@ function getAuthHeaders() {
         const userData = safeJsonParse(storedUser);
         if (userData && userData.id) {
           try {
-            // Create the header safely
+            // Convert numeric ID to string if needed (important for JSON comparison on server)
+            const userId = String(userData.id);
+            
+            // Create the header safely - IMPORTANT: Use exact format expected by server
+            // Making sure all fields are explicitly present and use strings
             const headerData = JSON.stringify({
-              id: userData.id,
+              id: userId,
               username: userData.username || "",
               first_name: userData.first_name || "",
               last_name: userData.last_name || ""
             });
             
-            headers['x-web-auth-user'] = headerData;
+            // Use the exact header name that the server expects
             headers['X-Web-Auth-User'] = headerData;
             
-            console.log(`[api.js] Using Web Auth, User ID: ${userData.id}`);
+            console.log(`[api.js] Using Web Auth, User ID: ${userId}`);
+            console.log('[api.js] Web auth headers:', JSON.stringify(headers));
+            console.log('[api.js] Web auth user data:', headerData);
+            
+            // Store ID in localStorage for emergency backup
+            localStorage.setItem('last_auth_user_id', userId);
+            
+            return headers;
           } catch (e) {
             console.error('[api.js] Error creating auth header:', e);
           }
+        } else {
+          console.error('[api.js] Invalid stored user data - missing ID:', userData);
         }
+      } else {
+        console.log('[api.js] No stored telegram_user found in localStorage');
       }
     } catch (e) {
       console.error('[api.js] Error accessing localStorage:', e);
     }
     
+    // Try emergency fallback - if we have a user ID but header creation failed
+    const lastUserId = localStorage.getItem('last_auth_user_id');
+    if (lastUserId) {
+      try {
+        console.log('[api.js] Using emergency backup auth with user ID:', lastUserId);
+        const fallbackData = JSON.stringify({
+          id: String(lastUserId),
+          username: "",
+          first_name: "",
+          last_name: ""
+        });
+        headers['X-Web-Auth-User'] = fallbackData;
+        console.log('[api.js] Emergency fallback headers:', JSON.stringify(headers));
+        return headers;
+      } catch (e) {
+        console.error('[api.js] Error creating emergency auth header:', e);
+      }
+    } else {
+      console.log('[api.js] No emergency backup user ID found');
+    }
+    
+    console.warn('[api.js] No authentication method available');
     return headers;
   } catch (e) {
     console.error('[api.js] Error in getAuthHeaders:', e);
@@ -140,7 +180,7 @@ const makeRequest = async (method, url, data = null) => {
     // Get headers safely
     const headers = getAuthHeaders();
     console.log(`[api.js] Making ${method.toUpperCase()} request to: ${url}`);
-    console.log(`[api.js] Headers being sent: ${Object.keys(headers).join(', ')}`);
+    console.log(`[api.js] Headers being sent:`, headers);
     
     // Safely build config to avoid type errors
     const config = { 
@@ -156,6 +196,7 @@ const makeRequest = async (method, url, data = null) => {
     
     // Perform the request with extensive error handling
     try {
+      console.log(`[api.js] Making ${method} request to ${url}`);
       const response = await apiClient(config);
       
       // Safety checks for response data
@@ -190,6 +231,46 @@ const makeRequest = async (method, url, data = null) => {
       return response;
     } catch (error) {
       console.error('[api.js] Error during request:', error.message);
+      console.log(`[api.js] Request failed for URL: ${url}, Method: ${method}`);
+      
+      // Handle specific error cases
+      if (error.response) {
+        console.log(`[api.js] Server responded with status: ${error.response.status}`);
+        
+        // Handle 401 errors differently - might need to re-auth
+        if (error.response.status === 401) {
+          console.warn('[api.js] Received 401 Unauthorized - Authentication issue');
+          
+          // Debug the headers we sent that caused the 401
+          if (config && config.headers) {
+            console.log('[api.js] Request headers that caused 401:', JSON.stringify(config.headers));
+            
+            // Check if we have auth headers
+            const hasWebAuth = !!config.headers['X-Web-Auth-User'];
+            const hasTelegramAuth = !!config.headers['X-Telegram-Init-Data'];
+            
+            console.log(`[api.js] Authentication headers present: Web=${hasWebAuth}, Telegram=${hasTelegramAuth}`);
+            
+            if (hasWebAuth) {
+              try {
+                // Parse and log the user ID we sent
+                const webAuthData = JSON.parse(config.headers['X-Web-Auth-User']);
+                console.log(`[api.js] Web Auth user ID sent: ${webAuthData.id}`);
+              } catch (e) {
+                console.error('[api.js] Could not parse Web Auth header:', e);
+              }
+            }
+          }
+          
+          // Only redirect for non-auth endpoints
+          if (!url.includes('verify-web-auth')) {
+            console.warn('[api.js] Non-auth endpoint received 401, might need to re-login');
+            // Set a flag but don't redirect immediately from non-UI code
+            sessionStorage.setItem('auth_error', 'true');
+          }
+        }
+      }
+      
       throw error;
     }
   } catch (error) {
@@ -302,3 +383,4 @@ const apiMethods = {
 
 export { apiClient, safeCheckTelegram, safeGetTelegramInitData };
 export default apiMethods;
+

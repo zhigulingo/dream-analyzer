@@ -106,7 +106,8 @@ exports.handler = async (event) => {
         caseSensitiveCheck: {
             lowercase: !!event.headers['x-web-auth-user'],
             uppercase: !!event.headers['X-Web-Auth-User']
-        }
+        },
+        allHeadersEntries: Object.entries(event.headers).map(([k, v]) => [k, typeof v === 'string' ? v.substring(0, 20) + '...' : typeof v])
     });
 
     // Check for web authentication first
@@ -114,15 +115,26 @@ exports.handler = async (event) => {
         try {
             console.log("[user-profile] Parsing Web Auth header:", webAuthHeader);
             const webUserData = JSON.parse(webAuthHeader);
+            
+            console.log("[user-profile] Parsed Web Auth data:", webUserData);
+            
             if (webUserData && webUserData.id) {
-                verifiedUserId = webUserData.id;
+                // Ensure the ID is treated as a string for consistency
+                verifiedUserId = String(webUserData.id);
                 console.log(`[user-profile] Web authentication successful for user: ${verifiedUserId}`);
+                console.log(`[user-profile] User data:`, {
+                    id: verifiedUserId,
+                    username: webUserData.username || 'none',
+                    firstName: webUserData.first_name || 'none',
+                    lastName: webUserData.last_name || 'none'
+                });
             } else {
                 console.warn("[user-profile] Web Auth header exists but missing user ID:", webUserData);
                 return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid Web Auth data' }) };
             }
         } catch (error) {
             console.error("[user-profile] Failed to parse Web Auth header:", error);
+            console.error("[user-profile] Raw header value:", webAuthHeader);
             return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid Web Auth format' }) };
         }
     } 

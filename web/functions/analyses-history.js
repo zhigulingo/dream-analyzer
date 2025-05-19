@@ -87,7 +87,8 @@ exports.handler = async (event) => {
         caseSensitiveCheck: {
             lowercase: !!event.headers['x-web-auth-user'],
             uppercase: !!event.headers['X-Web-Auth-User']
-        }
+        },
+        allHeadersEntries: Object.entries(event.headers).map(([k, v]) => [k, typeof v === 'string' ? v.substring(0, 20) + '...' : typeof v])
     });
 
     // Check for web authentication first
@@ -95,15 +96,26 @@ exports.handler = async (event) => {
         try {
             console.log("[analyses-history] Parsing Web Auth header:", webAuthHeader);
             const webUserData = JSON.parse(webAuthHeader);
+            
+            console.log("[analyses-history] Parsed Web Auth data:", webUserData);
+            
             if (webUserData && webUserData.id) {
-                verifiedUserId = webUserData.id;
+                // Ensure the ID is treated as a string for consistency
+                verifiedUserId = String(webUserData.id);
                 console.log(`[analyses-history] Web authentication successful for user: ${verifiedUserId}`);
+                console.log(`[analyses-history] User data:`, {
+                    id: verifiedUserId,
+                    username: webUserData.username || 'none',
+                    firstName: webUserData.first_name || 'none',
+                    lastName: webUserData.last_name || 'none'
+                });
             } else {
                 console.warn("[analyses-history] Web Auth header exists but missing user ID:", webUserData);
                 return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid Web Auth data' }) };
             }
         } catch (error) {
             console.error("[analyses-history] Failed to parse Web Auth header:", error);
+            console.error("[analyses-history] Raw header value:", webAuthHeader);
             return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid Web Auth format' }) };
         }
     } 

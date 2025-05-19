@@ -74,6 +74,20 @@
             <p><strong>API Base URL:</strong> {{ getApiBaseUrl }}</p>
             <p><strong>Auth Method:</strong> {{ getAuthMethod() }}</p>
             <p><strong>User ID from Auth:</strong> {{ userStore.webUser?.id || 'Not available' }}</p>
+            
+            <div class="manual-auth">
+              <p><strong>Manual Auth Testing:</strong></p>
+              <div class="manual-auth-form">
+                <input 
+                  type="text" 
+                  v-model="manualUserId" 
+                  placeholder="Enter Telegram User ID" 
+                  class="debug-input"
+                />
+                <button @click="testManualAuth" class="debug-button">Test Auth with ID</button>
+              </div>
+            </div>
+            
             <hr>
             <p><strong>Local Storage Telegram User:</strong></p>
             <pre>{{ getLocalStorageUserString }}</pre>
@@ -183,6 +197,7 @@ const REQUIRED_DREAMS = 5;
 // Debug features
 const showDebugInfo = ref(true);
 const debugResponse = ref(null);
+const manualUserId = ref('');
 
 // Safe computed properties
 const isTelegramAvailable = computed(() => safeCheckTelegram());
@@ -239,29 +254,129 @@ const clearAndReload = () => {
 const checkCORS = async () => {
   debugResponse.value = "Testing CORS...";
   try {
-    const response = await fetch(`${getApiBaseUrl.value}/user-profile`, {
+    // First test: OPTIONS preflight request
+    const preflightResponse = await fetch(`${getApiBaseUrl.value}/user-profile`, {
+      method: 'OPTIONS',
+      headers: {
+        'Origin': window.location.origin,
+        'Access-Control-Request-Method': 'GET',
+        'Access-Control-Request-Headers': 'Content-Type, X-Web-Auth-User'
+      }
+    });
+    
+    const preflightHeaders = {};
+    for (const [key, value] of preflightResponse.headers.entries()) {
+      preflightHeaders[key] = value;
+    }
+    
+    // Second test: Regular GET request without auth headers
+    const simpleResponse = await fetch(`${getApiBaseUrl.value}/user-profile`, {
       method: 'GET',
-      credentials: 'include',
       headers: {
         'Content-Type': 'application/json'
       }
     });
     
-    const headers = {};
-    for (const [key, value] of response.headers.entries()) {
-      headers[key] = value;
+    const simpleHeaders = {};
+    for (const [key, value] of simpleResponse.headers.entries()) {
+      simpleHeaders[key] = value;
     }
     
+    // Third test: GET request with auth headers
+    const userId = userStore.webUser?.id || localStorage.getItem('last_auth_user_id') || 'test';
+    
+    const authRequest = await fetch(`${getApiBaseUrl.value}/user-profile`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Web-Auth-User': JSON.stringify({
+          id: String(userId),
+          username: userStore.webUser?.username || "test",
+          first_name: userStore.webUser?.first_name || "Test",
+          last_name: userStore.webUser?.last_name || "User"
+        })
+      }
+    });
+    
+    const authHeaders = {};
+    for (const [key, value] of authRequest.headers.entries()) {
+      authHeaders[key] = value;
+    }
+    
+    // Compile all test results
     debugResponse.value = {
-      success: response.ok,
-      status: response.status,
-      headers: headers,
-      cors: headers['access-control-allow-origin'] || 'No CORS headers'
+      success: true,
+      originUrl: window.location.origin,
+      apiBaseUrl: getApiBaseUrl.value,
+      
+      preflight: {
+        status: preflightResponse.status,
+        statusText: preflightResponse.statusText,
+        headers: preflightHeaders,
+        corsHeaders: {
+          'access-control-allow-origin': preflightHeaders['access-control-allow-origin'] || 'Not found',
+          'access-control-allow-methods': preflightHeaders['access-control-allow-methods'] || 'Not found',
+          'access-control-allow-headers': preflightHeaders['access-control-allow-headers'] || 'Not found'
+        }
+      },
+      
+      simpleRequest: {
+        status: simpleResponse.status,
+        statusText: simpleResponse.statusText,
+        headers: simpleHeaders,
+        corsHeaders: {
+          'access-control-allow-origin': simpleHeaders['access-control-allow-origin'] || 'Not found'
+        }
+      },
+      
+      authRequest: {
+        status: authRequest.status,
+        statusText: authRequest.statusText,
+        userId: userId,
+        headers: authHeaders,
+        corsHeaders: {
+          'access-control-allow-origin': authHeaders['access-control-allow-origin'] || 'Not found'
+        }
+      }
     };
+    
+    // Try to parse the auth response body
+    try {
+      const authResponseBody = await authRequest.text();
+      try {
+        debugResponse.value.authRequest.body = JSON.parse(authResponseBody);
+      } catch {
+        debugResponse.value.authRequest.rawBody = authResponseBody;
+      }
+    } catch (bodyError) {
+      debugResponse.value.authRequest.bodyError = bodyError.message;
+    }
+    
+    // Check for common CORS issues
+    let corsIssues = [];
+    
+    if (!preflightHeaders['access-control-allow-origin']) {
+      corsIssues.push('Missing Access-Control-Allow-Origin in preflight response');
+    }
+    
+    if (preflightHeaders['access-control-allow-origin'] !== '*' && 
+        preflightHeaders['access-control-allow-origin'] !== window.location.origin) {
+      corsIssues.push(`Preflight Access-Control-Allow-Origin (${preflightHeaders['access-control-allow-origin']}) doesn't match origin (${window.location.origin})`);
+    }
+    
+    if (!preflightHeaders['access-control-allow-headers'] || 
+        !preflightHeaders['access-control-allow-headers'].toLowerCase().includes('x-web-auth-user')) {
+      corsIssues.push('X-Web-Auth-User not included in Access-Control-Allow-Headers');
+    }
+    
+    debugResponse.value.corsIssues = corsIssues;
+    debugResponse.value.hasCorsIssues = corsIssues.length > 0;
+    
   } catch (e) {
     debugResponse.value = {
       success: false,
-      error: e.message
+      error: e.message,
+      stack: e.stack
     };
   }
 };
@@ -449,6 +564,127 @@ watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
     setTimeout(() => { if (showRewardClaimView.value) { goBackToAccount(); } }, 3500);
   }
 });
+
+// Manual auth testing
+const testManualAuth = async () => {
+  const userId = manualUserId.value.trim();
+  if (!userId) {
+    debugResponse.value = { error: "Please enter a user ID" };
+    return;
+  }
+  
+  debugResponse.value = { message: `Testing authentication with ID: ${userId}` };
+  
+  try {
+    // Create a basic user object
+    const testUser = {
+      id: userId,
+      first_name: "Test",
+      last_name: "User",
+      username: "testuser",
+      auth_date: Math.floor(Date.now() / 1000).toString()
+    };
+    
+    // Store in localStorage
+    localStorage.setItem('telegram_user', JSON.stringify(testUser));
+    localStorage.setItem('last_auth_user_id', userId);
+    
+    // Update the store
+    userStore.setWebUser(testUser);
+    
+    // Prepare for detailed request testing
+    debugResponse.value = { message: `Authenticated with ID: ${userId}, testing API requests...` };
+    
+    // Test 1: Direct fetch to API without libraries to test raw request
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Web-Auth-User': JSON.stringify({
+          id: String(userId),
+          username: "testuser",
+          first_name: "Test",
+          last_name: "User"
+        })
+      };
+      
+      // Log the exact headers we're sending
+      console.log(`[Manual Auth Test] Headers being sent:`, headers);
+      
+      const response = await fetch(`${getApiBaseUrl.value}/user-profile`, {
+        method: 'GET',
+        headers: headers
+      });
+      
+      const responseData = await response.json();
+      
+      // Update debug response with information about the direct fetch
+      debugResponse.value = {
+        ...debugResponse.value,
+        directFetch: {
+          status: response.status,
+          headers: Object.fromEntries([...response.headers.entries()]),
+          data: responseData
+        }
+      };
+    } catch (directError) {
+      debugResponse.value = {
+        ...debugResponse.value,
+        directFetch: {
+          error: directError.message
+        }
+      };
+    }
+    
+    // Test 2: Now use the store methods which use the API service
+    try {
+      await userStore.fetchProfile();
+      
+      // Update debug response with information from the store fetch
+      debugResponse.value = {
+        ...debugResponse.value,
+        storeFetch: {
+          success: !userStore.errorProfile,
+          profile: userStore.profile,
+          error: userStore.errorProfile
+        }
+      };
+      
+      // Also fetch history
+      await userStore.fetchHistory();
+      debugResponse.value = {
+        ...debugResponse.value,
+        historyFetch: {
+          success: !userStore.errorHistory,
+          count: userStore.history.length,
+          error: userStore.errorHistory
+        }
+      };
+    } catch (storeError) {
+      debugResponse.value = {
+        ...debugResponse.value,
+        storeFetch: {
+          error: storeError.message
+        }
+      };
+    }
+    
+    // Final summary
+    debugResponse.value = {
+      ...debugResponse.value,
+      summary: {
+        userId: userId,
+        success: !userStore.errorProfile && !userStore.errorHistory,
+        profile: userStore.profile,
+        historyCount: userStore.history.length
+      }
+    };
+  } catch (error) {
+    debugResponse.value = {
+      success: false,
+      error: error.message || "Unknown error occurred"
+    };
+  }
+};
 </script>
 
 <style scoped>
@@ -729,5 +965,27 @@ button:hover:not(:disabled), a.subscribe-button:hover {
   font-size: 12px;
   margin: 10px 0;
   white-space: pre-wrap;
+}
+
+/* Manual auth testing styles */
+.manual-auth {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: rgba(0,0,0,0.03);
+  border-radius: 4px;
+}
+
+.manual-auth-form {
+  display: flex;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.debug-input {
+  flex: 1;
+  padding: 5px 10px;
+  border: 1px solid var(--tg-theme-hint-color, #ccc);
+  border-radius: 4px;
+  font-size: 14px;
 }
 </style>
