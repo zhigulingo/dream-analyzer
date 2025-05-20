@@ -14,17 +14,9 @@
         <a href="https://t.me/dreamtestaibot?start=weblogin" class="bot-login-button" target="_blank">
           Login with Telegram Bot
         </a>
-        <p class="hint">After authentication with bot, use the code it provides below:</p>
-        <div class="bot-code-input">
-          <input 
-            type="text" 
-            v-model="authCode" 
-            placeholder="Enter code from bot..." 
-            class="auth-input"
-          />
-          <button @click="verifyBotCode" :disabled="isVerifying || !authCode" class="verify-button">
-            {{ isVerifying ? 'Verifying...' : 'Login' }}
-          </button>
+        <p class="hint">After clicking the button in Telegram, you'll be redirected back to this site automatically.</p>
+        <div v-if="sessionStatus === 'waiting'" class="status-message waiting">
+          Waiting for authentication...
         </div>
       </div>
       
@@ -51,8 +43,6 @@ const router = useRouter();
 const userStore = useUserStore();
 const user = ref(null);
 const error = ref(null);
-const authCode = ref('');
-const isVerifying = ref(false);
 const sessionId = ref('');
 const sessionStatus = ref('waiting');
 const pollInterval = ref(null);
@@ -138,6 +128,8 @@ const checkUrlParams = () => {
 // Handle auth token from URL
 const handleAuthToken = (token) => {
   try {
+    console.log('[WebLogin] Processing auth token from URL');
+    
     // Clean up URL - remove token parameter
     const url = new URL(window.location);
     url.searchParams.delete('auth_token');
@@ -149,23 +141,29 @@ const handleAuthToken = (token) => {
     // Show success message
     sessionStatus.value = 'approved';
     
+    // Display a message to the user
+    error.value = null;
+    
     // Fetch user profile
     userStore.fetchProfile()
       .then(() => {
+        // Set user information
         user.value = userStore.webUser;
+        console.log('[WebLogin] Authentication successful, user profile loaded');
         
         // Auto-proceed to app
         setTimeout(() => {
+          console.log('[WebLogin] Redirecting to account page');
           proceedToApp();
-        }, 2000);
+        }, 1500);
       })
       .catch(e => {
-        console.error('Error fetching profile after authentication:', e);
-        error.value = 'Authentication successful, but failed to load your profile.';
+        console.error('[WebLogin] Error fetching profile after authentication:', e);
+        error.value = 'Authentication successful, but failed to load your profile. Please try again.';
       });
   } catch (e) {
-    console.error('Error processing token from URL:', e);
-    error.value = 'Failed to authenticate with token';
+    console.error('[WebLogin] Error processing token from URL:', e);
+    error.value = 'Failed to authenticate with token. Please try again.';
   }
 };
 
@@ -257,50 +255,7 @@ const stopPolling = () => {
   }
 };
 
-// Function to verify bot code
-const verifyBotCode = async () => {
-  if (!authCode.value) return;
-  
-  isVerifying.value = true;
-  error.value = null;
-  
-  try {
-    // Call API to verify the code
-    const response = await api.getBotAuthToken({
-      code: authCode.value,
-      timestamp: Math.floor(Date.now() / 1000)
-    });
-    
-    if (response.data.success) {
-      console.log('Bot authentication successful');
-      
-      // Store auth data
-      botAuthService.storeAuthData(response.data);
-      
-      // Update user store
-      userStore.setWebUser({
-        id: response.data.user.tg_id,
-        username: response.data.user.username || '',
-        first_name: response.data.user.first_name || '',
-        last_name: response.data.user.last_name || ''
-      });
-      
-      user.value = userStore.webUser;
-      
-      // Auto-proceed to app
-      setTimeout(() => {
-        proceedToApp();
-      }, 1000);
-    } else {
-      error.value = response.data.error || 'Authentication failed';
-    }
-  } catch (e) {
-    console.error('Error verifying bot code:', e);
-    error.value = e.response?.data?.error || 'Failed to verify code';
-  } finally {
-    isVerifying.value = false;
-  }
-};
+// We no longer need the verifyBotCode function as we're using direct token auth
 
 // Clean up on unmount
 onUnmounted(() => {

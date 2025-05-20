@@ -67,10 +67,43 @@ try {
             let messageText, buttonText, buttonUrl;
             
             if (startParam === 'weblogin') {
-                // Handle weblogin parameter with direct link to web app login
-                messageText = "🔐 Для входа в веб-версию приложения перейдите по ссылке ниже.";
-                buttonText = "Открыть веб-версию";
-                buttonUrl = `${TMA_URL}/login`;
+                // Handle weblogin parameter with improved web authentication flow
+                // Generate a session identifier for this login attempt
+                const sessionId = crypto.randomBytes(16).toString('hex');
+                const timestamp = Math.floor(Date.now() / 1000);
+                
+                // Create a secure token with user information
+                const payload = {
+                    user_id: userId,
+                    user_data: {
+                        username: ctx.from.username || '',
+                        first_name: ctx.from.first_name || '',
+                        last_name: ctx.from.last_name || ''
+                    },
+                    issued_at: timestamp,
+                    expires_at: timestamp + 604800 // 7 days
+                };
+                
+                // Sign the token with HMAC
+                const secret = process.env.BOT_SECRET || 'default_bot_secret_key_change_this';
+                const payloadStr = JSON.stringify(payload);
+                const signature = crypto
+                    .createHmac('sha256', secret)
+                    .update(payloadStr)
+                    .digest('hex');
+                
+                // Create the final token
+                const token = Buffer.from(JSON.stringify({
+                    payload,
+                    signature
+                })).toString('base64');
+                
+                // Generate return URL to web app with the token
+                const webLoginUrl = `https://bot.dreamstalk.ru/login?auth_token=${token}`;
+                
+                messageText = "🔐 Для входа в веб-версию приложения нажмите на кнопку ниже. После авторизации вы будете перенаправлены на сайт.";
+                buttonText = "Подтвердить вход";
+                buttonUrl = webLoginUrl;
             } else {
                 // Regular start command
                 if (userData.claimed) { 
