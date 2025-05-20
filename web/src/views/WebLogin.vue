@@ -265,8 +265,8 @@ const getBotLoginUrl = () => {
   }
   
   const sessionId = localStorage.getItem('browser_session_id');
-  // The format must be "weblogin browser_session=xxx" with a space instead of underscore
-  return `https://t.me/dreamtestaibot?start=weblogin%20browser_session=${sessionId}`;
+  // Use a simple format that doesn't have spaces or special characters
+  return `https://t.me/dreamtestaibot?start=auth_${sessionId}`;
 };
 
 // Clean up on unmount

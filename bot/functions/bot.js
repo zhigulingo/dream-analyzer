@@ -68,23 +68,21 @@ try {
             // Define message text and button based on whether it's a weblogin request or regular start
             let messageText, buttonText, buttonUrl;
             
-            if (startParam === 'weblogin') {
-    // Handle weblogin parameter with improved web authentication flow
+            // Check if this is an auth request (starts with "auth_")
+if (startParam && startParam.startsWith('auth_')) {
+    // Handle authentication request
+    console.log(`[Bot Handler /start] Handling authentication request`);
+    
     // Generate a session identifier for this login attempt
     const sessionId = crypto.randomBytes(16).toString('hex');
     const timestamp = Math.floor(Date.now() / 1000);
     
-    // Get browser session ID if available in query parameter
-    let browserSessionId = '';
-    if (startCommand) {
-        // Extract browser_session=xxxxx from the command text if present
-        const matches = startCommand.match(/browser_session=([a-zA-Z0-9-_]+)/);
-        if (matches && matches.length > 1) {
-            browserSessionId = matches[1];
-            console.log(`[Bot Handler /start] Found browser session ID: ${browserSessionId}`);
-        } else {
-            console.log(`[Bot Handler /start] No browser_session parameter found in command`);
-        }
+    // Extract browser session ID from the parameter
+    const browserSessionId = startParam.substring(5); // Remove 'auth_' prefix
+    console.log(`[Bot Handler /start] Browser session ID: ${browserSessionId}`);
+    
+    if (!browserSessionId) {
+        console.log(`[Bot Handler /start] Missing browser session ID`);
     }
                 
                 // Create a secure token with user information
