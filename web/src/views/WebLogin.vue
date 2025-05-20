@@ -11,12 +11,13 @@
       <div class="bot-auth-section">
         <h3>Login via Bot</h3>
         <p>For better security and reliability, please use our new login method:</p>
-        <a href="https://t.me/dreamtestaibot?start=weblogin" class="bot-login-button" target="_blank">
+        <a :href="getBotLoginUrl()" class="bot-login-button" target="_blank">
           Login with Telegram Bot
         </a>
-        <p class="hint">After clicking the button in Telegram, you'll be redirected back to this site automatically.</p>
+        <p class="hint">After authenticating in Telegram, you'll be automatically logged in here.</p>
         <div v-if="sessionStatus === 'waiting'" class="status-message waiting">
-          Waiting for authentication...
+          Waiting for authentication from Telegram... <br>
+          <small>(Please approve login in Telegram and return to this window)</small>
         </div>
       </div>
       
@@ -255,7 +256,17 @@ const stopPolling = () => {
   }
 };
 
-// We no longer need the verifyBotCode function as we're using direct token auth
+// Function to get the Telegram Bot login URL with session ID
+const getBotLoginUrl = () => {
+  // Generate a session ID if we don't have one
+  if (!localStorage.getItem('browser_session_id')) {
+    const newSessionId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substring(2);
+    localStorage.setItem('browser_session_id', newSessionId);
+  }
+  
+  const sessionId = localStorage.getItem('browser_session_id');
+  return `https://t.me/dreamtestaibot?start=weblogin_browser_session=${sessionId}`;
+};
 
 // Clean up on unmount
 onUnmounted(() => {
@@ -336,11 +347,57 @@ onMounted(async () => {
   // Check for authentication params in URL first
   const hasAuthParams = checkUrlParams();
   
-  // Handle Telegram login widget if no auth params
+  // Start polling for auth token in localStorage if no auth params
   if (!hasAuthParams) {
-    // Existing Telegram login widget code here...
+    // Generate a unique session ID
+    const browserSessionId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substring(2);
+    
+    // Store in localStorage
+    localStorage.setItem('browser_session_id', browserSessionId);
+    
+    // Start polling for authentication
+    startAuthPolling();
   }
 });
+
+// Function to poll localStorage for auth token
+const startAuthPolling = () => {
+  console.log('[WebLogin] Starting to poll for authentication');
+  
+  // Set status to waiting
+  sessionStatus.value = 'waiting';
+  
+  // Check for auth token every 2 seconds
+  pollInterval.value = setInterval(() => {
+    const token = localStorage.getItem('bot_auth_token');
+    
+    if (token) {
+      console.log('[WebLogin] Auth token found in localStorage during polling');
+      stopPolling();
+      
+      // Process the token
+      userStore.fetchProfile()
+        .then(() => {
+          user.value = userStore.webUser;
+          console.log('[WebLogin] Authentication detected, user profile loaded');
+          
+          // Auto-proceed to app
+          setTimeout(() => {
+            proceedToApp();
+          }, 1000);
+        })
+        .catch(e => {
+          console.error('[WebLogin] Error fetching profile during polling:', e);
+          error.value = 'Authentication detected, but failed to load your profile. Please try again.';
+        });
+    }
+  }, 2000);
+  
+  // Stop polling after 10 minutes
+  setTimeout(() => {
+    stopPolling();
+  }, 600000);
+};
 </script>
 
 <style scoped>
@@ -458,5 +515,25 @@ h1 {
 .verify-button:disabled {
   background-color: #a0a0a0;
   cursor: not-allowed;
+}
+
+.status-message {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.status-message.waiting {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { opacity: 0.8; }
 }
 </style> 

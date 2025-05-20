@@ -72,6 +72,17 @@ try {
                 const sessionId = crypto.randomBytes(16).toString('hex');
                 const timestamp = Math.floor(Date.now() / 1000);
                 
+                // Get browser session ID if available in query parameter
+                let browserSessionId = '';
+                if (ctx.message?.text) {
+                    // Extract browser_session=xxxxx from the command text if present
+                    const matches = ctx.message.text.match(/browser_session=([a-zA-Z0-9-_]+)/);
+                    if (matches && matches.length > 1) {
+                        browserSessionId = matches[1];
+                        console.log(`[Bot Handler /start] Found browser session ID: ${browserSessionId}`);
+                    }
+                }
+                
                 // Create a secure token with user information
                 const payload = {
                     user_id: userId,
@@ -80,6 +91,7 @@ try {
                         first_name: ctx.from.first_name || '',
                         last_name: ctx.from.last_name || ''
                     },
+                    browser_session_id: browserSessionId,
                     issued_at: timestamp,
                     expires_at: timestamp + 604800 // 7 days
                 };
@@ -99,7 +111,11 @@ try {
                 })).toString('base64');
                 
                 // Generate return URL to web app with the token
-                const webLoginUrl = `https://bot.dreamstalk.ru/login?auth_token=${token}`;
+                // If we have a browser session ID, redirect to storage page to save token to localStorage
+                // Otherwise redirect directly to the login page with token
+                const webLoginUrl = browserSessionId 
+                    ? `https://bot.dreamstalk.ru/auth-storage.html?auth_token=${token}&session_id=${browserSessionId}`
+                    : `https://bot.dreamstalk.ru/login?auth_token=${token}`;
                 
                 messageText = "🔐 Для входа в веб-версию приложения нажмите на кнопку ниже. После авторизации вы будете перенаправлены на сайт.";
                 buttonText = "Подтвердить вход";
