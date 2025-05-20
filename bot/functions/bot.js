@@ -50,12 +50,10 @@ try {
         }
         console.log(`[Bot Handler /start] User ${userId} in chat ${chatId}`);
         
-        // Get start parameter and extract full command text
-const startCommand = ctx.message?.text || '';
-const startParam = startCommand.split(' ')[1];
-console.log(`[Bot Handler /start] Full command: "${startCommand}", param: "${startParam}"`);
-
-try {
+        // Get start parameter
+        const startParam = ctx.message?.text?.split(' ')[1];
+        
+        try {
             // Get or create user in database
             const userData = await getOrCreateUser(supabaseAdmin, userId);
             console.log(`[Bot Handler /start] User data received: ID=${userData.id}, Claimed=${userData.claimed}, LastMsgId=${userData.lastMessageId}`);
@@ -67,30 +65,12 @@ try {
             
             // Define message text and button based on whether it's a weblogin request or regular start
             let messageText, buttonText, buttonUrl;
-            // Define buttonData outside the if block so it's available in the entire function scope
-            let buttonData = '';
-            // Define browserSessionId outside the if block so it's available in the entire function scope
-            let browserSessionId = '';
             
-            // Check if this is an auth request (starts with "auth_")
-if (startParam && startParam.startsWith('auth_')) {
-    // Handle authentication request
-    console.log(`[Bot Handler /start] Handling authentication request`);
-    
-    // Generate a session identifier for this login attempt
-    const sessionId = crypto.randomBytes(16).toString('hex');
-    const timestamp = Math.floor(Date.now() / 1000);
-    
-    // Extract browser session ID from the parameter
-    browserSessionId = startParam.substring(5); // Remove 'auth_' prefix
-    console.log(`[Bot Handler /start] Browser session ID: ${browserSessionId}`);
-    
-    if (!browserSessionId) {
-        console.log(`[Bot Handler /start] Missing browser session ID`);
-    }
-    
-    // Set the button data value
-    buttonData = `approve_webapp_login:${browserSessionId}`;
+            if (startParam === 'weblogin') {
+                // Handle weblogin parameter with improved web authentication flow
+                // Generate a session identifier for this login attempt
+                const sessionId = crypto.randomBytes(16).toString('hex');
+                const timestamp = Math.floor(Date.now() / 1000);
                 
                 // Create a secure token with user information
                 const payload = {
@@ -100,7 +80,6 @@ if (startParam && startParam.startsWith('auth_')) {
                         first_name: ctx.from.first_name || '',
                         last_name: ctx.from.last_name || ''
                     },
-                    browser_session_id: browserSessionId,
                     issued_at: timestamp,
                     expires_at: timestamp + 604800 // 7 days
                 };
@@ -119,16 +98,12 @@ if (startParam && startParam.startsWith('auth_')) {
                     signature
                 })).toString('base64');
                 
-                    // Store the token using our token storage module
-    const tokenStorage = require('./token-storage');
-    tokenStorage.storeToken(browserSessionId, token);
-    
-    // Log it
-    console.log(`[Bot Handler /start] Stored auth token for browser session: ${browserSessionId}`);
-    console.log(`[Bot Handler /start] Token will be available for polling from the browser`);
-    
-    messageText = "🔐 Вы подтверждаете вход в веб-версию Dream Analyzer?";
-    buttonText = "✅ Подтвердить вход";
+                // Generate return URL to web app with the token
+                const webLoginUrl = `https://bot.dreamstalk.ru/login?auth_token=${token}`;
+                
+                messageText = "🔐 Для входа в веб-версию приложения нажмите на кнопку ниже. После авторизации вы будете перенаправлены на сайт.";
+                buttonText = "Подтвердить вход";
+                buttonUrl = webLoginUrl;
             } else {
                 // Regular start command
                 if (userData.claimed) { 
@@ -144,20 +119,15 @@ if (startParam && startParam.startsWith('auth_')) {
             
             // Send new message with button
             console.log(`[Bot Handler /start] Sending new message (Claimed: ${userData.claimed})`);
-            // Check which type of button to show
-            let inlineKeyboard;
             
-            if (startParam && startParam.startsWith('auth_')) {
-                // For auth requests, use a callback button
-                inlineKeyboard = [[
-                    { text: buttonText, callback_data: buttonData },
-                    { text: "❌ Отменить", callback_data: `deny_webapp_login:${browserSessionId}` }
-                ]];
+            // Use the appropriate button type based on the action
+            let inlineKeyboard;
+            if (startParam === 'weblogin') {
+                // For web login, use a regular URL button to open in external browser
+                inlineKeyboard = [[{ text: buttonText, url: buttonUrl }]];
             } else {
-                // For regular requests, use a web_app button
-                inlineKeyboard = [[
-                    { text: buttonText, web_app: { url: buttonUrl } }
-                ]];
+                // For TMA actions, use web_app to open within Telegram
+                inlineKeyboard = [[{ text: buttonText, web_app: { url: buttonUrl } }]];
             }
             
             const sentMessage = await ctx.reply(messageText, { 
@@ -263,65 +233,6 @@ if (startParam && startParam.startsWith('auth_')) {
         } catch (error) {
             console.error(`[Bot Handler successful_payment] Failed process payment for ${userId}:`, error);
             await ctx.reply("Платеж получен, но произошла ошибка при его обработке. Свяжитесь с поддержкой.").catch(logReplyError);
-        }
-    });
-
-    // Add a callback query handler for approve/deny buttons
-    bot.on("callback_query:data", async (ctx) => {
-        console.log("[Bot Handler callback] Received:", ctx.callbackQuery.data);
-        
-        const callbackData = ctx.callbackQuery.data;
-        
-        if (callbackData.startsWith('approve_webapp_login:')) {
-            const sessionId = callbackData.split(':')[1];
-            console.log(`[Bot Handler callback] Approve web app login for session ${sessionId}`);
-            
-            // Load token storage
-            const tokenStorage = require('./token-storage');
-            
-            // Mark the session as approved
-            if (tokenStorage.hasToken(sessionId)) {
-                console.log(`[Bot Handler callback] Session ${sessionId} approved`);
-                
-                // Get the token for this session
-                const token = tokenStorage.getToken(sessionId);
-                
-                // Create a direct auth link that goes straight to the account page
-                const authLink = `https://bot.dreamstalk.ru/account?direct_auth=${encodeURIComponent(token)}`;
-                
-                // Tell the user it's approved
-                await ctx.answerCallbackQuery("Вход подтвержден! Скопируйте ссылку из сообщения.");
-                
-                // Update the message with the direct link
-                await ctx.editMessageText(
-                    '✅ Вход подтвержден!\n\n' +
-                    'Вы успешно вошли в веб-версию приложения Dream Analyzer.\n\n' +
-                    'Скопируйте и откройте ссылку ниже, чтобы автоматически войти:\n\n' +
-                    `${authLink}`,
-                    {
-                        reply_markup: { inline_keyboard: [] }
-                    }
-                ).catch(e => console.error('[Bot Handler callback] Edit message error:', e));
-            } else {
-                console.log(`[Bot Handler callback] Session ${sessionId} not found`);
-                await ctx.answerCallbackQuery("Сессия не найдена или истекла.");
-            }
-        } else if (callbackData.startsWith('deny_webapp_login:')) {
-            const sessionId = callbackData.split(':')[1];
-            console.log(`[Bot Handler callback] Deny web app login for session ${sessionId}`);
-            
-            // Remove the token using our token storage
-            const tokenStorage = require('./token-storage');
-            tokenStorage.removeToken(sessionId);
-            
-            await ctx.answerCallbackQuery("Вход отклонен.");
-            
-            // Update the message
-            await ctx.editMessageText(
-                '❌ Вход отклонен.\n\n' +
-                'Вы отменили вход в веб-версию приложения.',
-                { reply_markup: { inline_keyboard: [] } }
-            ).catch(e => console.error('[Bot Handler callback] Edit message error:', e));
         }
     });
 
