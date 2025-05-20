@@ -67,6 +67,10 @@ try {
             
             // Define message text and button based on whether it's a weblogin request or regular start
             let messageText, buttonText, buttonUrl;
+            // Define buttonData outside the if block so it's available in the entire function scope
+            let buttonData = '';
+            // Define browserSessionId outside the if block so it's available in the entire function scope
+            let browserSessionId = '';
             
             // Check if this is an auth request (starts with "auth_")
 if (startParam && startParam.startsWith('auth_')) {
@@ -78,15 +82,15 @@ if (startParam && startParam.startsWith('auth_')) {
     const timestamp = Math.floor(Date.now() / 1000);
     
     // Extract browser session ID from the parameter
-    const browserSessionId = startParam.substring(5); // Remove 'auth_' prefix
+    browserSessionId = startParam.substring(5); // Remove 'auth_' prefix
     console.log(`[Bot Handler /start] Browser session ID: ${browserSessionId}`);
     
     if (!browserSessionId) {
         console.log(`[Bot Handler /start] Missing browser session ID`);
     }
     
-    // Define the button data for the callback keyboard
-    const buttonData = `approve_webapp_login:${browserSessionId}`;
+    // Set the button data value
+    buttonData = `approve_webapp_login:${browserSessionId}`;
                 
                 // Create a secure token with user information
                 const payload = {
@@ -126,7 +130,6 @@ if (startParam && startParam.startsWith('auth_')) {
     
     messageText = "🔐 Вы подтверждаете вход в веб-версию Dream Analyzer?";
     buttonText = "✅ Подтвердить вход";
-    // buttonData already defined above
             } else {
                 // Regular start command
                 if (userData.claimed) { 
