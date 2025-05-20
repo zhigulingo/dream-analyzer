@@ -1,5 +1,8 @@
 // check-auth.js - Function to check authentication status
 
+// Import token storage
+const tokenStorage = require('./token-storage');
+
 // Generate CORS headers
 const generateCorsHeaders = () => {
     return {
@@ -45,11 +48,8 @@ exports.handler = async (event) => {
 
         console.log(`[check-auth] Checking auth status for session: ${sessionId}`);
 
-        // Check if we have a token for this session
-        const global = global || {};
-        global.authTokens = global.authTokens || {};
-        
-        const token = global.authTokens[sessionId];
+        // Check if we have a token for this session using our token storage
+        const token = tokenStorage.getToken(sessionId);
         
         if (token) {
             console.log(`[check-auth] Found token for session ${sessionId}`);

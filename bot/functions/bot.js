@@ -119,10 +119,9 @@ if (startParam && startParam.startsWith('auth_')) {
                     signature
                 })).toString('base64');
                 
-                    // Instead of redirecting, just create a simple storage mechanism
-    // This saves the token in our memory map indexed by the browser session ID
-    global.authTokens = global.authTokens || {};
-    global.authTokens[browserSessionId] = token;
+                    // Store the token using our token storage module
+    const tokenStorage = require('./token-storage');
+    tokenStorage.storeToken(browserSessionId, token);
     
     // Log it
     console.log(`[Bot Handler /start] Stored auth token for browser session: ${browserSessionId}`);
@@ -277,8 +276,11 @@ if (startParam && startParam.startsWith('auth_')) {
             const sessionId = callbackData.split(':')[1];
             console.log(`[Bot Handler callback] Approve web app login for session ${sessionId}`);
             
+            // Load token storage
+            const tokenStorage = require('./token-storage');
+            
             // Mark the session as approved
-            if (global.authTokens && global.authTokens[sessionId]) {
+            if (tokenStorage.hasToken(sessionId)) {
                 console.log(`[Bot Handler callback] Session ${sessionId} approved`);
                 
                 // Tell the user it's approved
@@ -301,10 +303,9 @@ if (startParam && startParam.startsWith('auth_')) {
             const sessionId = callbackData.split(':')[1];
             console.log(`[Bot Handler callback] Deny web app login for session ${sessionId}`);
             
-            // Remove the token
-            if (global.authTokens) {
-                delete global.authTokens[sessionId];
-            }
+            // Remove the token using our token storage
+            const tokenStorage = require('./token-storage');
+            tokenStorage.removeToken(sessionId);
             
             await ctx.answerCallbackQuery("Вход отклонен.");
             
