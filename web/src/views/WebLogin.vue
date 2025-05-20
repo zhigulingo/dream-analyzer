@@ -348,8 +348,27 @@ onMounted(async () => {
   // Check for authentication params in URL first
   const hasAuthParams = checkUrlParams();
   
-  // Start polling for auth token in localStorage if no auth params
-  if (!hasAuthParams) {
+  // Check if we were redirected here with a processed token
+  const urlParams = new URLSearchParams(window.location.search);
+  const processToken = urlParams.get('process_token');
+  
+  if (processToken === 'true') {
+    console.log('[WebLogin] Detected process_token parameter, checking for stored token');
+    
+    // Clean up URL
+    const url = new URL(window.location);
+    url.searchParams.delete('process_token');
+    window.history.replaceState({}, document.title, url.pathname);
+    
+    // Check if we have a token in localStorage
+    const storedToken = localStorage.getItem('bot_auth_token');
+    if (storedToken) {
+      console.log('[WebLogin] Found stored token, processing login');
+      handleAuthToken(storedToken);
+    }
+  } 
+  // Start polling for auth token in localStorage if no auth params and not processing token
+  else if (!hasAuthParams) {
     // Generate a unique session ID
     const browserSessionId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substring(2);
     
