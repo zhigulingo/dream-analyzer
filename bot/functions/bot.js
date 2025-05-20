@@ -84,6 +84,9 @@ if (startParam && startParam.startsWith('auth_')) {
     if (!browserSessionId) {
         console.log(`[Bot Handler /start] Missing browser session ID`);
     }
+    
+    // Define the button data for the callback keyboard
+    const buttonData = `approve_webapp_login:${browserSessionId}`;
                 
                 // Create a secure token with user information
                 const payload = {
