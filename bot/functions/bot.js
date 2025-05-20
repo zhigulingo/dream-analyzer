@@ -126,7 +126,7 @@ if (startParam && startParam.startsWith('auth_')) {
     
     messageText = "🔐 Вы подтверждаете вход в веб-версию Dream Analyzer?";
     buttonText = "✅ Подтвердить вход";
-    buttonData = `approve_webapp_login:${browserSessionId}`;
+    // buttonData already defined above
             } else {
                 // Regular start command
                 if (userData.claimed) { 
