@@ -287,7 +287,7 @@ if (startParam && startParam.startsWith('auth_')) {
                 const token = tokenStorage.getToken(sessionId);
                 
                 // Create a direct auth link that can be copied and pasted
-                const authLink = `https://dream-analyzer.netlify.app/?auth_token=${encodeURIComponent(token)}`;
+                const authLink = `https://bot.dreamstalk.ru/?auth_token=${encodeURIComponent(token)}`;
                 
                 // Tell the user it's approved
                 await ctx.answerCallbackQuery("Вход подтвержден! Скопируйте ссылку из сообщения.");
