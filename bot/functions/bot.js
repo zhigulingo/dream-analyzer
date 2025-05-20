@@ -50,10 +50,12 @@ try {
         }
         console.log(`[Bot Handler /start] User ${userId} in chat ${chatId}`);
         
-        // Get start parameter
-        const startParam = ctx.message?.text?.split(' ')[1];
-        
-        try {
+        // Get start parameter and extract full command text
+const startCommand = ctx.message?.text || '';
+const startParam = startCommand.split(' ')[1];
+console.log(`[Bot Handler /start] Full command: "${startCommand}", param: "${startParam}"`);
+
+try {
             // Get or create user in database
             const userData = await getOrCreateUser(supabaseAdmin, userId);
             console.log(`[Bot Handler /start] User data received: ID=${userData.id}, Claimed=${userData.claimed}, LastMsgId=${userData.lastMessageId}`);
@@ -67,21 +69,23 @@ try {
             let messageText, buttonText, buttonUrl;
             
             if (startParam === 'weblogin') {
-                // Handle weblogin parameter with improved web authentication flow
-                // Generate a session identifier for this login attempt
-                const sessionId = crypto.randomBytes(16).toString('hex');
-                const timestamp = Math.floor(Date.now() / 1000);
-                
-                // Get browser session ID if available in query parameter
-                let browserSessionId = '';
-                if (ctx.message?.text) {
-                    // Extract browser_session=xxxxx from the command text if present
-                    const matches = ctx.message.text.match(/browser_session=([a-zA-Z0-9-_]+)/);
-                    if (matches && matches.length > 1) {
-                        browserSessionId = matches[1];
-                        console.log(`[Bot Handler /start] Found browser session ID: ${browserSessionId}`);
-                    }
-                }
+    // Handle weblogin parameter with improved web authentication flow
+    // Generate a session identifier for this login attempt
+    const sessionId = crypto.randomBytes(16).toString('hex');
+    const timestamp = Math.floor(Date.now() / 1000);
+    
+    // Get browser session ID if available in query parameter
+    let browserSessionId = '';
+    if (startCommand) {
+        // Extract browser_session=xxxxx from the command text if present
+        const matches = startCommand.match(/browser_session=([a-zA-Z0-9-_]+)/);
+        if (matches && matches.length > 1) {
+            browserSessionId = matches[1];
+            console.log(`[Bot Handler /start] Found browser session ID: ${browserSessionId}`);
+        } else {
+            console.log(`[Bot Handler /start] No browser_session parameter found in command`);
+        }
+    }
                 
                 // Create a secure token with user information
                 const payload = {
