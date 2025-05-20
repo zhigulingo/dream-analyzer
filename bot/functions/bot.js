@@ -283,14 +283,21 @@ if (startParam && startParam.startsWith('auth_')) {
             if (tokenStorage.hasToken(sessionId)) {
                 console.log(`[Bot Handler callback] Session ${sessionId} approved`);
                 
-                // Tell the user it's approved
-                await ctx.answerCallbackQuery("Вход подтвержден! Вернитесь в браузер.");
+                // Get the token for this session
+                const token = tokenStorage.getToken(sessionId);
                 
-                // Update the message
+                // Create a direct auth link that can be copied and pasted
+                const authLink = `https://dream-analyzer.netlify.app/?auth_token=${encodeURIComponent(token)}`;
+                
+                // Tell the user it's approved
+                await ctx.answerCallbackQuery("Вход подтвержден! Скопируйте ссылку из сообщения.");
+                
+                // Update the message with the direct link
                 await ctx.editMessageText(
                     '✅ Вход подтвержден!\n\n' +
                     'Вы успешно вошли в веб-версию приложения Dream Analyzer.\n\n' +
-                    'Теперь вы можете вернуться в браузер.',
+                    'Скопируйте и откройте ссылку ниже, чтобы автоматически войти:\n\n' +
+                    `${authLink}`,
                     {
                         reply_markup: { inline_keyboard: [] }
                     }
