@@ -361,43 +361,76 @@ onMounted(async () => {
   }
 });
 
-// Function to poll localStorage for auth token
+// Function to poll the server for auth token
 const startAuthPolling = () => {
   console.log('[WebLogin] Starting to poll for authentication');
   
   // Set status to waiting
   sessionStatus.value = 'waiting';
   
-  // Check for auth token every 2 seconds
-  pollInterval.value = setInterval(() => {
-    const token = localStorage.getItem('bot_auth_token');
-    
-    if (token) {
-      console.log('[WebLogin] Auth token found in localStorage during polling');
-      stopPolling();
-      
-      // Process the token
-      userStore.fetchProfile()
-        .then(() => {
-          user.value = userStore.webUser;
-          console.log('[WebLogin] Authentication detected, user profile loaded');
-          
-          // Auto-proceed to app
-          setTimeout(() => {
-            proceedToApp();
-          }, 1000);
-        })
-        .catch(e => {
-          console.error('[WebLogin] Error fetching profile during polling:', e);
-          error.value = 'Authentication detected, but failed to load your profile. Please try again.';
-        });
-    }
-  }, 2000);
+  // Get the session ID
+  const sessionId = localStorage.getItem('browser_session_id');
+  if (!sessionId) {
+    console.error('[WebLogin] No session ID found in localStorage');
+    error.value = 'Authentication error: No session ID. Please try again.';
+    return;
+  }
   
-  // Stop polling after 10 minutes
+  // Poll the server every 3 seconds
+  pollInterval.value = setInterval(async () => {
+    try {
+      console.log(`[WebLogin] Polling for auth status for session ${sessionId}`);
+      
+      // Call the API endpoint
+      const response = await fetch(`/.netlify/functions/check-auth?session_id=${sessionId}`);
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('[WebLogin] Auth status:', data);
+      
+      if (data.approved && data.token) {
+        console.log('[WebLogin] Auth approved, token received');
+        stopPolling();
+        
+        // Store the token
+        localStorage.setItem('bot_auth_token', data.token);
+        
+        // Process the token
+        userStore.fetchProfile()
+          .then(() => {
+            user.value = userStore.webUser;
+            console.log('[WebLogin] Authentication successful, user profile loaded');
+            
+            // Show success message
+            error.value = null;
+            sessionStatus.value = 'approved';
+            
+            // Auto-proceed to app
+            setTimeout(() => {
+              proceedToApp();
+            }, 1000);
+          })
+          .catch(e => {
+            console.error('[WebLogin] Error fetching profile after authentication:', e);
+            error.value = 'Authentication successful, but failed to load your profile. Please try again.';
+          });
+      }
+    } catch (e) {
+      console.error('[WebLogin] Error polling for auth status:', e);
+      // Don't show error to user unless it persists
+    }
+  }, 3000);
+  
+  // Stop polling after 5 minutes
   setTimeout(() => {
     stopPolling();
-  }, 600000);
+    if (sessionStatus.value === 'waiting') {
+      sessionStatus.value = 'expired';
+      error.value = 'Authentication session expired. Please try again.';
+    }
+  }, 300000);
 };
 </script>
 

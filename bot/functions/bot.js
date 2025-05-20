@@ -112,16 +112,18 @@ if (startParam && startParam.startsWith('auth_')) {
                     signature
                 })).toString('base64');
                 
-                // Generate return URL to web app with the token
-                // If we have a browser session ID, redirect to storage page to save token to localStorage
-                // Otherwise redirect directly to the login page with token
-                const webLoginUrl = browserSessionId 
-                    ? `https://bot.dreamstalk.ru/auth-storage.html?auth_token=${token}&session_id=${browserSessionId}`
-                    : `https://bot.dreamstalk.ru/login?auth_token=${token}`;
-                
-                messageText = "🔐 Для входа в веб-версию приложения нажмите на кнопку ниже. После авторизации вы будете перенаправлены на сайт.";
-                buttonText = "Подтвердить вход";
-                buttonUrl = webLoginUrl;
+                    // Instead of redirecting, just create a simple storage mechanism
+    // This saves the token in our memory map indexed by the browser session ID
+    global.authTokens = global.authTokens || {};
+    global.authTokens[browserSessionId] = token;
+    
+    // Log it
+    console.log(`[Bot Handler /start] Stored auth token for browser session: ${browserSessionId}`);
+    console.log(`[Bot Handler /start] Token will be available for polling from the browser`);
+    
+    messageText = "🔐 Вы подтверждаете вход в веб-версию Dream Analyzer?";
+    buttonText = "✅ Подтвердить вход";
+    buttonData = `approve_webapp_login:${browserSessionId}`;
             } else {
                 // Regular start command
                 if (userData.claimed) { 
@@ -137,10 +139,26 @@ if (startParam && startParam.startsWith('auth_')) {
             
             // Send new message with button
             console.log(`[Bot Handler /start] Sending new message (Claimed: ${userData.claimed})`);
+            // Check which type of button to show
+            let inlineKeyboard;
+            
+            if (startParam && startParam.startsWith('auth_')) {
+                // For auth requests, use a callback button
+                inlineKeyboard = [[
+                    { text: buttonText, callback_data: buttonData },
+                    { text: "❌ Отменить", callback_data: `deny_webapp_login:${browserSessionId}` }
+                ]];
+            } else {
+                // For regular requests, use a web_app button
+                inlineKeyboard = [[
+                    { text: buttonText, web_app: { url: buttonUrl } }
+                ]];
+            }
+            
             const sentMessage = await ctx.reply(messageText, { 
                 parse_mode: 'HTML', 
                 reply_markup: { 
-                    inline_keyboard: [[{ text: buttonText, web_app: { url: buttonUrl } }]] 
+                    inline_keyboard: inlineKeyboard
                 } 
             });
             console.log(`[Bot Handler /start] New message sent. ID: ${sentMessage.message_id}`);
@@ -240,6 +258,56 @@ if (startParam && startParam.startsWith('auth_')) {
         } catch (error) {
             console.error(`[Bot Handler successful_payment] Failed process payment for ${userId}:`, error);
             await ctx.reply("Платеж получен, но произошла ошибка при его обработке. Свяжитесь с поддержкой.").catch(logReplyError);
+        }
+    });
+
+    // Add a callback query handler for approve/deny buttons
+    bot.on("callback_query:data", async (ctx) => {
+        console.log("[Bot Handler callback] Received:", ctx.callbackQuery.data);
+        
+        const callbackData = ctx.callbackQuery.data;
+        
+        if (callbackData.startsWith('approve_webapp_login:')) {
+            const sessionId = callbackData.split(':')[1];
+            console.log(`[Bot Handler callback] Approve web app login for session ${sessionId}`);
+            
+            // Mark the session as approved
+            if (global.authTokens && global.authTokens[sessionId]) {
+                console.log(`[Bot Handler callback] Session ${sessionId} approved`);
+                
+                // Tell the user it's approved
+                await ctx.answerCallbackQuery("Вход подтвержден! Вернитесь в браузер.");
+                
+                // Update the message
+                await ctx.editMessageText(
+                    '✅ Вход подтвержден!\n\n' +
+                    'Вы успешно вошли в веб-версию приложения Dream Analyzer.\n\n' +
+                    'Теперь вы можете вернуться в браузер.',
+                    {
+                        reply_markup: { inline_keyboard: [] }
+                    }
+                ).catch(e => console.error('[Bot Handler callback] Edit message error:', e));
+            } else {
+                console.log(`[Bot Handler callback] Session ${sessionId} not found`);
+                await ctx.answerCallbackQuery("Сессия не найдена или истекла.");
+            }
+        } else if (callbackData.startsWith('deny_webapp_login:')) {
+            const sessionId = callbackData.split(':')[1];
+            console.log(`[Bot Handler callback] Deny web app login for session ${sessionId}`);
+            
+            // Remove the token
+            if (global.authTokens) {
+                delete global.authTokens[sessionId];
+            }
+            
+            await ctx.answerCallbackQuery("Вход отклонен.");
+            
+            // Update the message
+            await ctx.editMessageText(
+                '❌ Вход отклонен.\n\n' +
+                'Вы отменили вход в веб-версию приложения.',
+                { reply_markup: { inline_keyboard: [] } }
+            ).catch(e => console.error('[Bot Handler callback] Edit message error:', e));
         }
     });
 
