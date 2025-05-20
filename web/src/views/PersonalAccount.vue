@@ -182,7 +182,7 @@
 <script setup>
 import { onMounted, ref, watch, computed } from 'vue';
 import { useUserStore } from '@/stores/user';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import AnalysisHistoryList from '@/components/AnalysisHistoryList.vue';
 import SubscriptionModal from '@/components/SubscriptionModal.vue';
 import FactsCarousel from '@/components/FactsCarousel.vue';
@@ -190,6 +190,7 @@ import { safeCheckTelegram, safeGetTelegramInitData } from '@/services/api';
 
 const userStore = useUserStore();
 const router = useRouter();
+const route = useRoute();
 const tg = typeof window !== 'undefined' && safeCheckTelegram() ? window.Telegram?.WebApp : null;
 const showRewardClaimView = ref(false);
 const REQUIRED_DREAMS = 5;
@@ -465,97 +466,139 @@ const isMobileDevice = () => {
 };
 // --- КОНЕЦ НОВОЙ ФУНКЦИИ ---
 
+// Handle direct authentication
 onMounted(async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isClaimRewardAction = urlParams.get('action') === 'claim_reward';
-    showRewardClaimView.value = isClaimRewardAction;
-
-    console.log(`[PersonalAccount onMounted] Initial view: ${isClaimRewardAction ? 'Reward Claim' : 'Main Account'}`);
-
-    if (tg) {
-        tg.ready();
-        console.log("[PersonalAccount] Telegram WebApp is ready.");
-
-        // --- НАЧАЛО ИНТЕГРАЦИИ ЛОГИКИ РАЗМЕРА И ПОВЕДЕНИЯ ---
-        const isMobile = isMobileDevice(); // Определяем тип устройства
-
-        // 1. Управление размером окна
-        if (isMobile) {
-            if (typeof tg.requestFullscreen === 'function') {
-                tg.requestFullscreen();
-                console.log("[PersonalAccount] tg.requestFullscreen() called for mobile.");
-            } else {
-                console.warn("[PersonalAccount] tg.requestFullscreen is not a function for mobile.");
-            }
-        } else {
-            // На десктопе НЕ вызываем requestFullscreen, чтобы остался компактный вид
-            console.log("[PersonalAccount] Desktop device detected, not calling requestFullscreen.");
-        }
-
-        // Всегда расширяем приложение до максимальной высоты после готовности
-        // Это повлияет на высоту и на десктопе (в рамках его панели), и на мобильном.
-        if (typeof tg.expand === 'function') {
-            tg.expand();
-            console.log("[PersonalAccount] tg.expand() called.");
-        } else {
-            console.warn("[PersonalAccount] tg.expand is not a function.");
-        }
-
-        // 2. Отключаем вертикальный свайп для закрытия
-        if (typeof tg.disableVerticalSwipes === 'function') {
-            tg.disableVerticalSwipes();
-            console.log("[PersonalAccount] Vertical swipes disabled.");
-        } else {
-            console.warn("[PersonalAccount] tg.disableVerticalSwipes is not a function.");
-        }
-
-        // 3. Включаем подтверждение закрытия
-        if (typeof tg.enableClosingConfirmation === 'function') {
-            tg.enableClosingConfirmation();
-            console.log("[PersonalAccount] Closing confirmation enabled.");
-        } else {
-            console.warn("[PersonalAccount] tg.enableClosingConfirmation is not a function.");
-        }
-        // --- КОНЕЦ ИНТЕГРАЦИИ ЛОГИКИ РАЗМЕРА И ПОВЕДЕНИЯ ---
-
-
-        // Настройка кнопки "Назад"
-        if (typeof tg.BackButton?.show === 'function' && typeof tg.BackButton?.onClick === 'function') {
-            tg.BackButton.show();
-            tg.BackButton.onClick(() => {
-                console.log(`[PersonalAccount BackButton] Clicked. Modal: ${userStore.showSubscriptionModal}, Reward View: ${showRewardClaimView.value}, Closing Conf Enabled: ${tg.isClosingConfirmationEnabled}`);
-                if (userStore.showSubscriptionModal) {
-                    userStore.closeSubscriptionModal();
-                } else if (showRewardClaimView.value === true) {
-                    goBackToAccount();
-                } else {
-                    console.log("[PersonalAccount BackButton] Attempting to close TMA.");
-                    if (typeof tg.close === 'function') {
-                        tg.close(); // Telegram должен показать подтверждение, если оно включено
-                    } else {
-                        console.warn("[PersonalAccount] tg.close is not a function.");
-                    }
-                }
-            });
-        } else {
-             console.warn("[PersonalAccount] tg.BackButton.show or onClick is not available.");
-        }
-
-        if (typeof tg.MainButton?.hide === 'function' && tg.MainButton.isVisible) {
-            tg.MainButton.hide();
-        }
-    } else {
-        console.warn("[PersonalAccount] Telegram WebApp API not available.");
-    }
-
-    console.log("[PersonalAccount onMounted] Fetching profile...");
-    await userStore.fetchProfile();
-    console.log("[PersonalAccount onMounted] Profile fetched.");
-    if (!showRewardClaimView.value) {
-        console.log("[PersonalAccount onMounted] Fetching history...");
+  // Check for direct_auth parameter in the URL
+  if (route.query.direct_auth) {
+    console.log('[PersonalAccount] Found direct_auth parameter, processing authentication');
+    
+    try {
+      // Store the token
+      const token = route.query.direct_auth;
+      localStorage.setItem('bot_auth_token', token);
+      
+      // Clean up URL - remove direct_auth parameter
+      const url = new URL(window.location);
+      url.searchParams.delete('direct_auth');
+      window.history.replaceState({}, document.title, url.pathname);
+      
+      // Create a basic user object from the token payload
+      try {
+        const decoded = JSON.parse(atob(token.split('.')[0]));
+        const userData = decoded.payload?.user_data || {};
+        
+        // Set user information in the store
+        userStore.setWebUser({
+          id: decoded.payload?.user_id,
+          first_name: userData.first_name || 'User',
+          last_name: userData.last_name || '',
+          username: userData.username || '',
+          photo_url: userData.photo_url || ''
+        });
+        
+        // Fetch profile data
+        await userStore.fetchProfile();
         await userStore.fetchHistory();
-        console.log("[PersonalAccount onMounted] History fetched.");
+        
+        console.log('[PersonalAccount] Direct authentication successful');
+      } catch (decodeError) {
+        console.error('[PersonalAccount] Error decoding token:', decodeError);
+      }
+    } catch (error) {
+      console.error('[PersonalAccount] Error processing direct authentication:', error);
     }
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const isClaimRewardAction = urlParams.get('action') === 'claim_reward';
+  showRewardClaimView.value = isClaimRewardAction;
+
+  console.log(`[PersonalAccount onMounted] Initial view: ${isClaimRewardAction ? 'Reward Claim' : 'Main Account'}`);
+
+  if (tg) {
+    tg.ready();
+    console.log("[PersonalAccount] Telegram WebApp is ready.");
+
+    // --- НАЧАЛО ИНТЕГРАЦИИ ЛОГИКИ РАЗМЕРА И ПОВЕДЕНИЯ ---
+    const isMobile = isMobileDevice(); // Определяем тип устройства
+
+    // 1. Управление размером окна
+    if (isMobile) {
+      if (typeof tg.requestFullscreen === 'function') {
+        tg.requestFullscreen();
+        console.log("[PersonalAccount] tg.requestFullscreen() called for mobile.");
+      } else {
+        console.warn("[PersonalAccount] tg.requestFullscreen is not a function for mobile.");
+      }
+    } else {
+      // На десктопе НЕ вызываем requestFullscreen, чтобы остался компактный вид
+      console.log("[PersonalAccount] Desktop device detected, not calling requestFullscreen.");
+    }
+
+    // Всегда расширяем приложение до максимальной высоты после готовности
+    // Это повлияет на высоту и на десктопе (в рамках его панели), и на мобильном.
+    if (typeof tg.expand === 'function') {
+      tg.expand();
+      console.log("[PersonalAccount] tg.expand() called.");
+    } else {
+      console.warn("[PersonalAccount] tg.expand is not a function.");
+    }
+
+    // 2. Отключаем вертикальный свайп для закрытия
+    if (typeof tg.disableVerticalSwipes === 'function') {
+      tg.disableVerticalSwipes();
+      console.log("[PersonalAccount] Vertical swipes disabled.");
+    } else {
+      console.warn("[PersonalAccount] tg.disableVerticalSwipes is not a function.");
+    }
+
+    // 3. Включаем подтверждение закрытия
+    if (typeof tg.enableClosingConfirmation === 'function') {
+      tg.enableClosingConfirmation();
+      console.log("[PersonalAccount] Closing confirmation enabled.");
+    } else {
+      console.warn("[PersonalAccount] tg.enableClosingConfirmation is not a function.");
+    }
+    // --- КОНЕЦ ИНТЕГРАЦИИ ЛОГИКИ РАЗМЕРА И ПОВЕДЕНИЯ ---
+
+
+    // Настройка кнопки "Назад"
+    if (typeof tg.BackButton?.show === 'function' && typeof tg.BackButton?.onClick === 'function') {
+      tg.BackButton.show();
+      tg.BackButton.onClick(() => {
+        console.log(`[PersonalAccount BackButton] Clicked. Modal: ${userStore.showSubscriptionModal}, Reward View: ${showRewardClaimView.value}, Closing Conf Enabled: ${tg.isClosingConfirmationEnabled}`);
+        if (userStore.showSubscriptionModal) {
+          userStore.closeSubscriptionModal();
+        } else if (showRewardClaimView.value === true) {
+          goBackToAccount();
+        } else {
+          console.log("[PersonalAccount BackButton] Attempting to close TMA.");
+          if (typeof tg.close === 'function') {
+            tg.close(); // Telegram должен показать подтверждение, если оно включено
+          } else {
+            console.warn("[PersonalAccount] tg.close is not a function.");
+          }
+        }
+      });
+    } else {
+      console.warn("[PersonalAccount] tg.BackButton.show or onClick is not available.");
+    }
+
+    if (typeof tg.MainButton?.hide === 'function' && tg.MainButton.isVisible) {
+      tg.MainButton.hide();
+    }
+  } else {
+    console.warn("[PersonalAccount] Telegram WebApp API not available.");
+  }
+
+  console.log("[PersonalAccount onMounted] Fetching profile...");
+  await userStore.fetchProfile();
+  console.log("[PersonalAccount onMounted] Profile fetched.");
+  if (!showRewardClaimView.value) {
+    console.log("[PersonalAccount onMounted] Fetching history...");
+    await userStore.fetchHistory();
+    console.log("[PersonalAccount onMounted] History fetched.");
+  }
 });
 
 watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {

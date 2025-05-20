@@ -286,8 +286,8 @@ if (startParam && startParam.startsWith('auth_')) {
                 // Get the token for this session
                 const token = tokenStorage.getToken(sessionId);
                 
-                // Create a direct auth link that can be copied and pasted
-                const authLink = `https://bot.dreamstalk.ru/?auth_token=${encodeURIComponent(token)}`;
+                // Create a direct auth link that goes straight to the account page
+                const authLink = `https://bot.dreamstalk.ru/account?direct_auth=${encodeURIComponent(token)}`;
                 
                 // Tell the user it's approved
                 await ctx.answerCallbackQuery("Вход подтвержден! Скопируйте ссылку из сообщения.");
