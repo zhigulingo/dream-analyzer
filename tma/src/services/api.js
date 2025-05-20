@@ -3,13 +3,11 @@ import axios from 'axios';
 
 // Используем переменную окружения Vite. Убедитесь, что она ЗАДАНА в Netlify UI для сайта TMA
 // и содержит ПОЛНЫЙ путь к функциям (включая /.netlify/functions)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/.netlify/functions`;
 
 // Логируем URL для проверки при запуске TMA
-if (!API_BASE_URL) {
-    console.error("CRITICAL: VITE_API_BASE_URL is not set in environment variables!");
-    // Можно показать ошибку пользователю или просто логировать
-    // alert("Ошибка конфигурации: не удалось определить адрес API.");
+if (!import.meta.env.VITE_API_BASE_URL) {
+    console.warn("VITE_API_BASE_URL not set in environment variables, falling back to current origin:", API_BASE_URL);
 } else {
     console.log('[api.js] Using API Base URL:', API_BASE_URL);
 }

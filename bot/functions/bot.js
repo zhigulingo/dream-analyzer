@@ -23,8 +23,7 @@ let geminiModel = null; // Сам model будет инициализирова�
 let initializationError = null;
 let botInitializedAndHandlersSet = false;
 
-// Simple in-memory session storage for web authentication
-const pendingAuthSessions = new Map();
+// In-memory storage for auth sessions
 
 try {
     console.log("[Bot Global Init] Starting initialization...");
@@ -43,213 +42,67 @@ try {
     // Обработчик /start
     bot.command("start", async (ctx) => {
         console.log("[Bot Handler /start] Command received.");
-        const userId = ctx.from?.id; const chatId = ctx.chat.id;
-        if (!userId || !chatId) { console.warn("[Bot Handler /start] No user ID or chat ID."); return; }
+        const userId = ctx.from?.id; 
+        const chatId = ctx.chat.id;
+        if (!userId || !chatId) { 
+            console.warn("[Bot Handler /start] No user ID or chat ID."); 
+            return; 
+        }
         console.log(`[Bot Handler /start] User ${userId} in chat ${chatId}`);
         
-        // Check if this is a deep link with "weblogin" parameter
+        // Get start parameter
         const startParam = ctx.message?.text?.split(' ')[1];
-        if (startParam === 'weblogin') {
-            console.log("[Bot Handler /start] Deep link with weblogin parameter detected");
-            // Redirect to weblogin handler
-            const webloginCtx = { ...ctx }; // Clone context
-            webloginCtx.command = 'weblogin';
-            return bot.commands.get("weblogin")(webloginCtx);
-        }
         
         try {
-            // <<<--- ВАЖНО: Ловим ошибки именно от getOrCreateUser ---
+            // Get or create user in database
             const userData = await getOrCreateUser(supabaseAdmin, userId);
             console.log(`[Bot Handler /start] User data received: ID=${userData.id}, Claimed=${userData.claimed}, LastMsgId=${userData.lastMessageId}`);
-            // <<<--- КОНЕЦ ВАЖНОГО ---
-
-            // Удаление предыдущего сообщения
-            if (userData.lastMessageId) { /* ... (логика удаления без изменений) ... */ }
-            // Определение текста и кнопки
+            
+            // Remove previous message if exists
+            if (userData.lastMessageId) { 
+                /* ... (логика удаления без изменений) ... */ 
+            }
+            
+            // Define message text and button based on whether it's a weblogin request or regular start
             let messageText, buttonText, buttonUrl;
-            if (userData.claimed) { messageText = "С возвращением! 👋 Анализируй сны или загляни в ЛК."; buttonText = "Личный кабинет"; buttonUrl = TMA_URL; }
-            else { messageText = "Привет! 👋 Бот для анализа снов.\n\nНажми кнопку, чтобы получить <b>первый бесплатный токен</b> за подписку!"; buttonText = "🎁 Открыть и получить токен"; buttonUrl = `${TMA_URL}?action=claim_reward`; }
-            // Отправка нового сообщения
+            
+            if (startParam === 'weblogin') {
+                // Handle weblogin parameter with direct link to web app login
+                messageText = "🔐 Для входа в веб-версию приложения перейдите по ссылке ниже.";
+                buttonText = "Открыть веб-версию";
+                buttonUrl = `${TMA_URL}/login`;
+            } else {
+                // Regular start command
+                if (userData.claimed) { 
+                    messageText = "С возвращением! 👋 Анализируй сны или загляни в ЛК."; 
+                    buttonText = "Личный кабинет"; 
+                    buttonUrl = TMA_URL; 
+                } else { 
+                    messageText = "Привет! 👋 Бот для анализа снов.\n\nНажми кнопку, чтобы получить <b>первый бесплатный токен</b> за подписку!"; 
+                    buttonText = "🎁 Открыть и получить токен"; 
+                    buttonUrl = `${TMA_URL}?action=claim_reward`; 
+                }
+            }
+            
+            // Send new message with button
             console.log(`[Bot Handler /start] Sending new message (Claimed: ${userData.claimed})`);
-            const sentMessage = await ctx.reply(messageText, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: buttonText, web_app: { url: buttonUrl } }]] } });
+            const sentMessage = await ctx.reply(messageText, { 
+                parse_mode: 'HTML', 
+                reply_markup: { 
+                    inline_keyboard: [[{ text: buttonText, web_app: { url: buttonUrl } }]] 
+                } 
+            });
             console.log(`[Bot Handler /start] New message sent. ID: ${sentMessage.message_id}`);
-            // Сохранение ID нового сообщения
+            
+            // Save new message ID
             const { error: updateError } = await supabaseAdmin.from('users').update({ last_start_message_id: sentMessage.message_id }).eq('id', userData.id);
             if (updateError) console.error(`[Bot Handler /start] Failed update last_start_message_id:`, updateError);
             else console.log(`[Bot Handler /start] Updated last_start_message_id to ${sentMessage.message_id}.`);
-        } catch (e) { // <<<--- Ловим ошибку, проброшенную из getOrCreateUser ---
-             console.error("[Bot Handler /start] CRITICAL Error (likely from getOrCreateUser):", e.message); // Логируем КОНКРЕТНУЮ ошибку
-             try { await ctx.reply(`Произошла ошибка при получении данных пользователя (${e.message}). Попробуйте позже.`).catch(logReplyError); } catch {}
-        }
-    });
-
-    // Direct /weblogin command handler - no external modules required
-    bot.command("weblogin", async (ctx) => {
-        console.log("[Bot Handler /weblogin] Command received");
-        try {
-            const user = ctx.from;
-            if (!user || !user.id) {
-                console.log("[Bot Handler /weblogin] No user ID");
-                return await ctx.reply('Error: Unable to identify user.').catch(logReplyError);
-            }
-            
-            console.log(`[Bot Handler /weblogin] Processing for user ${user.id}`);
-            
-            // Generate a random session ID
-            const sessionId = crypto.randomBytes(16).toString('hex');
-            const expiresAt = Math.floor(Date.now() / 1000) + 300; // 5 minutes
-            
-            // Store the session in our in-memory map
-            pendingAuthSessions.set(sessionId, {
-                userId: user.id,
-                userData: {
-                    username: user.username || '',
-                    first_name: user.first_name || '',
-                    last_name: user.last_name || ''
-                },
-                expiresAt,
-                approved: false
-            });
-            
-            // Create deep link for web app with session ID
-            // Use TMA_URL environment variable to ensure consistency
-            const webAppUrl = `${TMA_URL}/login?session=${sessionId}`;
-            
-            // Send confirmation message with link to web app
-            await ctx.reply(
-                `🔐 Web Login Request Created\n\n` +
-                `This request will expire in 5 minutes.\n\n` +
-                `Once you approve this request, you'll be able to access your Dream Analyzer account in the web app.`,
-                {
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: 'Open Web App', url: webAppUrl }],
-                            [{ text: '✅ Approve Login', callback_data: `approve_auth:${sessionId}` }],
-                            [{ text: '❌ Deny Login', callback_data: `deny_auth:${sessionId}` }]
-                        ]
-                    }
-                }
-            ).catch(logReplyError);
-            
-            console.log(`[Bot Handler /weblogin] Request created, session ${sessionId}`);
-            
-            // Set a timeout to clean up expired sessions
-            setTimeout(() => {
-                if (pendingAuthSessions.has(sessionId)) {
-                    pendingAuthSessions.delete(sessionId);
-                    console.log(`[Bot Handler /weblogin] Session ${sessionId} expired and removed`);
-                }
-            }, 300000); // 5 minutes
-        } catch (error) {
-            console.error('[Bot Handler /weblogin] Error:', error);
-            await ctx.reply('Sorry, an error occurred while creating your login request.').catch(logReplyError);
-        }
-    });
-    
-    // Handler for approve auth button
-    bot.on("callback_query:data", async (ctx) => {
-        console.log("[Bot Handler callback] Received:", ctx.callbackQuery.data);
-        
-        const callbackData = ctx.callbackQuery.data;
-        
-        if (callbackData.startsWith('approve_auth:')) {
-            const sessionId = callbackData.split(':')[1];
-            console.log(`[Bot Handler callback] Approve auth for session ${sessionId}`);
-            
-            // Check if the session exists
-            if (!pendingAuthSessions.has(sessionId)) {
-                await ctx.answerCallbackQuery("Authentication session expired or not found.");
-                return await ctx.editMessageText(
-                    '❌ Authentication session expired or not found.\n\nPlease create a new login request with /weblogin.',
-                    { reply_markup: { inline_keyboard: [] } }
-                );
-            }
-            
-            const session = pendingAuthSessions.get(sessionId);
-            
-            // Check if the user approving is the same who created the session
-            if (session.userId !== ctx.from.id) {
-                return await ctx.answerCallbackQuery("You are not authorized to approve this request.");
-            }
-            
-            // Mark the session as approved
-            session.approved = true;
-            pendingAuthSessions.set(sessionId, session);
-            
-            // Create a secure token based on user data
-            const timestamp = Math.floor(Date.now() / 1000);
-            const payload = {
-                user_id: session.userId,
-                user_data: session.userData,
-                session_id: sessionId,
-                issued_at: timestamp,
-                expires_at: timestamp + 604800 // 7 days
-            };
-            
-            // Sign the token with HMAC
-            const secret = process.env.BOT_SECRET || 'default_bot_secret_key_change_this';
-            const payloadStr = JSON.stringify(payload);
-            const signature = crypto
-                .createHmac('sha256', secret)
-                .update(payloadStr)
-                .digest('hex');
-            
-            // Create the final token
-            const token = Buffer.from(JSON.stringify({
-                payload,
-                signature
-            })).toString('base64');
-            
-            await ctx.answerCallbackQuery("Authentication approved!");
-            
-            // Generate a web app link with the token
-            const webAppUrl = `${TMA_URL}/login?auth_token=${token}`;
-            
-            // Update the message
-            await ctx.editMessageText(
-                '✅ Authentication approved!\n\n' +
-                'You can now access your Dream Analyzer account in the web app.\n\n' +
-                'Click the button below to open the web app with your approved session.',
-                {
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: 'Open Web App', url: webAppUrl }]
-                        ]
-                    }
-                }
-            ).catch(e => console.error('[Bot Handler callback] Edit message error:', e));
-            
-        } else if (callbackData.startsWith('deny_auth:')) {
-            const sessionId = callbackData.split(':')[1];
-            console.log(`[Bot Handler callback] Deny auth for session ${sessionId}`);
-            
-            // Check if the session exists
-            if (!pendingAuthSessions.has(sessionId)) {
-                await ctx.answerCallbackQuery("Authentication session expired or not found.");
-                return await ctx.editMessageText(
-                    '❌ Authentication session expired or not found.',
-                    { reply_markup: { inline_keyboard: [] } }
-                );
-            }
-            
-            const session = pendingAuthSessions.get(sessionId);
-            
-            // Check if the user denying is the same who created the session
-            if (session.userId !== ctx.from.id) {
-                return await ctx.answerCallbackQuery("You are not authorized to deny this request.");
-            }
-            
-            // Remove the session
-            pendingAuthSessions.delete(sessionId);
-            
-            await ctx.answerCallbackQuery("Authentication denied.");
-            
-            // Update the message
-            await ctx.editMessageText(
-                '❌ Authentication denied.\n\n' +
-                'You have denied this login request. If you want to log in later, please create a new request using /weblogin.',
-                { reply_markup: { inline_keyboard: [] } }
-            ).catch(e => console.error('[Bot Handler callback] Edit message error:', e));
+        } catch (e) {
+            console.error("[Bot Handler /start] CRITICAL Error:", e.message);
+            try { 
+                await ctx.reply(`Произошла ошибка при получении данных пользователя (${e.message}). Попробуйте позже.`).catch(logReplyError); 
+            } catch {}
         }
     });
 
@@ -531,6 +384,3 @@ exports.handler = async (event) => {
 };
 
 console.log("[Bot Global Init] Netlify handler exported.");
-
-// Export the pendingAuthSessions map for use in other files
-exports.pendingAuthSessions = pendingAuthSessions;
