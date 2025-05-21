@@ -1,6 +1,19 @@
-# netlify.toml (Финальная попытка для CORS)
+# netlify.toml
 
 [functions]
-  # Путь к папке с функциями бота
+  # Path to the bot functions folder
   directory = "bot/functions/"
   node_bundler = "esbuild"
+
+# Configuration for the web application site
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200
+  force = false
+
+[[build]]
+  # Directory containing the deploy-ready HTML files and assets
+  publish = "web/dist"
+  # The command to run before your site is deployed. Assumes you are using Vite.
+  command = "cd web && npm install && npm run build"

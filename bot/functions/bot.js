@@ -1,23 +1,25 @@
-// bot/functions/bot.js (Попытка №10: Исправлен getOrCreateUser и analyzeDream/Gemini)
+// bot/functions/bot.js
 
-// --- Импорты ---
+// --- Imports ---
 const { Bot, Api, GrammyError, HttpError, webhookCallback } = require("grammy");
 const { createClient } = require("@supabase/supabase-js");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const crypto = require('crypto');
+const util = require('util');
+const scryptAsync = util.promisify(crypto.scrypt);
 
-// --- Переменные Окружения ---
+// --- Environment Variables ---
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TMA_URL = process.env.TMA_URL;
 
-// --- Глобальная Инициализация ---
+// --- Global Initialization ---
 let bot;
 let supabaseAdmin;
-let genAI; // Только инстанс GoogleGenerativeAI
-let geminiModel = null; // Сам model будет инициализироваться по требованию
+let genAI; // Only GoogleGenerativeAI instance
+let geminiModel = null; // The model itself will be initialized on demand
 let initializationError = null;
 let botInitializedAndHandlersSet = false;
 
@@ -28,46 +30,99 @@ try {
     }
 
     supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
-    genAI = new GoogleGenerativeAI(GEMINI_API_KEY); // Создаем главный объект Google AI
+    genAI = new GoogleGenerativeAI(GEMINI_API_KEY); // Create the main Google AI object
     bot = new Bot(BOT_TOKEN);
     console.log("[Bot Global Init] Clients and bot instance created.");
 
-    // --- Настройка Обработчиков ---
+    // --- Setting up Handlers ---
     console.log("[Bot Global Init] Setting up handlers...");
 
-    // Обработчик /start
+    // /start handler
     bot.command("start", async (ctx) => {
         console.log("[Bot Handler /start] Command received.");
         const userId = ctx.from?.id; const chatId = ctx.chat.id;
         if (!userId || !chatId) { console.warn("[Bot Handler /start] No user ID or chat ID."); return; }
         console.log(`[Bot Handler /start] User ${userId} in chat ${chatId}`);
         try {
-            // <<<--- ВАЖНО: Ловим ошибки именно от getOrCreateUser ---
             const userData = await getOrCreateUser(supabaseAdmin, userId);
             console.log(`[Bot Handler /start] User data received: ID=${userData.id}, Claimed=${userData.claimed}, LastMsgId=${userData.lastMessageId}`);
-            // <<<--- КОНЕЦ ВАЖНОГО ---
 
-            // Удаление предыдущего сообщения
-            if (userData.lastMessageId) { /* ... (логика удаления без изменений) ... */ }
-            // Определение текста и кнопки
+            // Deleting previous message
+            if (userData.lastMessageId) { /* ... deletion logic unchanged ... */ }
+            // Determining text and button
             let messageText, buttonText, buttonUrl;
-            if (userData.claimed) { messageText = "С возвращением! 👋 Анализируй сны или загляни в ЛК."; buttonText = "Личный кабинет"; buttonUrl = TMA_URL; }
-            else { messageText = "Привет! 👋 Бот для анализа снов.\n\nНажми кнопку, чтобы получить <b>первый бесплатный токен</b> за подписку!"; buttonText = "🎁 Открыть и получить токен"; buttonUrl = `${TMA_URL}?action=claim_reward`; }
-            // Отправка нового сообщения
+            if (userData.claimed) { messageText = "Welcome back! 👋 Analyze dreams or visit your Personal Account."; buttonText = "Personal Account"; buttonUrl = TMA_URL; }
+            else { messageText = "Hello! 👋 Dream Analyzer bot.
+
+Press the button to get your <b>first free token</b> for subscribing!"; buttonText = "🎁 Open and claim token"; buttonUrl = `${TMA_URL}?action=claim_reward`; }
+            // Sending new message
             console.log(`[Bot Handler /start] Sending new message (Claimed: ${userData.claimed})`);
             const sentMessage = await ctx.reply(messageText, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: buttonText, web_app: { url: buttonUrl } }]] } });
             console.log(`[Bot Handler /start] New message sent. ID: ${sentMessage.message_id}`);
-            // Сохранение ID нового сообщения
+            // Saving new message ID
             const { error: updateError } = await supabaseAdmin.from('users').update({ last_start_message_id: sentMessage.message_id }).eq('id', userData.id);
             if (updateError) console.error(`[Bot Handler /start] Failed update last_start_message_id:`, updateError);
             else console.log(`[Bot Handler /start] Updated last_start_message_id to ${sentMessage.message_id}.`);
-        } catch (e) { // <<<--- Ловим ошибку, проброшенную из getOrCreateUser ---
-             console.error("[Bot Handler /start] CRITICAL Error (likely from getOrCreateUser):", e.message); // Логируем КОНКРЕТНУЮ ошибку
-             try { await ctx.reply(`Произошла ошибка при получении данных пользователя (${e.message}). Попробуйте позже.`).catch(logReplyError); } catch {}
+        } catch (e) {
+             console.error("[Bot Handler /start] CRITICAL Error (likely from getOrCreateUser):", e.message); // Log the specific error
+             try { await ctx.reply(`An error occurred while fetching user data (${e.message}). Please try again later.`).catch(logReplyError); } catch {}
         }
     });
 
-    // Обработчик текстовых сообщений (ПЕРЕДАЕМ geminiModel)
+    // --- New Handler for /setpassword ---
+    bot.command("setpassword", async (ctx) => {
+        console.log("[Bot Handler /setpassword] Command received.");
+        const userId = ctx.from?.id;
+        if (!userId) { console.warn("[Bot Handler /setpassword] No user ID."); return; }
+
+        const messageText = ctx.message.text;
+        const parts = messageText.split(\/\s+\/\).filter(Boolean);
+
+        if (parts.length < 2) {
+            await ctx.reply("Please provide a password after the command, e.g., `/setpassword your_secure_password`").catch(logReplyError);
+            return;
+        }
+
+        const password = parts.slice(1).join(' '); // Allow spaces in password
+
+        if (password.length < 8) {
+            await ctx.reply("Password should be at least 8 characters long.").catch(logReplyError);
+            return;
+        }
+
+        try {
+            // Ensure user exists (or create if not)
+            const userData = await getOrCreateUser(supabaseAdmin, userId);
+            const userDbId = userData.id;
+            if (!userDbId) { throw new Error("Could not retrieve user ID from database."); }
+
+            // Generate salt and hash password using scrypt
+            const salt = crypto.randomBytes(16).toString('hex');
+            const derivedKey = await scryptAsync(password, salt, 64); // 64 bytes for hash
+            const webPasswordHash = `${salt}:${derivedKey.toString('hex')}`;
+
+            // Save hash to Supabase
+            console.log(`[Bot Handler /setpassword] Updating password hash for user ${userId}...`);
+            const { error: updateError } = await supabaseAdmin
+                .from('users')
+                .update({ web_password_hash: webPasswordHash })
+                .eq('tg_id', userId);
+
+            if (updateError) {
+                console.error(`[Bot Handler /setpassword] Supabase update error for user ${userId}:`, updateError);
+                 throw new Error("Database update failed.");
+            }
+
+            console.log(`[Bot Handler /setpassword] Password hash updated for user ${userId}.`);
+            await ctx.reply("Your web password has been set successfully! You can now use your Telegram ID and this password to log in on the web.").catch(logReplyError);
+
+        } catch (error) {
+            console.error(`[Bot Handler /setpassword] Error setting password for user ${userId}:`, error);
+            await ctx.reply(`An error occurred while setting your password: ${error.message || 'Unknown error'}`).catch(logReplyError);
+        }
+    });
+
+    // Text message handler (PASSING geminiModel)
     bot.on("message:text", async (ctx) => {
         console.log("[Bot Handler text] Received text message.");
         const dreamText = ctx.message.text; const userId = ctx.from?.id; const chatId = ctx.chat.id; const messageId = ctx.message.message_id;
@@ -77,24 +132,26 @@ try {
         let statusMessage;
         try {
             console.log(`[Bot Handler text] Deleting user message ${messageId}`);
-            await ctx.api.deleteMessage(chatId, messageId).catch(delErr => { /* ... обработка ошибок удаления ... */});
-            statusMessage = await ctx.reply("Анализирую ваш сон... 🧠✨").catch(logReplyError);
+            await ctx.api.deleteMessage(chatId, messageId).catch(delErr => { /* ... deletion error handling ... */});
+            statusMessage = await ctx.reply("Analyzing your dream... 🧠✨").catch(logReplyError);
             if (!statusMessage) throw new Error("Failed to send status message.");
-            // <<<--- ИСПРАВЛЕНИЕ: ПЕРЕДАЕМ geminiModel в analyzeDream ---
-            await analyzeDream(ctx, supabaseAdmin, geminiModel, dreamText); // Передаем текущий (возможно null) geminiModel
-            // <<<--- КОНЕЦ ИСПРАВЛЕНИЯ ---
+            // <<<--- FIX: PASSING geminiModel to analyzeDream ---
+            await analyzeDream(ctx, supabaseAdmin, geminiModel, dreamText); // Pass the current (possibly null) geminiModel
+            // <<<--- END FIX ---
             console.log(`[Bot Handler text] Deleting status message ${statusMessage.message_id}`);
             await ctx.api.deleteMessage(chatId, statusMessage.message_id).catch(delErr => { console.warn(`[Bot Handler text] Failed delete status msg ${statusMessage.message_id}:`, delErr); });
             console.log(`[Bot Handler text] Analysis complete. Sending confirmation.`);
-            await ctx.reply("Ваш анализ сна готов и сохранен! ✨\n\nПосмотрите его в истории в ЛК.", { reply_markup: { inline_keyboard: [[{ text: "Открыть Личный кабинет", web_app: { url: TMA_URL } }]] } }).catch(logReplyError);
-        } catch (error) { // Ловим ошибки из analyzeDream
-            console.error(`[Bot Handler text] Error processing dream for ${userId}:`, error); // Логируем КОНКРЕТНУЮ ошибку
+            await ctx.reply("Your dream analysis is ready and saved! ✨
+
+See it in your history in the Personal Account.", { reply_markup: { inline_keyboard: [[{ text: "Open Personal Account", web_app: { url: TMA_URL } }]] } }).catch(logReplyError);
+        } catch (error) { // Catch errors from analyzeDream
+            console.error(`[Bot Handler text] Error processing dream for ${userId}:`, error); // Log the specific error
             if (statusMessage) { await ctx.api.deleteMessage(chatId, statusMessage.message_id).catch(e => {}); }
-            await ctx.reply(`Произошла ошибка: ${error.message || 'Неизвестная ошибка'}`).catch(logReplyError); // Показываем ошибку пользователю
+            await ctx.reply(`An error occurred: ${error.message || 'Unknown error'}`).catch(logReplyError); // Show error to user
         }
     });
 
-   // Обработчик pre_checkout_query (БЕЗ ИЗМЕНЕНИЙ)
+   // pre_checkout_query handler (UNCHANGED)
     bot.on('pre_checkout_query', async (ctx) => {
         console.log("[Bot:Handler pre_checkout_query] Received:", JSON.stringify(ctx.preCheckoutQuery));
         try {
@@ -103,113 +160,62 @@ try {
         } catch (error) { console.error("[Bot:Handler pre_checkout_query] Failed to answer:", error); try { await ctx.answerPreCheckoutQuery(false, "Internal error"); } catch (e) {} }
     });
 
-    // Обработчик successful_payment (БЕЗ ИЗМЕНЕНИЙ)
-    bot.on('message:successful_payment', async (ctx) => {
-        console.log("[Bot:Handler successful_payment] Received:", JSON.stringify(ctx.message.successful_payment));
-        const payment = ctx.message.successful_payment; const userId = ctx.from.id;
-        // Убедимся, что invoice_payload существует
-        const payload = payment.invoice_payload;
-        if (!payload) { console.error(`[Bot] Missing invoice_payload in successful_payment from user ${userId}`); return; }
-
-        const parts = payload.split('_');
-        // Проверка формата payload (sub_plan_duration_tgUserId)
-        if (parts.length < 4 || parts[0] !== 'sub') { console.error(`[Bot] Invalid payload format: ${payload} from user ${userId}`); return; }
-
-        const plan = parts[1];
-        const durationMonths = parseInt(parts[2].replace('mo', ''), 10);
-        const payloadUserId = parseInt(parts[3], 10);
-
-        // Проверка корректности данных из payload
-        if (isNaN(durationMonths) || isNaN(payloadUserId) || payloadUserId !== userId) {
-            console.error(`[Bot] Payload data error or mismatch: Payload=${payload}, Sender=${userId}`);
-             // Можно уведомить пользователя о проблеме
-             await ctx.reply("Получен платеж с некорректными данными. Свяжитесь с поддержкой, если средства списаны.").catch(logReplyError);
-            return;
-        }
-
-        console.log(`[Bot] Processing payment for ${userId}: Plan=${plan}, Duration=${durationMonths}mo.`);
-        try {
-            if (!supabaseAdmin) { throw new Error("Supabase client unavailable"); } // Проверка на всякий случай
-
-            // Используем транзакцию для надежности
-            const { error: txError } = await supabaseAdmin.rpc('process_successful_payment', {
-                user_tg_id: userId,
-                plan_type: plan,
-                duration_months: durationMonths
-            });
-
-            if (txError) {
-                 console.error(`[Bot] Error calling process_successful_payment RPC for ${userId}:`, txError);
-                 throw new Error("Database update failed during payment processing.");
-            }
-
-            // RPC сама вычислит дату и добавит токены
-            console.log(`[Bot] Successfully processed payment via RPC for user ${userId}. Plan=${plan}, Duration=${durationMonths}mo`);
-            await ctx.reply(`Спасибо! Ваша подписка "${plan.toUpperCase()}" успешно активирована/продлена. Токены начислены. Приятного анализа снов! ✨`).catch(logReplyError);
-
-        } catch (error) {
-            console.error(`[Bot] Failed to process payment for ${userId}:`, error);
-            await ctx.reply("Ваш платеж получен, но произошла ошибка при обновлении подписки. Пожалуйста, свяжитесь с поддержкой.").catch(logReplyError);
-        }
-    });
-
-    // Обработчик successful_payment (ИСПРАВЛЕНО)
+    // successful_payment handler (MODIFIED to handle deepanalysis payload)
     bot.on('message:successful_payment', async (ctx) => {
         console.log("[Bot Handler successful_payment] Received:", JSON.stringify(ctx.message.successful_payment));
         const payment = ctx.message.successful_payment;
         const userId = ctx.from.id;
         const payload = payment.invoice_payload;
-    
+
         if (!payload) { console.error(`[Bot Handler successful_payment] Missing payload from user ${userId}`); return; }
-    
+
         const parts = payload.split('_');
-        const paymentType = parts[0]; // 'sub' или 'deepanalysis'
-    
+        const paymentType = parts[0]; // 'sub' or 'deepanalysis'
+
         try {
             if (!supabaseAdmin) { throw new Error("Supabase client unavailable"); }
-    
+
             if (paymentType === 'sub' && parts.length >= 4) {
-                // --- Обработка покупки ПОДПИСКИ (как раньше, через RPC) ---
+                // --- Handling SUBSCRIPTION payment (via RPC) ---
                 const plan = parts[1];
                 const durationMonths = parseInt(parts[2].replace('mo', ''), 10);
                 const payloadUserId = parseInt(parts[3], 10);
-                if (isNaN(durationMonths) || isNaN(payloadUserId) || payloadUserId !== userId) { console.error(`[Bot Handler successful_payment] Sub Payload error/mismatch: ${payload}`); await ctx.reply("Ошибка данных платежа подписки.").catch(logReplyError); return; }
-    
+                if (isNaN(durationMonths) || isNaN(payloadUserId) || payloadUserId !== userId) { console.error(`[Bot Handler successful_payment] Sub Payload error/mismatch: ${payload}`); await ctx.reply("Subscription payment data error.").catch(logReplyError); return; }
+
                 console.log(`[Bot Handler successful_payment] Processing SUBSCRIPTION payment for ${userId}: Plan=${plan}, Duration=${durationMonths}mo.`);
                 const { error: txError } = await supabaseAdmin.rpc('process_successful_payment', { user_tg_id: userId, plan_type: plan, duration_months: durationMonths });
                 if (txError) { console.error(`[Bot Handler successful_payment] RPC error for sub payment ${userId}:`, txError); throw new Error("DB update failed for subscription."); }
                 console.log(`[Bot Handler successful_payment] Subscription payment processed via RPC for ${userId}.`);
-                await ctx.reply(`Спасибо! Ваша подписка "${plan.toUpperCase()}" успешно активирована/продлена. ✨`).catch(logReplyError);
-    
+                await ctx.reply(`Thank you! Your "${plan.toUpperCase()}" subscription is active/extended. ✨`).catch(logReplyError);
+
             } else if (paymentType === 'deepanalysis' && parts.length >= 2) {
-                // --- Обработка покупки ГЛУБОКОГО АНАЛИЗА ---
+                // --- Handling DEEP ANALYSIS payment ---
                 const payloadUserId = parseInt(parts[1], 10);
-                 if (isNaN(payloadUserId) || payloadUserId !== userId) { console.error(`[Bot Handler successful_payment] Deep Analysis Payload error/mismatch: ${payload}`); await ctx.reply("Ошибка данных платежа глубокого анализа.").catch(logReplyError); return; }
-    
+                 if (isNaN(payloadUserId) || payloadUserId !== userId) { console.error(`[Bot Handler successful_payment] Deep Analysis Payload error/mismatch: ${payload}`); await ctx.reply("Deep analysis payment data error.").catch(logReplyError); return; }
+
                 console.log(`[Bot Handler successful_payment] Processing DEEP ANALYSIS payment for ${userId}.`);
-                // Здесь можно просто залогировать или записать в отдельную таблицу покупок, если нужно
-                // Ничего не делаем с таблицей users (токены/подписка)
-                 await ctx.reply("Спасибо за покупку! Глубокий анализ будет доступен в приложении.").catch(logReplyError); // Можно и не отправлять ответ
-    
+                // Log or record deep analysis purchase if needed
+                 await ctx.reply("Thank you for the purchase! Deep analysis will be available in the app.").catch(logReplyError); // Optional reply
+
             } else {
-                // Неизвестный формат payload
+                // Unknown payload format
                 console.error(`[Bot Handler successful_payment] Unknown or invalid payload format: ${payload} from user ${userId}`);
-                await ctx.reply("Получен платеж с неизвестным назначением.").catch(logReplyError);
+                await ctx.reply("Received payment with unknown purpose.").catch(logReplyError);
             }
-    
+
         } catch (error) {
             console.error(`[Bot Handler successful_payment] Failed process payment for ${userId}:`, error);
-            await ctx.reply("Платеж получен, но произошла ошибка при его обработке. Свяжитесь с поддержкой.").catch(logReplyError);
+            await ctx.reply("Your payment was received, but an error occurred during processing. Please contact support.").catch(logReplyError);
         }
     });
 
-    // Обработчик ошибок (БЕЗ ИЗМЕНЕНИЙ)
+    // Error handler (UNCHANGED)
     bot.catch((err) => {
         const ctx = err.ctx; const e = err.error;
         console.error(`[Bot] Error caught by bot.catch for update ${ctx?.update?.update_id}:`);
         if (e instanceof GrammyError) console.error("GrammyError:", e.description, e.payload);
         else if (e instanceof HttpError) console.error("HttpError:", e);
-        else if (e instanceof Error) console.error("Error:", e.stack || e.message); // Логируем стек для обычных ошибок
+        else if (e instanceof Error) console.error("Error:", e.stack || e.message); // Log stack for standard errors
         else console.error("Unknown error object:", e);
     });
 
@@ -223,11 +229,11 @@ try {
     botInitializedAndHandlersSet = false;
 }
 
-// --- Вспомогательные Функции ---
+// --- Helper Functions ---
 
-// getOrCreateUser (Исправлен catch и добавлено логирование внутри try)
+// getOrCreateUser (Ensures user exists or creates one)
 async function getOrCreateUser(supabase, userId) {
-    if (!supabase) { throw new Error("Supabase client not provided to getOrCreateUser."); } // Более четкая ошибка
+    if (!supabase) { throw new Error("Supabase client not provided to getOrCreateUser."); }
     console.log(`[getOrCreateUser] Processing user ${userId}...`);
     try {
         console.log(`[getOrCreateUser] Selecting user ${userId}...`);
@@ -236,7 +242,7 @@ async function getOrCreateUser(supabase, userId) {
 
         if (selectError && selectError.code !== 'PGRST116') {
              console.error(`[getOrCreateUser] Supabase SELECT error: ${selectError.message}`);
-             throw new Error(`DB Select Error: ${selectError.message}`); // Пробрасываем ошибку
+             throw new Error(`DB Select Error: ${selectError.message}`);
         }
         if (existingUser) {
             console.log(`[getOrCreateUser] Found existing user ${userId}.`);
@@ -251,134 +257,121 @@ async function getOrCreateUser(supabase, userId) {
                  if (insertError.code === '23505') { // Race condition
                      console.warn(`[getOrCreateUser] Race condition for ${userId}. Re-fetching...`);
                      let { data: raceUser, error: raceError } = await supabase.from('users').select('id, channel_reward_claimed, last_start_message_id').eq('tg_id', userId).single();
-                     if (raceError) { throw new Error(`DB Re-fetch Error: ${raceError.message}`); } // Ошибка при повторном поиске
+                     if (raceError) { throw new Error(`DB Re-fetch Error: ${raceError.message}`); }
                      if (raceUser) { console.log(`[getOrCreateUser] Found user ${userId} on re-fetch.`); return { id: raceUser.id, claimed: raceUser.channel_reward_claimed ?? false, lastMessageId: raceUser.last_start_message_id }; }
-                     else { throw new Error("DB Inconsistent state after unique violation."); } // Странная ситуация
+                     else { throw new Error("DB Inconsistent state after unique violation."); }
                  }
-                 throw new Error(`DB Insert Error: ${insertError.message}`); // Другая ошибка вставки
+                 throw new Error(`DB Insert Error: ${insertError.message}`);
             }
-            if (!newUser) { throw new Error("DB Insert Error: No data returned after user creation."); } // Ошибка, если нет ID
+            if (!newUser) { throw new Error("DB Insert Error: No data returned after user creation."); }
             console.log(`[getOrCreateUser] Created new user ${userId} with ID ${newUser.id}.`);
             return { id: newUser.id, claimed: false, lastMessageId: null };
         }
     } catch (error) {
-        // Логируем ошибку, которая произошла ВНУТРИ try блока или была проброшена
         console.error(`[getOrCreateUser] FAILED for user ${userId}:`, error);
-        // Пробрасываем ошибку дальше, чтобы ее поймал catch в /start
-        throw error; // <<<--- Убеждаемся, что любая ошибка пробрасывается
+        throw error;
     }
 }
 
 
-// getGeminiAnalysis (Принимает модель, инициализирует при необходимости)
+// getGeminiAnalysis (Takes model, initializes if needed)
 async function getGeminiAnalysis(passedModel, dreamText) {
      console.log("[getGeminiAnalysis] Function called.");
-     let modelToUse = passedModel; // Используем переданную модель по умолчанию
+     let modelToUse = passedModel;
 
-     // Если модель не передана или не инициализирована глобально, пытаемся создать
      if (!modelToUse) {
          console.log("[getGeminiAnalysis] Model not passed or null, attempting initialization...");
          try {
              if (!genAI) { throw new Error("GoogleGenerativeAI instance (genAI) is not available."); }
              modelToUse = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-             // Сохраняем в глобальную переменную для следующих вызовов ЭТОГО ЖЕ инстанса функции
-             // (но не полагаемся на это между разными вызовами Netlify функции)
              geminiModel = modelToUse;
              console.log("[getGeminiAnalysis] Gemini model initialized successfully within function.");
          } catch (initErr) {
              console.error("[getGeminiAnalysis] Failed to initialize Gemini model:", initErr);
-             throw new Error(`Не удалось инициализировать сервис анализа: ${initErr.message}`); // Выбрасываем ошибку
+             throw new Error(`Failed to initialize analysis service: ${initErr.message}`);
          }
      } else {
           console.log("[getGeminiAnalysis] Using pre-initialized/passed model.");
      }
 
-     // Проверка текста сна
      const MAX_DREAM_LENGTH = 4000;
-     if (!dreamText || dreamText.trim().length === 0) { throw new Error("Пустой текст сна."); }
-     if (dreamText.length > MAX_DREAM_LENGTH) { throw new Error(`Сон слишком длинный (>${MAX_DREAM_LENGTH} симв.).`); }
+     if (!dreamText || dreamText.trim().length === 0) { throw new Error("Empty dream text."); }
+     if (dreamText.length > MAX_DREAM_LENGTH) { throw new Error(`Dream too long (>${MAX_DREAM_LENGTH} chars).`); }
 
-     // Вызов API Gemini
      try {
          console.log("[getGeminiAnalysis] Requesting Gemini analysis...");
-         const prompt = `Ты - эмпатичный толкователь снов. Проанализируй сон, сохраняя конфиденциальность, избегая мед. диагнозов/предсказаний. Сон: "${dreamText}". Анализ (2-4 абзаца): 1. Символы/значения. 2. Эмоции/связь с реальностью (если уместно). 3. Темы/сообщения. Отвечай мягко, поддерживающе.`;
-         const result = await modelToUse.generateContent(prompt); // Используем modelToUse
+         const prompt = `You are an empathetic dream interpreter. Analyze the dream, maintaining confidentiality, avoiding medical diagnoses/predictions. Dream: "${dreamText}". Analysis (2-4 paragraphs): 1. Symbols/meanings. 2. Emotions/connection to reality (if applicable). 3. Themes/messages. Respond softly, supportively.`;
+         const result = await modelToUse.generateContent(prompt);
          const response = await result.response;
 
          if (response.promptFeedback?.blockReason) {
              console.warn(`[getGeminiAnalysis] Gemini blocked: ${response.promptFeedback.blockReason}`);
-             throw new Error(`Анализ заблокирован (${response.promptFeedback.blockReason}).`); // Выбрасываем ошибку
+             throw new Error(`Analysis blocked (${response.promptFeedback.blockReason}).`);
          }
          const analysisText = response.text();
          if (!analysisText || analysisText.trim().length === 0) {
              console.error("[getGeminiAnalysis] Gemini returned empty response.");
-             throw new Error("Пустой ответ от сервиса анализа."); // Выбрасываем ошибку
+             throw new Error("Empty response from analysis service.");
          }
          console.log("[getGeminiAnalysis] Gemini analysis received successfully.");
-         return analysisText; // Возвращаем ТЕКСТ анализа при успехе
+         return analysisText;
      } catch (error) {
          console.error("[getGeminiAnalysis] Error during Gemini API call:", error);
-         // Формируем сообщение об ошибке и выбрасываем его
-         if (error.message?.includes("API key not valid")) throw new Error("Неверный ключ API Gemini.");
-         else if (error.status === 404 || error.message?.includes("404") || error.message?.includes("is not found")) throw new Error("Модель Gemini не найдена.");
-         else if (error.message?.includes("quota")) throw new Error("Превышена квота Gemini API.");
-         // Общая ошибка API
-         throw new Error(`Ошибка связи с сервисом анализа (${error.message})`);
+         if (error.message?.includes("API key not valid")) throw new Error("Invalid Gemini API key.");
+         else if (error.status === 404 || error.message?.includes("404") || error.message?.includes("is not found")) throw new Error("Gemini model not found.");
+         else if (error.message?.includes("quota")) throw new Error("Gemini API quota exceeded.");
+         throw new Error(`Error communicating with analysis service (${error.message})`);
      }
 }
 
-
-// analyzeDream (Принимает модель, передает ее дальше, ловит ошибки)
+// analyzeDream (Takes model, passes it, catches errors)
 async function analyzeDream(ctx, supabase, passedGeminiModel, dreamText) {
-    console.log("[analyzeDream] Function called."); // Лог входа
+    console.log("[analyzeDream] Function called.");
     const userId = ctx.from?.id;
-    if (!userId) { throw new Error("Не удалось идентифицировать пользователя."); }
+    if (!userId) { throw new Error("Could not identify user."); }
 
     try {
-        // 1. Получаем ID пользователя в нашей БД
+        // 1. Get user DB ID
         console.log(`[analyzeDream] Getting user DB ID for ${userId}...`);
         const userData = await getOrCreateUser(supabase, userId);
         const userDbId = userData.id;
-        if (!userDbId) { throw new Error("Ошибка доступа к профилю пользователя."); }
+        if (!userDbId) { throw new Error("Error accessing user profile."); }
         console.log(`[analyzeDream] User DB ID: ${userDbId}`);
 
-        // 2. Проверяем и списываем токен
+        // 2. Check and decrement token
         console.log(`[analyzeDream] Checking/decrementing token for ${userId}...`);
         const { data: tokenDecremented, error: rpcError } = await supabase
             .rpc('decrement_token_if_available', { user_tg_id: userId });
-        if (rpcError) { throw new Error(`Внутренняя ошибка токенов: ${rpcError.message}`); }
-        if (!tokenDecremented) { throw new Error("Недостаточно токенов для анализа."); }
+        if (rpcError) { throw new Error(`Internal token error: ${rpcError.message}`); }
+        if (!tokenDecremented) { throw new Error("Insufficient tokens for analysis."); }
         console.log(`[analyzeDream] Token decremented for user ${userId}.`);
 
-        // 3. Получаем анализ от Gemini (передаем модель, ловим ошибки)
+        // 3. Get analysis from Gemini (pass model, catch errors)
         console.log(`[analyzeDream] Requesting analysis...`);
-        // <<<--- ИСПРАВЛЕНИЕ: Передаем passedGeminiModel ---
+        // <<<--- FIX: Passing passedGeminiModel ---
         const analysisResultText = await getGeminiAnalysis(passedGeminiModel, dreamText);
-        // <<<--- КОНЕЦ ИСПРАВЛЕНИЯ ---
-        console.log(`[analyzeDream] Analysis received successfully.`); // Лог успеха
+        // <<<--- END FIX ---
+        console.log(`[analyzeDream] Analysis received successfully.`);
 
-        // 4. Сохраняем результат в базу
+        // 4. Save result to DB
         console.log(`[analyzeDream] Saving analysis to DB for user ${userDbId}...`);
         const { error: insertError } = await supabase
             .from('analyses').insert({ user_id: userDbId, dream_text: dreamText, analysis: analysisResultText });
-        if (insertError) { throw new Error(`Ошибка сохранения анализа: ${insertError.message}`); }
+        if (insertError) { throw new Error(`Error saving analysis: ${insertError.message}`); }
         console.log(`[analyzeDream] Analysis saved successfully.`);
 
-        return; // Успешное завершение
+        return; // Successful completion
 
     } catch (error) {
-        // Ловим все ошибки из блока try и пробрасываем их
         console.error(`[analyzeDream] FAILED for user ${userId}: ${error.message}`);
-        throw error; // Пробрасываем для обработчика 'message:text'
+        throw error;
     }
 }
 
-// logReplyError (без изменений)
+// logReplyError (unchanged)
 function logReplyError(error) { console.error("[Bot Reply Error]", error instanceof Error ? error.message : error); }
 
-
-// --- Экспорт обработчика для Netlify с webhookCallback ---
-// (Код без изменений по сравнению с Попыткой #9)
+// --- Export handler for Netlify with webhookCallback ---
 let netlifyWebhookHandler = null;
 if (botInitializedAndHandlersSet && bot) {
     try {
