@@ -5,15 +5,6 @@
   directory = "bot/functions/"
   node_bundler = "esbuild"
 
-# Configuration for the web application site
-[[redirects]]
-  from = "/"
-  to = "/index.html"
-  status = 200
-  force = false
-
-[[build]]
-  # Directory containing the deploy-ready HTML files and assets
-  publish = "web/dist"
-  # The command to run before your site is deployed. Assumes you are using Vite.
-  command = "cd web && npm install && npm run build"
+# Build settings and redirects for 'tma' and 'web' sites should be configured
+# in their respective Netlify site settings in the UI.
+# Remove the incorrect [[build]] and [[redirects]] from here.
