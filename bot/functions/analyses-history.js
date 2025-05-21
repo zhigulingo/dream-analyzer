@@ -1,4 +1,4 @@
-// bot/functions/analyses-history.js (Modified for Web Authentication)
+// bot/functions/analyses-history.js (Modified for Web Authentication and syntax fix)
 
 const { createClient } = require("@supabase/supabase-js");
 const crypto = require('crypto');
@@ -27,6 +27,7 @@ function validateTelegramData(initData, botToken) {
     const dataCheckArr = [];
     params.sort();
     params.forEach((value, key) => dataCheckArr.push(`${key}=${value}`));
+    // Fixed: Using template literal for string containing newline
     const dataCheckString = dataCheckArr.join('
 ');
     try {

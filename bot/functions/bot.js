@@ -51,10 +51,18 @@ try {
             if (userData.lastMessageId) { /* ... deletion logic unchanged ... */ }
             // Determining text and button
             let messageText, buttonText, buttonUrl;
-            if (userData.claimed) { messageText = "Welcome back! 👋 Analyze dreams or visit your Personal Account."; buttonText = "Personal Account"; buttonUrl = TMA_URL; }
-            else { messageText = "Hello! 👋 Dream Analyzer bot.
+            if (userData.claimed) {
+                messageText = "Welcome back! 👋 Analyze dreams or visit your Personal Account.";
+                buttonText = "Personal Account";
+                buttonUrl = TMA_URL;
+            } else {
+                // Fixed: Using template literal for multi-line string
+                messageText = `Hello! 👋 Dream Analyzer bot.
 
-Press the button to get your <b>first free token</b> for subscribing!"; buttonText = "🎁 Open and claim token"; buttonUrl = `${TMA_URL}?action=claim_reward`; }
+Press the button to get your <b>first free token</b> for subscribing!`;
+                buttonText = "🎁 Open and claim token";
+                buttonUrl = `${TMA_URL}?action=claim_reward`;
+            }
             // Sending new message
             console.log(`[Bot Handler /start] Sending new message (Claimed: ${userData.claimed})`);
             const sentMessage = await ctx.reply(messageText, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: buttonText, web_app: { url: buttonUrl } }]] } });
@@ -141,9 +149,10 @@ Press the button to get your <b>first free token</b> for subscribing!"; buttonTe
             console.log(`[Bot Handler text] Deleting status message ${statusMessage.message_id}`);
             await ctx.api.deleteMessage(chatId, statusMessage.message_id).catch(delErr => { console.warn(`[Bot Handler text] Failed delete status msg ${statusMessage.message_id}:`, delErr); });
             console.log(`[Bot Handler text] Analysis complete. Sending confirmation.`);
-            await ctx.reply("Your dream analysis is ready and saved! ✨
+            // Fixed: Using template literal for multi-line string
+            await ctx.reply(`Your dream analysis is ready and saved! ✨
 
-See it in your history in the Personal Account.", { reply_markup: { inline_keyboard: [[{ text: "Open Personal Account", web_app: { url: TMA_URL } }]] } }).catch(logReplyError);
+See it in your history in the Personal Account.`, { reply_markup: { inline_keyboard: [[{ text: "Open Personal Account", web_app: { url: TMA_URL } }]] } }).catch(logReplyError);
         } catch (error) { // Catch errors from analyzeDream
             console.error(`[Bot Handler text] Error processing dream for ${userId}:`, error); // Log the specific error
             if (statusMessage) { await ctx.api.deleteMessage(chatId, statusMessage.message_id).catch(e => {}); }
