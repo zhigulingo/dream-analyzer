@@ -60,7 +60,6 @@
 </template>
 
 <script setup>
-<<<<<<< HEAD
 import { ref, onMounted, watch } from 'vue';
 import Login from './components/Login.vue';
 
@@ -201,9 +200,6 @@ onMounted(() => {
   console.log('App mounted, checking authentication...');
   checkAuthentication();
 });
-=======
-// No need to import PersonalAccount here anymore, routing will handle it
->>>>>>> 5d8a398 (Stage all changes before rebase and push)
 </script>
 
 <style scoped>
