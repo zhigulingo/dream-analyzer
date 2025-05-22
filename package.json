@@ -4,7 +4,7 @@
   "private": true,
   "description": "Dream Analyzer Bot and TMA",
   "scripts": {
-    "test": "echo "Error: no test specified" && exit 1"
+        "test": "echo "Error: no test specified" && exit 1"
   },
   "dependencies": {
     "@google/generative-ai": "^0.11.1",
