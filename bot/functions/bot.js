@@ -51,10 +51,45 @@ try {
             if (userData.lastMessageId) { /* ... deletion logic unchanged ... */ }
             // Determining text and button
             let messageText, buttonText, buttonUrl;
-            if (userData.claimed) {
-                messageText = "Welcome back! 👋 Analyze dreams or visit your Personal Account.";
-                buttonText = "Personal Account";
-                buttonUrl = TMA_URL;
+            
+            if (startParam === 'weblogin') {
+                // Handle weblogin parameter with improved web authentication flow
+                // Generate a session identifier for this login attempt
+                const sessionId = crypto.randomBytes(16).toString('hex');
+                const timestamp = Math.floor(Date.now() / 1000);
+                
+                // Create a secure token with user information
+                const payload = {
+                    user_id: userId,
+                    user_data: {
+                        username: ctx.from.username || '',
+                        first_name: ctx.from.first_name || '',
+                        last_name: ctx.from.last_name || ''
+                    },
+                    issued_at: timestamp,
+                    expires_at: timestamp + 604800 // 7 days
+                };
+                
+                // Sign the token with HMAC
+                const secret = process.env.BOT_SECRET || 'default_bot_secret_key_change_this';
+                const payloadStr = JSON.stringify(payload);
+                const signature = crypto
+                    .createHmac('sha256', secret)
+                    .update(payloadStr)
+                    .digest('hex');
+                
+                // Create the final token
+                const token = Buffer.from(JSON.stringify({
+                    payload,
+                    signature
+                })).toString('base64');
+                
+                // Generate return URL to web app with the token
+                const webLoginUrl = `https://bot.dreamstalk.ru/login?auth_token=${token}`;
+                
+                messageText = "🔐 Для входа в веб-версию приложения нажмите на кнопку ниже. После авторизации вы будете перенаправлены на сайт.";
+                buttonText = "Подтвердить вход";
+                buttonUrl = webLoginUrl;
             } else {
                 // Fixed: Using template literal for multi-line string
                 messageText = `Hello! 👋 Dream Analyzer bot.
@@ -65,7 +100,23 @@ Press the button to get your <b>first free token</b> for subscribing!`;
             }
             // Sending new message
             console.log(`[Bot Handler /start] Sending new message (Claimed: ${userData.claimed})`);
-            const sentMessage = await ctx.reply(messageText, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: buttonText, web_app: { url: buttonUrl } }]] } });
+            
+            // Use the appropriate button type based on the action
+            let inlineKeyboard;
+            if (startParam === 'weblogin') {
+                // For web login, use a regular URL button to open in external browser
+                inlineKeyboard = [[{ text: buttonText, url: buttonUrl }]];
+            } else {
+                // For TMA actions, use web_app to open within Telegram
+                inlineKeyboard = [[{ text: buttonText, web_app: { url: buttonUrl } }]];
+            }
+            
+            const sentMessage = await ctx.reply(messageText, { 
+                parse_mode: 'HTML', 
+                reply_markup: { 
+                    inline_keyboard: inlineKeyboard
+                } 
+            });
             console.log(`[Bot Handler /start] New message sent. ID: ${sentMessage.message_id}`);
             // Saving new message ID
             const { error: updateError } = await supabaseAdmin.from('users').update({ last_start_message_id: sentMessage.message_id }).eq('id', userData.id);
@@ -177,10 +228,10 @@ See it in your history in the Personal Account.`, { reply_markup: { inline_keybo
         const payload = payment.invoice_payload;
 
         if (!payload) { console.error(`[Bot Handler successful_payment] Missing payload from user ${userId}`); return; }
-
+    
         const parts = payload.split('_');
-        const paymentType = parts[0]; // 'sub' or 'deepanalysis'
-
+        const paymentType = parts[0]; // 'sub' или 'deepanalysis'
+    
         try {
             if (!supabaseAdmin) { throw new Error("Supabase client unavailable"); }
 
