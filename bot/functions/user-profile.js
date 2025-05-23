@@ -14,6 +14,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TMA_URL = process.env.TMA_URL;
+const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
 
 // --- Global Initialization ----
 let bot;
@@ -396,3 +397,91 @@ exports.handler = async (event) => {
 };
 
 console.log("[Bot Global Init] Netlify handler exported.");
+
+function validateTelegramData(initData, botToken) {
+    if (!initData || !botToken) return { valid: false, data: null, error: "Missing initData or botToken" };
+    const params = new URLSearchParams(initData);
+    const hash = params.get('hash');
+    if (!hash) return { valid: false, data: null, error: "Hash is missing" };
+    params.delete('hash');
+    const dataCheckArr = [];
+    params.sort();
+    params.forEach((value, key) => dataCheckArr.push(`${key}=${value}`));
+    const dataCheckString = dataCheckArr.join('\n');
+    try {
+        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+        const checkHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+        if (checkHash === hash) {
+            const userDataString = params.get('user');
+            if (!userDataString) return { valid: true, data: null, error: "User data missing" };
+            try {
+                const userData = JSON.parse(decodeURIComponent(userDataString));
+                if (!userData || typeof userData.id === 'undefined') return { valid: true, data: null, error: "User ID missing in parsed data" };
+                return { valid: true, data: userData, error: null };
+            } catch (parseError) { return { valid: true, data: null, error: "Failed to parse user data" }; }
+        } else { return { valid: false, data: null, error: "Hash mismatch" }; }
+    } catch (error) { return { valid: false, data: null, error: "Validation crypto error" }; }
+}
+
+exports.handler = async (event) => {
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': ALLOWED_TMA_ORIGIN || '*',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    };
+
+    if (event.httpMethod === 'OPTIONS') {
+        return { statusCode: 204, headers: corsHeaders, body: '' };
+    }
+
+    if (event.httpMethod !== 'GET') {
+        return { statusCode: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
+        return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Internal Server Error: Configuration missing.' }) };
+    }
+
+    const initDataHeader = event.headers['x-telegram-init-data'];
+    if (!initDataHeader) {
+        return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Missing Telegram InitData' }) };
+    }
+    const validationResult = validateTelegramData(initDataHeader, BOT_TOKEN);
+    if (!validationResult.valid || !validationResult.data?.id) {
+        return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
+    }
+    const verifiedUserId = validationResult.data.id;
+
+    try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+        const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('tokens, subscription_type, subscription_end')
+            .eq('tg_id', verifiedUserId)
+            .maybeSingle();
+
+        if (userError) {
+            throw new Error("Database query failed");
+        }
+
+        let responseBody;
+        if (!userData) {
+            responseBody = { tokens: 0, subscription_type: 'free', subscription_end: null };
+        } else {
+            responseBody = userData;
+        }
+
+        return {
+            statusCode: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify(responseBody)
+        };
+
+    } catch (error) {
+        return {
+            statusCode: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Internal Server Error while fetching profile.' })
+        };
+    }
+};
