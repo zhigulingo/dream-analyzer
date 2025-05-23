@@ -5,7 +5,7 @@ import App from './App.vue';
 // Assuming you will create an App.vue for the web version
 // import App from './App.vue'; // Or a specific root component for the web
 
-const app = createApp({ /* Root component options or import App from './App.vue' */ });
+const app = createApp(App);
 
 const pinia = createPinia();
 
