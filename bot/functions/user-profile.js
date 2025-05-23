@@ -82,7 +82,6 @@ Press the button to get your <b>first free token</b> for subscribing!`;
         console.log("[Bot Handler /setpassword] Command received.");
         const userId = ctx.from?.id;
         if (!userId) { console.warn("[Bot Handler /setpassword] No user ID."); return; }
-
         const messageText = ctx.message.text;
         const parts = messageText.split(\/\s+\/\).filter(Boolean);
 
