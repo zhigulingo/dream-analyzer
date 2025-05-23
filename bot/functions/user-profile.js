@@ -7,6 +7,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const crypto = require('crypto');
 const util = require('util');
 const scryptAsync = util.promisify(crypto.scrypt);
+const jwt = require('jsonwebtoken');
 
 // --- Environment Variables ---
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -16,6 +17,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TMA_URL = process.env.TMA_URL;
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
 const ALLOWED_WEB_ORIGIN = process.env.ALLOWED_WEB_ORIGIN;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // --- Global Initialization ----
 let bot;
@@ -433,6 +435,28 @@ exports.handler = async (event) => {
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
     };
 
+    const authHeader = event.headers['authorization'];
+    let verifiedUserId = null;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        // Web: JWT auth
+        try {
+            const token = authHeader.substring(7);
+            const decoded = jwt.verify(token, JWT_SECRET);
+            verifiedUserId = decoded.tgId;
+        } catch (error) {
+            return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid or expired token.' }) };
+        }
+    } else {
+        // TMA: Telegram InitData
+        const initDataHeader = event.headers['x-telegram-init-data'];
+        const validationResult = validateTelegramData(initDataHeader, BOT_TOKEN);
+        if (!validationResult.valid || !validationResult.data?.id) {
+            return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
+        }
+        verifiedUserId = validationResult.data.id;
+    }
+
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 204, headers: corsHeaders, body: '' };
     }
@@ -444,16 +468,6 @@ exports.handler = async (event) => {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
         return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Internal Server Error: Configuration missing.' }) };
     }
-
-    const initDataHeader = event.headers['x-telegram-init-data'];
-    if (!initDataHeader) {
-        return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Missing Telegram InitData' }) };
-    }
-    const validationResult = validateTelegramData(initDataHeader, BOT_TOKEN);
-    if (!validationResult.valid || !validationResult.data?.id) {
-        return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
-    }
-    const verifiedUserId = validationResult.data.id;
 
     try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
