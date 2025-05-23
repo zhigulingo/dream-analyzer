@@ -27,9 +27,7 @@ function validateTelegramData(initData, botToken) {
     const dataCheckArr = [];
     params.sort();
     params.forEach((value, key) => dataCheckArr.push(`${key}=${value}`));
-    // Fixed: Using template literal for string containing newline
-    const dataCheckString = dataCheckArr.join('
-');
+    const dataCheckString = dataCheckArr.join('\n');
     try {
         const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
         const checkHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
