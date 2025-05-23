@@ -39,9 +39,14 @@
                 <div v-else-if="history && history.length > 0">
                     <ul>
                         <li v-for="item in history" :key="item.id" class="history-item">
-                            <p><strong>Дата:</strong> {{ formatDate(item.created_at) }}</p>
-                            <p><strong>Запрос:</strong> {{ item.dream_text }}</p>
-                            <p><strong>Анализ:</strong> {{ item.analysis }}</p>
+                            <div class="dream-toggle-header" @click="toggleDream(item.id)">
+                                <span><strong>Дата:</strong> {{ formatDate(item.created_at) }}</span>
+                                <span style="float:right;cursor:pointer;">{{ expandedDreams.includes(item.id) ? '▲' : '▼' }}</span>
+                            </div>
+                            <div v-if="expandedDreams.includes(item.id)" class="dream-details">
+                                <p><strong>Запрос:</strong> {{ item.dream_text }}</p>
+                                <p><strong>Анализ:</strong> {{ item.analysis }}</p>
+                            </div>
                         </li>
                     </ul>
                 </div>
@@ -70,6 +75,7 @@ const isLoadingHistory = ref(false);
 const errorProfile = ref(null);
 const errorHistory = ref(null);
 const isAuthenticated = ref(false); // Reactive state for authentication status
+const expandedDreams = ref([]);
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; // Re-using the backend URL env var
 if (!API_BASE_URL) { console.error("VITE_API_BASE_URL is not set"); }
@@ -185,6 +191,14 @@ const handleLogout = () => {
     history.value = [];
 };
 
+const toggleDream = (id) => {
+    if (expandedDreams.value.includes(id)) {
+        expandedDreams.value = expandedDreams.value.filter(d => d !== id);
+    } else {
+        expandedDreams.value.push(id);
+    }
+};
+
 // Watch for changes in isAuthenticated state to trigger data fetching
 watch(isAuthenticated, (newVal) => {
     if (newVal) {
@@ -272,6 +286,23 @@ h1, h2 {
 
 .history-item strong {
     margin-right: 5px;
+}
+
+.dream-toggle-header {
+    cursor: pointer;
+    background: #f5f5f5;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    user-select: none;
+}
+
+.dream-details {
+    padding: 8px 12px;
+    background: #fafafa;
+    border-left: 2px solid #b3b3b3;
+    margin-bottom: 8px;
+    border-radius: 4px;
 }
 
 /* Add more styles as needed */
