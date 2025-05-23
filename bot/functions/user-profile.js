@@ -435,6 +435,11 @@ exports.handler = async (event) => {
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
     };
 
+    // Handle CORS preflight OPTIONS request at the very top
+    if (event.httpMethod === 'OPTIONS') {
+        return { statusCode: 204, headers: corsHeaders, body: '' };
+    }
+
     const authHeader = event.headers['authorization'];
     let verifiedUserId = null;
 
@@ -455,10 +460,6 @@ exports.handler = async (event) => {
             return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
         }
         verifiedUserId = validationResult.data.id;
-    }
-
-    if (event.httpMethod === 'OPTIONS') {
-        return { statusCode: 204, headers: corsHeaders, body: '' };
     }
 
     if (event.httpMethod !== 'GET') {
