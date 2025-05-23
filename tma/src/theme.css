@@ -1,4 +1,4 @@
-/* Redesigned global styles for Dreams Talk */
+/* Dreams Talk TMA Theme - Consistent with Web */
 :root {
   --color-bg: #111111;
   --color-card: #6C6CD6;
@@ -24,7 +24,7 @@ body {
     transition: background-color var(--transition);
 }
 
-#app, .web-app-container {
+#app, .tma-app-container {
     max-width: 480px;
     margin: 0 auto;
     background: transparent;
@@ -68,7 +68,7 @@ h1, h2 {
 
 /* Responsive layout */
 @media (max-width: 600px) {
-  #app, .web-app-container {
+  #app, .tma-app-container {
     max-width: 100vw;
     padding: 0 0 24px 0;
   }
@@ -89,4 +89,4 @@ h1, h2 {
     opacity: 1;
     transform: none;
   }
-}
+} 

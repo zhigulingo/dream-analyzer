@@ -11,6 +11,7 @@ import PersonalAccount from './views/PersonalAccount.vue'; // Убедитесь
 </script>
 
 <style>
+@import "./theme.css";
 /* Глобальные стили или стили для App.vue */
 /* Можно импортировать CSS-файл: @import './assets/base.css'; */
 
