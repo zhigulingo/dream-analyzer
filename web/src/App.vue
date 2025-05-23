@@ -29,6 +29,16 @@
                 </div>
             </section>
 
+            <!-- Dream input section -->
+            <section class="dream-input card">
+                <h2>Анализировать новый сон</h2>
+                <textarea v-model="newDream" :disabled="isSubmittingDream" rows="4" placeholder="Введите ваш сон..."></textarea>
+                <button @click="submitDream" :disabled="isSubmittingDream || !newDream.trim()">
+                  {{ isSubmittingDream ? 'Анализируем...' : 'Анализировать сон' }}
+                </button>
+                <div v-if="errorDream" class="error-message">{{ errorDream }}</div>
+            </section>
+
             <!-- Блок 2: История анализов -->
             <section class="history card">
                 <h2>История анализов</h2>
@@ -76,6 +86,11 @@ const errorProfile = ref(null);
 const errorHistory = ref(null);
 const isAuthenticated = ref(false); // Reactive state for authentication status
 const expandedDreams = ref([]);
+
+// Dream input feature
+const newDream = ref("");
+const isSubmittingDream = ref(false);
+const errorDream = ref(null);
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; // Re-using the backend URL env var
 if (!API_BASE_URL) { console.error("VITE_API_BASE_URL is not set"); }
@@ -199,6 +214,38 @@ const toggleDream = (id) => {
     }
 };
 
+// Dream submission logic
+const submitDream = async () => {
+    errorDream.value = null;
+    if (!newDream.value.trim()) {
+        errorDream.value = 'Введите текст сна для анализа.';
+        return;
+    }
+    isSubmittingDream.value = true;
+    try {
+        const token = getToken();
+        const response = await fetch(`${API_BASE_URL}/analyze-dream`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ dream_text: newDream.value.trim() }),
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Ошибка анализа сна.');
+        }
+        // On success, clear input and reload history
+        newDream.value = '';
+        await fetchHistory();
+    } catch (err) {
+        errorDream.value = err.message;
+    } finally {
+        isSubmittingDream.value = false;
+    }
+};
+
 // Watch for changes in isAuthenticated state to trigger data fetching
 watch(isAuthenticated, (newVal) => {
     if (newVal) {
@@ -303,6 +350,31 @@ h1, h2 {
     border-left: 2px solid #b3b3b3;
     margin-bottom: 8px;
     border-radius: 4px;
+}
+
+.dream-input textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  font-size: 1em;
+  resize: vertical;
+}
+.dream-input button {
+  width: 100%;
+  padding: 10px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.2s ease;
+}
+.dream-input button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 
 /* Add more styles as needed */
