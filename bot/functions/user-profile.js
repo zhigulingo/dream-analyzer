@@ -15,7 +15,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TMA_URL = process.env.TMA_URL;
 
-// --- Global Initialization ---
+// --- Global Initialization ----
 let bot;
 let supabaseAdmin;
 let genAI; // Only GoogleGenerativeAI instance
