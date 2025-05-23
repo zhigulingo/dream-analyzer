@@ -18,8 +18,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, defineEmits } from 'vue';
 
+const emit = defineEmits(['login-success']);
 const tgId = ref('');
 const password = ref('');
 const isLoading = ref(false);
@@ -69,8 +70,8 @@ const handleLogin = async () => {
         localStorage.setItem('dream_analyzer_jwt', token);
         console.log('Login successful, token stored.');
 
-        // Emit an event or redirect to indicate successful login
-        // For now, we'll rely on App.vue watching for the token
+        // Emit an event to indicate successful login
+        emit('login-success');
 
     } catch (err) {
         console.error('Login error:', err);
