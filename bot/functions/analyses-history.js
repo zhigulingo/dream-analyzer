@@ -56,7 +56,13 @@ const generateCorsHeaders = (isWeb) => {
 
 exports.handler = async (event) => {
     const isWebRequest = event.headers['authorization'] !== undefined; // Check for Authorization header
-    const corsHeaders = generateCorsHeaders(isWebRequest);
+    const allowedOrigins = [ALLOWED_TMA_ORIGIN, ALLOWED_WEB_ORIGIN].filter(Boolean);
+    const requestOrigin = event.headers.origin || event.headers.Origin;
+    const corsHeaders = {
+        'Access-Control-Allow-Origin': allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0] || '*',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, Authorization',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    };
 
     // --- Handle Preflight (OPTIONS) ---
     if (event.httpMethod === 'OPTIONS') {

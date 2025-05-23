@@ -15,6 +15,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TMA_URL = process.env.TMA_URL;
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
+const ALLOWED_WEB_ORIGIN = process.env.ALLOWED_WEB_ORIGIN;
 
 // --- Global Initialization ----
 let bot;
@@ -424,9 +425,11 @@ function validateTelegramData(initData, botToken) {
 }
 
 exports.handler = async (event) => {
+    const allowedOrigins = [ALLOWED_TMA_ORIGIN, ALLOWED_WEB_ORIGIN].filter(Boolean);
+    const requestOrigin = event.headers.origin || event.headers.Origin;
     const corsHeaders = {
-        'Access-Control-Allow-Origin': ALLOWED_TMA_ORIGIN || '*',
-        'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data',
+        'Access-Control-Allow-Origin': allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0] || '*',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, Authorization',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
     };
 
