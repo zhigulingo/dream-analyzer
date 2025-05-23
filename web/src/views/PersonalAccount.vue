@@ -1,181 +1,181 @@
 <template>
-  <div class="personal-account">
-    <!-- Показываем или основной ЛК, или страницу получения награды -->
-    <template v-if="!showRewardClaimView">
-      
-     <FactsCarousel />
-      <!-- Блок 1: Информация о пользователе -->
-      <section class="user-info card">
-        <h2>Ваш профиль</h2>
-        
-        <!-- User identity display section -->
-        <div class="user-identity">
-          <div class="user-avatar" v-if="userStore.webUser?.photo_url">
-            <img :src="userStore.webUser.photo_url" alt="User avatar" />
+  <div class="personal-account-figma-bg">
+    <div class="personal-account-figma-container">
+      <!-- Показываем или основной ЛК, или страницу получения награды -->
+      <template v-if="!showRewardClaimView">
+        <FactsCarousel />
+        <!-- Блок 1: Информация о пользователе -->
+        <section class="user-info figma-card">
+          <h2>Ваш профиль</h2>
+          <!-- User identity display section -->
+          <div class="user-identity figma-user-identity">
+            <div class="user-avatar figma-avatar" v-if="userStore.webUser?.photo_url">
+              <img :src="userStore.webUser.photo_url" alt="User avatar" />
+            </div>
+            <div class="user-identity-text figma-user-identity-text">
+              <p class="user-name figma-user-name">
+                {{ userStore.webUser?.first_name || 'Unknown' }} 
+                {{ userStore.webUser?.last_name || '' }}
+                <span v-if="userStore.webUser?.username">(@{{ userStore.webUser.username }})</span>
+              </p>
+              <p class="user-id">ID: {{ userStore.webUser?.id || 'Not available' }}</p>
+              <p class="auth-method">Auth Method: {{ getAuthMethod() }}</p>
+              <button @click="toggleDebugInfo" class="debug-toggle">{{ showDebugInfo ? 'Hide' : 'Show' }} Debug Info</button>
+            </div>
           </div>
-          <div class="user-identity-text">
-            <p class="user-name">
-              {{ userStore.webUser?.first_name || 'Unknown' }} 
-              {{ userStore.webUser?.last_name || '' }}
-              <span v-if="userStore.webUser?.username">(@{{ userStore.webUser.username }})</span>
+          
+          <div v-if="userStore.isLoadingProfile">Загрузка профиля...</div>
+          <div v-else-if="userStore.errorProfile" class="error-message">
+            Ошибка загрузки профиля: {{ userStore.errorProfile }}
+          </div>
+          <div v-else>
+            <p>Остаток токенов: <strong>{{ userStore.profile.tokens }}</strong></p>
+            <p>
+              Текущий тариф: <strong class="capitalize">{{ userStore.profile.subscription_type }}</strong>
+              <span v-if="userStore.profile.subscription_end">
+                (до {{ formatDate(userStore.profile.subscription_end) }})
+              </span>
             </p>
-            <p class="user-id">ID: {{ userStore.webUser?.id || 'Not available' }}</p>
-            <p class="auth-method">Auth Method: {{ getAuthMethod() }}</p>
-            <button @click="toggleDebugInfo" class="debug-toggle">{{ showDebugInfo ? 'Hide' : 'Show' }} Debug Info</button>
+            <button
+                v-if="userStore.profile.subscription_type !== 'free' || userStore.profile.channel_reward_claimed"
+                @click="userStore.openSubscriptionModal"
+                class="change-plan-button">
+              Сменить тариф <!-- Ваш текст -->
+            </button>
+             <button
+                  v-else-if="userStore.profile.subscription_type === 'free' && !userStore.profile.channel_reward_claimed"
+                  @click="showRewardClaimView = true"
+                  class="subscribe-button-main">
+                  🎁 Получить бесплатный токен за подписку
+             </button>
           </div>
-        </div>
-        
-        <div v-if="userStore.isLoadingProfile">Загрузка профиля...</div>
-        <div v-else-if="userStore.errorProfile" class="error-message">
-          Ошибка загрузки профиля: {{ userStore.errorProfile }}
-        </div>
-        <div v-else>
-          <p>Остаток токенов: <strong>{{ userStore.profile.tokens }}</strong></p>
-          <p>
-            Текущий тариф: <strong class="capitalize">{{ userStore.profile.subscription_type }}</strong>
-            <span v-if="userStore.profile.subscription_end">
-              (до {{ formatDate(userStore.profile.subscription_end) }})
-            </span>
-          </p>
-          <button
-              v-if="userStore.profile.subscription_type !== 'free' || userStore.profile.channel_reward_claimed"
-              @click="userStore.openSubscriptionModal"
-              class="change-plan-button">
-            Сменить тариф <!-- Ваш текст -->
-          </button>
-           <button
-                v-else-if="userStore.profile.subscription_type === 'free' && !userStore.profile.channel_reward_claimed"
-                @click="showRewardClaimView = true"
-                class="subscribe-button-main">
-                🎁 Получить бесплатный токен за подписку
-           </button>
-        </div>
-         <div v-if="!userStore.isLoadingProfile && userStore.profile?.channel_reward_claimed" class="reward-claimed-info">
-             <p>✅ Награда за подписку на канал получена!</p>
-         </div>
-         
-        <!-- Always show logout buttons outside of any v-if conditions -->
-        <div class="logout-buttons always-visible">
-          <button @click="handleLogout" class="logout-button">
-            Выйти из аккаунта
-          </button>
-          <button @click="handleEmergencyLogout" class="logout-button emergency">
-            Экстренный выход
-          </button>
-        </div>
-        
-        <!-- Debugging info section - only visible in development -->
-        <div class="debug-info">
-          <h3>Debug Information</h3>
-          <button @click="toggleDebugInfo" class="toggle-debug">{{ showDebugInfo ? 'Hide' : 'Show' }} Debug Info</button>
-          <div v-if="showDebugInfo">
-            <p><strong>Telegram WebApp Available:</strong> {{ isTelegramAvailable }}</p>
-            <p><strong>Telegram InitData Available:</strong> {{ !!getTelegramInitData }}</p>
-            <p><strong>API Base URL:</strong> {{ getApiBaseUrl }}</p>
-            <p><strong>Auth Method:</strong> {{ getAuthMethod() }}</p>
-            <p><strong>User ID from Auth:</strong> {{ userStore.webUser?.id || 'Not available' }}</p>
-            
-            <div class="manual-auth">
-              <p><strong>Manual Auth Testing:</strong></p>
-              <div class="manual-auth-form">
-                <input 
-                  type="text" 
-                  v-model="manualUserId" 
-                  placeholder="Enter Telegram User ID" 
-                  class="debug-input"
-                />
-                <button @click="testManualAuth" class="debug-button">Test Auth with ID</button>
+           <div v-if="!userStore.isLoadingProfile && userStore.profile?.channel_reward_claimed" class="reward-claimed-info">
+               <p>✅ Награда за подписку на канал получена!</p>
+           </div>
+           
+          <!-- Always show logout buttons outside of any v-if conditions -->
+          <div class="logout-buttons always-visible">
+            <button @click="handleLogout" class="logout-button">
+              Выйти из аккаунта
+            </button>
+            <button @click="handleEmergencyLogout" class="logout-button emergency">
+              Экстренный выход
+            </button>
+          </div>
+          
+          <!-- Debugging info section - only visible in development -->
+          <div class="debug-info">
+            <h3>Debug Information</h3>
+            <button @click="toggleDebugInfo" class="toggle-debug">{{ showDebugInfo ? 'Hide' : 'Show' }} Debug Info</button>
+            <div v-if="showDebugInfo">
+              <p><strong>Telegram WebApp Available:</strong> {{ isTelegramAvailable }}</p>
+              <p><strong>Telegram InitData Available:</strong> {{ !!getTelegramInitData }}</p>
+              <p><strong>API Base URL:</strong> {{ getApiBaseUrl }}</p>
+              <p><strong>Auth Method:</strong> {{ getAuthMethod() }}</p>
+              <p><strong>User ID from Auth:</strong> {{ userStore.webUser?.id || 'Not available' }}</p>
+              
+              <div class="manual-auth">
+                <p><strong>Manual Auth Testing:</strong></p>
+                <div class="manual-auth-form">
+                  <input 
+                    type="text" 
+                    v-model="manualUserId" 
+                    placeholder="Enter Telegram User ID" 
+                    class="debug-input"
+                  />
+                  <button @click="testManualAuth" class="debug-button">Test Auth with ID</button>
+                </div>
+              </div>
+              
+              <hr>
+              <p><strong>Local Storage Telegram User:</strong></p>
+              <pre>{{ getLocalStorageUserString }}</pre>
+              
+              <div>
+                <p><strong>Debug Actions:</strong></p>
+                <button @click="reloadUserData" class="debug-button">Reload User Data</button>
+                <button @click="clearAndReload" class="debug-button danger">Clear Data & Reload</button>
+                <button @click="checkCORS" class="debug-button">Test CORS</button>
+                <button @click="forceTelegramAuth" class="debug-button">Force Telegram Auth</button>
+              </div>
+              
+              <div v-if="debugResponse" class="debug-response">
+                <p><strong>Debug Response:</strong></p>
+                <pre>{{ debugResponse }}</pre>
               </div>
             </div>
-            
-            <hr>
-            <p><strong>Local Storage Telegram User:</strong></p>
-            <pre>{{ getLocalStorageUserString }}</pre>
-            
-            <div>
-              <p><strong>Debug Actions:</strong></p>
-              <button @click="reloadUserData" class="debug-button">Reload User Data</button>
-              <button @click="clearAndReload" class="debug-button danger">Clear Data & Reload</button>
-              <button @click="checkCORS" class="debug-button">Test CORS</button>
-              <button @click="forceTelegramAuth" class="debug-button">Force Telegram Auth</button>
+          </div>
+        </section>
+
+        <!-- Блок 2: История анализов -->
+        <section class="history card">
+          <h2>История анализов</h2>
+          <div v-if="userStore.isLoadingHistory">Загрузка истории...</div>
+          <div v-else-if="userStore.errorHistory" class="error-message">
+            Ошибка загрузки истории: {{ userStore.errorHistory }}
+          </div>
+          <!-- Отображаем список ТОЛЬКО если история НЕ пуста -->
+          <div v-else-if="userStore.history && userStore.history.length > 0">
+            <AnalysisHistoryList :history="userStore.history" />
+          </div>
+          <div v-else>
+            <p>У вас пока нет сохраненных анализов.</p>
+          </div>
+        </section>
+
+        <!-- Блок глубокого анализа -->
+        <section class="deep-analysis card">
+            <h2>Глубокий анализ</h2>
+            <p>Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов. Стоимость: 1 ⭐️ (Telegram Star).</p>
+
+            <button
+                @click="userStore.initiateDeepAnalysisPayment"
+                :disabled="!userStore.canAttemptDeepAnalysis || userStore.isInitiatingDeepPayment || userStore.isDoingDeepAnalysis"
+                class="deep-analysis-button"
+            >
+                <span v-if="userStore.isInitiatingDeepPayment">Создаем счет... <span class="spinner white"></span></span>
+                <span v-else-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
+                <span v-else>Провести глубокий анализ (1 ⭐️)</span>
+            </button>
+
+            <p v-if="!userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis" class="info-message hint">
+                <span v-if="userStore.isLoadingProfile || userStore.isLoadingHistory">Дождитесь загрузки данных...</span>
+                <span v-else-if="(userStore.history?.length ?? 0) < REQUIRED_DREAMS">Нужно еще {{ REQUIRED_DREAMS - (userStore.history?.length ?? 0) }} сна/снов для анализа.</span>
+            </p>
+
+            <div v-if="userStore.deepAnalysisResult" class="analysis-result card">
+                <h3>Результат глубокого анализа:</h3>
+                <pre>{{ userStore.deepAnalysisResult }}</pre>
             </div>
-            
-            <div v-if="debugResponse" class="debug-response">
-              <p><strong>Debug Response:</strong></p>
-              <pre>{{ debugResponse }}</pre>
+            <div v-if="userStore.deepAnalysisError || userStore.deepPaymentError" class="error-message">
+                ⚠️ {{ userStore.deepAnalysisError || userStore.deepPaymentError }}
             </div>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- Блок 2: История анализов -->
-      <section class="history card">
-        <h2>История анализов</h2>
-        <div v-if="userStore.isLoadingHistory">Загрузка истории...</div>
-        <div v-else-if="userStore.errorHistory" class="error-message">
-          Ошибка загрузки истории: {{ userStore.errorHistory }}
-        </div>
-        <!-- Отображаем список ТОЛЬКО если история НЕ пуста -->
-        <div v-else-if="userStore.history && userStore.history.length > 0">
-          <AnalysisHistoryList :history="userStore.history" />
-        </div>
-        <div v-else>
-          <p>У вас пока нет сохраненных анализов.</p>
-        </div>
-      </section>
+        <!-- Модальное окно смены тарифа -->
+        <SubscriptionModal
+          v-if="userStore.showSubscriptionModal"
+          @close="userStore.closeSubscriptionModal"
+        />
+      </template>
 
-      <!-- Блок глубокого анализа -->
-      <section class="deep-analysis card">
-          <h2>Глубокий анализ</h2>
-          <p>Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов. Стоимость: 1 ⭐️ (Telegram Star).</p>
+      <!-- "Отдельная страница" для получения награды -->
+      <template v-else>
+         <div class="reward-claim-view card">
+             <h1>🎁 Бесплатный токен за подписку</h1>
+             <p>Чтобы получить 1 токен для анализа вашего первого сна, пожалуйста, выполните два простых шага:</p>
+              <ol class="steps">
+                  <li><span>1. Подпишитесь на наш канал в Telegram:</span><a href="https://t.me/TheDreamsHub" target="_blank" rel="noopener noreferrer" class="subscribe-button">Перейти и подписаться на @TheDreamsHub</a><span class="hint">(Откроется в Telegram, затем вернитесь сюда)</span></li>
+                  <li><span>2. Нажмите кнопку ниже, чтобы мы проверили подписку:</span><button @click="handleClaimRewardClick" :disabled="userStore.isClaimingReward" class="claim-button"><span v-if="userStore.isClaimingReward">Проверяем подписку... <span class="spinner"></span></span><span v-else>Я подписался, проверить и получить токен</span></button></li>
+              </ol>
+              <p v-if="userStore.claimRewardSuccessMessage" class="success-message">✅ {{ userStore.claimRewardSuccessMessage }} Токен добавлен к вашему балансу.<button @click="goBackToAccount" class="back-button">Вернуться в ЛК</button></p>
+              <p v-if="userStore.claimRewardError && !userStore.claimRewardSuccessMessage" class="error-message">⚠️ {{ userStore.claimRewardError }}</p>
+              <p v-if="userStore.userCheckedSubscription && userStore.claimRewardError?.includes('Подписка на канал не найдена')" class="info-message">Пожалуйста, убедитесь, что вы подписаны на канал <a href="https://t.me/TheDreamsHub" target="_blank">@TheDreamsHub</a>, и попробуйте проверить снова.</p>
+              <button v-if="!userStore.claimRewardSuccessMessage && !userStore.claimRewardError" @click="goBackToAccount" class="back-button secondary">Назад в Личный кабинет</button>
+         </div>
+      </template>
 
-          <button
-              @click="userStore.initiateDeepAnalysisPayment"
-              :disabled="!userStore.canAttemptDeepAnalysis || userStore.isInitiatingDeepPayment || userStore.isDoingDeepAnalysis"
-              class="deep-analysis-button"
-          >
-              <span v-if="userStore.isInitiatingDeepPayment">Создаем счет... <span class="spinner white"></span></span>
-              <span v-else-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
-              <span v-else>Провести глубокий анализ (1 ⭐️)</span>
-          </button>
-
-          <p v-if="!userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis" class="info-message hint">
-              <span v-if="userStore.isLoadingProfile || userStore.isLoadingHistory">Дождитесь загрузки данных...</span>
-              <span v-else-if="(userStore.history?.length ?? 0) < REQUIRED_DREAMS">Нужно еще {{ REQUIRED_DREAMS - (userStore.history?.length ?? 0) }} сна/снов для анализа.</span>
-          </p>
-
-          <div v-if="userStore.deepAnalysisResult" class="analysis-result card">
-              <h3>Результат глубокого анализа:</h3>
-              <pre>{{ userStore.deepAnalysisResult }}</pre>
-          </div>
-          <div v-if="userStore.deepAnalysisError || userStore.deepPaymentError" class="error-message">
-              ⚠️ {{ userStore.deepAnalysisError || userStore.deepPaymentError }}
-          </div>
-      </section>
-
-      <!-- Модальное окно смены тарифа -->
-      <SubscriptionModal
-        v-if="userStore.showSubscriptionModal"
-        @close="userStore.closeSubscriptionModal"
-      />
-    </template>
-
-    <!-- "Отдельная страница" для получения награды -->
-    <template v-else>
-       <div class="reward-claim-view card">
-           <h1>🎁 Бесплатный токен за подписку</h1>
-           <p>Чтобы получить 1 токен для анализа вашего первого сна, пожалуйста, выполните два простых шага:</p>
-            <ol class="steps">
-                <li><span>1. Подпишитесь на наш канал в Telegram:</span><a href="https://t.me/TheDreamsHub" target="_blank" rel="noopener noreferrer" class="subscribe-button">Перейти и подписаться на @TheDreamsHub</a><span class="hint">(Откроется в Telegram, затем вернитесь сюда)</span></li>
-                <li><span>2. Нажмите кнопку ниже, чтобы мы проверили подписку:</span><button @click="handleClaimRewardClick" :disabled="userStore.isClaimingReward" class="claim-button"><span v-if="userStore.isClaimingReward">Проверяем подписку... <span class="spinner"></span></span><span v-else>Я подписался, проверить и получить токен</span></button></li>
-            </ol>
-            <p v-if="userStore.claimRewardSuccessMessage" class="success-message">✅ {{ userStore.claimRewardSuccessMessage }} Токен добавлен к вашему балансу.<button @click="goBackToAccount" class="back-button">Вернуться в ЛК</button></p>
-            <p v-if="userStore.claimRewardError && !userStore.claimRewardSuccessMessage" class="error-message">⚠️ {{ userStore.claimRewardError }}</p>
-            <p v-if="userStore.userCheckedSubscription && userStore.claimRewardError?.includes('Подписка на канал не найдена')" class="info-message">Пожалуйста, убедитесь, что вы подписаны на канал <a href="https://t.me/TheDreamsHub" target="_blank">@TheDreamsHub</a>, и попробуйте проверить снова.</p>
-            <button v-if="!userStore.claimRewardSuccessMessage && !userStore.claimRewardError" @click="goBackToAccount" class="back-button secondary">Назад в Личный кабинет</button>
-       </div>
-    </template>
-
+    </div>
   </div>
 </template>
 
@@ -688,6 +688,82 @@ const testManualAuth = async () => {
 </script>
 
 <style scoped>
+.personal-account-figma-bg {
+  min-height: 100vh;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 40px;
+}
+.personal-account-figma-container {
+  background: #fff;
+  border-radius: 32px;
+  box-shadow: 0 8px 40px 0 rgba(0,0,0,0.18);
+  max-width: 420px;
+  width: 100%;
+  padding: 40px 28px 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.figma-card {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.08);
+  padding: 32px 24px;
+  margin-bottom: 24px;
+  color: #222;
+}
+.figma-user-identity {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #ececec;
+  padding-bottom: 24px;
+}
+.figma-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 24px;
+  background: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.figma-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.figma-user-identity-text {
+  flex: 1;
+}
+.figma-user-name {
+  font-size: 1.35em;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #222;
+}
+@media (max-width: 600px) {
+  .personal-account-figma-container {
+    max-width: 100vw;
+    padding: 16px 4px;
+    border-radius: 0;
+  }
+  .figma-card {
+    padding: 16px 8px;
+    border-radius: 12px;
+  }
+  .figma-avatar {
+    width: 60px;
+    height: 60px;
+    margin-right: 12px;
+  }
+}
 /* Add styles for the logout button */
 .logout-button {
   display: block;
