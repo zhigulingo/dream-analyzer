@@ -46,33 +46,27 @@ try {
         try {
             const userData = await getOrCreateUser(supabaseAdmin, userId);
             console.log(`[Bot Handler /start] User data received: ID=${userData.id}, Claimed=${userData.claimed}, LastMsgId=${userData.lastMessageId}`);
-
+            
             // Deleting previous message
             if (userData.lastMessageId) { /* ... deletion logic unchanged ... */ }
-            // Determining text and button
-            let messageText, buttonText, buttonUrl;
+            // Determining text and buttons
+            let messageText, buttons;
             if (userData.claimed) {
                 messageText = "Welcome back! 👋 Analyze dreams or visit your Personal Account.";
-                buttonText = "Personal Account";
-                buttonUrl = TMA_URL;
+                buttons = [
+                  [{ text: "Personal Account", web_app: { url: TMA_URL } }],
+                  [{ text: "Send a Dream", callback_data: "send_dream" }]
+                ];
             } else if (startParam === 'weblogin') {
-                // Handle weblogin parameter with direct link to web app login 
                 messageText = "🔐 Click the button below to log in to the web version.";
-                buttonText = "Open Web Version";
-                buttonUrl = `${TMA_URL}/login`;
-                buttonText = "Открыть веб-версию";
-                buttonUrl = `${TMA_URL}/login`;
+                buttons = [[{ text: "Открыть веб-версию", web_app: { url: `${TMA_URL}/login` } }]];
             } else {
-                // Fixed: Using template literal for multi-line string
-                messageText = `Hello! 👋 Dream Analyzer bot.
-
-Press the button to get your <b>first free token</b> for subscribing!`;
-                buttonText = "🎁 Open and claim token";
-                buttonUrl = `${TMA_URL}?action=claim_reward`;
+                messageText = `Hello! 👋 Dream Analyzer bot.\n\nPress the button to get your <b>first free token</b> for subscribing!`;
+                buttons = [[{ text: "🎁 Open and claim token", web_app: { url: `${TMA_URL}?action=claim_reward` } }]];
             }
             // Sending new message
             console.log(`[Bot Handler /start] Sending new message (Claimed: ${userData.claimed})`);
-            const sentMessage = await ctx.reply(messageText, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: buttonText, web_app: { url: buttonUrl } }]] } });
+            const sentMessage = await ctx.reply(messageText, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } });
             // Saving new message ID
             const { error: updateError } = await supabaseAdmin.from('users').update({ last_start_message_id: sentMessage.message_id }).eq('id', userData.id);
             if (updateError) console.error(`[Bot Handler /start] Failed update last_start_message_id:`, updateError);
@@ -81,6 +75,12 @@ Press the button to get your <b>first free token</b> for subscribing!`;
              console.error("[Bot Handler /start] CRITICAL Error (likely from getOrCreateUser):", e.message); // Log the specific error
              try { await ctx.reply(`An error occurred while fetching user data (${e.message}). Please try again later.`).catch(logReplyError); } catch {}
         }
+    });
+
+    // Handler for 'Send a Dream' button
+    bot.callbackQuery('send_dream', async (ctx) => {
+        await ctx.answerCallbackQuery();
+        await ctx.reply('Please send your dream description as a message. I will analyze it and reply with the results!');
     });
 
     // --- New Handler for /setpassword ---
@@ -181,7 +181,7 @@ See it in your history in the Personal Account.`, { reply_markup: { inline_keybo
         const payment = ctx.message.successful_payment;
         const userId = ctx.from.id;
         const payload = payment.invoice_payload;
-
+    
         if (!payload) { console.error(`[Bot Handler successful_payment] Missing payload from user ${userId}`); return; }
     
         const parts = payload.split(/\s+/).filter(Boolean);
@@ -189,35 +189,35 @@ See it in your history in the Personal Account.`, { reply_markup: { inline_keybo
     
         try {
             if (!supabaseAdmin) { throw new Error("Supabase client unavailable"); }
-
+    
             if (paymentType === 'sub' && parts.length >= 4) {
                 // --- Handling SUBSCRIPTION payment (via RPC) ---
                 const plan = parts[1];
                 const durationMonths = parseInt(parts[2].replace('mo', ''), 10);
                 const payloadUserId = parseInt(parts[3], 10);
                 if (isNaN(durationMonths) || isNaN(payloadUserId) || payloadUserId !== userId) { console.error(`[Bot Handler successful_payment] Sub Payload error/mismatch: ${payload}`); await ctx.reply("Subscription payment data error.").catch(logReplyError); return; }
-
+    
                 console.log(`[Bot Handler successful_payment] Processing SUBSCRIPTION payment for ${userId}: Plan=${plan}, Duration=${durationMonths}mo.`);
                 const { error: txError } = await supabaseAdmin.rpc('process_successful_payment', { user_tg_id: userId, plan_type: plan, duration_months: durationMonths });
                 if (txError) { console.error(`[Bot Handler successful_payment] RPC error for sub payment ${userId}:`, txError); throw new Error("DB update failed for subscription."); }
                 console.log(`[Bot Handler successful_payment] Subscription payment processed via RPC for ${userId}.`);
                 await ctx.reply(`Thank you! Your "${plan.toUpperCase()}" subscription is active/extended. ✨`).catch(logReplyError);
-
+    
             } else if (paymentType === 'deepanalysis' && parts.length >= 2) {
                 // --- Handling DEEP ANALYSIS payment ---
                 const payloadUserId = parseInt(parts[1], 10);
                  if (isNaN(payloadUserId) || payloadUserId !== userId) { console.error(`[Bot Handler successful_payment] Deep Analysis Payload error/mismatch: ${payload}`); await ctx.reply("Deep analysis payment data error.").catch(logReplyError); return; }
-
+    
                 console.log(`[Bot Handler successful_payment] Processing DEEP ANALYSIS payment for ${userId}.`);
                 // Log or record deep analysis purchase if needed
                  await ctx.reply("Thank you for the purchase! Deep analysis will be available in the app.").catch(logReplyError); // Optional reply
-
+    
             } else {
                 // Unknown payload format
                 console.error(`[Bot Handler successful_payment] Unknown or invalid payload format: ${payload} from user ${userId}`);
                 await ctx.reply("Received payment with unknown purpose.").catch(logReplyError);
             }
-
+    
         } catch (error) {
             console.error(`[Bot Handler successful_payment] Failed process payment for ${userId}:`, error);
             await ctx.reply("Your payment was received, but an error occurred during processing. Please contact support.").catch(logReplyError);
