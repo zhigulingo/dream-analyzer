@@ -41,6 +41,14 @@ try {
     bot.command("start", async (ctx) => {
         console.log("[Bot Handler /start] Command received.");
         const userId = ctx.from?.id; const chatId = ctx.chat.id;
+        // Extract startParam from /start command, if present
+        let startParam;
+        if (ctx.message && ctx.message.text) {
+            const parts = ctx.message.text.split(' ');
+            if (parts.length > 1) {
+                startParam = parts[1];
+            }
+        }
         if (!userId || !chatId) { console.warn("[Bot Handler /start] No user ID or chat ID."); return; }
         console.log(`[Bot Handler /start] User ${userId} in chat ${chatId}`);
         try {
@@ -49,24 +57,30 @@ try {
             
             // Deleting previous message
             if (userData.lastMessageId) { /* ... deletion logic unchanged ... */ }
-            // Determining text and buttons
-            let messageText, buttons;
+            // Determining text and button
+            let messageText, buttonText, buttonUrl;
             if (userData.claimed) {
                 messageText = "Welcome back! 👋 Analyze dreams or visit your Personal Account.";
-                buttons = [
-                  [{ text: "Personal Account", web_app: { url: TMA_URL } }],
-                  [{ text: "Send a Dream", callback_data: "send_dream" }]
-                ];
+                buttonText = "Personal Account";
+                buttonUrl = TMA_URL;
             } else if (startParam === 'weblogin') {
+                // Handle weblogin parameter with direct link to web app login
                 messageText = "🔐 Click the button below to log in to the web version.";
-                buttons = [[{ text: "Открыть веб-версию", web_app: { url: `${TMA_URL}/login` } }]];
+                buttonText = "Open Web Version";
+                buttonUrl = `${TMA_URL}/login`;
+                buttonText = "Открыть веб-версию";
+                buttonUrl = `${TMA_URL}/login`;
             } else {
-                messageText = `Hello! 👋 Dream Analyzer bot.\n\nPress the button to get your <b>first free token</b> for subscribing!`;
-                buttons = [[{ text: "🎁 Open and claim token", web_app: { url: `${TMA_URL}?action=claim_reward` } }]];
+                // Fixed: Using template literal for multi-line string
+                messageText = `Hello! 👋 Dream Analyzer bot.
+
+Press the button to get your <b>first free token</b> for subscribing!`;
+                buttonText = "🎁 Open and claim token";
+                    buttonUrl = `${TMA_URL}?action=claim_reward`; 
             }
             // Sending new message
             console.log(`[Bot Handler /start] Sending new message (Claimed: ${userData.claimed})`);
-            const sentMessage = await ctx.reply(messageText, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } });
+            const sentMessage = await ctx.reply(messageText, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: buttonText, web_app: { url: buttonUrl } }]] } });
             // Saving new message ID
             const { error: updateError } = await supabaseAdmin.from('users').update({ last_start_message_id: sentMessage.message_id }).eq('id', userData.id);
             if (updateError) console.error(`[Bot Handler /start] Failed update last_start_message_id:`, updateError);
@@ -75,12 +89,6 @@ try {
              console.error("[Bot Handler /start] CRITICAL Error (likely from getOrCreateUser):", e.message); // Log the specific error
              try { await ctx.reply(`An error occurred while fetching user data (${e.message}). Please try again later.`).catch(logReplyError); } catch {}
         }
-    });
-
-    // Handler for 'Send a Dream' button
-    bot.callbackQuery('send_dream', async (ctx) => {
-        await ctx.answerCallbackQuery();
-        await ctx.reply('Please send your dream description as a message. I will analyze it and reply with the results!');
     });
 
     // --- New Handler for /setpassword ---
