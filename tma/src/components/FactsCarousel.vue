@@ -8,10 +8,12 @@
         <span
           v-for="(fact, index) in facts"
           :key="`dot-${fact.id}`"
-          class="dot"
+          class="pagination-dot"
           :class="{ active: index === currentIndex }"
           @click="goToFact(index)"
-        ></span>
+        >
+          <span v-if="index === currentIndex" class="active-dot-bg"></span>
+        </span>
       </div>
       <!-- Контейнер для прогресс-бара (под пагинацией) -->
       <div class="progress-bar-container">
@@ -263,16 +265,44 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
+  gap: 12px;
   padding-bottom: 10px;
 }
-.dot {
-  height: 7px; width: 7px;
-  background-color: var(--tg-theme-hint-color);
-  border-radius: 50%; display: inline-block; margin: 0 4px;
-  cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;
+.pagination-dot {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.25;
+  transition: opacity 0.2s;
 }
-.dot:hover { transform: scale(1.2); }
-.dot.active { background-color: var(--tg-theme-button-color); }
+.pagination-dot.active {
+  opacity: 1;
+}
+.pagination-dot::before {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  z-index: 1;
+}
+.active-dot-bg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 16px;
+  border-radius: 16px;
+  background: #fff;
+  opacity: 0.1;
+  z-index: 0;
+}
 
 .progress-bar-container {
   width: 100%; height: 3px;
