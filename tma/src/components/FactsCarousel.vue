@@ -3,19 +3,20 @@
     <!-- Верхняя часть: Заголовок и Пагинация/Таймер -->
     <div class="carousel-header">
       <h2>💡 Знаете ли вы?</h2>
-      <!-- Pixel-perfect Figma pagination: always 5 dots -->
+      <!-- Figma-style pagination: 5 static dots, animated active dot -->
       <div :class="['pagination-container', themeClass]">
         <div class="pagination-inner">
-          <template v-for="(dot, i) in visibleDots" :key="i">
-            <div v-if="dot.type === 'active'" class="active-dot-frame" :style="{ left: dot.offset }">
-              <div class="active-dot-bg"></div>
-              <div class="active-dot-fg" :style="{ width: progressBarWidth + 'px', transition: progressBarTransition }"></div>
-            </div>
-            <div v-else-if="dot.type === 'small'" class="dot-frame">
-              <div class="dot small"></div>
-            </div>
-            <div v-else class="dot"></div>
-          </template>
+          <div v-for="i in 5" :key="i" class="dot-placeholder">
+            <div class="dot"></div>
+          </div>
+          <div
+            class="active-dot-frame absolute"
+            :style="activeDotStyle"
+            :class="{ fading: isFading }"
+          >
+            <div class="active-dot-bg"></div>
+            <div class="active-dot-fg" :style="{ width: progressBarWidth + 'px', transition: progressBarTransition }"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -85,54 +86,51 @@ const isWheeling = ref(false); // Флаг, что идет прокрутка �
 const theme = ref('dark'); // set to 'light' for blue theme
 const themeClass = computed(() => theme.value === 'light' ? 'light' : 'dark');
 
-// --- Pagination logic: always 5 dots, smooth transition ---
+// --- Pagination logic: 5 static dots, animated active dot ---
 const DOT_COUNT = 5;
-const getVisibleDots = computed(() => {
-  const total = facts.value.length;
-  const current = currentIndex.value;
-  let dots = [];
-  let first = 0;
-  if (total <= DOT_COUNT) {
-    for (let i = 0; i < total; i++) {
-      dots.push({ type: i === current ? 'active' : 'regular', offset: undefined });
-    }
-    while (dots.length < DOT_COUNT) dots.push({ type: 'regular', offset: undefined });
-  } else {
-    if (current <= 2) {
-      first = 0;
-    } else if (current >= total - 3) {
-      first = total - DOT_COUNT;
-    } else {
-      first = current - 2;
-    }
-    for (let i = 0; i < DOT_COUNT; i++) {
-      const idx = first + i;
-      let type = 'regular';
-      if (i === 0 && first > 0) type = 'small';
-      if (i === DOT_COUNT - 1 && idx < total - 1) type = 'small';
-      if (idx === current) type = 'active';
-      dots.push({ type, offset: undefined });
-    }
-  }
-  // For smooth transition: set offset for active dot
-  // (not used in this version, but can be used for left animation)
-  return dots;
-});
-const visibleDots = getVisibleDots;
-
-// --- Progress bar animation for active dot (Figma: 11px to 20px) ---
+const DOT_GAP = 6; // px
+const DOT_SIZE = 8; // px
 const ACTIVE_DOT_MIN_WIDTH = 11;
 const ACTIVE_DOT_MAX_WIDTH = 20;
+const DOT_TRACK_WIDTH = (DOT_COUNT - 1) * DOT_GAP + DOT_COUNT * DOT_SIZE;
+
+const getActiveDotIndex = computed(() => {
+  // Map currentIndex to 0..4 for visible dots
+  const total = facts.value.length;
+  const current = currentIndex.value;
+  if (total <= DOT_COUNT) return current;
+  if (current <= 2) return current;
+  if (current >= total - 3) return DOT_COUNT - (total - current);
+  return 2;
+});
+
+const activeDotStyle = computed(() => {
+  const idx = getActiveDotIndex.value;
+  const left = idx * (DOT_SIZE + DOT_GAP);
+  return {
+    left: left + 'px',
+    opacity: isFading.value ? 0 : 1,
+    transition: `left 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s`,
+  };
+});
+
+const isFading = ref(false);
+
+// --- Progress bar animation for active dot (Figma: 11px to 20px) ---
 const progressBarWidth = ref(ACTIVE_DOT_MIN_WIDTH);
 const progressBarTransition = ref('none');
 
-watch([currentIndex, progressKey], () => {
-  progressBarTransition.value = 'none';
-  progressBarWidth.value = ACTIVE_DOT_MIN_WIDTH;
+watch([currentIndex, progressKey], ([_newIdx, _newKey], [_oldIdx, _oldKey]) => {
+  isFading.value = true;
   setTimeout(() => {
-    progressBarTransition.value = `width ${autoAdvanceInterval.value}ms cubic-bezier(0.4,0,0.2,1)`;
-    progressBarWidth.value = ACTIVE_DOT_MAX_WIDTH;
-  }, 20);
+    isFading.value = false;
+    progressBarTransition.value = 'none';
+    progressBarWidth.value = ACTIVE_DOT_MIN_WIDTH;
+    setTimeout(() => {
+      progressBarTransition.value = `width ${autoAdvanceInterval.value}ms cubic-bezier(0.4,0,0.2,1)`;
+      progressBarWidth.value = ACTIVE_DOT_MAX_WIDTH;
+    }, 20);
+  }, 200);
 });
 
 // --- Методы навигации и таймера ---
@@ -335,19 +333,36 @@ onUnmounted(() => {
 .pagination-inner {
   display: flex;
   flex-direction: row;
-  gap: 6px;
+  gap: 0;
   align-items: center;
-}
-.active-dot-frame {
   position: relative;
-  width: 20px;
+  width: 56px; /* 5*8 + 4*6 */
   height: 8px;
-  border-radius: 8px;
+}
+.dot-placeholder {
+  width: 8px;
+  height: 8px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  overflow: hidden;
-  transition: left 0.3s cubic-bezier(0.4,0,0.2,1);
+  justify-content: center;
+  margin-right: 6px;
+}
+.dot-placeholder:last-child { margin-right: 0; }
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.25;
+  transition: background 0.3s, opacity 0.3s;
+}
+.pagination-container.light .dot {
+  background: #007AFF;
+}
+.active-dot-frame.absolute {
+  position: absolute;
+  top: 0;
+  z-index: 2;
 }
 .active-dot-bg {
   position: absolute;
@@ -369,33 +384,12 @@ onUnmounted(() => {
   width: 0;
 }
 .pagination-container.light .active-dot-bg,
-.pagination-container.light .active-dot-fg,
-.pagination-container.light .dot {
+.pagination-container.light .active-dot-fg {
   background: #007AFF;
 }
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #fff;
-  opacity: 0.25;
-  margin: 0;
-  transition: background 0.3s, opacity 0.3s;
-}
-.dot.small {
-  width: 6px;
-  height: 6px;
-  margin: 1px;
-}
-.dot-frame {
-  width: 8px;
-  height: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.pagination-container.light .dot {
-  background: #007AFF;
+.active-dot-frame.fading {
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
 .swipe-area {
