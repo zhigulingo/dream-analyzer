@@ -3,27 +3,23 @@
     <!-- Верхняя часть: Заголовок и Пагинация/Таймер -->
     <div class="carousel-header">
       <h2>💡 Знаете ли вы?</h2>
-      <!-- Пагинация точками теперь здесь для удобства -->
-      <div class="pagination-container">
+      <!-- Pixel-perfect Figma pagination -->
+      <div :class="['pagination-container', themeClass]">
         <div class="pagination-inner">
-          <template v-for="(fact, index) in facts">
-            <!-- Active dot as animated pill -->
-            <div v-if="index === currentIndex && index !== facts.length - 1" class="active-dot-frame">
+          <template v-for="(dot, i) in visibleDots" :key="i">
+            <!-- Animated (active) dot -->
+            <div v-if="dot.type === 'active'" class="active-dot-frame">
               <div class="active-dot-bg"></div>
               <div class="active-dot-fg" :style="{ width: progressBarWidth + 'px', transition: progressBarTransition }"></div>
             </div>
-            <!-- Last dot: small dot in 16x16 frame -->
-            <div v-else-if="index === facts.length - 1" class="dot-frame">
+            <!-- Small dot -->
+            <div v-else-if="dot.type === 'small'" class="dot-frame">
               <div class="dot small"></div>
             </div>
-            <!-- Inactive dots -->
+            <!-- Regular dot -->
             <div v-else class="dot"></div>
           </template>
         </div>
-      </div>
-      <!-- Контейнер для прогресс-бара (под пагинацией) -->
-      <div class="progress-bar-container">
-        <div class="progress-bar" :style="{ animationDuration: `${autoAdvanceInterval}ms` }" :key="progressKey"></div>
       </div>
     </div>
 
@@ -87,24 +83,63 @@ const isSwiping = ref(false); // Флаг, что свайп пальцем ак
 const swipeThreshold = 50; // Порог свайпа в пикселях для смены слайда
 const isWheeling = ref(false); // Флаг, что идет прокрутка колесом
 
-// --- Progress bar animation for active dot ---
-const ACTIVE_DOT_BG_WIDTH = 40;
-const ACTIVE_DOT_FG_MAX_WIDTH = 22;
-const ACTIVE_DOT_HEIGHT = 16;
-const DOT_SIZE = 16;
-const SMALL_DOT_SIZE = 12;
+// --- Theme support (dark/light/blue) ---
+// 'dark' (default), 'light' (blue)
+const theme = ref('dark'); // set to 'light' for blue theme
+const themeClass = computed(() => theme.value === 'light' ? 'light' : 'dark');
 
-const progressBarWidth = ref(0);
+// --- Pagination logic (pixel-perfect Figma) ---
+const MAX_VISIBLE = 6;
+const getVisibleDots = computed(() => {
+  const total = facts.value.length;
+  const current = currentIndex.value;
+  let dots = [];
+  if (total <= MAX_VISIBLE) {
+    for (let i = 0; i < total; i++) {
+      if (i === current) dots.push({ type: 'active' });
+      else if (i === 0 && total > MAX_VISIBLE) dots.push({ type: 'small' });
+      else if (i === total - 1 && total > 1) dots.push({ type: 'small' });
+      else dots.push({ type: 'regular' });
+    }
+  } else {
+    // More than 6: center logic
+    let start = 0;
+    let end = total;
+    if (current < 3) {
+      // At the start
+      start = 0;
+      end = MAX_VISIBLE;
+    } else if (current > total - 4) {
+      // At the end
+      start = total - MAX_VISIBLE;
+      end = total;
+    } else {
+      // In the middle
+      start = current - 2;
+      end = current + 3;
+    }
+    for (let i = start; i < end; i++) {
+      if (i === current) dots.push({ type: 'active' });
+      else if ((i === start && start !== 0) || (i === end - 1 && end !== total)) dots.push({ type: 'small' });
+      else dots.push({ type: 'regular' });
+    }
+  }
+  return dots;
+});
+const visibleDots = getVisibleDots;
+
+// --- Progress bar animation for active dot (Figma: 11px to 20px) ---
+const ACTIVE_DOT_MIN_WIDTH = 11;
+const ACTIVE_DOT_MAX_WIDTH = 20;
+const progressBarWidth = ref(ACTIVE_DOT_MIN_WIDTH);
 const progressBarTransition = ref('none');
 
 watch([currentIndex, progressKey], () => {
-  // Reset progress bar instantly
   progressBarTransition.value = 'none';
-  progressBarWidth.value = 0;
-  // Animate to full width
+  progressBarWidth.value = ACTIVE_DOT_MIN_WIDTH;
   setTimeout(() => {
     progressBarTransition.value = `width ${autoAdvanceInterval.value}ms linear`;
-    progressBarWidth.value = ACTIVE_DOT_FG_MAX_WIDTH;
+    progressBarWidth.value = ACTIVE_DOT_MAX_WIDTH;
   }, 20);
 });
 
@@ -292,25 +327,30 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 16px 18px;
-  border-radius: 56px;
-  background: rgba(255,255,255,0.25);
-  backdrop-filter: blur(88px);
-  -webkit-backdrop-filter: blur(88px);
+  padding: 8px 9px;
+  border-radius: 28px;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(44px);
+  -webkit-backdrop-filter: blur(44px);
   width: fit-content;
   margin: 0 auto 10px auto;
+}
+.pagination-container.light {
+  background: rgba(255,255,255,1);
+  border: 1px solid #E5E5EA;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 .pagination-inner {
   display: flex;
   flex-direction: row;
-  gap: 12px;
+  gap: 6px;
   align-items: center;
 }
 .active-dot-frame {
   position: relative;
-  width: 40px;
-  height: 16px;
-  border-radius: 16px;
+  width: 20px;
+  height: 8px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -319,9 +359,9 @@ onUnmounted(() => {
 .active-dot-bg {
   position: absolute;
   left: 0; top: 0;
-  width: 40px;
-  height: 16px;
-  border-radius: 16px;
+  width: 20px;
+  height: 8px;
+  border-radius: 8px;
   background: #fff;
   opacity: 0.1;
   z-index: 0;
@@ -329,51 +369,39 @@ onUnmounted(() => {
 .active-dot-fg {
   position: absolute;
   left: 0; top: 0;
-  height: 16px;
-  border-radius: 16px;
+  height: 8px;
+  border-radius: 8px;
   background: #fff;
   z-index: 1;
   width: 0;
 }
+.pagination-container.light .active-dot-bg,
+.pagination-container.light .active-dot-fg,
+.pagination-container.light .dot {
+  background: #007AFF;
+}
 .dot {
-  width: 16px;
-  height: 16px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #fff;
   opacity: 0.25;
   margin: 0;
 }
 .dot.small {
-  width: 12px;
-  height: 12px;
-  margin: 2px;
+  width: 6px;
+  height: 6px;
+  margin: 1px;
 }
 .dot-frame {
-  width: 16px;
-  height: 16px;
+  width: 8px;
+  height: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
-.progress-bar-container {
-  width: 100%; height: 3px;
-  background-color: var(--tg-theme-hint-color);
-  border-radius: 1.5px; overflow: hidden;
-  margin-top: 5px;
-}
-.progress-bar {
-  height: 100%; width: 100%;
-  background-color: var(--tg-theme-button-color);
-  border-radius: 1.5px;
-  transform: translateX(-100%);
-  animation-name: progressAnimation;
-  animation-timing-function: linear;
-  animation-fill-mode: forwards;
-}
-@keyframes progressAnimation {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0%); }
+.pagination-container.light .dot {
+  background: #007AFF;
 }
 
 .swipe-area {
