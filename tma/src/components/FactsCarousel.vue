@@ -3,20 +3,17 @@
     <!-- Верхняя часть: Заголовок и Пагинация/Таймер -->
     <div class="carousel-header">
       <h2>💡 Знаете ли вы?</h2>
-      <!-- Pixel-perfect Figma pagination -->
+      <!-- Pixel-perfect Figma pagination: always 5 dots -->
       <div :class="['pagination-container', themeClass]">
         <div class="pagination-inner">
           <template v-for="(dot, i) in visibleDots" :key="i">
-            <!-- Animated (active) dot -->
-            <div v-if="dot.type === 'active'" class="active-dot-frame">
+            <div v-if="dot.type === 'active'" class="active-dot-frame" :style="{ left: dot.offset }">
               <div class="active-dot-bg"></div>
               <div class="active-dot-fg" :style="{ width: progressBarWidth + 'px', transition: progressBarTransition }"></div>
             </div>
-            <!-- Small dot -->
             <div v-else-if="dot.type === 'small'" class="dot-frame">
               <div class="dot small"></div>
             </div>
-            <!-- Regular dot -->
             <div v-else class="dot"></div>
           </template>
         </div>
@@ -40,9 +37,9 @@
           v-for="(fact, index) in facts"
           :key="fact.id"
           :id="`fact-card-${index}`"
-          class="fact-card"
+          class="fact-card-fancy"
         >
-          <p>{{ fact.text }}</p>
+          <p class="fact-card-text">{{ fact.text }}</p>
         </div>
       </div>
     </div>
@@ -88,42 +85,37 @@ const isWheeling = ref(false); // Флаг, что идет прокрутка �
 const theme = ref('dark'); // set to 'light' for blue theme
 const themeClass = computed(() => theme.value === 'light' ? 'light' : 'dark');
 
-// --- Pagination logic (pixel-perfect Figma) ---
-const MAX_VISIBLE = 6;
+// --- Pagination logic: always 5 dots, smooth transition ---
+const DOT_COUNT = 5;
 const getVisibleDots = computed(() => {
   const total = facts.value.length;
   const current = currentIndex.value;
   let dots = [];
-  if (total <= MAX_VISIBLE) {
+  let first = 0;
+  if (total <= DOT_COUNT) {
     for (let i = 0; i < total; i++) {
-      if (i === current) dots.push({ type: 'active' });
-      else if (i === 0 && total > MAX_VISIBLE) dots.push({ type: 'small' });
-      else if (i === total - 1 && total > 1) dots.push({ type: 'small' });
-      else dots.push({ type: 'regular' });
+      dots.push({ type: i === current ? 'active' : 'regular', offset: undefined });
     }
+    while (dots.length < DOT_COUNT) dots.push({ type: 'regular', offset: undefined });
   } else {
-    // More than 6: center logic
-    let start = 0;
-    let end = total;
-    if (current < 3) {
-      // At the start
-      start = 0;
-      end = MAX_VISIBLE;
-    } else if (current > total - 4) {
-      // At the end
-      start = total - MAX_VISIBLE;
-      end = total;
+    if (current <= 2) {
+      first = 0;
+    } else if (current >= total - 3) {
+      first = total - DOT_COUNT;
     } else {
-      // In the middle
-      start = current - 2;
-      end = current + 3;
+      first = current - 2;
     }
-    for (let i = start; i < end; i++) {
-      if (i === current) dots.push({ type: 'active' });
-      else if ((i === start && start !== 0) || (i === end - 1 && end !== total)) dots.push({ type: 'small' });
-      else dots.push({ type: 'regular' });
+    for (let i = 0; i < DOT_COUNT; i++) {
+      const idx = first + i;
+      let type = 'regular';
+      if (i === 0 && first > 0) type = 'small';
+      if (i === DOT_COUNT - 1 && idx < total - 1) type = 'small';
+      if (idx === current) type = 'active';
+      dots.push({ type, offset: undefined });
     }
   }
+  // For smooth transition: set offset for active dot
+  // (not used in this version, but can be used for left animation)
   return dots;
 });
 const visibleDots = getVisibleDots;
@@ -138,7 +130,7 @@ watch([currentIndex, progressKey], () => {
   progressBarTransition.value = 'none';
   progressBarWidth.value = ACTIVE_DOT_MIN_WIDTH;
   setTimeout(() => {
-    progressBarTransition.value = `width ${autoAdvanceInterval.value}ms linear`;
+    progressBarTransition.value = `width ${autoAdvanceInterval.value}ms cubic-bezier(0.4,0,0.2,1)`;
     progressBarWidth.value = ACTIVE_DOT_MAX_WIDTH;
   }, 20);
 });
@@ -264,7 +256,7 @@ const updateCurrentIndexFromScroll = () => {
     let minDistance = Infinity;
 
     // Проходим по всем карточкам, чтобы найти ближайшую к центру
-    const cards = container.querySelectorAll('.fact-card');
+    const cards = container.querySelectorAll('.fact-card-fancy');
     cards.forEach((card, index) => {
         const cardCenter = card.offsetLeft - container.offsetLeft + card.offsetWidth / 2;
         const containerCenter = scrollLeft + containerWidth / 2;
@@ -306,14 +298,14 @@ onUnmounted(() => {
   padding: 0;
   overflow: hidden;
   position: relative;
-  background-color: var(--tg-theme-secondary-bg-color);
-  border-radius: 8px;
+  background: none;
+  border-radius: 0;
 }
 
 .carousel-header {
   padding: 15px 15px 5px 15px;
   position: relative;
-  background-color: var(--tg-theme-secondary-bg-color);
+  background: none;
   z-index: 10;
 }
 .carousel-header h2 {
@@ -355,6 +347,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: flex-start;
   overflow: hidden;
+  transition: left 0.3s cubic-bezier(0.4,0,0.2,1);
 }
 .active-dot-bg {
   position: absolute;
@@ -387,6 +380,7 @@ onUnmounted(() => {
   background: #fff;
   opacity: 0.25;
   margin: 0;
+  transition: background 0.3s, opacity 0.3s;
 }
 .dot.small {
   width: 6px;
@@ -429,7 +423,7 @@ onUnmounted(() => {
   padding-right: calc((100% - var(--card-width-percent)) / 2);
 }
 
-.fact-card {
+.fact-card-fancy {
   flex-shrink: 0;
   width: var(--card-width-percent); /* Используем переменную */
   min-height: 80px;
@@ -447,7 +441,7 @@ onUnmounted(() => {
   scroll-snap-align: center; /* Привязка к центру */
 }
 
-.fact-card p {
+.fact-card-text {
   margin: 0;
   font-size: 0.9em;
   line-height: 1.5;
@@ -458,7 +452,7 @@ onUnmounted(() => {
   .facts-wrapper {
     --card-width-percent: 85%; /* Делаем карточки шире на маленьких экранах */
   }
-  .fact-card {
+  .fact-card-fancy {
      margin: 0 4px; /* Уменьшаем отступ */
   }
 }
