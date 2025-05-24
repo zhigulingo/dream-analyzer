@@ -4,16 +4,22 @@
     <div class="carousel-header">
       <h2>💡 Знаете ли вы?</h2>
       <!-- Пагинация точками теперь здесь для удобства -->
-      <div class="pagination">
-        <span
-          v-for="(fact, index) in facts"
-          :key="`dot-${fact.id}`"
-          class="pagination-dot"
-          :class="{ active: index === currentIndex }"
-          @click="goToFact(index)"
-        >
-          <span v-if="index === currentIndex" class="active-dot-bg"></span>
-        </span>
+      <div class="pagination-container">
+        <div class="pagination-inner">
+          <template v-for="(fact, index) in facts">
+            <!-- Active dot as animated pill -->
+            <div v-if="index === currentIndex && index !== facts.length - 1" class="active-dot-frame">
+              <div class="active-dot-bg"></div>
+              <div class="active-dot-fg" :style="{ width: progressBarWidth + 'px', transition: progressBarTransition }"></div>
+            </div>
+            <!-- Last dot: small dot in 16x16 frame -->
+            <div v-else-if="index === facts.length - 1" class="dot-frame">
+              <div class="dot small"></div>
+            </div>
+            <!-- Inactive dots -->
+            <div v-else class="dot"></div>
+          </template>
+        </div>
       </div>
       <!-- Контейнер для прогресс-бара (под пагинацией) -->
       <div class="progress-bar-container">
@@ -51,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue';
 
 // --- Данные фактов ---
 const facts = ref([
@@ -80,6 +86,27 @@ const touchCurrentX = ref(0);
 const isSwiping = ref(false); // Флаг, что свайп пальцем активен
 const swipeThreshold = 50; // Порог свайпа в пикселях для смены слайда
 const isWheeling = ref(false); // Флаг, что идет прокрутка колесом
+
+// --- Progress bar animation for active dot ---
+const ACTIVE_DOT_BG_WIDTH = 40;
+const ACTIVE_DOT_FG_MAX_WIDTH = 22;
+const ACTIVE_DOT_HEIGHT = 16;
+const DOT_SIZE = 16;
+const SMALL_DOT_SIZE = 12;
+
+const progressBarWidth = ref(0);
+const progressBarTransition = ref('none');
+
+watch([currentIndex, progressKey], () => {
+  // Reset progress bar instantly
+  progressBarTransition.value = 'none';
+  progressBarWidth.value = 0;
+  // Animate to full width
+  setTimeout(() => {
+    progressBarTransition.value = `width ${autoAdvanceInterval.value}ms linear`;
+    progressBarWidth.value = ACTIVE_DOT_FG_MAX_WIDTH;
+  }, 20);
+});
 
 // --- Методы навигации и таймера ---
 const goToFact = async (index) => {
@@ -261,47 +288,72 @@ onUnmounted(() => {
   color: var(--tg-theme-text-color);
 }
 
-.pagination {
+.pagination-container {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 16px 18px;
+  border-radius: 56px;
+  background: rgba(255,255,255,0.25);
+  backdrop-filter: blur(88px);
+  -webkit-backdrop-filter: blur(88px);
+  width: fit-content;
+  margin: 0 auto 10px auto;
+}
+.pagination-inner {
+  display: flex;
+  flex-direction: row;
   gap: 12px;
-  padding-bottom: 10px;
+  align-items: center;
 }
-.pagination-dot {
+.active-dot-frame {
   position: relative;
-  width: 16px;
+  width: 40px;
   height: 16px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0.25;
-  transition: opacity 0.2s;
-}
-.pagination-dot.active {
-  opacity: 1;
-}
-.pagination-dot::before {
-  content: '';
-  display: block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #fff;
-  z-index: 1;
+  justify-content: flex-start;
+  overflow: hidden;
 }
 .active-dot-bg {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  left: 0; top: 0;
   width: 40px;
   height: 16px;
   border-radius: 16px;
   background: #fff;
   opacity: 0.1;
   z-index: 0;
+}
+.active-dot-fg {
+  position: absolute;
+  left: 0; top: 0;
+  height: 16px;
+  border-radius: 16px;
+  background: #fff;
+  z-index: 1;
+  width: 0;
+}
+.dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.25;
+  margin: 0;
+}
+.dot.small {
+  width: 12px;
+  height: 12px;
+  margin: 2px;
+}
+.dot-frame {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .progress-bar-container {
