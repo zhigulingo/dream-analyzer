@@ -95,16 +95,15 @@
     <!-- "Отдельная страница" для получения награды -->
     <template v-else>
        <div class="reward-claim-view card">
-           <h1>🎁 Бесплатный токен за подписку</h1>
-           <p>Чтобы получить 1 токен для анализа вашего первого сна, пожалуйста, выполните два простых шага:</p>
-            <ol class="steps">
-                <li><span>1. Подпишитесь на наш канал в Telegram:</span><a href="https://t.me/TheDreamsHub" target="_blank" rel="noopener noreferrer" class="subscribe-button">Перейти и подписаться на @TheDreamsHub</a><span class="hint">(Откроется в Telegram, затем вернитесь сюда)</span></li>
-                <li><span>2. Нажмите кнопку ниже, чтобы мы проверили подписку:</span><button @click="handleClaimRewardClick" :disabled="userStore.isClaimingReward" class="claim-button"><span v-if="userStore.isClaimingReward">Проверяем подписку... <span class="spinner"></span></span><span v-else>Я подписался, проверить и получить токен</span></button></li>
-            </ol>
-            <p v-if="userStore.claimRewardSuccessMessage" class="success-message">✅ {{ userStore.claimRewardSuccessMessage }} Токен добавлен к вашему балансу.<button @click="goBackToAccount" class="back-button">Вернуться в ЛК</button></p>
-            <p v-if="userStore.claimRewardError && !userStore.claimRewardSuccessMessage" class="error-message">⚠️ {{ userStore.claimRewardError }}</p>
-            <p v-if="userStore.userCheckedSubscription && userStore.claimRewardError?.includes('Подписка на канал не найдена')" class="info-message">Пожалуйста, убедитесь, что вы подписаны на канал <a href="https://t.me/TheDreamsHub" target="_blank">@TheDreamsHub</a>, и попробуйте проверить снова.</p>
-            <button v-if="!userStore.claimRewardSuccessMessage && !userStore.claimRewardError" @click="goBackToAccount" class="back-button secondary">Назад в Личный кабинет</button>
+           <div class="reward-claim-content">
+               <div class="emoji-container">
+                   <img src="/images/telegram_emoji.png" alt="Telegram Emoji" class="telegram-emoji" />
+               </div>
+               <div class="text-container">
+                   <p class="reward-title">Получи первый токен для анализа сна за подписку на канал</p>
+                   <p class="channel-name">@TheDreamsHub</p>
+               </div>
+           </div>
        </div>
     </template>
 
@@ -154,6 +153,22 @@ onMounted(async () => {
 
         // --- НАЧАЛО ИНТЕГРАЦИИ ЛОГИКИ РАЗМЕРА И ПОВЕДЕНИЯ ---
         const isMobile = isMobileDevice(); // Определяем тип устройства
+
+        // Setup MainButton for reward claim view
+        if (showRewardClaimView.value) {
+            if (typeof tg.MainButton?.show === 'function') {
+                tg.MainButton.text = "Перейти и подписаться";
+                tg.MainButton.show();
+                tg.MainButton.onClick(() => {
+                    if (tg.MainButton.text === "Перейти и подписаться") {
+                        window.open('https://t.me/TheDreamsHub', '_blank');
+                        tg.MainButton.text = "Получить токен";
+                    } else {
+                        handleClaimRewardClick();
+                    }
+                });
+            }
+        }
 
         // 1. Управление размером окна
         if (isMobile) {
@@ -242,6 +257,19 @@ watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
     setTimeout(() => { if (showRewardClaimView.value) { goBackToAccount(); } }, 3500);
   }
 });
+
+// Add watch for showRewardClaimView to handle MainButton visibility
+watch(showRewardClaimView, (newValue) => {
+    if (tg && typeof tg.MainButton?.show === 'function') {
+        if (newValue) {
+            tg.MainButton.text = "Перейти и подписаться";
+            tg.MainButton.show();
+        } else {
+            tg.MainButton.hide();
+        }
+    }
+});
+
 </script>
 
 <style scoped>
@@ -313,16 +341,55 @@ button:hover:not(:disabled), a.subscribe-button:hover {
 .subscribe-button-main { background-color: var(--tg-theme-link-color); color: white; margin-top: 15px; display: block; width: 100%; }
 .reward-claimed-info p { color: #198754; font-weight: 500; margin-top: 15px; padding: 8px; background-color: rgba(25, 135, 84, 0.1); border-radius: 4px; text-align: center; }
 .history { /* ... */ }
-.reward-claim-view { text-align: center; }
-.reward-claim-view h1 { font-size: 1.4em; margin-bottom: 15px; }
-.reward-claim-view p { text-align: left; margin-bottom: 20px; }
-.steps { list-style: none; padding-left: 0; margin-top: 20px; text-align: left; }
-.steps li { margin-bottom: 25px; }
-.steps li span:first-child { display: block; margin-bottom: 8px; font-weight: 500; }
-.subscribe-button { background-color: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); width: 100%; margin-bottom: 5px; }
-.claim-button { background-color: #28a745; color: white; width: 100%; }
-.back-button { margin-top: 20px; background-color: var(--tg-theme-secondary-bg-color); color: var(--tg-theme-link-color); border: 1px solid var(--tg-theme-hint-color); }
-.back-button.secondary { background-color: transparent; }
+.reward-claim-view {
+    text-align: center;
+    background: var(--tg-theme-secondary-bg-color);
+    border-radius: 60px;
+    padding: 0;
+    margin: 15px;
+    overflow: hidden;
+}
+
+.reward-claim-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    gap: 30px;
+}
+
+.emoji-container {
+    width: 120px;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.telegram-emoji {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.text-container {
+    text-align: center;
+}
+
+.reward-title {
+    font-size: 24px;
+    line-height: 1.2;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+.channel-name {
+    font-size: 24px;
+    color: var(--tg-theme-text-color);
+    margin: 0;
+    font-weight: 500;
+}
 .spinner { display: inline-block; border: 2px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; width: 1em; height: 1em; animation: spin 1s ease-in-out infinite; margin-left: 8px; vertical-align: -0.15em; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .deep-analysis { /* Стили для карточки глубокого анализа */ }
