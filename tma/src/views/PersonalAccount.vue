@@ -23,21 +23,21 @@
               v-if="userStore.profile.subscription_type !== 'free' || userStore.profile.channel_reward_claimed"
               @click="userStore.openSubscriptionModal"
               class="change-plan-button">
-            Сменить тариф <!-- Ваш текст -->
+            Сменить тариф
           </button>
-           <button
-                v-else-if="userStore.profile.subscription_type === 'free' && !userStore.profile.channel_reward_claimed"
-                @click="showRewardClaimView = true"
-                class="subscribe-button-main">
-                🎁 Получить бесплатный токен за подписку
-           </button>
+          <button
+              v-else-if="userStore.profile.subscription_type === 'free' && !userStore.profile.channel_reward_claimed && !isClaimRewardAction"
+              @click="showRewardClaimView = true"
+              class="subscribe-button-main">
+              🎁 Получить бесплатный токен за подписку
+          </button>
+          <div v-if="userStore.profile.channel_reward_claimed" class="reward-claimed-info">
+            <p>✅ Награда за подписку на канал получена!</p>
+          </div>
         </div>
         <div v-else>
           <p>Не удалось загрузить данные профиля.</p>
         </div>
-         <div v-if="!userStore.isLoadingProfile && userStore.profile?.channel_reward_claimed" class="reward-claimed-info">
-             <p>✅ Награда за подписку на канал получена!</p>
-         </div>
       </section>
 
       <!-- Блок 2: История анализов -->
@@ -94,7 +94,7 @@
 
     <!-- "Отдельная страница" для получения награды -->
     <template v-else>
-       <div class="reward-claim-view">
+       <div class="reward-claim-view" @click.self="goBackToAccount">
            <div class="reward-claim-content">
                <div class="reward-claim-card">
                    <div class="emoji-container" ref="lottieContainer"></div>
@@ -124,6 +124,11 @@ const showRewardClaimView = ref(false);
 const REQUIRED_DREAMS = 5;
 const lottieContainer = ref(null);
 let lottieAnimation = null;
+
+const isClaimRewardAction = computed(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('action') === 'claim_reward';
+});
 
 const loadLottieAnimation = async (container) => {
     if (!container) return;
@@ -155,10 +160,20 @@ const loadLottieAnimation = async (container) => {
 };
 
 const goBackToAccount = () => {
-    showRewardClaimView.value = false;
-    userStore.claimRewardError = null;
-    userStore.claimRewardSuccessMessage = null;
-    userStore.userCheckedSubscription = false;
+    if (userStore.profile.channel_reward_claimed) {
+        showRewardClaimView.value = false;
+        if (tg?.MainButton?.hide) {
+            tg.MainButton.hide();
+            tg.MainButton.offClick();
+        }
+    } else if (!userStore.claimRewardError) {
+        // Only go back if there's no error and token hasn't been claimed
+        showRewardClaimView.value = false;
+        if (tg?.MainButton?.hide) {
+            tg.MainButton.hide();
+            tg.MainButton.offClick();
+        }
+    }
     userStore.fetchProfile();
     userStore.fetchHistory();
 };
@@ -173,11 +188,9 @@ const isMobileDevice = () => {
 // --- КОНЕЦ НОВОЙ ФУНКЦИИ ---
 
 onMounted(async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isClaimRewardAction = urlParams.get('action') === 'claim_reward';
-    showRewardClaimView.value = isClaimRewardAction;
+    showRewardClaimView.value = isClaimRewardAction.value && !userStore.profile.channel_reward_claimed;
 
-    console.log(`[PersonalAccount onMounted] Initial view: ${isClaimRewardAction ? 'Reward Claim' : 'Main Account'}`);
+    console.log(`[PersonalAccount onMounted] Initial view: ${showRewardClaimView.value ? 'Reward Claim' : 'Main Account'}`);
 
     if (tg) {
         tg.ready();
@@ -201,7 +214,10 @@ onMounted(async () => {
                         window.open('https://t.me/TheDreamsHub', '_blank');
                         tg.MainButton.text = "Получить токен";
                     } else {
-                        handleClaimRewardClick();
+                        handleClaimRewardClick().then(() => {
+                            // Token claim is handled by the watch above
+                            console.log("[PersonalAccount] Token claim initiated");
+                        });
                     }
                 });
             }
@@ -306,22 +322,38 @@ onUnmounted(() => {
 
 const formatDate = (dateString) => { if (!dateString) return ''; try { return new Date(dateString).toLocaleDateString(); } catch (e) { return dateString; } };
 
+// Watch for successful token claim
 watch(() => userStore.profile.channel_reward_claimed, (newValue, oldValue) => {
-  if (newValue === true && oldValue === false && showRewardClaimView.value) {
-    console.log("[PersonalAccount] Reward claimed successfully, auto-returning to account view soon.");
-    setTimeout(() => { if (showRewardClaimView.value) { goBackToAccount(); } }, 3500);
-  }
+    if (newValue === true && oldValue === false && showRewardClaimView.value) {
+        console.log("[PersonalAccount] Reward claimed successfully, returning to account view");
+        goBackToAccount();
+    }
 });
 
-// Add watch for showRewardClaimView to handle MainButton visibility
+// Watch for reward view to handle MainButton
 watch(showRewardClaimView, (newValue) => {
-    if (tg && typeof tg.MainButton?.show === 'function') {
-        if (newValue) {
+    if (!tg || typeof tg.MainButton?.show !== 'function') return;
+
+    if (newValue) {
+        // Set up MainButton for reward claim view
+        if (!userStore.profile.channel_reward_claimed) {
             tg.MainButton.text = "Перейти и подписаться";
             tg.MainButton.show();
-        } else {
-            tg.MainButton.hide();
+            tg.MainButton.onClick(() => {
+                if (tg.MainButton.text === "Перейти и подписаться") {
+                    window.open('https://t.me/TheDreamsHub', '_blank');
+                    tg.MainButton.text = "Получить токен";
+                } else {
+                    handleClaimRewardClick().then(() => {
+                        // Token claim is handled by the watch above
+                        console.log("[PersonalAccount] Token claim initiated");
+                    });
+                }
+            });
         }
+    } else {
+        tg.MainButton.hide();
+        tg.MainButton.offClick();
     }
 });
 
@@ -404,7 +436,9 @@ button:hover:not(:disabled), a.subscribe-button:hover {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: var(--tg-theme-bg-color);
+    background: rgba(0, 0, 0, 0.1); /* 10% opacity */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     z-index: 1000;
 }
 
