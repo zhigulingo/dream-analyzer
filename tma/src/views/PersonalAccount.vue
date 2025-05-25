@@ -97,9 +97,7 @@
        <div class="reward-claim-view">
            <div class="reward-claim-content">
                <div class="reward-claim-card">
-                   <div class="emoji-container">
-                       <img src="tg://sticker?id=CAACAgIAAxkBAAEOkc9oMwENFzGVmHxoHaKJoJZLvq62fAACGHsAAhTomUl1_xK_xspyojYE" alt="Telegram Sticker" class="telegram-sticker" />
-                   </div>
+                   <div class="emoji-container" ref="stickerContainer"></div>
                    <div class="text-container">
                        <p class="reward-title">Получи первый токен для анализа сна за подписку на канал</p>
                        <p class="channel-name">@TheDreamsHub</p>
@@ -153,14 +151,18 @@ onMounted(async () => {
         tg.ready();
         console.log("[PersonalAccount] Telegram WebApp is ready.");
 
-        // Add emoji using Telegram's WebApp API
-        if (showRewardClaimView.value && typeof tg.WebApp?.insertEmoji === 'function') {
-            const emojiElement = document.getElementById('telegram-emoji');
-            if (emojiElement) {
-                tg.WebApp.insertEmoji({
-                    element: emojiElement,
-                    emoji_id: '5952066863931331270'
-                });
+        // Add sticker using Telegram's WebApp API
+        if (showRewardClaimView.value) {
+            const stickerContainer = document.querySelector('.emoji-container');
+            if (stickerContainer && typeof tg.WebApp?.showSticker === 'function') {
+                try {
+                    tg.WebApp.showSticker({
+                        sticker: 'CAACAgIAAxkBAAEOkc9oMwENFzGVmHxoHaKJoJZLvq62fAACGHsAAhTomUl1_xK_xspyojYE',
+                        container: stickerContainer
+                    });
+                } catch (error) {
+                    console.error('Error displaying sticker:', error);
+                }
             }
         }
 
@@ -355,21 +357,23 @@ button:hover:not(:disabled), a.subscribe-button:hover {
 .reward-claimed-info p { color: #198754; font-weight: 500; margin-top: 15px; padding: 8px; background-color: rgba(25, 135, 84, 0.1); border-radius: 4px; text-align: center; }
 .history { /* ... */ }
 .reward-claim-view {
+    position: fixed;
+    inset: 0;
     width: 100%;
-    min-height: 100vh;
-    margin: 0 auto;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 16px;
-    box-sizing: border-box;
+    background: var(--tg-theme-bg-color);
+    z-index: 1000;
 }
 
 .reward-claim-content {
     width: 100%;
     max-width: 400px;
+    padding: 16px;
+    box-sizing: border-box;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
 }
@@ -379,19 +383,21 @@ button:hover:not(:disabled), a.subscribe-button:hover {
     max-width: 284.18px;
     background: #5F66B7;
     border-radius: 15.31px;
-    padding: calc(15px + 5vw) 20px;
+    padding: min(117.34px, 20vh) 30.87px min(41.58px, 10vh);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 18.88px;
+    gap: min(18.88px, 3vh);
 }
 
 .emoji-container {
-    width: min(130.61px, 30vw);
-    height: min(130.61px, 30vw);
+    width: min(130.61px, 25vh);
+    height: min(130.61px, 25vh);
     display: flex;
     justify-content: center;
     align-items: center;
+    margin-bottom: min(18.88px, 3vh);
+    background: transparent;
 }
 
 .telegram-sticker {
