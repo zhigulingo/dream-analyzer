@@ -125,6 +125,35 @@ const REQUIRED_DREAMS = 5;
 const lottieContainer = ref(null);
 let lottieAnimation = null;
 
+const loadLottieAnimation = async (container) => {
+    if (!container) return;
+    
+    try {
+        console.log("[PersonalAccount] Loading Lottie animation...");
+        const response = await fetch('/Telegram%20Star.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const animationData = await response.json();
+        
+        if (lottieAnimation) {
+            lottieAnimation.destroy();
+        }
+        
+        lottieAnimation = lottie.loadAnimation({
+            container: container,
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            animationData: animationData
+        });
+
+        console.log("[PersonalAccount] Lottie animation loaded successfully");
+    } catch (error) {
+        console.error('[PersonalAccount] Error loading Lottie animation:', error);
+    }
+};
+
 const goBackToAccount = () => {
     showRewardClaimView.value = false;
     userStore.claimRewardError = null;
@@ -156,26 +185,7 @@ onMounted(async () => {
 
         // Initialize Lottie animation if in reward claim view
         if (showRewardClaimView.value && lottieContainer.value) {
-            try {
-                console.log("[PersonalAccount] Loading Lottie animation...");
-                const response = await fetch('/Telegram Star.json');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const animationData = await response.json();
-                
-                lottieAnimation = lottie.loadAnimation({
-                    container: lottieContainer.value,
-                    renderer: 'svg',
-                    loop: true,
-                    autoplay: true,
-                    animationData: animationData
-                });
-
-                console.log("[PersonalAccount] Lottie animation loaded successfully");
-            } catch (error) {
-                console.error('[PersonalAccount] Error loading Lottie animation:', error);
-            }
+            await loadLottieAnimation(lottieContainer.value);
         }
 
         // --- НАЧАЛО ИНТЕГРАЦИИ ЛОГИКИ РАЗМЕРА И ПОВЕДЕНИЯ ---
@@ -277,29 +287,10 @@ onMounted(async () => {
 });
 
 // Watch for changes in showRewardClaimView
-watch(showRewardClaimView, async (newValue) => {
-    if (newValue && lottieContainer.value && !lottieAnimation) {
-        try {
-            console.log("[PersonalAccount] Loading Lottie animation after view change...");
-            const response = await fetch('/Telegram Star.json');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const animationData = await response.json();
-            
-            lottieAnimation = lottie.loadAnimation({
-                container: lottieContainer.value,
-                renderer: 'svg',
-                loop: true,
-                autoplay: true,
-                animationData: animationData
-            });
-
-            console.log("[PersonalAccount] Lottie animation loaded successfully after view change");
-        } catch (error) {
-            console.error('[PersonalAccount] Error loading Lottie animation after view change:', error);
-        }
-    } else if (!newValue && lottieAnimation) {
+watch([showRewardClaimView, lottieContainer], async ([newShowReward, newContainer]) => {
+    if (newShowReward && newContainer && !lottieAnimation) {
+        await loadLottieAnimation(newContainer);
+    } else if (!newShowReward && lottieAnimation) {
         lottieAnimation.destroy();
         lottieAnimation = null;
     }
