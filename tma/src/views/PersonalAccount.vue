@@ -97,7 +97,7 @@
        <div class="reward-claim-view card">
            <div class="reward-claim-content">
                <div class="emoji-container">
-                   <img src="/images/telegram_emoji.png" alt="Telegram Emoji" class="telegram-emoji" />
+                   <span class="telegram-emoji">{{ String.fromCodePoint(5952066863931331270) }}</span>
                </div>
                <div class="text-container">
                    <p class="reward-title">Получи первый токен для анализа сна за подписку на канал</p>
@@ -364,12 +364,11 @@ button:hover:not(:disabled), a.subscribe-button:hover {
     display: flex;
     justify-content: center;
     align-items: center;
+    font-size: 80px; /* Adjust the size of the emoji */
 }
 
 .telegram-emoji {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+    line-height: 1;
 }
 
 .text-container {
