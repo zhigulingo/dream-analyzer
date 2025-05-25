@@ -94,14 +94,16 @@
 
     <!-- "Отдельная страница" для получения награды -->
     <template v-else>
-       <div class="reward-claim-view card">
+       <div class="reward-claim-view">
            <div class="reward-claim-content">
-               <div class="emoji-container">
-                   <span class="telegram-emoji">{{ String.fromCodePoint(5952066863931331270) }}</span>
-               </div>
-               <div class="text-container">
-                   <p class="reward-title">Получи первый токен для анализа сна за подписку на канал</p>
-                   <p class="channel-name">@TheDreamsHub</p>
+               <div class="reward-claim-card">
+                   <div class="emoji-container">
+                       <span class="telegram-emoji">{{ String.fromCodePoint(5952066863931331270) }}</span>
+                   </div>
+                   <div class="text-container">
+                       <p class="reward-title">Получи первый токен для анализа сна за подписку на канал</p>
+                       <p class="channel-name">@TheDreamsHub</p>
+                   </div>
                </div>
            </div>
        </div>
@@ -342,52 +344,69 @@ button:hover:not(:disabled), a.subscribe-button:hover {
 .reward-claimed-info p { color: #198754; font-weight: 500; margin-top: 15px; padding: 8px; background-color: rgba(25, 135, 84, 0.1); border-radius: 4px; text-align: center; }
 .history { /* ... */ }
 .reward-claim-view {
-    text-align: center;
-    background: var(--tg-theme-secondary-bg-color);
-    border-radius: 60px;
-    padding: 0;
-    margin: 15px;
-    overflow: hidden;
-}
-
-.reward-claim-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 40px 20px;
-    gap: 30px;
-}
-
-.emoji-container {
-    width: 120px;
-    height: 120px;
+    width: 400px;
+    height: 574px;
+    margin: 0 auto;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 80px; /* Adjust the size of the emoji */
+}
+
+.reward-claim-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: -21.94px;
+}
+
+.reward-claim-card {
+    width: 284.18px;
+    background: #5F66B7;
+    border-radius: 15.31px;
+    padding: 117.34px 30.87px 41.58px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18.88px;
+}
+
+.emoji-container {
+    width: 130.61px;
+    height: 130.61px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .telegram-emoji {
+    font-size: 80px;
     line-height: 1;
 }
 
 .text-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12.24px;
+    width: 222.19px;
+}
+
+.reward-title, .channel-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 18.88px;
+    line-height: 1.1;
+    color: #FFFFFF;
     text-align: center;
-}
-
-.reward-title {
-    font-size: 24px;
-    line-height: 1.2;
-    color: var(--tg-theme-text-color);
-    margin-bottom: 15px;
-    font-weight: 500;
-}
-
-.channel-name {
-    font-size: 24px;
-    color: var(--tg-theme-text-color);
     margin: 0;
-    font-weight: 500;
+}
+
+@font-face {
+    font-family: 'Inter';
+    src: url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
 }
 .spinner { display: inline-block; border: 2px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; width: 1em; height: 1em; animation: spin 1s ease-in-out infinite; margin-left: 8px; vertical-align: -0.15em; }
 @keyframes spin { to { transform: rotate(360deg); } }
