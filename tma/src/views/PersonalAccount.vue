@@ -98,7 +98,7 @@
            <div class="reward-claim-content">
                <div class="reward-claim-card">
                    <div class="emoji-container">
-                       <div id="telegram-emoji"></div>
+                       <img src="tg://sticker?id=CAACAgIAAxkBAAEOkc9oMwENFzGVmHxoHaKJoJZLvq62fAACGHsAAhTomUl1_xK_xspyojYE" alt="Telegram Sticker" class="telegram-sticker" />
                    </div>
                    <div class="text-container">
                        <p class="reward-title">Получи первый токен для анализа сна за подписку на канал</p>
@@ -355,29 +355,31 @@ button:hover:not(:disabled), a.subscribe-button:hover {
 .reward-claimed-info p { color: #198754; font-weight: 500; margin-top: 15px; padding: 8px; background-color: rgba(25, 135, 84, 0.1); border-radius: 4px; text-align: center; }
 .history { /* ... */ }
 .reward-claim-view {
-    width: 400px;
-    height: 574px;
+    width: 100%;
+    min-height: 100vh;
     margin: 0 auto;
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 16px;
+    box-sizing: border-box;
 }
 
 .reward-claim-content {
     width: 100%;
-    height: 100%;
+    max-width: 400px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: -21.94px;
 }
 
 .reward-claim-card {
-    width: 284.18px;
+    width: 100%;
+    max-width: 284.18px;
     background: #5F66B7;
     border-radius: 15.31px;
-    padding: 117.34px 30.87px 41.58px;
+    padding: calc(15px + 5vw) 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -385,16 +387,17 @@ button:hover:not(:disabled), a.subscribe-button:hover {
 }
 
 .emoji-container {
-    width: 130.61px;
-    height: 130.61px;
+    width: min(130.61px, 30vw);
+    height: min(130.61px, 30vw);
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.telegram-emoji {
-    font-size: 80px;
-    line-height: 1;
+.telegram-sticker {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .text-container {
@@ -403,16 +406,34 @@ button:hover:not(:disabled), a.subscribe-button:hover {
     justify-content: center;
     align-items: center;
     gap: 12.24px;
-    width: 222.19px;
+    width: 100%;
+    max-width: 222.19px;
 }
 
 .reward-title, .channel-name {
     font-family: 'Inter', sans-serif;
-    font-size: 18.88px;
-    line-height: 1.1;
+    font-size: clamp(14px, 18.88px, 5vw);
+    line-height: 1.2;
     color: #FFFFFF;
     text-align: center;
     margin: 0;
+}
+
+@media screen and (max-width: 320px) {
+    .reward-claim-card {
+        padding: 15px;
+        gap: 12px;
+    }
+    
+    .text-container {
+        gap: 8px;
+    }
+}
+
+@media screen and (min-width: 768px) {
+    .reward-claim-card {
+        padding: 117.34px 30.87px 41.58px;
+    }
 }
 
 @font-face {
