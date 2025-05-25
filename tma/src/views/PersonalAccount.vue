@@ -98,7 +98,7 @@
            <div class="reward-claim-content">
                <div class="reward-claim-card">
                    <div class="emoji-container">
-                       <span class="telegram-emoji">{{ String.fromCodePoint(5952066863931331270) }}</span>
+                       <div id="telegram-emoji"></div>
                    </div>
                    <div class="text-container">
                        <p class="reward-title">Получи первый токен для анализа сна за подписку на канал</p>
@@ -152,6 +152,17 @@ onMounted(async () => {
     if (tg) {
         tg.ready();
         console.log("[PersonalAccount] Telegram WebApp is ready.");
+
+        // Add emoji using Telegram's WebApp API
+        if (showRewardClaimView.value && typeof tg.WebApp?.insertEmoji === 'function') {
+            const emojiElement = document.getElementById('telegram-emoji');
+            if (emojiElement) {
+                tg.WebApp.insertEmoji({
+                    element: emojiElement,
+                    emoji_id: '5952066863931331270'
+                });
+            }
+        }
 
         // --- НАЧАЛО ИНТЕГРАЦИИ ЛОГИКИ РАЗМЕРА И ПОВЕДЕНИЯ ---
         const isMobile = isMobileDevice(); // Определяем тип устройства
