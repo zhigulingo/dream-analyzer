@@ -97,7 +97,7 @@
        <div class="reward-claim-view">
            <div class="reward-claim-content">
                <div class="reward-claim-card">
-                   <div class="emoji-container" ref="stickerContainer"></div>
+                   <div class="emoji-container" ref="lottieContainer"></div>
                    <div class="text-container">
                        <p class="reward-title">Получи первый токен для анализа сна за подписку на канал</p>
                        <p class="channel-name">@TheDreamsHub</p>
@@ -111,16 +111,19 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch, computed } from 'vue';
+import { onMounted, ref, watch, computed, onUnmounted } from 'vue';
 import { useUserStore } from '@/stores/user';
 import AnalysisHistoryList from '@/components/AnalysisHistoryList.vue';
 import SubscriptionModal from '@/components/SubscriptionModal.vue';
 import FactsCarousel from '@/components/FactsCarousel.vue';
+import lottie from 'lottie-web';
 
 const userStore = useUserStore();
 const tg = window.Telegram?.WebApp;
 const showRewardClaimView = ref(false);
 const REQUIRED_DREAMS = 5;
+const lottieContainer = ref(null);
+let lottieAnimation = null;
 
 const goBackToAccount = () => {
     showRewardClaimView.value = false;
@@ -151,18 +154,27 @@ onMounted(async () => {
         tg.ready();
         console.log("[PersonalAccount] Telegram WebApp is ready.");
 
-        // Add sticker using Telegram's WebApp API
-        if (showRewardClaimView.value) {
-            const stickerContainer = document.querySelector('.emoji-container');
-            if (stickerContainer && typeof tg.WebApp?.showSticker === 'function') {
-                try {
-                    tg.WebApp.showSticker({
-                        sticker: 'CAACAgIAAxkBAAEOkc9oMwENFzGVmHxoHaKJoJZLvq62fAACGHsAAhTomUl1_xK_xspyojYE',
-                        container: stickerContainer
-                    });
-                } catch (error) {
-                    console.error('Error displaying sticker:', error);
+        // Initialize Lottie animation if in reward claim view
+        if (showRewardClaimView.value && lottieContainer.value) {
+            try {
+                console.log("[PersonalAccount] Loading Lottie animation...");
+                const response = await fetch('/Telegram Star.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                const animationData = await response.json();
+                
+                lottieAnimation = lottie.loadAnimation({
+                    container: lottieContainer.value,
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    animationData: animationData
+                });
+
+                console.log("[PersonalAccount] Lottie animation loaded successfully");
+            } catch (error) {
+                console.error('[PersonalAccount] Error loading Lottie animation:', error);
             }
         }
 
@@ -261,6 +273,43 @@ onMounted(async () => {
         console.log("[PersonalAccount onMounted] Fetching history...");
         await userStore.fetchHistory();
         console.log("[PersonalAccount onMounted] History fetched.");
+    }
+});
+
+// Watch for changes in showRewardClaimView
+watch(showRewardClaimView, async (newValue) => {
+    if (newValue && lottieContainer.value && !lottieAnimation) {
+        try {
+            console.log("[PersonalAccount] Loading Lottie animation after view change...");
+            const response = await fetch('/Telegram Star.json');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const animationData = await response.json();
+            
+            lottieAnimation = lottie.loadAnimation({
+                container: lottieContainer.value,
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                animationData: animationData
+            });
+
+            console.log("[PersonalAccount] Lottie animation loaded successfully after view change");
+        } catch (error) {
+            console.error('[PersonalAccount] Error loading Lottie animation after view change:', error);
+        }
+    } else if (!newValue && lottieAnimation) {
+        lottieAnimation.destroy();
+        lottieAnimation = null;
+    }
+});
+
+// Cleanup animation on component unmount
+onUnmounted(() => {
+    if (lottieAnimation) {
+        lottieAnimation.destroy();
+        lottieAnimation = null;
     }
 });
 
@@ -398,6 +447,7 @@ button:hover:not(:disabled), a.subscribe-button:hover {
     align-items: center;
     margin-bottom: min(18.88px, 3vh);
     background: transparent;
+    overflow: hidden; /* Ensure animation stays within container */
 }
 
 .telegram-sticker {
