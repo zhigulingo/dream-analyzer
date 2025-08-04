@@ -1,20 +1,34 @@
 <template>
   <article
-    class="relative rounded-[3.75rem] bg-gradient-to-br from-[#9C41FF] to-[#C03AFF] text-white overflow-hidden transition-all cursor-pointer"
+    class="relative rounded-[2rem] bg-gradient-to-br from-[#9C41FF] to-[#C03AFF] text-white overflow-hidden transition-all cursor-pointer"
     :class="[isOpen ? 'pb-20' : 'py-6']"
     @click="toggle"
   >
     <div class="px-8 md:px-16">
       <h3 class="text-xl font-bold">Глубокий Анализ</h3>
       <p class="mt-1">Получите комплексный анализ ваших последних 5 снов.</p>
+      
+      <div v-if="userStore?.isInitiatingDeepPayment" class="mt-4 text-sm opacity-80">
+        Создаем счёт...
+      </div>
+      <div v-else-if="userStore?.isDoingDeepAnalysis" class="mt-4 text-sm opacity-80">
+        Выполняем анализ...
+      </div>
+      <div v-if="userStore?.deepAnalysisResult" class="mt-4 p-4 bg-white/10 rounded-lg text-sm">
+        <h4 class="font-semibold mb-2">Результат анализа:</h4>
+        <p class="text-xs leading-relaxed">{{ userStore.deepAnalysisResult }}</p>
+      </div>
+      <div v-if="userStore?.deepAnalysisError" class="mt-4 p-4 bg-red-500/20 rounded-lg text-sm">
+        ⚠️ {{ userStore.deepAnalysisError }}
+      </div>
     </div>
     <transition name="fade">
       <button
-        v-if="isOpen"
-        class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-tg-link text-tg-button-text rounded-xl py-3 px-8 font-semibold"
+        v-if="isOpen && userStore?.canAttemptDeepAnalysis"
+        class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 px-8 font-semibold transition-colors"
         @click.stop="requestAnalysis"
       >
-        {{ isProcessing ? processingLabel : 'Получить анализ' }}
+        Получить анализ (1 ⭐️)
       </button>
     </transition>
   </article>
@@ -23,20 +37,18 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+const props = defineProps(['userStore'])
+
 const isOpen = ref(false)
-const isProcessing = ref(false)
-const processingLabel = ref('Обработка...')
 
 const toggle = () => {
   isOpen.value = !isOpen.value
 }
 
 const requestAnalysis = () => {
-  isProcessing.value = true
-  // Логика для запроса анализа
-  setTimeout(() => {
-    isProcessing.value = false
-  }, 2000)
+  if (props.userStore?.canAttemptDeepAnalysis) {
+    props.userStore.initiateDeepAnalysisPayment()
+  }
 }
 </script>
 

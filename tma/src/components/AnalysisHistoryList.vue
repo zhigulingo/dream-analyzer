@@ -1,7 +1,16 @@
 <template>
   <div>
     <h2 class="text-2xl font-semibold mb-4 text-white">История снов</h2>
-    <div class="flex flex-col gap-4">
+    <div v-if="userStore?.isLoadingHistory" class="text-center text-white/60 py-8">
+      Загрузка истории...
+    </div>
+    <div v-else-if="userStore?.errorHistory" class="text-center text-red-400 py-8">
+      Ошибка загрузки: {{ userStore.errorHistory }}
+    </div>
+    <div v-else-if="!userStore?.history?.length" class="text-center text-white/60 py-8">
+      У вас пока нет сохраненных анализов
+    </div>
+    <div v-else class="flex flex-col gap-4">
       <DreamCard
         v-for="dream in visibleDreams"
         :key="dream.id"
@@ -22,19 +31,21 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useHistoryStore } from '@/stores/history.js'
 import DreamCard from '@/components/DreamCard.vue'
 
-const historyStore = useHistoryStore()
+const props = defineProps(['userStore'])
+
 const activeId = ref(null)
 const pageSize = ref(5)
 
 const visibleDreams = computed(() => {
-  return historyStore.dreams.slice(0, pageSize.value)
+  if (!props.userStore?.history) return []
+  return props.userStore.history.slice(0, pageSize.value)
 })
 
 const canLoadMore = computed(() => {
-  return historyStore.dreams.length > pageSize.value
+  if (!props.userStore?.history) return false
+  return props.userStore.history.length > pageSize.value
 })
 
 const loadMore = () => {

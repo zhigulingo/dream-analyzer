@@ -1,17 +1,25 @@
 <template>
   <section class="relative h-[20vh] md:h-[14rem] -mx-4 sm:-mx-6 md:-mx-8">
     <Swiper
+      :modules="modules"
       :spaceBetween="16"
       slides-per-view="auto"
+      :autoplay="{
+        delay: 5000,
+        disableOnInteraction: false,
+      }"
+      :pagination="{ clickable: true }"
       class="h-full pl-4 sm:pl-6 md:pl-8"
     >
       <SwiperSlide
         v-for="fact in facts"
-          :key="fact.id"
-        class="carousel-card w-[80%] max-w-72r rounded-[3.75rem] overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
+        :key="fact.id"
+        class="carousel-card w-[80%] max-w-72r rounded-[2rem] overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
       >
-        <Badge>{{ fact.type }}</Badge>
-        <p class="mt-4 text-lg leading-tight">{{ fact.text }}</p>
+        <div class="mb-4">
+          <Badge>{{ fact.type }}</Badge>
+        </div>
+        <p class="text-lg leading-tight">{{ fact.text }}</p>
       </SwiperSlide>
       <template #pagination>
         <div class="absolute bottom-2 left-1/2 -translate-x-1/2 swiper-pagination"></div>
@@ -23,9 +31,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
+import { Autoplay, Pagination } from 'swiper/modules'
 import Badge from '@/components/Badge.vue'
 import 'swiper/css'
 import 'swiper/css/pagination'
+import 'swiper/css/autoplay'
+
+const modules = [Autoplay, Pagination]
 
 const facts = ref([
   { id: 1, type: 'Факт', text: 'Большинство снов забываются в течение первых 5-10 минут после пробуждения.' },
