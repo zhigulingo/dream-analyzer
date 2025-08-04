@@ -98,10 +98,17 @@ const config: Config = {
         ],
       },
       maxWidth: { 
-        '72r': '72rem' 
+        '72r': '72rem',
+        'mobile': '320px',
+        'sm-mobile': '375px',
+        'md-mobile': '414px',
+        'carousel': '90vw'
       },
       aspectRatio: { 
-        '1146/702': '1146/702' 
+        '1146/702': '1146/702',
+        'mobile-card': '4/3',
+        'fact-card': '16/9',
+        'compact': '3/2'
       },
       borderRadius: {
         'lg': '1rem', // 16px - custom large
