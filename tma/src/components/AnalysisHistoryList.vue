@@ -1,22 +1,30 @@
 <template>
   <div class="history-list">
-    <details v-for="item in history" :key="item.id" class="history-item">
-      <summary class="history-summary">
-        <span>{{ formatDate(item.created_at) }}</span>
-        <span class="dream-preview">{{ item.dream_text.substring(0, 50) }}...</span>
-      </summary>
-      <div class="history-details">
+    <div v-for="item in history" :key="item.id" class="history-item bg-[#4A58FF] text-white rounded-[3.75rem] px-8 md:px-16 py-14 mb-6">
+      <div class="history-summary cursor-pointer" @click="toggleItem(item.id)">
+        <h3 class="dream-title">{{ getDreamTitle(item.dream_text) }}</h3>
+        <span class="dream-date">{{ formatRelativeDate(item.created_at) }}</span>
+      </div>
+      <div v-if="openItems.includes(item.id)" class="history-details mt-4">
         <p><strong>Сон:</strong></p>
         <p class="dream-text">{{ item.dream_text }}</p>
-        <hr>
+        <hr class="my-4 border-white/30">
         <p><strong>Анализ:</strong></p>
         <p class="analysis-text">{{ item.analysis }}</p>
       </div>
-    </details>
+    </div>
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/ru'
+
+dayjs.extend(relativeTime)
+dayjs.locale('ru')
+
 defineProps({
   history: {
     type: Array,
@@ -24,12 +32,36 @@ defineProps({
   },
 });
 
-// Функция форматирования даты/времени
-const formatDate = (dateString) => {
+const openItems = ref([])
+
+const toggleItem = (itemId) => {
+  const index = openItems.value.indexOf(itemId)
+  if (index > -1) {
+    openItems.value.splice(index, 1)
+  } else {
+    openItems.value.push(itemId)
+  }
+}
+
+const getDreamTitle = (dreamText) => {
+  if (!dreamText) return 'Без названия'
+  const title = dreamText.length > 50 ? dreamText.substring(0, 47) + '...' : dreamText
+  return title
+}
+
+const formatRelativeDate = (dateString) => {
   if (!dateString) return '';
   try {
-    // Показываем дату и время
-    return new Date(dateString).toLocaleString();
+    const date = dayjs(dateString)
+    const now = dayjs()
+    const diffDays = now.diff(date, 'day')
+    
+    if (diffDays === 0) return 'Сегодня'
+    if (diffDays === 1) return 'Вчера'
+    if (diffDays < 7) return `${diffDays} дня назад`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} недели назад`
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)} месяца назад`
+    return `${Math.floor(diffDays / 365)} года назад`
   } catch (e) {
     return dateString;
   }
@@ -38,46 +70,35 @@ const formatDate = (dateString) => {
 
 <style scoped>
 .history-list {
-  @apply max-h-96 overflow-y-auto;
+  @apply space-y-4;
 }
+
 .history-item {
-  @apply border border-tg-hint rounded-lg mb-2;
-  background-color: var(--tg-theme-bg-color);
+  @apply transition-transform duration-200;
 }
-.history-item[open] { /* Стиль для открытого аккордеона */
-     background-color: var(--tg-theme-secondary-bg-color);
+
+.history-item:active {
+  @apply scale-95;
 }
 
 .history-summary {
-  @apply p-2.5 cursor-pointer flex justify-between items-center font-medium;
+  @apply flex justify-between items-center;
 }
-.history-summary:hover {
-    background-color: rgba(0,0,0,0.05);
+
+.dream-title {
+  @apply text-xl font-medium text-white overflow-hidden text-ellipsis whitespace-nowrap flex-1 mr-4;
+  max-width: calc(100% - 150px);
 }
-.dream-preview {
-    font-size: 0.9em;
-    color: var(--tg-theme-hint-color);
-    margin-left: 10px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 60%; /* Ограничим ширину превью */
+
+.dream-date {
+  @apply text-white/80 text-sm whitespace-nowrap;
 }
 
 .history-details {
-  padding: 0 15px 15px 15px; /* Отступы для контента */
-  border-top: 1px solid var(--tg-theme-hint-color);
-  margin-top: 10px; /* Отступ сверху */
+  @apply text-white/90;
 }
+
 .dream-text, .analysis-text {
-    white-space: pre-wrap; /* Сохраняем переносы строк */
-    word-wrap: break-word; /* Переносим длинные слова */
-    font-size: 0.95em;
-    line-height: 1.5;
-}
-hr {
-    border: none;
-    border-top: 1px solid var(--tg-theme-hint-color);
-    margin: 10px 0;
+  @apply whitespace-pre-wrap break-words text-sm leading-relaxed mt-2;
 }
 </style>

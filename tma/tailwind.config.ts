@@ -102,6 +102,7 @@ const config: Config = {
       },
       aspectRatio: {
         'facts': '1146 / 702', // Figma FactsCarousel aspect ratio
+        '1146/702': '1146 / 702', // Alternative syntax
       },
       borderRadius: {
         'lg': '1rem', // 16px - custom large

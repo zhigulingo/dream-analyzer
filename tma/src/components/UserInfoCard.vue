@@ -78,25 +78,24 @@
 
   /* User Info Card - Figma Design */
   .user-info-card {
-    background: linear-gradient(135deg, #5461FF 0%, #4A58FF 100%);
-    border-radius: 72px;
-    padding: 0 64px;
-    margin: 15px;
-    min-height: 284px;
+    background: transparent;
+    border-radius: 3.75rem;
+    padding: 0;
+    margin: 0;
+    min-height: 18rem;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    gap: 46px;
+    gap: 24px;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
   }
 
-  .user-info-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(84, 97, 255, 0.3);
+  .user-info-card:active {
+    transform: scale(0.98);
   }
 
   .user-section {
@@ -115,8 +114,8 @@
   }
 
   .avatar {
-    width: 148px;
-    height: 148px;
+    width: 40px;
+    height: 40px;
     background: #D9D9D9;
     border-radius: 50%;
     flex-shrink: 0;
@@ -125,11 +124,13 @@
   .user-name {
     font-family: 'Inter', sans-serif;
     font-weight: 400;
-    font-size: 64px;
+    font-size: 24px;
     line-height: 1.1;
     color: #FFFFFF;
     white-space: nowrap;
-    max-width: 482px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
   }
 
   .info-section {
@@ -146,11 +147,11 @@
     justify-content: center;
     align-items: center;
     gap: 8px;
-    padding: 20px 38px;
+    padding: 8px 16px;
     background: rgba(194, 195, 211, 0.4);
     border-radius: 72px;
-    min-width: 334px;
-    height: 94px;
+    min-width: auto;
+    height: auto;
     box-sizing: border-box;
   }
 
@@ -163,12 +164,12 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px 38px;
+    padding: 8px 16px;
     background: rgba(194, 195, 211, 0.4);
     border-radius: 72px;
     color: #FFFFFF;
     font-family: 'Inter', sans-serif;
-    font-size: 51.2px;
+    font-size: 14px;
     line-height: 1.1;
   }
 
@@ -176,7 +177,7 @@
   .pill-value {
     font-family: 'Inter', sans-serif;
     font-weight: 400;
-    font-size: 51.2px;
+    font-size: 14px;
     line-height: 1.1;
     color: #FFFFFF;
     text-align: center;
@@ -185,11 +186,11 @@
   .pill-date {
     font-family: 'Inter', sans-serif;
     font-weight: 400;
-    font-size: 38px;
+    font-size: 12px;
     line-height: 1.1;
     color: #FFFFFF;
     opacity: 0.8;
-    margin-left: 8px;
+    margin-left: 4px;
   }
 
   .capitalize {

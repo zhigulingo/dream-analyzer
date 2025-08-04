@@ -445,20 +445,15 @@ onUnmounted(() => {
   scroll-snap-align: center; /* Привязка к центру */
   position: relative;
   overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.2s ease;
 }
 
 .fact-card-fancy:nth-child(even) {
   background: linear-gradient(135deg, #BF62ED 0%, #701E99 85.23%);
 }
 
-.fact-card-fancy:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(83, 66, 225, 0.3);
-}
-
-.fact-card-fancy:nth-child(even):hover {
-  box-shadow: 0 12px 40px rgba(191, 98, 237, 0.3);
+.fact-card-fancy:active {
+  transform: scale(0.98);
 }
 
 .fact-card-text {

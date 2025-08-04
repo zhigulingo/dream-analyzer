@@ -1,58 +1,46 @@
 <template>
-  <div class="flex flex-col items-center gap-8 px-4 sm:px-6 md:px-8 pb-[env(safe-area-inset-bottom)]">
+  <div class="flex flex-col items-center gap-6 px-4 sm:px-6 md:px-8 pb-[env(safe-area-inset-bottom)]">
     <!-- Показываем или основной ЛК, или страницу получения награды -->
     <template v-if="!showRewardClaimView">
-      <!-- Facts Carousel -->
-      <div class="w-full max-w-72r">
-        <FactsCarousel class="aspect-facts rounded-3.75rem" />
-      </div>
-      
-      <!-- Блок 1: Информация о пользователе -->
+      <!-- Блок 1: Информация о пользователе (компактный) -->
       <div class="w-full max-w-72r">
         <UserInfoCard
-          class="h-auto min-h-[18rem] py-6 px-8 md:px-16"
+          class="min-h-[18rem] py-6 px-8 md:px-16 bg-[#5461FF] text-white rounded-[3.75rem]"
           :user-store="userStore"
           :format-date="formatDate"
           @change-plan="userStore.openSubscriptionModal"
         />
       </div>
+      
+      <!-- Facts Carousel -->
+      <div class="w-full max-w-72r">
+        <FactsCarousel class="aspect-[1146/702] rounded-[3.75rem] overflow-hidden" />
+      </div>
 
       <!-- Блок глубокого анализа -->
       <section class="w-full max-w-72r">
-        <div class="deep-analysis-card py-6 px-8 md:px-16 rounded-3.75rem cursor-pointer"
+        <div class="py-6 px-8 md:px-16 bg-gradient-to-br from-[#BF62ED] to-[#701E99] rounded-[3.75rem] cursor-pointer"
           @click="onDeepAnalysis"
           :class="{ 'cursor-pointer': userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis }">
           
-          <div class="deep-analysis-content">
-            <div class="deep-analysis-text">
-              <h2 class="deep-analysis-title">Глубокий Анализ</h2>
-              <p class="deep-analysis-description">Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов.</p>
-              <p v-if="!userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis" class="deep-analysis-hint">
-                  <span v-if="userStore.isLoadingProfile || userStore.isLoadingHistory">Дождитесь загрузки данных...</span>
-                  <span v-else-if="(userStore.history?.length ?? 0) < REQUIRED_DREAMS">Нужно еще {{ REQUIRED_DREAMS - (userStore.history?.length ?? 0) }} сна/снов для анализа.</span>
-              </p>
-            </div>
-            
-            <div class="deep-analysis-action">
-              <div class="cta" v-if="!userStore.isDoingDeepAnalysis && !userStore.isInitiatingDeepPayment">
-                Провести глубокий анализ (1 ⭐️)
-              </div>
-              <button class="close-button" @click.stop>
-                <div class="close-icon"></div>
-              </button>
+          <div v-if="userStore.isInitiatingDeepPayment" class="text-center text-white text-xl">
+            Создаем счёт... <span class="spinner white"></span>
+          </div>
+          <div v-else-if="userStore.isDoingDeepAnalysis" class="text-center text-white text-xl">
+            Анализ... <span class="spinner white"></span>
+          </div>
+          <div v-else class="text-center">
+            <div class="cta bg-tg-link text-tg-button-text rounded-xl py-3 text-center font-semibold">
+              Провести глубокий анализ (1 ⭐️)
             </div>
           </div>
 
-          <div v-if="userStore.deepAnalysisResult" class="analysis-result">
-              <h3>Результат глубокого анализа:</h3>
-              <pre>{{ userStore.deepAnalysisResult }}</pre>
+          <div v-if="userStore.deepAnalysisResult" class="analysis-result mt-4">
+              <h3 class="text-white text-lg font-semibold">Результат глубокого анализа:</h3>
+              <pre class="text-white text-sm mt-2 whitespace-pre-wrap">{{ userStore.deepAnalysisResult }}</pre>
           </div>
-          <div v-if="userStore.deepAnalysisError || userStore.deepPaymentError" class="error-message">
+          <div v-if="userStore.deepAnalysisError || userStore.deepPaymentError" class="error-message mt-4">
               ⚠️ {{ userStore.deepAnalysisError || userStore.deepPaymentError }}
-          </div>
-          <div v-if="userStore.isInitiatingDeepPayment || userStore.isDoingDeepAnalysis" class="processing-state">
-            <span v-if="userStore.isInitiatingDeepPayment">Создаем счет... <span class="spinner white"></span></span>
-            <span v-else-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
           </div>
         </div>
       </section>
@@ -69,9 +57,8 @@
 
       <!-- Блок 2: История анализов -->
       <section class="w-full max-w-72r">
-        <div class="rounded-3.75rem px-8 md:px-16 py-14">
-        <h2>История анализов</h2>
-        <div v-if="userStore.isLoadingHistory">Загрузка истории...</div>
+        <h2 class="text-center text-2xl font-medium mb-6">История анализов</h2>
+        <div v-if="userStore.isLoadingHistory" class="text-center">Загрузка истории...</div>
         <div v-else-if="userStore.errorHistory" class="error-message">
           Ошибка загрузки истории: {{ userStore.errorHistory }}
         </div>
@@ -80,8 +67,7 @@
           <AnalysisHistoryList :history="userStore.history" />
         </div>
         <div v-else>
-          <p>У вас пока нет сохраненных анализов.</p>
-        </div>
+          <p class="text-center">У вас пока нет сохраненных анализов.</p>
         </div>
       </section>
 
