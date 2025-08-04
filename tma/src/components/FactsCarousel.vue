@@ -319,8 +319,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 8px 9px;
-  border-radius: 28px;
+  @apply px-2 py-2 rounded-3xl;
   background: rgba(0,0,0,0.25);
   backdrop-filter: blur(44px);
   -webkit-backdrop-filter: blur(44px);
@@ -432,11 +431,11 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 15px;
+  @apply p-4;
   box-sizing: border-box;
   color: var(--tg-theme-text-color);
   background-color: var(--tg-theme-bg-color);
-  border-radius: 8px;
+  @apply rounded-lg;
   margin: 0 5px; /* Отступ между карточками */
   scroll-snap-align: center; /* Привязка к центру */
 }

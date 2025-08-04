@@ -6,6 +6,7 @@ import App from './App.vue' // Ваш корневой компонент Vue
 // import router from './router' // Раскомментируйте, если используете Vue Router
 
 // Импортируйте ваши глобальные стили, если есть
+import "./index.css"
 // import './assets/main.css'
 
 const app = createApp(App)

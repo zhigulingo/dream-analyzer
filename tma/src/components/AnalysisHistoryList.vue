@@ -38,26 +38,18 @@ const formatDate = (dateString) => {
 
 <style scoped>
 .history-list {
-  max-height: 400px; /* Ограничим высоту, чтобы не было слишком длинно */
-  overflow-y: auto; /* Добавим скролл */
+  @apply max-h-96 overflow-y-auto;
 }
 .history-item {
-  border: 1px solid var(--tg-theme-hint-color); /* Граница для аккордеона */
-  border-radius: 6px;
-  margin-bottom: 8px;
-  background-color: var(--tg-theme-bg-color); /* Фон элемента */
+  @apply border border-tg-hint rounded-lg mb-2;
+  background-color: var(--tg-theme-bg-color);
 }
 .history-item[open] { /* Стиль для открытого аккордеона */
      background-color: var(--tg-theme-secondary-bg-color);
 }
 
 .history-summary {
-  padding: 10px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 500;
+  @apply p-2.5 cursor-pointer flex justify-between items-center font-medium;
 }
 .history-summary:hover {
     background-color: rgba(0,0,0,0.05);

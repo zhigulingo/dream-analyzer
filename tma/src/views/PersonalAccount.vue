@@ -5,40 +5,21 @@
       
      <FactsCarousel />
       <!-- Блок 1: Информация о пользователе -->
-      <section class="user-info card">
-        <h2>Ваш профиль</h2>
-        <div v-if="userStore.isLoadingProfile">Загрузка профиля...</div>
-        <div v-else-if="userStore.errorProfile" class="error-message">
-          Ошибка загрузки профиля: {{ userStore.errorProfile }}
-        </div>
-        <div v-else-if="userStore.profile.tokens !== null">
-          <p>Остаток токенов: <strong>{{ userStore.profile.tokens }}</strong></p>
-          <p>
-            Текущий тариф: <strong class="capitalize">{{ userStore.profile.subscription_type }}</strong>
-            <span v-if="userStore.profile.subscription_end">
-              (до {{ formatDate(userStore.profile.subscription_end) }})
-            </span>
-          </p>
-          <button
-              v-if="userStore.profile.subscription_type !== 'free' || userStore.profile.channel_reward_claimed"
-              @click="userStore.openSubscriptionModal"
-              class="change-plan-button">
-            Сменить тариф
-          </button>
-          <button
-              v-else-if="userStore.profile.subscription_type === 'free' && !userStore.profile.channel_reward_claimed && !isClaimRewardAction"
-              @click="showRewardClaimView = true"
-              class="subscribe-button-main">
-              🎁 Получить бесплатный токен за подписку
-          </button>
-          <div v-if="userStore.profile.channel_reward_claimed" class="reward-claimed-info">
-            <p>✅ Награда за подписку на канал получена!</p>
-          </div>
-        </div>
-        <div v-else>
-          <p>Не удалось загрузить данные профиля.</p>
-        </div>
-      </section>
+      <UserInfoCard
+        :user-store="userStore"
+        :format-date="formatDate"
+        @change-plan="userStore.openSubscriptionModal"
+      />
+      <div v-if="userStore.profile?.subscription_type === 'free' && !userStore.profile?.channel_reward_claimed && !isClaimRewardAction">
+        <button
+            @click="showRewardClaimView = true"
+            class="subscribe-button-main">
+            🎁 Получить бесплатный токен за подписку
+        </button>
+      </div>
+      <div v-if="userStore.profile?.channel_reward_claimed" class="reward-claimed-info">
+        <p>✅ Награда за подписку на канал получена!</p>
+      </div>
 
       <!-- Блок 2: История анализов -->
       <section class="history card">
@@ -57,32 +38,27 @@
       </section>
 
       <!-- Блок глубокого анализа -->
-      <section class="deep-analysis card">
-          <h2>Глубокий анализ</h2>
-          <p>Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов. Стоимость: 1 ⭐️ (Telegram Star).</p>
+      <section class="deep-analysis card"
+        @click="onDeepAnalysis"
+        :class="{ 'cursor-pointer': userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis }">
+        <h2>Глубокий анализ</h2>
+        <p>Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов. Стоимость: 1 ⭐️ (Telegram Star).</p>
+        <p v-if="!userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis" class="info-message hint">
+            <span v-if="userStore.isLoadingProfile || userStore.isLoadingHistory">Дождитесь загрузки данных...</span>
+            <span v-else-if="(userStore.history?.length ?? 0) < REQUIRED_DREAMS">Нужно еще {{ REQUIRED_DREAMS - (userStore.history?.length ?? 0) }} сна/снов для анализа.</span>
+        </p>
 
-          <button
-              @click="userStore.initiateDeepAnalysisPayment"
-              :disabled="!userStore.canAttemptDeepAnalysis || userStore.isInitiatingDeepPayment || userStore.isDoingDeepAnalysis"
-              class="deep-analysis-button"
-          >
-              <span v-if="userStore.isInitiatingDeepPayment">Создаем счет... <span class="spinner white"></span></span>
-              <span v-else-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
-              <span v-else>Провести глубокий анализ (1 ⭐️)</span>
-          </button>
-
-          <p v-if="!userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis" class="info-message hint">
-              <span v-if="userStore.isLoadingProfile || userStore.isLoadingHistory">Дождитесь загрузки данных...</span>
-              <span v-else-if="(userStore.history?.length ?? 0) < REQUIRED_DREAMS">Нужно еще {{ REQUIRED_DREAMS - (userStore.history?.length ?? 0) }} сна/снов для анализа.</span>
-          </p>
-
-          <div v-if="userStore.deepAnalysisResult" class="analysis-result card">
-              <h3>Результат глубокого анализа:</h3>
-              <pre>{{ userStore.deepAnalysisResult }}</pre>
-          </div>
-          <div v-if="userStore.deepAnalysisError || userStore.deepPaymentError" class="error-message">
-              ⚠️ {{ userStore.deepAnalysisError || userStore.deepPaymentError }}
-          </div>
+        <div v-if="userStore.deepAnalysisResult" class="analysis-result card">
+            <h3>Результат глубокого анализа:</h3>
+            <pre>{{ userStore.deepAnalysisResult }}</pre>
+        </div>
+        <div v-if="userStore.deepAnalysisError || userStore.deepPaymentError" class="error-message">
+            ⚠️ {{ userStore.deepAnalysisError || userStore.deepPaymentError }}
+        </div>
+        <div v-if="userStore.isInitiatingDeepPayment || userStore.isDoingDeepAnalysis" class="processing-state">
+          <span v-if="userStore.isInitiatingDeepPayment">Создаем счет... <span class="spinner white"></span></span>
+          <span v-else-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
+        </div>
       </section>
 
       <!-- Модальное окно смены тарифа -->
@@ -110,6 +86,40 @@
   </div>
 </template>
 
+<!-- UserInfoCard Component -->
+<template>
+  <section class="user-info card">
+    <div @click="toggleExpanded" class="cursor-pointer">
+      <h2>Ваш профиль</h2>
+      <div v-if="userStore.isLoadingProfile">Загрузка профиля...</div>
+      <div v-else-if="userStore.errorProfile" class="error-message">
+        Ошибка загрузки профиля: {{ userStore.errorProfile }}
+      </div>
+      <div v-else-if="userStore.profile.tokens !== null">
+        <p>Остаток токенов: <strong>{{ userStore.profile.tokens }}</strong></p>
+        <p>
+          Текущий тариф: <strong class="capitalize">{{ userStore.profile.subscription_type }}</strong>
+          <span v-if="userStore.profile.subscription_end">
+            (до {{ formatDate(userStore.profile.subscription_end) }})
+          </span>
+        </p>
+      </div>
+      <div v-else>
+        <p>Не удалось загрузить данные профиля.</p>
+      </div>
+    </div>
+    <Transition name="expand">
+      <div v-if="isExpanded && userStore.profile?.subscription_type !== 'free' || userStore.profile?.channel_reward_claimed">
+        <button
+          @click="$emit('changePlan')"
+          class="change-plan-button">
+          Сменить тариф
+        </button>
+      </div>
+    </Transition>
+  </section>
+</template>
+
 <script setup>
 import { onMounted, ref, watch, computed, onUnmounted } from 'vue';
 import { useUserStore } from '@/stores/user';
@@ -124,6 +134,12 @@ const showRewardClaimView = ref(false);
 const REQUIRED_DREAMS = 5;
 const lottieContainer = ref(null);
 let lottieAnimation = null;
+
+const onDeepAnalysis = () => {
+  if (userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis) {
+    userStore.initiateDeepAnalysisPayment();
+  }
+};
 
 const isClaimRewardAction = computed(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -359,7 +375,46 @@ watch(showRewardClaimView, (newValue) => {
 
 </script>
 
+<script>
+// UserInfoCard component
+const UserInfoCard = {
+  template: `<!-- inline template above -->`,
+  props: ['userStore', 'formatDate'],
+  emits: ['changePlan'],
+  setup() {
+    const isExpanded = ref(false);
+    const toggleExpanded = () => {
+      isExpanded.value = !isExpanded.value;
+    };
+    return { isExpanded, toggleExpanded };
+  }
+};
+
+export default {
+  components: {
+    UserInfoCard
+  }
+}
+</script>
+
 <style scoped>
+/* Transition styles */
+.expand-enter-active,
+.expand-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+.expand-enter-from,
+.expand-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+.expand-enter-to,
+.expand-leave-from {
+  max-height: 100px;
+  opacity: 1;
+}
+
 /* --- Ваши стили без изменений --- */
 /* ... (все ваши стили) ... */
 .personal-account { 
@@ -524,15 +579,16 @@ button:hover:not(:disabled), a.subscribe-button:hover {
 .spinner { display: inline-block; border: 2px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; width: 1em; height: 1em; animation: spin 1s ease-in-out infinite; margin-left: 8px; vertical-align: -0.15em; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .deep-analysis { /* Стили для карточки глубокого анализа */ }
-.deep-analysis-button {
-    background-color: var(--tg-theme-link-color); /* Цвет ссылки для акцента */
-    color: white; /* Или другой контрастный цвет */
-    display: block;
-    width: 100%;
-    margin-top: 15px;
-    margin-bottom: 10px;
+.processing-state {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: var(--tg-theme-link-color);
+  color: white;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: bold;
 }
-.deep-analysis-button .spinner.white { border-top-color: white; }
+.processing-state .spinner.white { border-top-color: white; }
 
 .analysis-result {
     margin-top: 20px;
