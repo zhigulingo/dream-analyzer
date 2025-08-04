@@ -7,6 +7,9 @@
     <div class="px-8 md:px-16" :class="[isOpen ? 'pt-8' : '']">
       <h3 class="text-xl font-bold">Глубокий Анализ</h3>
       <p class="mt-1">Получите комплексный анализ ваших последних 5 снов.</p>
+      <div v-if="userStore?.profile?.deep_analysis_credits" class="mt-2 text-sm opacity-80">
+        У вас: {{ userStore.profile.deep_analysis_credits }} кредит(ов) анализа
+      </div>
       
       <div v-if="userStore?.isInitiatingDeepPayment" class="mt-4 text-sm opacity-80">
         Создаем счёт...
@@ -28,7 +31,7 @@
         class="absolute bottom-4 left-4 right-4 bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors"
         @click.stop="requestAnalysis"
       >
-        Получить анализ (1 ⭐️)
+        {{ userStore?.profile?.deep_analysis_credits > 0 ? 'Выполнить анализ' : 'Получить анализ (1 ⭐️)' }}
       </button>
     </transition>
   </article>
@@ -53,7 +56,14 @@ const requestAnalysis = () => {
     if (window.triggerHaptic) {
       window.triggerHaptic('medium')
     }
-    props.userStore.initiateDeepAnalysisPayment()
+    
+    // Если у пользователя есть кредиты, выполняем анализ напрямую
+    if (props.userStore?.profile?.deep_analysis_credits > 0) {
+      props.userStore.performDeepAnalysis()
+    } else {
+      // Если кредитов нет, инициируем покупку
+      props.userStore.initiateDeepAnalysisPayment()
+    }
   }
 }
 </script>

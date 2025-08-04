@@ -474,7 +474,7 @@ exports.handler = async (event) => {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
         const { data: userData, error: userError } = await supabase
             .from('users')
-            .select('tokens, subscription_type, subscription_end')
+            .select('tokens, subscription_type, subscription_end, deep_analysis_credits')
             .eq('tg_id', verifiedUserId)
             .maybeSingle();
 
@@ -484,9 +484,9 @@ exports.handler = async (event) => {
 
         let responseBody;
         if (!userData) {
-            responseBody = { tokens: 0, subscription_type: 'free', subscription_end: null };
+            responseBody = { tokens: 0, subscription_type: 'free', subscription_end: null, deep_analysis_credits: 0 };
         } else {
-            responseBody = userData;
+            responseBody = { ...userData, deep_analysis_credits: userData.deep_analysis_credits || 0 };
         }
 
         return {

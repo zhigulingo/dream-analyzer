@@ -166,17 +166,67 @@ exports.handler = async (event) => {
 
     try {
         
-        // 2. Получить ID пользователя в нашей базе
+        // 2. Получить ID пользователя и проверить кредиты глубокого анализа
         const { data: user, error: userFindError } = await supabase
-            .from('users').select('id').eq('tg_id', verifiedUserId).single();
+            .from('users').select('id, deep_analysis_credits').eq('tg_id', verifiedUserId).single();
 
         if (userFindError || !user) {
             if (userFindError?.code !== 'PGRST116') console.error(`[deep-analysis] Error finding user DB ID for ${verifiedUserId}:`, userFindError);
             throw new Error('Профиль пользователя не найден в базе данных.');
         }
         const userDbId = user.id;
+        const currentCredits = user.deep_analysis_credits || 0;
 
-        // 3. Получить последние N снов
+        // 2.1. Проверить наличие кредитов для глубокого анализа
+        if (currentCredits <= 0) {
+            console.log(`[deep-analysis] User ${verifiedUserId} has no deep analysis credits (${currentCredits})`);
+            return { 
+                statusCode: 402, 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ 
+                    success: false, 
+                    error: 'Недостаточно кредитов для глубокого анализа. Приобретите кредит, нажав на кнопку "Получить анализ (1 ⭐️)".' 
+                }) 
+            };
+        }
+
+        // 2.2. Проверить количество снов ДО списания кредита
+        console.log(`[deep-analysis] Checking dreams count for user_id ${userDbId}...`);
+        const { data: dreamCount, error: countError } = await supabase
+            .from('analyses')
+            .select('id', { count: 'exact' })
+            .eq('user_id', userDbId);
+
+        if (countError) {
+            console.error(`[deep-analysis] Error checking dream count for user_id ${userDbId}:`, countError);
+            throw new Error("Ошибка при проверке количества снов.");
+        }
+
+        const actualDreamCount = dreamCount?.length || 0;
+        if (actualDreamCount < REQUIRED_DREAMS) {
+            console.log(`[deep-analysis] Not enough dreams for user_id ${userDbId}. Found: ${actualDreamCount}, required: ${REQUIRED_DREAMS}`);
+            return { 
+                statusCode: 400, 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ 
+                    success: false, 
+                    error: `Недостаточно снов для глубокого анализа. Нужно ${REQUIRED_DREAMS} снов, найдено ${actualDreamCount}. Пожалуйста, проанализируйте больше снов перед покупкой глубокого анализа.` 
+                }) 
+            };
+        }
+
+        // 2.3. Списать один кредит глубокого анализа
+        const { error: creditDecrementError } = await supabase
+            .from('users').update({ deep_analysis_credits: currentCredits - 1 }).eq('tg_id', verifiedUserId);
+        
+        if (creditDecrementError) {
+            console.error(`[deep-analysis] Error decrementing deep analysis credit for ${verifiedUserId}:`, creditDecrementError);
+            throw new Error('Ошибка при списании кредита глубокого анализа.');
+        }
+        
+        console.log(`[deep-analysis] Decremented deep analysis credit for user ${verifiedUserId}. Remaining: ${currentCredits - 1}`);
+
+        // 4. Получить последние N снов
         console.log(`[deep-analysis] Fetching last ${REQUIRED_DREAMS} dreams for user_id ${userDbId}...`);
         const { data: dreams, error: historyError } = await supabase
             .from('analyses')
@@ -188,15 +238,6 @@ exports.handler = async (event) => {
         if (historyError) {
             console.error(`[deep-analysis] Error fetching dream history for user_id ${userDbId}:`, historyError);
             throw new Error("Ошибка при получении истории снов.");
-        }
-
-        // 4. Проверить количество снов
-        if (!dreams || dreams.length < REQUIRED_DREAMS) {
-             console.log(`[deep-analysis] Not enough dreams found for user_id ${userDbId}. Found: ${dreams?.length ?? 0}`);
-             // Важно: Токен уже списан! Нужно его вернуть? Или предупредить заранее?
-             // Пока просто сообщаем об ошибке. В идеале, проверку на кол-во снов делать до списания токена.
-             // Но это усложнит логику, т.к. нужно два запроса к БД до списания.
-             return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: false, error: `Недостаточно снов для глубокого анализа (нужно ${REQUIRED_DREAMS}, найдено ${dreams?.length ?? 0}). Токен был списан.` }) };
         }
 
         // 5. Объединить тексты снов

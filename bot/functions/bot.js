@@ -217,8 +217,27 @@ See it in your history in the Personal Account.`, { reply_markup: { inline_keybo
                  if (isNaN(payloadUserId) || payloadUserId !== userId) { console.error(`[Bot Handler successful_payment] Deep Analysis Payload error/mismatch: ${payload}`); await ctx.reply("Deep analysis payment data error.").catch(logReplyError); return; }
     
                 console.log(`[Bot Handler successful_payment] Processing DEEP ANALYSIS payment for ${userId}.`);
-                // Log or record deep analysis purchase if needed
-                 await ctx.reply("Thank you for the purchase! Deep analysis will be available in the app.").catch(logReplyError); // Optional reply
+                
+                // Record deep analysis purchase in database
+                const { data: currentUser, error: fetchError } = await supabaseAdmin
+                    .from('users').select('deep_analysis_credits').eq('tg_id', userId).single();
+                if (fetchError) {
+                    console.error(`[Bot Handler successful_payment] Error fetching user for deep analysis credit: ${fetchError.message}`);
+                    await ctx.reply("Payment received but there was an error processing it. Please contact support.").catch(logReplyError);
+                    return;
+                }
+                
+                const newCredits = (currentUser?.deep_analysis_credits || 0) + 1;
+                const { error: updateError } = await supabaseAdmin
+                    .from('users').update({ deep_analysis_credits: newCredits }).eq('tg_id', userId);
+                if (updateError) {
+                    console.error(`[Bot Handler successful_payment] Error updating deep analysis credits: ${updateError.message}`);
+                    await ctx.reply("Payment received but there was an error processing it. Please contact support.").catch(logReplyError);
+                    return;
+                }
+                
+                console.log(`[Bot Handler successful_payment] Deep analysis credit added for user ${userId}. New total: ${newCredits}`);
+                await ctx.reply("Спасибо за покупку! Вам добавлен 1 кредит глубокого анализа. Используйте его в приложении.").catch(logReplyError);
     
             } else {
                 // Unknown payload format

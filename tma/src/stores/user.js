@@ -19,7 +19,7 @@ export const useUserStore = defineStore('user', {
     deepAnalysisResult: null,
     deepAnalysisError: null,
     // --- Основное состояние ---
-    profile: { tokens: null, subscription_type: 'free', subscription_end: null, channel_reward_claimed: false },
+    profile: { tokens: null, subscription_type: 'free', subscription_end: null, channel_reward_claimed: false, deep_analysis_credits: 0 },
     history: [],
     isLoadingProfile: false,
     isLoadingHistory: false,
@@ -35,7 +35,7 @@ export const useUserStore = defineStore('user', {
     canAttemptClaim: (state) => !state.profile?.channel_reward_claimed && !state.isClaimingReward,
     showClaimRewardSection: (state) => !state.isLoadingProfile && state.profile && !state.profile.channel_reward_claimed,
        // <<<--- ИЗМЕНЕН ГЕТТЕР ДЛЯ ГЛУБОКОГО АНАЛИЗА ---
-    // Теперь проверяем только наличие 5 снов и не идет ли процесс оплаты/анализа
+    // Проверяем наличие 5 снов И (кредитов ИЛИ возможность покупки) и не идет ли процесс оплаты/анализа
     canAttemptDeepAnalysis: (state) =>
         !state.isLoadingProfile && // Профиль загружен
         !state.isInitiatingDeepPayment && // Не идет оплата
@@ -198,7 +198,8 @@ export const useUserStore = defineStore('user', {
 
             if (response.data.success) {
                 this.deepAnalysisResult = response.data.analysis;
-                // Профиль обновлять не нужно, т.к. токены не менялись
+                // Обновляем профиль, т.к. кредиты глубокого анализа изменились
+                await this.fetchProfile();
             } else {
                 // Ошибка от бэкенда (мало снов и т.д.)
                 this.deepAnalysisError = response.data.error || "Не удалось выполнить глубокий анализ.";
@@ -270,10 +271,12 @@ export const useUserStore = defineStore('user', {
             // Открываем инвойс
             if (tg?.openInvoice) {
                 console.log("[UserStore:initiateDeepPayment] Calling tg.openInvoice...");
-                tg.openInvoice(invoiceUrl, (status) => {
+                tg.openInvoice(invoiceUrl, async (status) => {
                     console.log("[UserStore:initiateDeepPayment] Invoice status callback:", status);
                     if (status === 'paid') {
                         alert("Оплата прошла успешно! Начинаем глубокий анализ...");
+                        // Обновляем профиль для получения новых кредитов
+                        await this.fetchProfile();
                         // <<<--- ВЫЗЫВАЕМ АНАЛИЗ ПОСЛЕ ОПЛАТЫ ---
                         this.performDeepAnalysis();
                         // >>>------------------------------------
