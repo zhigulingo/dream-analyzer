@@ -2,15 +2,15 @@
   <div class="personal-account">
     <!-- Показываем или основной ЛК, или страницу получения награды -->
     <template v-if="!showRewardClaimView">
+      <!-- Facts Carousel -->
+      <FactsCarousel />
+      
       <!-- Блок 1: Информация о пользователе -->
       <UserInfoCard
         :user-store="userStore"
         :format-date="formatDate"
         @change-plan="userStore.openSubscriptionModal"
       />
-      
-      <!-- Facts Carousel -->
-      <FactsCarousel />
       <div v-if="userStore.profile?.subscription_type === 'free' && !userStore.profile?.channel_reward_claimed && !isClaimRewardAction">
         <button
             @click="showRewardClaimView = true"
@@ -55,6 +55,9 @@
             </div>
             
             <div class="deep-analysis-action">
+              <div class="cta" v-if="!userStore.isDoingDeepAnalysis && !userStore.isInitiatingDeepPayment">
+                Провести глубокий анализ (1 ⭐️)
+              </div>
               <button class="close-button" @click.stop>
                 <div class="close-icon"></div>
               </button>
@@ -108,6 +111,7 @@ import { useUserStore } from '@/stores/user';
 import AnalysisHistoryList from '@/components/AnalysisHistoryList.vue';
 import SubscriptionModal from '@/components/SubscriptionModal.vue';
 import FactsCarousel from '@/components/FactsCarousel.vue';
+import UserInfoCard from '@/components/UserInfoCard.vue';
 import lottie from 'lottie-web';
 
 const userStore = useUserStore();
@@ -357,13 +361,11 @@ watch(showRewardClaimView, (newValue) => {
 
 </script>
 
-<UserInfoCard
-  :user-store="userStore"
-  :format-date="formatDate"
-  @change-plan="userStore.openSubscriptionModal"
-/>
-
 <style scoped>
+.cta {
+  @apply bg-tg-link text-white rounded-xl py-3 text-center font-semibold;
+}
+
 /* Transition styles */
 .expand-enter-active,
 .expand-leave-active {
