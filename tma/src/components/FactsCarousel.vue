@@ -48,6 +48,16 @@ const facts = ref([
   { id: 1, type: 'Факт', text: 'Большинство снов забываются в течение первых 5-10 минут после пробуждения.' },
   { id: 2, type: 'Символ', text: 'Полет во сне часто связывают с ощущением свободы или желанием убежать от проблем.' },
   { id: 3, type: 'Факт', text: 'Слепые от рождения люди видят сны, используя другие чувства: слух, обоняние, осязание.' },
+  { id: 4, type: 'Миф', text: 'Миф: люди снятся только черно-белыми. На самом деле 80% людей видят цветные сны.' },
+  { id: 5, type: 'Символ', text: 'Вода во сне часто символизирует эмоции, подсознание и внутренние переживания.' },
+  { id: 6, type: 'Факт', text: 'Люди могут учиться осознанным сновидениям - контролю над своими снами.' },
+  { id: 7, type: 'Миф', text: 'Миф: сны длятся часами. Большинство снов длятся всего 2-3 секунды.' },
+  { id: 8, type: 'Символ', text: 'Падение во сне обычно отражает чувство потери контроля в жизни.' },
+  { id: 9, type: 'Факт', text: 'Во время БДГ-сна (фаза быстрого сна) мозг активен почти как в бодрствующем состоянии.' },
+  { id: 10, type: 'Символ', text: 'Дом во сне часто отражает ваше внутреннее "Я" и чувство безопасности.' },
+  { id: 11, type: 'Факт', text: 'Люди чаще запоминают кошмары, чем обычные сны, из-за сильных эмоций.' },
+  { id: 12, type: 'Миф', text: 'Миф: во сне нельзя умереть. На самом деле многие люди видят сны о смерти и просыпаются.' },
+  { id: 13, type: 'Символ', text: 'Животные во сне обычно символизируют инстинкты, природные порывы и скрытые стороны личности.' }
 ])
 
 const calculateMaxHeight = () => {
@@ -70,14 +80,23 @@ onMounted(() => {
   position: static !important;
   text-align: center;
   margin-top: 1rem;
+  display: flex !important;
+  justify-content: center !important;
+  gap: 8px !important;
 }
 
 :deep(.swiper-pagination-bullet) {
-  background: rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, 0.4) !important;
   opacity: 1 !important;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  transition: all 0.3s ease !important;
+  cursor: pointer !important;
 }
 
 :deep(.swiper-pagination-bullet-active) {
   background: white !important;
+  transform: scale(1.2) !important;
 }
 </style>

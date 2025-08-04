@@ -2,7 +2,7 @@
   <article
     class="rounded-xl bg-gradient-to-br from-[#4A58FF] to-[#5664FF] text-white px-8 md:px-16 transition-all overflow-hidden cursor-pointer"
     :class="[active ? 'pb-20' : 'py-6 h-[4.5rem]']"
-    @click="$emit('toggle')"
+    @click="handleToggle"
   >
     <div class="flex justify-between items-center" :class="[active ? 'pt-8' : '']">
       <h3 class="truncate">{{ dreamTitle }}</h3>
@@ -55,15 +55,31 @@ dayjs.locale('ru')
 const props = defineProps<{ dream: any; active: boolean }>()
 const emit = defineEmits(['toggle'])
 
+const handleToggle = () => {
+  emit('toggle')
+  if (window.triggerHaptic) {
+    window.triggerHaptic('light')
+  }
+}
+
 const handleLike = () => {
+  if (window.triggerHaptic) {
+    window.triggerHaptic('medium')
+  }
   // TODO: Implement like functionality
 }
 
 const handleDislike = () => {
+  if (window.triggerHaptic) {
+    window.triggerHaptic('medium')
+  }
   // TODO: Implement dislike functionality
 }
 
 const handleDelete = () => {
+  if (window.triggerHaptic) {
+    window.triggerHaptic('heavy')
+  }
   // TODO: Implement delete functionality
 }
 

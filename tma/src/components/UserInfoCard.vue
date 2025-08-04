@@ -8,14 +8,14 @@
       <div class="flex items-center" :class="[isOpen ? 'mb-4' : 'flex-1']">
         <img class="w-10 h-10 rounded-full object-cover" :src="userAvatar" />
         <span class="ml-4 truncate">{{ userDisplayName }}</span>
-        <div v-if="isOpen" class="ml-4 flex gap-2">
-          <Badge>{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
-          <Badge>{{ subscriptionInfo }}</Badge>
+        <div v-if="isOpen" class="ml-4 flex gap-2 flex-wrap">
+          <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
+          <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
         </div>
       </div>
-      <div v-if="!isOpen" class="flex gap-2 ml-auto">
-        <Badge>{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
-        <Badge>{{ userStore?.profile?.subscription_type || 'Free' }}</Badge>
+      <div v-if="!isOpen" class="flex flex-col gap-2 ml-auto">
+        <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
+        <Badge class="whitespace-nowrap">{{ userStore?.profile?.subscription_type || 'Free' }}</Badge>
       </div>
       <div v-if="isOpen" class="space-y-2 text-sm">
         <div class="flex justify-between">
@@ -84,6 +84,9 @@ const userDisplayName = computed(() => {
 
 const toggle = () => {
   isOpen.value = !isOpen.value
+  if (window.triggerHaptic) {
+    window.triggerHaptic('light')
+  }
 }
 
 const subscriptionInfo = computed(() => {
@@ -105,6 +108,9 @@ const registrationDate = computed(() => {
 })
 
 const openTariff = () => {
+  if (window.triggerHaptic) {
+    window.triggerHaptic('medium')
+  }
   props.userStore?.openSubscriptionModal()
 }
 </script>

@@ -18,24 +18,48 @@ app.mount('#app') // Монтируем приложение в <div id="app"> �
 
 // Инициализация Telegram WebApp API (не обязательно здесь, но удобно)
 if (window.Telegram?.WebApp) {
-    window.Telegram.WebApp.ready();
-    window.Telegram.WebApp.expand(); // Раскрываем окно приложения в полный экран
-    window.Telegram.WebApp.enableClosingConfirmation(); // Подтверждение закрытия
+    const tg = window.Telegram.WebApp;
+    
+    tg.ready();
+    
+    // Максимальное раскрытие в полный экран
+    tg.expand();
+    
+    // Дополнительные настройки для полного экрана
+    setTimeout(() => {
+        tg.expand();
+        
+        // Устанавливаем размеры viewport
+        if (tg.viewportHeight) {
+            document.documentElement.style.height = tg.viewportHeight + 'px';
+            document.body.style.height = tg.viewportHeight + 'px';
+        }
+        
+        // Убираем возможность скролла за пределы приложения
+        document.body.style.overscrollBehavior = 'none';
+        document.documentElement.style.overscrollBehavior = 'none';
+        
+        // Принудительно устанавливаем полноэкранный режим
+        if (tg.MainButton) {
+            tg.MainButton.hide();
+        }
+        
+        console.log('Viewport height:', tg.viewportHeight);
+        console.log('Is expanded:', tg.isExpanded);
+    }, 100);
+    
     console.log("Telegram WebApp is ready.");
     
-    // Добавляем хаптик на все клики
-    document.addEventListener('click', () => {
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    // Создаем глобальную функцию для хаптиков
+    window.triggerHaptic = (type = 'light') => {
+        if (tg?.HapticFeedback) {
+            tg.HapticFeedback.impactOccurred(type);
         }
-    });
+    };
     
-    // Добавляем хаптик на все тапы (для мобильных устройств)
-    document.addEventListener('touchstart', () => {
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-        }
-    });
 } else {
     console.warn("Telegram WebApp script not loaded or executed.");
+    
+    // Fallback для тестирования вне Telegram
+    window.triggerHaptic = () => {};
 }

@@ -43,10 +43,16 @@ const isOpen = ref(false)
 
 const toggle = () => {
   isOpen.value = !isOpen.value
+  if (window.triggerHaptic) {
+    window.triggerHaptic('light')
+  }
 }
 
 const requestAnalysis = () => {
   if (props.userStore?.canAttemptDeepAnalysis) {
+    if (window.triggerHaptic) {
+      window.triggerHaptic('medium')
+    }
     props.userStore.initiateDeepAnalysisPayment()
   }
 }

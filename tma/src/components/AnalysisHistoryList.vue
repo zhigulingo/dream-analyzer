@@ -49,6 +49,9 @@ const canLoadMore = computed(() => {
 })
 
 const loadMore = () => {
+  if (window.triggerHaptic) {
+    window.triggerHaptic('light')
+  }
   pageSize.value += 5
 }
 </script>
