@@ -20,7 +20,7 @@
       />
       <button
         v-if="canLoadMore"
-        class="self-center text-tg-link underline text-sm my-2"
+        class="self-center bg-white/10 rounded-full px-4 py-2 text-sm font-medium text-white hover:bg-white/20 transition-colors my-2"
         @click="loadMore"
       >
         Загрузить ещё

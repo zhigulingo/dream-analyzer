@@ -1,10 +1,10 @@
 <template>
   <article
-    class="relative rounded-[2rem] bg-gradient-to-br from-[#9C41FF] to-[#C03AFF] text-white overflow-hidden transition-all cursor-pointer"
+    class="relative rounded-xl bg-gradient-to-br from-[#9C41FF] to-[#C03AFF] text-white overflow-hidden transition-all cursor-pointer"
     :class="[isOpen ? 'pb-20' : 'py-6']"
     @click="toggle"
   >
-    <div class="px-8 md:px-16">
+    <div class="px-8 md:px-16" :class="[isOpen ? 'pt-8' : '']">
       <h3 class="text-xl font-bold">Глубокий Анализ</h3>
       <p class="mt-1">Получите комплексный анализ ваших последних 5 снов.</p>
       
@@ -25,7 +25,7 @@
     <transition name="fade">
       <button
         v-if="isOpen && userStore?.canAttemptDeepAnalysis"
-        class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 px-8 font-semibold transition-colors"
+        class="absolute bottom-4 left-4 right-4 bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors"
         @click.stop="requestAnalysis"
       >
         Получить анализ (1 ⭐️)
