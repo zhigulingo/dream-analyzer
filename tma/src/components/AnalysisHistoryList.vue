@@ -10,7 +10,7 @@
     <div v-else-if="!userStore?.history?.length" class="text-center text-white/60 py-8">
       У вас пока нет сохраненных анализов
     </div>
-    <div v-else class="flex flex-col gap-4">
+    <div v-else class="flex flex-col gap-4 pb-[5vh]">
       <DreamCard
         v-for="dream in visibleDreams"
         :key="dream.id"

@@ -19,8 +19,23 @@ app.mount('#app') // Монтируем приложение в <div id="app"> �
 // Инициализация Telegram WebApp API (не обязательно здесь, но удобно)
 if (window.Telegram?.WebApp) {
     window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand(); // Раскрываем окно приложения в полный экран
+    window.Telegram.WebApp.enableClosingConfirmation(); // Подтверждение закрытия
     console.log("Telegram WebApp is ready.");
-    // window.Telegram.WebApp.expand(); // Можно раскрыть окно приложения при старте
+    
+    // Добавляем хаптик на все клики
+    document.addEventListener('click', () => {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        }
+    });
+    
+    // Добавляем хаптик на все тапы (для мобильных устройств)
+    document.addEventListener('touchstart', () => {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        }
+    });
 } else {
     console.warn("Telegram WebApp script not loaded or executed.");
 }

@@ -6,7 +6,7 @@
   >
     <div class="flex justify-between items-center" :class="[active ? 'pt-8' : '']">
       <h3 class="truncate">{{ dreamTitle }}</h3>
-      <span class="bg-white/10 rounded-full px-4 py-1 text-sm w-16 text-center">
+      <span class="bg-white/10 rounded-full px-2 py-1 text-sm min-w-[3rem] text-center whitespace-nowrap">
         {{ relativeDate }}
       </span>
     </div>
@@ -19,14 +19,23 @@
         <h4 class="font-semibold mb-1">Анализ:</h4>
         <p class="leading-snug opacity-90">{{ dream.analysis }}</p>
       </div>
-      <div class="absolute bottom-4 left-4 right-4 flex gap-2">
-        <button class="flex-1 bg-white/20 hover:bg-white/30 text-white rounded-xl py-2 text-sm font-medium transition-colors">
+      <div class="mt-4 flex gap-2">
+        <button 
+          class="flex-1 bg-white/20 hover:bg-white/30 text-white rounded-xl py-2 text-sm font-medium transition-colors"
+          @click.stop="handleLike"
+        >
           👍 Нравится
         </button>
-        <button class="flex-1 bg-white/20 hover:bg-white/30 text-white rounded-xl py-2 text-sm font-medium transition-colors">
+        <button 
+          class="flex-1 bg-white/20 hover:bg-white/30 text-white rounded-xl py-2 text-sm font-medium transition-colors"
+          @click.stop="handleDislike"
+        >
           👎 Не нравится
         </button>
-        <button class="flex-1 bg-red-500/20 hover:bg-red-500/30 text-white rounded-xl py-2 text-sm font-medium transition-colors">
+        <button 
+          class="flex-1 bg-red-500/20 hover:bg-red-500/30 text-white rounded-xl py-2 text-sm font-medium transition-colors"
+          @click.stop="handleDelete"
+        >
           🗑️ Удалить
         </button>
       </div>
@@ -44,6 +53,19 @@ dayjs.extend(relativeTime)
 dayjs.locale('ru')
 
 const props = defineProps<{ dream: any; active: boolean }>()
+const emit = defineEmits(['toggle'])
+
+const handleLike = () => {
+  // TODO: Implement like functionality
+}
+
+const handleDislike = () => {
+  // TODO: Implement dislike functionality
+}
+
+const handleDelete = () => {
+  // TODO: Implement delete functionality
+}
 
 const dreamTitle = computed(() => {
   if (!props.dream.dream_text) return 'Без названия'

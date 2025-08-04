@@ -8,7 +8,7 @@
         delay: 5000,
         disableOnInteraction: false,
       }"
-      :pagination="{ clickable: true }"
+      :pagination="{ clickable: true, el: '.swiper-pagination-custom' }"
       class="pl-4 sm:pl-6 md:pl-8"
       :style="{ height: maxCardHeight + 'px' }"
     >
@@ -25,7 +25,7 @@
         <p class="text-lg leading-tight">{{ fact.text }}</p>
       </SwiperSlide>
       <template #pagination>
-        <div class="swiper-pagination mt-4"></div>
+        <div class="swiper-pagination-custom mt-4 text-center"></div>
       </template>
     </Swiper>
   </section>
@@ -42,7 +42,7 @@ import 'swiper/css/autoplay'
 
 const modules = [Autoplay, Pagination]
 const cardRefs = ref([])
-const maxCardHeight = ref(280)
+const maxCardHeight = ref(224)
 
 const facts = ref([
   { id: 1, type: 'Факт', text: 'Большинство снов забываются в течение первых 5-10 минут после пробуждения.' },
@@ -53,8 +53,8 @@ const facts = ref([
 const calculateMaxHeight = () => {
   nextTick(() => {
     if (cardRefs.value.length > 0) {
-      const heights = cardRefs.value.map(card => card?.$el?.offsetHeight || 280)
-      maxCardHeight.value = Math.max(...heights, 280)
+      const heights = cardRefs.value.map(card => card?.$el?.offsetHeight || 224)
+      maxCardHeight.value = Math.max(...heights, 224)
     }
   })
 }
@@ -65,7 +65,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-:deep(.swiper-pagination) {
+:deep(.swiper-pagination),
+:deep(.swiper-pagination-custom) {
   position: static !important;
   text-align: center;
   margin-top: 1rem;
