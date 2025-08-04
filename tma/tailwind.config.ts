@@ -97,12 +97,11 @@ const config: Config = {
           'sans-serif',
         ],
       },
-      maxWidth: {
-        '72r': '72rem', // ~1152px - Figma container max width
+      maxWidth: { 
+        '72r': '72rem' 
       },
-      aspectRatio: {
-        'facts': '1146 / 702', // Figma FactsCarousel aspect ratio
-        '1146/702': '1146 / 702', // Alternative syntax
+      aspectRatio: { 
+        '1146/702': '1146/702' 
       },
       borderRadius: {
         'lg': '1rem', // 16px - custom large
