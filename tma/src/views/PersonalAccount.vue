@@ -1,45 +1,58 @@
 <template>
-  <div class="flex flex-col items-center gap-6 px-4 sm:px-6 md:px-8 pb-[env(safe-area-inset-bottom)]">
+  <div class="main-layout">
     <!-- Показываем или основной ЛК, или страницу получения награды -->
     <template v-if="!showRewardClaimView">
+      <!-- Блок 0: Логотип и название приложения -->
+      <div class="app-header">
+        <div class="app-logo">🌙</div>
+        <h1 class="app-title">Dreams Talk</h1>
+      </div>
+      
       <!-- Блок 1: Информация о пользователе (компактный) -->
-      <div class="w-full max-w-72r">
+      <section class="section-container user-info-section">
         <UserInfoCard
-          class="min-h-[18rem] py-6 px-8 md:px-16 bg-[#5461FF] text-white rounded-[3.75rem]"
+          class="user-info-card-container"
           :user-store="userStore"
           :format-date="formatDate"
           @change-plan="userStore.openSubscriptionModal"
         />
-      </div>
+      </section>
       
-      <!-- Facts Carousel -->
-      <div class="w-full max-w-72r">
-        <FactsCarousel class="aspect-[1146/702] rounded-[3.75rem] overflow-hidden" />
-      </div>
+      <!-- Блок 2: Facts Carousel -->
+      <section class="section-container facts-section">
+        <FactsCarousel class="facts-carousel-container" />
+      </section>
 
-      <!-- Блок глубокого анализа -->
-      <section class="w-full max-w-72r">
-        <div class="py-6 px-8 md:px-16 bg-gradient-to-br from-[#BF62ED] to-[#701E99] rounded-[3.75rem] cursor-pointer"
-          @click="onDeepAnalysis"
-          :class="{ 'cursor-pointer': userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis }">
-          
-          <div v-if="userStore.isInitiatingDeepPayment" class="text-center text-white text-xl">
-            Создаем счёт... <span class="spinner white"></span>
-          </div>
-          <div v-else-if="userStore.isDoingDeepAnalysis" class="text-center text-white text-xl">
-            Анализ... <span class="spinner white"></span>
-          </div>
-          <div v-else class="text-center">
-            <div class="cta bg-tg-link text-tg-button-text rounded-xl py-3 text-center font-semibold">
-              Провести глубокий анализ (1 ⭐️)
+      <!-- Блок 3: Глубокий анализ (показывается только при 5+ снах) -->
+      <section v-if="userStore.history && userStore.history.length >= 5" class="section-container deep-analysis-section">
+        <div class="deep-analysis-wrapper" @click="toggleDeepAnalysis">
+          <div class="deep-analysis-content">
+            <div class="deep-analysis-info">
+              <h3 class="deep-analysis-title">Глубокий Анализ</h3>
+              <p class="deep-analysis-subtitle">Получите комплексный анализ ваших последних 5 снов.</p>
+            </div>
+            <div v-if="userStore.isInitiatingDeepPayment" class="processing-state">
+              Создаем счёт... <span class="spinner white"></span>
+            </div>
+            <div v-else-if="userStore.isDoingDeepAnalysis" class="processing-state">
+              Анализ... <span class="spinner white"></span>
             </div>
           </div>
+          
+          <Transition name="expand">
+            <button
+              v-if="deepAnalysisExpanded && userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis"
+              class="deep-analysis-button"
+              @click.stop="onDeepAnalysis">
+              Получить анализ (1 ⭐️)
+            </button>
+          </Transition>
 
-          <div v-if="userStore.deepAnalysisResult" class="analysis-result mt-4">
-              <h3 class="text-white text-lg font-semibold">Результат глубокого анализа:</h3>
-              <pre class="text-white text-sm mt-2 whitespace-pre-wrap">{{ userStore.deepAnalysisResult }}</pre>
+          <div v-if="userStore.deepAnalysisResult" class="analysis-result">
+              <h4 class="analysis-result-title">Результат глубокого анализа:</h4>
+              <pre class="analysis-result-text">{{ userStore.deepAnalysisResult }}</pre>
           </div>
-          <div v-if="userStore.deepAnalysisError || userStore.deepPaymentError" class="error-message mt-4">
+          <div v-if="userStore.deepAnalysisError || userStore.deepPaymentError" class="error-message">
               ⚠️ {{ userStore.deepAnalysisError || userStore.deepPaymentError }}
           </div>
         </div>
@@ -55,19 +68,29 @@
         <p>✅ Награда за подписку на канал получена!</p>
       </div>
 
-      <!-- Блок 2: История анализов -->
-      <section class="w-full max-w-72r">
-        <h2 class="text-center text-2xl font-medium mb-6">История анализов</h2>
-        <div v-if="userStore.isLoadingHistory" class="text-center">Загрузка истории...</div>
+      <!-- Блок 4: История снов -->
+      <section class="section-container history-section">
+        <h2 class="history-section-title">История снов</h2>
+        <div v-if="userStore.isLoadingHistory" class="loading-state">Загрузка истории...</div>
         <div v-else-if="userStore.errorHistory" class="error-message">
           Ошибка загрузки истории: {{ userStore.errorHistory }}
         </div>
         <!-- Отображаем список ТОЛЬКО если история НЕ пуста -->
-        <div v-else-if="userStore.history && userStore.history.length > 0">
-          <AnalysisHistoryList :history="userStore.history" />
+        <div v-else-if="userStore.history && userStore.history.length > 0" class="history-content">
+          <AnalysisHistoryList 
+            :history="displayedHistory" 
+            :active-item="activeHistoryItem"
+            @toggle-item="handleToggleHistoryItem" 
+          />
+          <button 
+            v-if="canLoadMore" 
+            @click="loadMoreHistory"
+            class="load-more-button">
+            Загрузить еще
+          </button>
         </div>
-        <div v-else>
-          <p class="text-center">У вас пока нет сохраненных анализов.</p>
+        <div v-else class="empty-state">
+          <p>У вас пока нет сохраненных анализов.</p>
         </div>
       </section>
 
@@ -114,9 +137,41 @@ const REQUIRED_DREAMS = 5;
 const lottieContainer = ref(null);
 let lottieAnimation = null;
 
+// Новые переменные для функциональности
+const deepAnalysisExpanded = ref(false);
+const displayLimit = ref(5);
+const activeHistoryItem = ref(null);
+
+// Computed properties
+const displayedHistory = computed(() => {
+  if (!userStore.history) return [];
+  return userStore.history.slice(0, displayLimit.value);
+});
+
+const canLoadMore = computed(() => {
+  return userStore.history && userStore.history.length > displayLimit.value;
+});
+
 const onDeepAnalysis = () => {
   if (userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis) {
     userStore.initiateDeepAnalysisPayment();
+  }
+};
+
+const toggleDeepAnalysis = () => {
+  deepAnalysisExpanded.value = !deepAnalysisExpanded.value;
+};
+
+const loadMoreHistory = () => {
+  displayLimit.value += 5;
+};
+
+const handleToggleHistoryItem = (itemId) => {
+  // Аккордеонная логика - закрываем все остальные элементы
+  if (activeHistoryItem.value === itemId) {
+    activeHistoryItem.value = null;
+  } else {
+    activeHistoryItem.value = itemId;
   }
 };
 
@@ -902,5 +957,319 @@ button:hover:not(:disabled), a.subscribe-button:hover {
     line-height: 1.6;
     color: #FFFFFF;
     margin: 0;
+}
+
+/* Main Layout Structure */
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  gap: 30px;
+  box-sizing: border-box;
+  min-height: 100vh;
+}
+
+/* App Header */
+.app-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.app-logo {
+  font-size: 48px;
+  text-align: center;
+}
+
+.app-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.2;
+  color: var(--tg-theme-text-color);
+  text-align: center;
+  margin: 0;
+}
+
+/* Section containers */
+.section-container {
+  width: 100%;
+  max-width: 1146px;
+  margin: 0 auto;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .main-layout {
+    padding: 16px 20px;
+    gap: 24px;
+  }
+  
+  .app-logo {
+    font-size: 40px;
+  }
+  
+  .app-title {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-layout {
+    padding: 12px 16px;
+    gap: 20px;
+  }
+  
+  .app-logo {
+    font-size: 36px;
+  }
+  
+  .app-title {
+    font-size: 22px;
+  }
+}
+
+/* User Info Section */
+.user-info-section {
+  height: 10vh;
+  min-height: 120px;
+  max-height: 200px;
+}
+
+.user-info-card-container {
+  height: 100%;
+  background: var(--gradient-user);
+  border-radius: 60px;
+  padding: 32px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+}
+
+/* Facts Section */
+.facts-section {
+  height: 20vh;
+  min-height: 250px;
+  max-height: 400px;
+}
+
+.facts-carousel-container {
+  height: 100%;
+  border-radius: 60px;
+  overflow: hidden;
+}
+
+/* Deep Analysis Section */
+.deep-analysis-section {
+  margin: 20px 0;
+}
+
+.deep-analysis-wrapper {
+  background: var(--gradient-deep-analysis);
+  border-radius: 72px;
+  padding: 40px 48px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.deep-analysis-wrapper:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(191, 98, 237, 0.3);
+}
+
+.deep-analysis-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 40px;
+}
+
+.deep-analysis-info {
+  flex: 1;
+}
+
+.deep-analysis-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1.2;
+  color: #FFFFFF;
+  margin: 0 0 8px 0;
+}
+
+.deep-analysis-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.deep-analysis-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 36px;
+  padding: 16px 32px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  margin-top: 20px;
+  width: 100%;
+}
+
+.deep-analysis-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+/* History Section */
+.history-section {
+  margin-top: 40px;
+}
+
+.history-section-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 1.1;
+  color: var(--tg-theme-text-color);
+  text-align: left;
+  margin: 0 0 24px 0;
+}
+
+.history-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.load-more-button {
+  background: rgba(74, 88, 255, 0.1);
+  color: var(--tg-theme-text-color);
+  border: 1px solid rgba(74, 88, 255, 0.3);
+  border-radius: 36px;
+  padding: 12px 24px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 16px;
+  align-self: center;
+}
+
+.load-more-button:hover {
+  background: rgba(74, 88, 255, 0.2);
+  border-color: rgba(74, 88, 255, 0.5);
+}
+
+.loading-state, .empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--tg-theme-hint-color);
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* Analysis Result Styles */
+.analysis-result-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  color: #FFFFFF;
+  margin: 0 0 12px 0;
+}
+
+.analysis-result-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #FFFFFF;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .user-info-section {
+    height: auto;
+    min-height: 100px;
+  }
+  
+  .user-info-card-container {
+    padding: 24px 32px;
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+  
+  .facts-section {
+    height: auto;
+    min-height: 200px;
+  }
+  
+  .deep-analysis-wrapper {
+    padding: 32px 24px;
+  }
+  
+  .deep-analysis-content {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+  
+  .deep-analysis-title {
+    font-size: 24px;
+  }
+  
+  .deep-analysis-subtitle {
+    font-size: 16px;
+  }
+  
+  .history-section-title {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-info-card-container {
+    padding: 20px 24px;
+  }
+  
+  .deep-analysis-wrapper {
+    padding: 24px 20px;
+  }
+  
+  .deep-analysis-title {
+    font-size: 20px;
+  }
+  
+  .deep-analysis-subtitle {
+    font-size: 14px;
+  }
+  
+  .history-section-title {
+    font-size: 18px;
+  }
 }
 </style>

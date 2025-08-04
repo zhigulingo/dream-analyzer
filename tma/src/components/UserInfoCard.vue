@@ -79,10 +79,10 @@
   /* User Info Card - Figma Design */
   .user-info-card {
     background: transparent;
-    border-radius: 3.75rem;
+    border-radius: 60px;
     padding: 0;
     margin: 0;
-    min-height: 18rem;
+    height: 100%;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -114,8 +114,8 @@
   }
 
   .avatar {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     background: #D9D9D9;
     border-radius: 50%;
     flex-shrink: 0;
@@ -124,13 +124,13 @@
   .user-name {
     font-family: 'Inter', sans-serif;
     font-weight: 400;
-    font-size: 24px;
+    font-size: 18px;
     line-height: 1.1;
     color: #FFFFFF;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px;
+    max-width: 180px;
   }
 
   .info-section {

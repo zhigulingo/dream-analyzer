@@ -1,17 +1,23 @@
 <template>
   <div class="history-list">
-    <div v-for="item in history" :key="item.id" class="history-item bg-[#4A58FF] text-white rounded-[3.75rem] px-8 md:px-16 py-14 mb-6">
-      <div class="history-summary cursor-pointer" @click="toggleItem(item.id)">
+    <div v-for="item in history" :key="item.id" class="history-item">
+      <div class="history-summary" @click="toggleItem(item.id)">
         <h3 class="dream-title">{{ getDreamTitle(item.dream_text) }}</h3>
         <span class="dream-date">{{ formatRelativeDate(item.created_at) }}</span>
       </div>
-      <div v-if="openItems.includes(item.id)" class="history-details mt-4">
-        <p><strong>Сон:</strong></p>
-        <p class="dream-text">{{ item.dream_text }}</p>
-        <hr class="my-4 border-white/30">
-        <p><strong>Анализ:</strong></p>
-        <p class="analysis-text">{{ item.analysis }}</p>
-      </div>
+      <Transition name="expand">
+        <div v-if="isItemOpen(item.id)" class="history-details">
+          <div class="detail-section">
+            <h4 class="detail-label">Сон:</h4>
+            <p class="dream-text">{{ item.dream_text }}</p>
+          </div>
+          <div class="detail-divider"></div>
+          <div class="detail-section">
+            <h4 class="detail-label">Анализ:</h4>
+            <p class="analysis-text">{{ item.analysis }}</p>
+          </div>
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
@@ -25,23 +31,26 @@ import 'dayjs/locale/ru'
 dayjs.extend(relativeTime)
 dayjs.locale('ru')
 
-defineProps({
+const props = defineProps({
   history: {
     type: Array,
     required: true,
   },
+  activeItem: {
+    type: [String, Number],
+    default: null,
+  },
 });
 
-const openItems = ref([])
+const emit = defineEmits(['toggle-item']);
 
 const toggleItem = (itemId) => {
-  const index = openItems.value.indexOf(itemId)
-  if (index > -1) {
-    openItems.value.splice(index, 1)
-  } else {
-    openItems.value.push(itemId)
-  }
-}
+  emit('toggle-item', itemId);
+};
+
+const isItemOpen = (itemId) => {
+  return props.activeItem === itemId;
+};
 
 const getDreamTitle = (dreamText) => {
   if (!dreamText) return 'Без названия'
@@ -69,36 +78,165 @@ const formatRelativeDate = (dateString) => {
 </script>
 
 <style scoped>
+/* Transition styles */
+.expand-enter-active, .expand-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+.expand-enter-from, .expand-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+.expand-enter-to, .expand-leave-from {
+  max-height: 500px;
+  opacity: 1;
+}
+
 .history-list {
-  @apply space-y-4;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .history-item {
-  @apply transition-transform duration-200;
+  background: #4A58FF;
+  border-radius: 60px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.history-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(74, 88, 255, 0.3);
 }
 
 .history-item:active {
-  @apply scale-95;
+  transform: scale(0.98);
 }
 
 .history-summary {
-  @apply flex justify-between items-center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32px 48px;
+  color: white;
 }
 
 .dream-title {
-  @apply text-xl font-medium text-white overflow-hidden text-ellipsis whitespace-nowrap flex-1 mr-4;
-  max-width: calc(100% - 150px);
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 1.2;
+  color: #FFFFFF;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  margin-right: 24px;
+  text-align: left;
 }
 
 .dream-date {
-  @apply text-white/80 text-sm whitespace-nowrap;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
 }
 
 .history-details {
-  @apply text-white/90;
+  padding: 0 48px 32px;
+  color: white;
+}
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+.detail-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: #FFFFFF;
+  margin: 0 0 8px 0;
+}
+
+.detail-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 20px 0;
 }
 
 .dream-text, .analysis-text {
-  @apply whitespace-pre-wrap break-words text-sm leading-relaxed mt-2;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .history-summary {
+    padding: 24px 32px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .dream-title {
+    font-size: 18px;
+    margin-right: 0;
+    white-space: normal;
+    text-overflow: unset;
+    overflow: visible;
+  }
+  
+  .dream-date {
+    font-size: 14px;
+    align-self: flex-end;
+  }
+  
+  .history-details {
+    padding: 0 32px 24px;
+  }
+  
+  .detail-label {
+    font-size: 14px;
+  }
+  
+  .dream-text, .analysis-text {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .history-summary {
+    padding: 20px 24px;
+  }
+  
+  .dream-title {
+    font-size: 16px;
+  }
+  
+  .dream-date {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  .history-details {
+    padding: 0 24px 20px;
+  }
+  
+  .dream-text, .analysis-text {
+    font-size: 12px;
+  }
 }
 </style>
