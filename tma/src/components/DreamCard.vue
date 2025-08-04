@@ -16,15 +16,11 @@
   </article>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 dayjs.extend(relativeTime)
 
-const props = defineProps({
-  dream: Object,
-  active: Boolean
-})
-
+const props = defineProps<{ dream: any; active: boolean }>()
 const relativeDate = dayjs(props.dream.date).fromNow(true)
 </script>
