@@ -310,7 +310,10 @@ onUnmounted(() => {
 }
 .carousel-header h2 {
   margin: 0 0 10px 0;
-  font-size: 1.1em;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 64px;
+  line-height: 1.1;
   text-align: center;
   color: var(--tg-theme-text-color);
 }
@@ -319,12 +322,14 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  @apply px-2 py-2 rounded-3xl;
-  background: rgba(0,0,0,0.25);
-  backdrop-filter: blur(44px);
-  -webkit-backdrop-filter: blur(44px);
+  padding: 16px 18px;
+  border-radius: 56px;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(88px);
+  -webkit-backdrop-filter: blur(88px);
   width: fit-content;
   margin: 0 auto 10px auto;
+  gap: 12px;
 }
 .pagination-container.light {
   background: rgba(255,255,255,1);
@@ -425,34 +430,106 @@ onUnmounted(() => {
 .fact-card-fancy {
   flex-shrink: 0;
   width: var(--card-width-percent); /* Используем переменную */
-  min-height: 80px;
+  min-height: 702px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  @apply p-4;
+  padding: 353px 80px;
   box-sizing: border-box;
-  color: var(--tg-theme-text-color);
-  background-color: var(--tg-theme-bg-color);
-  @apply rounded-lg;
-  margin: 0 5px; /* Отступ между карточками */
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #5342E1 0%, #7A164F 82.89%);
+  border-radius: 60px;
+  margin: 0 12px; /* Отступ между карточками */
   scroll-snap-align: center; /* Привязка к центру */
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.fact-card-fancy:nth-child(even) {
+  background: linear-gradient(135deg, #BF62ED 0%, #701E99 85.23%);
+}
+
+.fact-card-fancy:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(83, 66, 225, 0.3);
+}
+
+.fact-card-fancy:nth-child(even):hover {
+  box-shadow: 0 12px 40px rgba(191, 98, 237, 0.3);
 }
 
 .fact-card-text {
   margin: 0;
-  font-size: 0.9em;
-  line-height: 1.5;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 82px;
+  line-height: 1.1;
+  color: #FFFFFF;
+  text-align: center;
+  position: relative;
+  z-index: 2;
 }
 
-/* Адаптивность (опционально) */
+/* Add tag for facts */
+.fact-card-fancy::before {
+  content: 'Совет дня';
+  position: absolute;
+  top: 80px;
+  left: 80px;
+  background: rgba(194, 195, 211, 0.4);
+  border-radius: 72px;
+  padding: 20px 38px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 51.2px;
+  line-height: 1.1;
+  color: #FFFFFF;
+  z-index: 1;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .fact-card-fancy {
+    min-height: 400px;
+    padding: 200px 40px;
+  }
+  
+  .fact-card-text {
+    font-size: 48px;
+  }
+  
+  .fact-card-fancy::before {
+    top: 40px;
+    left: 40px;
+    font-size: 32px;
+    padding: 16px 24px;
+  }
+}
+
 @media (max-width: 480px) {
   .facts-wrapper {
     --card-width-percent: 85%; /* Делаем карточки шире на маленьких экранах */
   }
+  
   .fact-card-fancy {
-     margin: 0 4px; /* Уменьшаем отступ */
+    margin: 0 4px; /* Уменьшаем отступ */
+    min-height: 300px;
+    padding: 120px 30px;
+  }
+  
+  .fact-card-text {
+    font-size: 32px;
+    line-height: 1.2;
+  }
+  
+  .fact-card-fancy::before {
+    top: 30px;
+    left: 30px;
+    font-size: 24px;
+    padding: 12px 20px;
   }
 }
 </style>

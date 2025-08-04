@@ -64,6 +64,26 @@ const config: Config = {
           500: '#ffc107',
           600: '#e0a800',
         },
+        // Figma design gradients
+        'user-card': {
+          from: '#5461FF',
+          to: '#4A58FF',
+        },
+        'fact-card-1': {
+          from: '#5342E1',
+          to: '#7A164F',
+        },
+        'fact-card-2': {
+          from: '#BF62ED',
+          to: '#701E99',
+        },
+        'deep-analysis': {
+          from: '#BF62ED',
+          to: '#701E99',
+        },
+        'history-card': {
+          500: '#4A58FF',
+        },
       },
       fontFamily: {
         sans: [

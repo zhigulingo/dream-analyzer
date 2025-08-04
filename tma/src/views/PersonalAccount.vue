@@ -2,14 +2,15 @@
   <div class="personal-account">
     <!-- Показываем или основной ЛК, или страницу получения награды -->
     <template v-if="!showRewardClaimView">
-      
-     <FactsCarousel />
       <!-- Блок 1: Информация о пользователе -->
       <UserInfoCard
         :user-store="userStore"
         :format-date="formatDate"
         @change-plan="userStore.openSubscriptionModal"
       />
+      
+      <!-- Facts Carousel -->
+      <FactsCarousel />
       <div v-if="userStore.profile?.subscription_type === 'free' && !userStore.profile?.channel_reward_claimed && !isClaimRewardAction">
         <button
             @click="showRewardClaimView = true"
@@ -38,26 +39,39 @@
       </section>
 
       <!-- Блок глубокого анализа -->
-      <section class="deep-analysis card"
-        @click="onDeepAnalysis"
-        :class="{ 'cursor-pointer': userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis }">
-        <h2>Глубокий анализ</h2>
-        <p>Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов. Стоимость: 1 ⭐️ (Telegram Star).</p>
-        <p v-if="!userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis" class="info-message hint">
-            <span v-if="userStore.isLoadingProfile || userStore.isLoadingHistory">Дождитесь загрузки данных...</span>
-            <span v-else-if="(userStore.history?.length ?? 0) < REQUIRED_DREAMS">Нужно еще {{ REQUIRED_DREAMS - (userStore.history?.length ?? 0) }} сна/снов для анализа.</span>
-        </p>
+      <section class="deep-analysis-card-container">
+        <div class="deep-analysis-card"
+          @click="onDeepAnalysis"
+          :class="{ 'cursor-pointer': userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis }">
+          
+          <div class="deep-analysis-content">
+            <div class="deep-analysis-text">
+              <h2 class="deep-analysis-title">Глубокий Анализ</h2>
+              <p class="deep-analysis-description">Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов.</p>
+              <p v-if="!userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis" class="deep-analysis-hint">
+                  <span v-if="userStore.isLoadingProfile || userStore.isLoadingHistory">Дождитесь загрузки данных...</span>
+                  <span v-else-if="(userStore.history?.length ?? 0) < REQUIRED_DREAMS">Нужно еще {{ REQUIRED_DREAMS - (userStore.history?.length ?? 0) }} сна/снов для анализа.</span>
+              </p>
+            </div>
+            
+            <div class="deep-analysis-action">
+              <button class="close-button" @click.stop>
+                <div class="close-icon"></div>
+              </button>
+            </div>
+          </div>
 
-        <div v-if="userStore.deepAnalysisResult" class="analysis-result card">
-            <h3>Результат глубокого анализа:</h3>
-            <pre>{{ userStore.deepAnalysisResult }}</pre>
-        </div>
-        <div v-if="userStore.deepAnalysisError || userStore.deepPaymentError" class="error-message">
-            ⚠️ {{ userStore.deepAnalysisError || userStore.deepPaymentError }}
-        </div>
-        <div v-if="userStore.isInitiatingDeepPayment || userStore.isDoingDeepAnalysis" class="processing-state">
-          <span v-if="userStore.isInitiatingDeepPayment">Создаем счет... <span class="spinner white"></span></span>
-          <span v-else-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
+          <div v-if="userStore.deepAnalysisResult" class="analysis-result">
+              <h3>Результат глубокого анализа:</h3>
+              <pre>{{ userStore.deepAnalysisResult }}</pre>
+          </div>
+          <div v-if="userStore.deepAnalysisError || userStore.deepPaymentError" class="error-message">
+              ⚠️ {{ userStore.deepAnalysisError || userStore.deepPaymentError }}
+          </div>
+          <div v-if="userStore.isInitiatingDeepPayment || userStore.isDoingDeepAnalysis" class="processing-state">
+            <span v-if="userStore.isInitiatingDeepPayment">Создаем счет... <span class="spinner white"></span></span>
+            <span v-else-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
+          </div>
         </div>
       </section>
 
@@ -370,17 +384,27 @@ watch(showRewardClaimView, (newValue) => {
 /* --- Ваши стили без изменений --- */
 /* ... (все ваши стили) ... */
 .personal-account { 
-  padding: 15px; 
+  padding: 0;
   color: var(--tg-theme-text-color); 
   background-color: var(--tg-theme-bg-color); 
-  min-height: 100vh; 
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 27px;
+  padding-top: 320px;
+  padding-bottom: 320px;
+  width: 100%;
+  max-width: 1242px;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 .card { 
   background-color: var(--tg-theme-secondary-bg-color); 
-  border-radius: 8px; 
-  padding: 15px; 
-  margin-bottom: 15px; 
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+  border-radius: 60px; 
+  padding: 20px; 
+  margin: 15px; 
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1); 
+  transition: all 0.3s ease;
 }
 h1, h2 { 
   color: var(--tg-theme-text-color); 
@@ -426,7 +450,18 @@ button:disabled {
 button:hover:not(:disabled), a.subscribe-button:hover { 
   opacity: 0.9; 
 }
-.error-message { color: var(--tg-theme-destructive-text-color); background-color: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.2); padding: 10px; border-radius: 4px; margin-top: 10px; }
+.deep-analysis-card .error-message { 
+  color: #ff6b6b; 
+  background: rgba(255, 107, 107, 0.1); 
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 107, 107, 0.3); 
+  padding: 20px; 
+  border-radius: 24px; 
+  margin-top: 20px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 24px;
+}
 .success-message { color: #28a745; font-weight: bold; margin-top: 15px; }
 .info-message { color: var(--tg-theme-hint-color); font-size: 0.9em; margin-top: 10px; }
 .hint { color: var(--tg-theme-hint-color); font-size: 0.85em; display: block; margin-top: 3px; }
@@ -530,36 +565,347 @@ button:hover:not(:disabled), a.subscribe-button:hover {
 }
 .spinner { display: inline-block; border: 2px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; width: 1em; height: 1em; animation: spin 1s ease-in-out infinite; margin-left: 8px; vertical-align: -0.15em; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.deep-analysis { /* Стили для карточки глубокого анализа */ }
-.processing-state {
-  margin-top: 15px;
-  padding: 10px;
-  background-color: var(--tg-theme-link-color);
-  color: white;
-  border-radius: 6px;
-  text-align: center;
-  font-weight: bold;
+
+/* History Section - Figma Design */
+.history-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+  gap: 30px;
+  padding: 0 40px;
+  margin: 15px 0;
+  min-height: 1245px;
 }
-.processing-state .spinner.white { border-top-color: white; }
+
+.history-header {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  gap: 24px;
+  padding: 0 40px;
+}
+
+.history-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 64px;
+  line-height: 1.1;
+  color: var(--tg-theme-text-color);
+  margin: 0;
+}
+
+.history-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  max-width: 1146px;
+}
+
+.dream-history-item {
+  width: 100%;
+  height: 284px;
+  margin-bottom: 15px;
+}
+
+.dream-content {
+  display: flex;
+  align-items: center;
+  gap: 64px;
+  padding: 84px 64px;
+  background: #4A58FF;
+  border-radius: 72px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dream-content:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(74, 88, 255, 0.3);
+}
+
+.dream-text-section {
+  display: flex;
+  justify-content: stretch;
+  align-items: stretch;
+  gap: 10px;
+  width: 680px;
+}
+
+.dream-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 52px;
+  line-height: 1.1;
+  color: #FFFFFF;
+  text-align: left;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 106px;
+}
+
+.dream-date-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 36px;
+  border: 1px solid #EBEBEB;
+  border-radius: 40px;
+  min-width: fit-content;
+}
+
+.dream-date {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 38px;
+  line-height: 1.25;
+  color: #FFFFFF;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.history-loading,
+.history-empty {
+  font-family: 'Inter', sans-serif;
+  font-size: 32px;
+  color: var(--tg-theme-text-color);
+  text-align: center;
+  padding: 40px;
+}
+
+.history-empty p {
+  margin: 0;
+  color: var(--tg-theme-hint-color);
+}
+
+.history-section .error-message {
+  max-width: 800px;
+  margin: 20px auto;
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  padding: 20px;
+  border-radius: 24px;
+}
+
+/* Responsive Design for History Section */
+@media (max-width: 768px) {
+  .history-section {
+    padding: 0 20px;
+    min-height: auto;
+  }
+  
+  .history-title {
+    font-size: 32px;
+  }
+  
+  .dream-content {
+    flex-direction: column;
+    padding: 40px 32px;
+    gap: 32px;
+    height: auto;
+  }
+  
+  .dream-text-section {
+    width: 100%;
+  }
+  
+  .dream-title {
+    font-size: 28px;
+    height: auto;
+    text-align: center;
+  }
+  
+  .dream-date {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .history-section {
+    padding: 0 10px;
+  }
+  
+  .dream-content {
+    padding: 24px 20px;
+    border-radius: 36px;
+  }
+  
+  .dream-title {
+    font-size: 24px;
+  }
+  
+  .dream-date {
+    font-size: 20px;
+  }
+  
+  .personal-account {
+    padding: 10px;
+  }
+}
+/* Deep Analysis Card - Figma Design */
+.deep-analysis-card-container {
+  padding: 10px 52px;
+  margin: 15px 0;
+}
+
+.deep-analysis-card {
+  background: linear-gradient(135deg, #BF62ED 0%, #701E99 85.23%);
+  border-radius: 72px;
+  padding: 49px 64px;
+  min-height: 284px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.deep-analysis-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(191, 98, 237, 0.3);
+}
+
+.deep-analysis-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 98px;
+}
+
+.deep-analysis-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.deep-analysis-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 52px;
+  line-height: 1.233;
+  letter-spacing: -1.418%;
+  color: #FFFFFF;
+  margin: 0 0 16px 0;
+  max-width: 900px;
+}
+
+.deep-analysis-description {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 48px;
+  line-height: 1.336;
+  letter-spacing: -1.537%;
+  color: #FFFFFF;
+  margin: 0;
+  max-width: 900px;
+}
+
+.deep-analysis-hint {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 36px;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 16px;
+}
+
+.deep-analysis-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-button {
+  width: 120px;
+  height: 120px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.close-button:hover {
+  transform: scale(1.1);
+}
+
+.close-icon {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  background: #D9D9D9;
+  border-radius: 50%;
+  margin: 29px auto;
+}
+
+.close-icon::before,
+.close-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22.5px;
+  height: 4px;
+  background: #000000;
+  transform: translate(-50%, -50%) rotate(45deg);
+  opacity: 0.5;
+}
+
+.close-icon::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+.processing-state {
+  margin-top: 20px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  color: #FFFFFF;
+  border-radius: 36px;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.processing-state .spinner.white { 
+  border-top-color: white; 
+  width: 1.2em;
+  height: 1.2em;
+}
 
 .analysis-result {
     margin-top: 20px;
-    background-color: var(--tg-theme-bg-color); /* Фон чуть темнее/светлее */
-    border: 1px solid var(--tg-theme-hint-color);
-    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 24px;
+    padding: 24px;
     text-align: left;
 }
 .analysis-result h3 {
     margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 1.1em;
+    margin-bottom: 16px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 32px;
+    color: #FFFFFF;
 }
 .analysis-result pre {
-    white-space: pre-wrap; /* Перенос строк */
-    word-wrap: break-word; /* Перенос слов */
-    font-family: inherit; /* Наследуем шрифт */
-    font-size: 0.95em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
     line-height: 1.6;
-    color: var(--tg-theme-text-color);
+    color: #FFFFFF;
+    margin: 0;
 }
 </style>
