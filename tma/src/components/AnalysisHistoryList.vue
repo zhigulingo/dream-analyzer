@@ -1,45 +1,80 @@
 <template>
-  <div>
-    <h2 class="text-2xl font-semibold mb-4 text-white">История снов</h2>
-    <div class="flex flex-col gap-4">
-      <DreamCard
-        v-for="dream in visibleDreams"
-        :key="dream.id"
-        :dream="dream"
-        :active="activeId === dream.id"
-        @toggle="activeId = activeId === dream.id ? null : dream.id"
-      />
-      <button
-        v-if="canLoadMore"
-        class="self-center text-tg-link underline text-sm my-2"
-        @click="loadMore"
-      >
-        Загрузить ещё
-      </button>
+  <div class="history-list">
+    <div v-for="item in history" :key="item.id" class="history-item">
+      <div class="history-summary" @click="toggleItem(item.id)">
+        <h3 class="dream-title">{{ getDreamTitle(item.dream_text) }}</h3>
+        <span class="dream-date">{{ formatRelativeDate(item.created_at) }}</span>
+      </div>
+      <Transition name="expand">
+        <div v-if="isItemOpen(item.id)" class="history-details">
+          <div class="detail-section">
+            <h4 class="detail-label">Сон:</h4>
+            <p class="dream-text">{{ item.dream_text }}</p>
+          </div>
+          <div class="detail-divider"></div>
+          <div class="detail-section">
+            <h4 class="detail-label">Анализ:</h4>
+            <p class="analysis-text">{{ item.analysis }}</p>
+          </div>
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useHistoryStore } from '@/stores/history.js'
-import DreamCard from './DreamCard.vue'
+import { ref } from 'vue'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/ru'
 
-const historyStore = useHistoryStore()
-const activeId = ref(null)
-const visibleCount = ref(5)
+dayjs.extend(relativeTime)
+dayjs.locale('ru')
 
-const visibleDreams = computed(() => {
-  return historyStore.dreams.slice(0, visibleCount.value)
-})
+const props = defineProps({
+  history: {
+    type: Array,
+    required: true,
+  },
+  activeItem: {
+    type: [String, Number],
+    default: null,
+  },
+});
 
-const canLoadMore = computed(() => {
-  return visibleCount.value < historyStore.dreams.length
-})
+const emit = defineEmits(['toggle-item']);
 
-const loadMore = () => {
-  visibleCount.value += 5
+const toggleItem = (itemId) => {
+  emit('toggle-item', itemId);
+};
+
+const isItemOpen = (itemId) => {
+  return props.activeItem === itemId;
+};
+
+const getDreamTitle = (dreamText) => {
+  if (!dreamText) return 'Без названия'
+  const title = dreamText.length > 50 ? dreamText.substring(0, 47) + '...' : dreamText
+  return title
 }
+
+const formatRelativeDate = (dateString) => {
+  if (!dateString) return '';
+  try {
+    const date = dayjs(dateString)
+    const now = dayjs()
+    const diffDays = now.diff(date, 'day')
+    
+    if (diffDays === 0) return 'Сегодня'
+    if (diffDays === 1) return 'Вчера'
+    if (diffDays < 7) return `${diffDays} дня назад`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} недели назад`
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)} месяца назад`
+    return `${Math.floor(diffDays / 365)} года назад`
+  } catch (e) {
+    return dateString;
+  }
+};
 </script>
 
 <style scoped>
@@ -58,9 +93,34 @@ const loadMore = () => {
 }
 
 .history-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 16px;
+  max-width: 72rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Адаптивная сетка */
+@media (min-width: 768px) {
+  .history-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .history-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .history-list {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 32px;
+  }
 }
 
 .history-item {
@@ -69,6 +129,10 @@ const loadMore = () => {
   overflow: hidden;
   transition: all 0.3s ease;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+  height: auto;
 }
 
 .history-item:hover {
@@ -86,6 +150,8 @@ const loadMore = () => {
   align-items: center;
   padding: 32px 48px;
   color: white;
+  flex: 1;
+  min-height: 100px;
 }
 
 .dream-title {
