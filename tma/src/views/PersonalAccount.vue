@@ -1,46 +1,25 @@
 <template>
-  <div class="personal-account">
+  <div class="flex flex-col items-center gap-8 px-4 sm:px-6 md:px-8 pb-[env(safe-area-inset-bottom)]">
     <!-- Показываем или основной ЛК, или страницу получения награды -->
     <template v-if="!showRewardClaimView">
       <!-- Facts Carousel -->
-      <FactsCarousel />
+      <div class="w-full max-w-72r">
+        <FactsCarousel class="aspect-facts rounded-3.75rem" />
+      </div>
       
       <!-- Блок 1: Информация о пользователе -->
-      <UserInfoCard
-        :user-store="userStore"
-        :format-date="formatDate"
-        @change-plan="userStore.openSubscriptionModal"
-      />
-      <div v-if="userStore.profile?.subscription_type === 'free' && !userStore.profile?.channel_reward_claimed && !isClaimRewardAction">
-        <button
-            @click="showRewardClaimView = true"
-            class="subscribe-button-main">
-            🎁 Получить бесплатный токен за подписку
-        </button>
+      <div class="w-full max-w-72r">
+        <UserInfoCard
+          class="h-auto min-h-[18rem] py-6 px-8 md:px-16"
+          :user-store="userStore"
+          :format-date="formatDate"
+          @change-plan="userStore.openSubscriptionModal"
+        />
       </div>
-      <div v-if="userStore.profile?.channel_reward_claimed" class="reward-claimed-info">
-        <p>✅ Награда за подписку на канал получена!</p>
-      </div>
-
-      <!-- Блок 2: История анализов -->
-      <section class="history card">
-        <h2>История анализов</h2>
-        <div v-if="userStore.isLoadingHistory">Загрузка истории...</div>
-        <div v-else-if="userStore.errorHistory" class="error-message">
-          Ошибка загрузки истории: {{ userStore.errorHistory }}
-        </div>
-        <!-- Отображаем список ТОЛЬКО если история НЕ пуста -->
-        <div v-else-if="userStore.history && userStore.history.length > 0">
-          <AnalysisHistoryList :history="userStore.history" />
-        </div>
-        <div v-else>
-          <p>У вас пока нет сохраненных анализов.</p>
-        </div>
-      </section>
 
       <!-- Блок глубокого анализа -->
-      <section class="deep-analysis-card-container">
-        <div class="deep-analysis-card"
+      <section class="w-full max-w-72r">
+        <div class="deep-analysis-card py-6 px-8 md:px-16 rounded-3.75rem cursor-pointer"
           @click="onDeepAnalysis"
           :class="{ 'cursor-pointer': userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis }">
           
@@ -75,6 +54,34 @@
             <span v-if="userStore.isInitiatingDeepPayment">Создаем счет... <span class="spinner white"></span></span>
             <span v-else-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
           </div>
+        </div>
+      </section>
+      <div v-if="userStore.profile?.subscription_type === 'free' && !userStore.profile?.channel_reward_claimed && !isClaimRewardAction">
+        <button
+            @click="showRewardClaimView = true"
+            class="subscribe-button-main">
+            🎁 Получить бесплатный токен за подписку
+        </button>
+      </div>
+      <div v-if="userStore.profile?.channel_reward_claimed" class="reward-claimed-info">
+        <p>✅ Награда за подписку на канал получена!</p>
+      </div>
+
+      <!-- Блок 2: История анализов -->
+      <section class="w-full max-w-72r">
+        <div class="rounded-3.75rem px-8 md:px-16 py-14">
+        <h2>История анализов</h2>
+        <div v-if="userStore.isLoadingHistory">Загрузка истории...</div>
+        <div v-else-if="userStore.errorHistory" class="error-message">
+          Ошибка загрузки истории: {{ userStore.errorHistory }}
+        </div>
+        <!-- Отображаем список ТОЛЬКО если история НЕ пуста -->
+        <div v-else-if="userStore.history && userStore.history.length > 0">
+          <AnalysisHistoryList :history="userStore.history" />
+        </div>
+        <div v-else>
+          <p>У вас пока нет сохраненных анализов.</p>
+        </div>
         </div>
       </section>
 
@@ -363,7 +370,7 @@ watch(showRewardClaimView, (newValue) => {
 
 <style scoped>
 .cta {
-  @apply bg-tg-link text-white rounded-xl py-3 text-center font-semibold;
+  @apply bg-tg-link text-tg-button-text rounded-xl py-3 text-center font-semibold;
 }
 
 /* Transition styles */

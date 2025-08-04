@@ -97,11 +97,18 @@ const config: Config = {
           'sans-serif',
         ],
       },
+      maxWidth: {
+        '72r': '72rem', // ~1152px - Figma container max width
+      },
+      aspectRatio: {
+        'facts': '1146 / 702', // Figma FactsCarousel aspect ratio
+      },
       borderRadius: {
         'lg': '1rem', // 16px - custom large
         'xl': '1.5rem', // 24px - custom extra large
         '2xl': '2rem', // 32px
         '3xl': '3.75rem', // 60px - for cards
+        '3.75rem': '3.75rem', // 60px - Figma spec
       },
       gradients: {
         'dark-card': 'linear-gradient(145deg, #0c110c 0%, #1a1f1a 100%)',
