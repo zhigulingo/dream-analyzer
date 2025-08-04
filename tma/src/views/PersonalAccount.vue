@@ -87,38 +87,6 @@
 </template>
 
 <!-- UserInfoCard Component -->
-<template>
-  <section class="user-info card">
-    <div @click="toggleExpanded" class="cursor-pointer">
-      <h2>Ваш профиль</h2>
-      <div v-if="userStore.isLoadingProfile">Загрузка профиля...</div>
-      <div v-else-if="userStore.errorProfile" class="error-message">
-        Ошибка загрузки профиля: {{ userStore.errorProfile }}
-      </div>
-      <div v-else-if="userStore.profile.tokens !== null">
-        <p>Остаток токенов: <strong>{{ userStore.profile.tokens }}</strong></p>
-        <p>
-          Текущий тариф: <strong class="capitalize">{{ userStore.profile.subscription_type }}</strong>
-          <span v-if="userStore.profile.subscription_end">
-            (до {{ formatDate(userStore.profile.subscription_end) }})
-          </span>
-        </p>
-      </div>
-      <div v-else>
-        <p>Не удалось загрузить данные профиля.</p>
-      </div>
-    </div>
-    <Transition name="expand">
-      <div v-if="isExpanded && userStore.profile?.subscription_type !== 'free' || userStore.profile?.channel_reward_claimed">
-        <button
-          @click="$emit('changePlan')"
-          class="change-plan-button">
-          Сменить тариф
-        </button>
-      </div>
-    </Transition>
-  </section>
-</template>
 
 <script setup>
 import { onMounted, ref, watch, computed, onUnmounted } from 'vue';
@@ -375,27 +343,11 @@ watch(showRewardClaimView, (newValue) => {
 
 </script>
 
-<script>
-// UserInfoCard component
-const UserInfoCard = {
-  template: `<!-- inline template above -->`,
-  props: ['userStore', 'formatDate'],
-  emits: ['changePlan'],
-  setup() {
-    const isExpanded = ref(false);
-    const toggleExpanded = () => {
-      isExpanded.value = !isExpanded.value;
-    };
-    return { isExpanded, toggleExpanded };
-  }
-};
-
-export default {
-  components: {
-    UserInfoCard
-  }
-}
-</script>
+<UserInfoCard
+  :user-store="userStore"
+  :format-date="formatDate"
+  @change-plan="userStore.openSubscriptionModal"
+/>
 
 <style scoped>
 /* Transition styles */
