@@ -22,12 +22,32 @@ if (window.Telegram?.WebApp) {
     
     tg.ready();
     
-    // Максимальное раскрытие в полный экран
+    // Включаем полноэкранный режим
     tg.expand();
+    
+    // Запрашиваем полноэкранный режим браузера
+    const requestFullscreen = () => {
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.log('Fullscreen request failed:', err);
+            });
+        } else if (document.documentElement.webkitRequestFullscreen) {
+            document.documentElement.webkitRequestFullscreen();
+        } else if (document.documentElement.mozRequestFullScreen) {
+            document.documentElement.mozRequestFullScreen();
+        } else if (document.documentElement.msRequestFullscreen) {
+            document.documentElement.msRequestFullscreen();
+        }
+    };
     
     // Дополнительные настройки для полного экрана
     setTimeout(() => {
         tg.expand();
+        
+        // Пытаемся войти в полноэкранный режим на мобильных устройствах
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            requestFullscreen();
+        }
         
         // Устанавливаем размеры viewport
         if (tg.viewportHeight) {
@@ -48,12 +68,48 @@ if (window.Telegram?.WebApp) {
         console.log('Is expanded:', tg.isExpanded);
     }, 100);
     
+    // Добавляем подтверждение закрытия приложения
+    const handleBeforeUnload = (e) => {
+        e.preventDefault();
+        e.returnValue = 'Вы уверены, что хотите закрыть приложение?';
+        return 'Вы уверены, что хотите закрыть приложение?';
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Также обрабатываем событие закрытия Telegram WebApp
+    if (tg.onEvent) {
+        tg.onEvent('viewportChanged', () => {
+            if (tg.isClosing) {
+                const confirm = window.confirm('Вы уверены, что хотите закрыть приложение?');
+                if (!confirm) {
+                    tg.expand();
+                }
+            }
+        });
+    }
+    
     console.log("Telegram WebApp is ready.");
     
     // Создаем глобальную функцию для хаптиков
     window.triggerHaptic = (type = 'light') => {
         if (tg?.HapticFeedback) {
             tg.HapticFeedback.impactOccurred(type);
+        }
+    };
+    
+    // Глобальная функция для входа в полноэкранный режим
+    window.enterFullscreen = () => {
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.log('Fullscreen request failed:', err);
+            });
+        } else if (document.documentElement.webkitRequestFullscreen) {
+            document.documentElement.webkitRequestFullscreen();
+        } else if (document.documentElement.mozRequestFullScreen) {
+            document.documentElement.mozRequestFullScreen();
+        } else if (document.documentElement.msRequestFullscreen) {
+            document.documentElement.msRequestFullscreen();
         }
     };
     

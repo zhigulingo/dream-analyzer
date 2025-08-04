@@ -16,7 +16,7 @@
         v-for="fact in facts"
         :key="fact.id"
         ref="cardRefs"
-        class="carousel-card w-[80%] rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
+        class="carousel-card w-[90%] rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
         :style="{ height: maxCardHeight + 'px' }"
       >
         <div class="mb-4">
@@ -79,24 +79,27 @@ onMounted(() => {
 :deep(.swiper-pagination-custom) {
   position: static !important;
   text-align: center;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   display: flex !important;
   justify-content: center !important;
-  gap: 8px !important;
+  gap: 12px !important;
+  z-index: 10 !important;
 }
 
 :deep(.swiper-pagination-bullet) {
-  background: rgba(255, 255, 255, 0.4) !important;
+  background: rgba(255, 255, 255, 0.6) !important;
   opacity: 1 !important;
-  width: 8px !important;
-  height: 8px !important;
+  width: 12px !important;
+  height: 12px !important;
   border-radius: 50% !important;
   transition: all 0.3s ease !important;
   cursor: pointer !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
 :deep(.swiper-pagination-bullet-active) {
   background: white !important;
-  transform: scale(1.2) !important;
+  transform: scale(1.3) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4) !important;
 }
 </style>

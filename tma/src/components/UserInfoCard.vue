@@ -1,17 +1,17 @@
 <template>
   <article
     class="relative rounded-xl bg-gradient-to-br from-[#5461FF] to-[#4857FF] text-white overflow-hidden transition-all"
-    :class="[isOpen ? 'pb-32' : 'h-[11vh] md:h-[10rem]']"
+    :class="[isOpen ? 'pb-32' : 'h-[11.55vh] md:h-[10.5rem]']"
     @click="toggle"
   >
     <div class="px-8 md:px-16" :class="[isOpen ? 'pt-8' : 'flex items-center h-full']">
       <div class="flex items-center" :class="[isOpen ? 'mb-4' : 'flex-1']">
         <img class="w-10 h-10 rounded-full object-cover" :src="userAvatar" />
         <span class="ml-4 truncate">{{ userDisplayName }}</span>
-        <div v-if="isOpen" class="ml-4 flex gap-2 flex-wrap">
-          <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
-          <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
-        </div>
+      </div>
+      <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap">
+        <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
+        <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
       </div>
       <div v-if="!isOpen" class="flex flex-col gap-2 ml-auto">
         <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
@@ -19,8 +19,8 @@
       </div>
       <div v-if="isOpen" class="space-y-2 text-sm">
         <div class="flex justify-between">
-          <span class="opacity-80">Дата регистрации:</span>
-          <span>{{ registrationDate }}</span>
+          <span class="opacity-80">Пользователь уже:</span>
+          <span>{{ userExperienceTime }}</span>
         </div>
         <div class="flex justify-between">
           <span class="opacity-80">Интерпретировано снов:</span>
@@ -91,20 +91,45 @@ const toggle = () => {
 
 const subscriptionInfo = computed(() => {
   const type = props.userStore?.profile?.subscription_type || 'Free'
-  if (props.userStore?.profile?.subscription_end_date) {
-    const date = new Date(props.userStore.profile.subscription_end_date)
+  if (props.userStore?.profile?.subscription_end) {
+    const date = new Date(props.userStore.profile.subscription_end)
     const formattedDate = date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
     return `${type} до ${formattedDate}`
   }
   return type
 })
 
-const registrationDate = computed(() => {
-  if (props.userStore?.profile?.created_at) {
-    const date = new Date(props.userStore.profile.created_at)
-    return date.toLocaleDateString('ru-RU')
+const userExperienceTime = computed(() => {
+  // Ищем дату первого анализа в истории
+  const history = props.userStore?.history
+  if (!history || history.length === 0) {
+    return 'недавно'
   }
-  return 'Неизвестно'
+  
+  // Находим самый старый анализ
+  const firstAnalysis = history.reduce((oldest, current) => {
+    const currentDate = new Date(current.created_at)
+    const oldestDate = new Date(oldest.created_at)
+    return currentDate < oldestDate ? current : oldest
+  })
+  
+  const firstDate = new Date(firstAnalysis.created_at)
+  const now = new Date()
+  const diffTime = Math.abs(now - firstDate)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  
+  if (diffDays < 7) {
+    return `${diffDays} дн${diffDays === 1 ? 'ень' : diffDays < 5 ? 'я' : 'ей'}`
+  } else if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7)
+    return `${weeks} недел${weeks === 1 ? 'ю' : weeks < 5 ? 'и' : 'ь'}`
+  } else if (diffDays < 365) {
+    const months = Math.floor(diffDays / 30)
+    return `${months} месяц${months === 1 ? '' : months < 5 ? 'а' : 'ев'}`
+  } else {
+    const years = Math.floor(diffDays / 365)
+    return `${years} год${years === 1 ? '' : years < 5 ? 'а' : 'ов'}`
+  }
 })
 
 const openTariff = () => {
