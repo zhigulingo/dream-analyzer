@@ -218,6 +218,9 @@ See it in your history in the Personal Account.`, { reply_markup: { inline_keybo
     
                 console.log(`[Bot Handler successful_payment] Processing DEEP ANALYSIS payment for ${userId}.`);
                 
+                // Ensure user exists or create them
+                await getOrCreateUser(supabaseAdmin, userId);
+                
                 // Record deep analysis purchase in database
                 const { data: currentUser, error: fetchError } = await supabaseAdmin
                     .from('users').select('deep_analysis_credits').eq('tg_id', userId).single();
