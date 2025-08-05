@@ -472,6 +472,10 @@ exports.handler = async (event) => {
 
     try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+        
+        // Ensure user exists or create them
+        await getOrCreateUser(supabase, verifiedUserId);
+        
         const { data: userData, error: userError } = await supabase
             .from('users')
             .select('tokens, subscription_type, subscription_end, deep_analysis_credits')
