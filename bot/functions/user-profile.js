@@ -1,251 +1,20 @@
-// bot/functions/bot.js
+// bot/functions/user-profile.js
 
-// --- Imports ---
-const { Bot, Api, GrammyError, HttpError, webhookCallback } = require("grammy");
 const { createClient } = require("@supabase/supabase-js");
 const { DatabaseQueries, createOptimizedClient } = require('./shared/database/queries');
-const geminiService = require("./shared/services/gemini-service");
 const userCacheService = require('./shared/services/user-cache-service');
-const crypto = require('crypto');
-const util = require('util');
-const scryptAsync = util.promisify(crypto.scrypt);
 const jwt = require('jsonwebtoken');
 const { validateTelegramData } = require('./shared/auth/telegram-validator');
 
-// --- Environment Variables ---
+// Environment Variables
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const TMA_URL = process.env.TMA_URL;
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
 const ALLOWED_WEB_ORIGIN = process.env.ALLOWED_WEB_ORIGIN;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// --- Global Initialization ----
-let bot;
-let supabaseAdmin;
-
-let initializationError = null;
-let botInitializedAndHandlersSet = false;
-
-try {
-    console.log("[Bot Global Init] Starting initialization...");
-    if (!BOT_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_KEY || !GEMINI_API_KEY || !TMA_URL) {
-        throw new Error("FATAL: Missing one or more environment variables!");
-    }
-
-    supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
-
-    bot = new Bot(BOT_TOKEN);
-    console.log("[Bot Global Init] Clients and bot instance created.");
-
-    // --- Setting up Handlers ---
-    console.log("[Bot Global Init] Setting up handlers...");
-
-    // /start handler
-    bot.command("start", async (ctx) => {
-        console.log("[Bot Handler /start] Command received.");
-        const userId = ctx.from?.id; const chatId = ctx.chat.id;
-        if (!userId || !chatId) { console.warn("[Bot Handler /start] No user ID or chat ID."); return; }
-        console.log(`[Bot Handler /start] User ${userId} in chat ${chatId}`);
-        try {
-            const userData = await getOrCreateUser(supabaseAdmin, userId);
-            console.log(`[Bot Handler /start] User data received: ID=${userData.id}, Claimed=${userData.claimed}, LastMsgId=${userData.lastMessageId}`);
-
-            // Deleting previous message
-            if (userData.lastMessageId) { /* ... deletion logic unchanged ... */ }
-            // Determining text and button
-            let messageText, buttonText, buttonUrl;
-            if (userData.claimed) {
-                messageText = "Welcome back! 👋 Analyze dreams or visit your Personal Account.";
-                buttonText = "Personal Account";
-                buttonUrl = TMA_URL;
-            } else {
-                // Fixed: Using template literal for multi-line string
-                messageText = `Hello! 👋 Dream Analyzer bot.
-
-Press the button to get your <b>first free token</b> for subscribing!`;
-                buttonText = "🎁 Open and claim token";
-                buttonUrl = `${TMA_URL}?action=claim_reward`;
-            }
-            // Sending new message
-            console.log(`[Bot Handler /start] Sending new message (Claimed: ${userData.claimed})`);
-            const sentMessage = await ctx.reply(messageText, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: buttonText, web_app: { url: buttonUrl } }]] } });
-            console.log(`[Bot Handler /start] New message sent. ID: ${sentMessage.message_id}`);
-            // Saving new message ID
-            const { error: updateError } = await supabaseAdmin.from('users').update({ last_start_message_id: sentMessage.message_id }).eq('id', userData.id);
-            if (updateError) console.error(`[Bot Handler /start] Failed update last_start_message_id:`, updateError);
-            else console.log(`[Bot Handler /start] Updated last_start_message_id to ${sentMessage.message_id}.`);
-        } catch (e) {
-             console.error("[Bot Handler /start] CRITICAL Error (likely from getOrCreateUser):", e.message); // Log the specific error
-             try { await ctx.reply(`An error occurred while fetching user data (${e.message}). Please try again later.`).catch(logReplyError); } catch {}
-        }
-    });
-
-    // --- New Handler for /setpassword ---
-    bot.command("setpassword", async (ctx) => {
-        console.log("[Bot Handler /setpassword] Command received.");
-        const userId = ctx.from?.id;
-        if (!userId) { console.warn("[Bot Handler /setpassword] No user ID."); return; }
-        const messageText = ctx.message.text;
-        const parts = messageText.split(/\s+/).filter(Boolean);
-
-        if (parts.length < 2) {
-            await ctx.reply("Please provide a password after the command, e.g., `/setpassword your_secure_password`").catch(logReplyError);
-            return;
-        }
-
-        const password = parts.slice(1).join(' '); // Allow spaces in password
-
-        if (password.length < 8) {
-            await ctx.reply("Password should be at least 8 characters long.").catch(logReplyError);
-            return;
-        }
-
-        try {
-            // Ensure user exists (or create if not)
-            const userData = await getOrCreateUser(supabaseAdmin, userId);
-            const userDbId = userData.id;
-            if (!userDbId) { throw new Error("Could not retrieve user ID from database."); }
-
-            // Generate salt and hash password using scrypt
-            const salt = crypto.randomBytes(16).toString('hex');
-            const derivedKey = await scryptAsync(password, salt, 64); // 64 bytes for hash
-            const webPasswordHash = `${salt}:${derivedKey.toString('hex')}`;
-
-            // Save hash to Supabase
-            console.log(`[Bot Handler /setpassword] Updating password hash for user ${userId}...`);
-            const { error: updateError } = await supabaseAdmin
-                .from('users')
-                .update({ web_password_hash: webPasswordHash })
-                .eq('tg_id', userId);
-
-            if (updateError) {
-                console.error(`[Bot Handler /setpassword] Supabase update error for user ${userId}:`, updateError);
-                 throw new Error("Database update failed.");
-            }
-
-            console.log(`[Bot Handler /setpassword] Password hash updated for user ${userId}.`);
-            await ctx.reply("Your web password has been set successfully! You can now use your Telegram ID and this password to log in on the web.").catch(logReplyError);
-
-        } catch (error) {
-            console.error(`[Bot Handler /setpassword] Error setting password for user ${userId}:`, error);
-            await ctx.reply(`An error occurred while setting your password: ${error.message || 'Unknown error'}`).catch(logReplyError);
-        }
-    });
-
-    // Text message handler (PASSING geminiModel)
-    bot.on("message:text", async (ctx) => {
-        console.log("[Bot Handler text] Received text message.");
-        const dreamText = ctx.message.text; const userId = ctx.from?.id; const chatId = ctx.chat.id; const messageId = ctx.message.message_id;
-        if (!userId || !chatId) { console.warn("[Bot Handler text] No user/chat ID."); return; }
-        if (dreamText.startsWith('/')) { console.log(`[Bot Handler text] Ignoring command.`); return; }
-        console.log(`[Bot Handler text] Processing dream for ${userId}`);
-        let statusMessage;
-        try {
-            console.log(`[Bot Handler text] Deleting user message ${messageId}`);
-            await ctx.api.deleteMessage(chatId, messageId).catch(delErr => { /* ... deletion error handling ... */});
-            statusMessage = await ctx.reply("Analyzing your dream... 🧠✨").catch(logReplyError);
-            if (!statusMessage) throw new Error("Failed to send status message.");
-            // <<<--- FIX: PASSING geminiModel to analyzeDream ---
-            await analyzeDream(ctx, supabaseAdmin, geminiModel, dreamText);
-            // <<<--- END FIX ---
-            console.log(`[Bot Handler text] Deleting status message ${statusMessage.message_id}`);
-            await ctx.api.deleteMessage(chatId, statusMessage.message_id).catch(delErr => { console.warn(`[Bot Handler text] Failed delete status msg ${statusMessage.message_id}:`, delErr); });
-            console.log(`[Bot Handler text] Analysis complete. Sending confirmation.`);
-            // Fixed: Using template literal for multi-line string
-            await ctx.reply(`Your dream analysis is ready and saved! ✨
-
-See it in your history in the Personal Account.`, { reply_markup: { inline_keyboard: [[{ text: "Open Personal Account", web_app: { url: TMA_URL } }]] } }).catch(logReplyError);
-        } catch (error) { // Catch errors from analyzeDream
-            console.error(`[Bot Handler text] Error processing dream for ${userId}:`, error); // Log the specific error
-            if (statusMessage) { await ctx.api.deleteMessage(chatId, statusMessage.message_id).catch(e => {}); }
-            await ctx.reply(`An error occurred: ${error.message || 'Unknown error'}`).catch(logReplyError); // Show error to user
-        }
-    });
-
-   // pre_checkout_query handler (UNCHANGED)
-    bot.on('pre_checkout_query', async (ctx) => {
-        console.log("[Bot:Handler pre_checkout_query] Received:", JSON.stringify(ctx.preCheckoutQuery));
-        try {
-            await ctx.answerPreCheckoutQuery(true);
-            console.log("[Bot:Handler pre_checkout_query] Answered TRUE.");
-        } catch (error) { console.error("[Bot:Handler pre_checkout_query] Failed to answer:", error); try { await ctx.answerPreCheckoutQuery(false, "Internal error"); } catch (e) {} }
-    });
-
-    // successful_payment handler (MODIFIED to handle deepanalysis payload)
-    bot.on('message:successful_payment', async (ctx) => {
-        console.log("[Bot Handler successful_payment] Received:", JSON.stringify(ctx.message.successful_payment));
-        const payment = ctx.message.successful_payment;
-        const userId = ctx.from.id;
-        const payload = payment.invoice_payload;
-
-        if (!payload) { console.error(`[Bot Handler successful_payment] Missing payload from user ${userId}`); return; }
-
-        const parts = payload.split('_');
-        const paymentType = parts[0]; // 'sub' or 'deepanalysis'
-
-        try {
-            if (!supabaseAdmin) { throw new Error("Supabase client unavailable"); }
-
-            if (paymentType === 'sub' && parts.length >= 4) {
-                // --- Handling SUBSCRIPTION payment (via RPC) ---
-                const plan = parts[1];
-                const durationMonths = parseInt(parts[2].replace('mo', ''), 10);
-                const payloadUserId = parseInt(parts[3], 10);
-                if (isNaN(durationMonths) || isNaN(payloadUserId) || payloadUserId !== userId) { console.error(`[Bot Handler successful_payment] Sub Payload error/mismatch: ${payload}`); await ctx.reply("Subscription payment data error.").catch(logReplyError); return; }
-
-                console.log(`[Bot Handler successful_payment] Processing SUBSCRIPTION payment for ${userId}: Plan=${plan}, Duration=${durationMonths}mo.`);
-                const { error: txError } = await supabaseAdmin.rpc('process_successful_payment', { user_tg_id: userId, plan_type: plan, duration_months: durationMonths });
-                if (txError) { console.error(`[Bot Handler successful_payment] RPC error for sub payment ${userId}:`, txError); throw new Error("DB update failed for subscription."); }
-                console.log(`[Bot Handler successful_payment] Subscription payment processed via RPC for ${userId}.`);
-                await ctx.reply(`Thank you! Your "${plan.toUpperCase()}" subscription is active/extended. ✨`).catch(logReplyError);
-
-            } else if (paymentType === 'deepanalysis' && parts.length >= 2) {
-                // --- Handling DEEP ANALYSIS payment ---
-                const payloadUserId = parseInt(parts[1], 10);
-                 if (isNaN(payloadUserId) || payloadUserId !== userId) { console.error(`[Bot Handler successful_payment] Deep Analysis Payload error/mismatch: ${payload}`); await ctx.reply("Deep analysis payment data error.").catch(logReplyError); return; }
-
-                console.log(`[Bot Handler successful_payment] Processing DEEP ANALYSIS payment for ${userId}.`);
-                // Log or record deep analysis purchase if needed
-                 await ctx.reply("Thank you for the purchase! Deep analysis will be available in the app.").catch(logReplyError); // Optional reply
-
-            } else {
-                // Unknown payload format
-                console.error(`[Bot Handler successful_payment] Unknown or invalid payload format: ${payload} from user ${userId}`);
-                await ctx.reply("Received payment with unknown purpose.").catch(logReplyError);
-            }
-
-        } catch (error) {
-            console.error(`[Bot Handler successful_payment] Failed process payment for ${userId}:`, error);
-            await ctx.reply("Your payment was received, but an error occurred during processing. Please contact support.").catch(logReplyError);
-        }
-    });
-
-    // Error handler (UNCHANGED)
-    bot.catch((err) => {
-        const ctx = err.ctx; const e = err.error;
-        console.error(`[Bot] Error caught by bot.catch for update ${ctx?.update?.update_id}:`);
-        if (e instanceof GrammyError) console.error("GrammyError:", e.description, e.payload);
-        else if (e instanceof HttpError) console.error("HttpError:", e);
-        else if (e instanceof Error) console.error("Error:", e.stack || e.message); // Log stack for standard errors
-        else console.error("Unknown error object:", e);
-    });
-
-    console.log("[Bot Global Init] Handlers setup complete.");
-    botInitializedAndHandlersSet = true;
-
-} catch (error) {
-    console.error("[Bot Global Init] CRITICAL INITIALIZATION ERROR:", error);
-    initializationError = error;
-    bot = null;
-    botInitializedAndHandlersSet = false;
-}
-
-// --- Helper Functions ---
-
-// getOrCreateUser (Ensures user exists or creates one)
+// Helper function to get or create user
 async function getOrCreateUser(supabase, userId) {
     if (!supabase) { throw new Error("Supabase client not provided to getOrCreateUser."); }
     console.log(`[getOrCreateUser] Processing user ${userId}...`);
@@ -287,92 +56,15 @@ async function getOrCreateUser(supabase, userId) {
     }
 }
 
-
-// getGeminiAnalysis using unified Gemini service
-async function getGeminiAnalysis(passedModel, dreamText) {
-     console.log("[getGeminiAnalysis] Function called, using unified Gemini service.");
-     try {
-         return await geminiService.analyzeDream(dreamText, 'basic');
-     } catch (error) {
-         console.error("[getGeminiAnalysis] Error from Gemini service:", error);
-         throw error;
-     }
-}
-
-// analyzeDream (Takes model, passes it, catches errors)
-async function analyzeDream(ctx, supabase, passedGeminiModel, dreamText) {
-    console.log("[analyzeDream] Function called.");
-    const userId = ctx.from?.id;
-    if (!userId) { throw new Error("Could not identify user."); }
-
-    try {
-        // 1. Get user DB ID
-        console.log(`[analyzeDream] Getting user DB ID for ${userId}...`);
-        const userData = await getOrCreateUser(supabase, userId);
-        const userDbId = userData.id;
-        if (!userDbId) { throw new Error("Error accessing user profile."); }
-        console.log(`[analyzeDream] User DB ID: ${userDbId}`);
-
-        // 2. Check and decrement token
-        console.log(`[analyzeDream] Checking/decrementing token for ${userId}...`);
-        const { data: tokenDecremented, error: rpcError } = await supabase
-            .rpc('decrement_token_if_available', { user_tg_id: userId });
-        if (rpcError) { throw new Error(`Internal token error: ${rpcError.message}`); }
-        if (!tokenDecremented) { throw new Error("Insufficient tokens for analysis."); }
-        console.log(`[analyzeDream] Token decremented for user ${userId}.`);
-
-        // 3. Get analysis from Gemini (pass model, catch errors)
-        console.log(`[analyzeDream] Requesting analysis...`);
-        // <<<--- FIX: Passing passedGeminiModel ---
-        const analysisResultText = await getGeminiAnalysis(null, dreamText);
-        // <<<--- END FIX ---
-        console.log(`[analyzeDream] Analysis received successfully.`);
-
-        // 4. Save result to DB
-        console.log(`[analyzeDream] Saving analysis to DB for user ${userDbId}...`);
-        const { error: insertError } = await supabase
-            .from('analyses').insert({ user_id: userDbId, dream_text: dreamText, analysis: analysisResultText });
-        if (insertError) { throw new Error(`Error saving analysis: ${insertError.message}`); }
-        console.log(`[analyzeDream] Analysis saved successfully.`);
-
-        return; // Successful completion
-
-    } catch (error) {
-        console.error(`[analyzeDream] FAILED for user ${userId}: ${error.message}`);
-        throw error;
-    }
-}
-
-// logReplyError (unchanged)
-function logReplyError(error) { console.error("[Bot Reply Error]", error instanceof Error ? error.message : error); }
-
-// --- Export handler for Netlify with webhookCallback ---
-let netlifyWebhookHandler = null;
-if (botInitializedAndHandlersSet && bot) {
-    try {
-        netlifyWebhookHandler = webhookCallback(bot, 'aws-lambda-async');
-        console.log("[Bot Global Init] webhookCallback created successfully.");
-    } catch (callbackError) { console.error("[Bot Global Init] FAILED TO CREATE webhookCallback:", callbackError); initializationError = callbackError; }
-} else { console.error("[Bot Global Init] Skipping webhookCallback creation due to errors."); }
-
 exports.handler = async (event) => {
-    console.log("[Netlify Handler] Invoked.");
-    if (initializationError || !netlifyWebhookHandler) { console.error("[Netlify Handler] Initialization/webhookCallback failed.", initializationError); return { statusCode: 500, body: "Internal Server Error: Bot failed to initialize." }; }
-    console.log("[Netlify Handler] Calling pre-created webhookCallback handler...");
-    return netlifyWebhookHandler(event);
-};
-
-console.log("[Bot Global Init] Netlify handler exported.");
-
-// validateTelegramData теперь импортируется из общей библиотеки
-
-exports.handler = async (event) => {
+    console.log("[user-profile] Function invoked");
+    
     const allowedOrigins = [ALLOWED_TMA_ORIGIN, ALLOWED_WEB_ORIGIN].filter(Boolean);
     const requestOrigin = event.headers.origin || event.headers.Origin;
     const corsHeaders = {
         'Access-Control-Allow-Origin': allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0] || '*',
         'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, Authorization',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
     };
 
     // Handle CORS preflight OPTIONS request at the very top
@@ -389,25 +81,38 @@ exports.handler = async (event) => {
             const token = authHeader.substring(7);
             const decoded = jwt.verify(token, JWT_SECRET);
             verifiedUserId = decoded.tgId;
+            console.log("[user-profile] Web user authenticated:", verifiedUserId);
         } catch (error) {
+            console.error("[user-profile] JWT verification failed:", error.message);
             return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid or expired token.' }) };
         }
     } else {
         // TMA: Telegram InitData
         const initDataHeader = event.headers['x-telegram-init-data'];
+        console.log("[user-profile] TMA auth attempt, initData present:", !!initDataHeader);
+        console.log("[user-profile] BOT_TOKEN present:", !!BOT_TOKEN);
+        
+        if (!BOT_TOKEN) {
+            console.error("[user-profile] BOT_TOKEN is missing from environment variables!");
+            return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Internal Server Error: Bot configuration missing.' }) };
+        }
+        
         const validationResult = validateTelegramData(initDataHeader, BOT_TOKEN);
+        console.log("[user-profile] Validation result:", { valid: validationResult.valid, error: validationResult.error, hasData: !!validationResult.data });
+        
         if (!validationResult.valid || !validationResult.data?.id) {
             return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
         }
         verifiedUserId = validationResult.data.id;
+        console.log("[user-profile] TMA user authenticated:", verifiedUserId);
     }
 
-    if (event.httpMethod !== 'GET') {
+    if (event.httpMethod !== 'POST') {
         return { statusCode: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Method Not Allowed' }) };
     }
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
-        return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Internal Server Error: Configuration missing.' }) };
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+        return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Internal Server Error: Database configuration missing.' }) };
     }
 
     try {
@@ -446,6 +151,7 @@ exports.handler = async (event) => {
                 tokens: 0, 
                 subscription_type: 'free', 
                 subscription_end: null, 
+                channel_reward_claimed: false,
                 deep_analysis_credits: 0,
                 total_analyses: 0
             };
@@ -454,10 +160,13 @@ exports.handler = async (event) => {
                 tokens: userData.tokens || 0,
                 subscription_type: userData.subscription_type || 'free',
                 subscription_end: userData.subscription_end,
+                channel_reward_claimed: userData.channel_reward_claimed || false,
                 deep_analysis_credits: userData.deep_analysis_credits || 0,
                 total_analyses: userData.total_analyses || 0
             };
         }
+
+        console.log(`[user-profile] Returning profile for user ${verifiedUserId}:`, responseBody);
 
         return {
             statusCode: 200,
@@ -466,6 +175,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
+        console.error("[user-profile] Error:", error);
         return {
             statusCode: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
