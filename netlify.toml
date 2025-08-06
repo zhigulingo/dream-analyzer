@@ -12,6 +12,10 @@
   # Published directory - where static files are served from
   publish = "web/dist"
 
+# Environment variables needed for build
+[build.environment]
+  NODE_VERSION = "18"
+
 # Monitoring endpoints
 [[redirects]]
   from = "/api/cache/*"
