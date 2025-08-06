@@ -5,9 +5,12 @@
   directory = "bot/functions/"
   node_bundler = "esbuild"
 
-# Build settings and redirects for 'tma' and 'web' sites should be configured
-# in their respective Netlify site settings in the UI.
-# Remove the incorrect [[build]] and [[redirects]] from here.
+# Build settings for web version
+[build]
+  # Build command for web version
+  command = "cd web && npm run build"
+  # Published directory - where static files are served from
+  publish = "web/dist"
 
 # Monitoring endpoints
 [[redirects]]
@@ -43,4 +46,16 @@
 [[redirects]]
   from = "/.netlify/functions/cache-monitoring"
   to = "/.netlify/functions/cache-monitoring"
+  status = 200
+
+# Bot webhook redirect
+[[redirects]]
+  from = "/bot"
+  to = "/.netlify/functions/bot"
+  status = 200
+
+# SPA fallback - все неизвестные роуты перенаправляем на index.html для Vue роутера
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
   status = 200
