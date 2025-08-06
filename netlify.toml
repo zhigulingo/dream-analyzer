@@ -5,12 +5,12 @@
   directory = "bot/functions/"
   node_bundler = "esbuild"
 
-# Build settings for web version
+# Build settings for root deployment (functions only)
 [build]
-  # Build command for web version - clean install with explicit dependency resolution
-  command = "if [ -f 'web/package.json' ]; then cd web && rm -rf node_modules package-lock.json && npm cache clean --force && npm install --include=optional && npm run build; elif [ -f 'package.json' ]; then rm -rf node_modules package-lock.json && npm cache clean --force && npm install --include=optional && npm run build; else echo 'No package.json found' && exit 1; fi"
-  # Published directory - where static files are served from
-  publish = "web/dist"
+  # No build needed for root, just functions
+  command = "echo 'Root deployment - functions only'"
+  # No publish directory for root
+  publish = ""
 
 # Environment variables needed for build
 [build.environment]

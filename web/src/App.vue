@@ -5,6 +5,7 @@
     :show-retry="true"
   >
     <div class="web-app-container">
+      <DebugInfo />
       <!-- Offline indicator -->
       <div v-if="!isOnline" class="offline-banner">
         <span>⚠️ Нет подключения к интернету</span>
@@ -140,6 +141,7 @@ const Login = defineAsyncComponent({
 const LoadingSpinner = defineAsyncComponent(() => import('./components/LoadingSpinner.vue'))
 const SkeletonLoader = defineAsyncComponent(() => import('./components/SkeletonLoader.vue'))
 const ProgressBar = defineAsyncComponent(() => import('./components/ProgressBar.vue'))
+const DebugInfo = defineAsyncComponent(() => import('./components/DebugInfo.vue'))
 import apiService from './utils/api.js';
 import { errorService } from './services/errorService.js';
 import { useOfflineDetection } from './composables/useOfflineDetection.js';

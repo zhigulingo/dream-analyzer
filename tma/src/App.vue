@@ -1,6 +1,7 @@
 // tma/src/App.vue
 <template>
   <div class="tma-app-container">
+    <DebugInfo />
     <PersonalAccount />
     <NotificationSystem />
   </div>
@@ -10,22 +11,9 @@
 import { defineAsyncComponent } from 'vue'
 
 // Lazy-loaded компоненты для уменьшения начального bundle
-const PersonalAccount = defineAsyncComponent({
-  loader: () => import('./views/PersonalAccount.vue'),
-  // Loading component для лучшего UX
-  loadingComponent: () => import('./components/LoadingSpinner.vue'),
-  // Delay before showing loading component
-  delay: 200,
-  // Error component в случае ошибки загрузки
-  errorComponent: () => import('./components/ErrorBoundary.vue'),
-  // Timeout для загрузки компонента
-  timeout: 30000
-})
-
-const NotificationSystem = defineAsyncComponent({
-  loader: () => import('./components/NotificationSystem.vue'),
-  delay: 100
-})
+const PersonalAccount = defineAsyncComponent(() => import('./views/PersonalAccount.vue'))
+const NotificationSystem = defineAsyncComponent(() => import('./components/NotificationSystem.vue'))
+const DebugInfo = defineAsyncComponent(() => import('./components/DebugInfo.vue'))
 </script>
 
 <style>

@@ -8,13 +8,15 @@
 # Build settings for web version
 [build]
   # Build command for web version
-  command = "npm run build"
+  command = "npm install && npm run build"
   # Published directory - dist folder in web directory
   publish = "dist"
 
 # Environment variables needed for build
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
+  NPM_CONFIG_AUDIT = "false"
+  NPM_CONFIG_FUND = "false"
 
 # Monitoring endpoints
 [[redirects]]

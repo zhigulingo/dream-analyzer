@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
+import './style.css';
 
 // Assuming you will create an App.vue for the web version
 // import App from './App.vue'; // Or a specific root component for the web

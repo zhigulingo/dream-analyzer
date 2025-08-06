@@ -8,8 +8,13 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // Логируем URL для проверки при запуске TMA
 if (!API_BASE_URL) {
     console.error("CRITICAL: VITE_API_BASE_URL is not set in environment variables!");
-    // Можно показать ошибку пользователю или просто логировать
-    // alert("Ошибка конфигурации: не удалось определить адрес API.");
+    console.error("Please set VITE_API_BASE_URL in your Netlify environment variables.");
+    console.error("Example: https://your-site.netlify.app/.netlify/functions");
+    
+    // Показываем ошибку пользователю
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+        window.Telegram.WebApp.showAlert("Ошибка конфигурации: API URL не настроен");
+    }
 } else {
     console.log('[api.js] Using API Base URL:', API_BASE_URL);
 }

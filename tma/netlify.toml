@@ -2,9 +2,14 @@
 
 [build]
   # Build command for TMA
-  command = "npm run build"
+  command = "npm install && npm run build"
   # Published directory - where static files are served from
   publish = "dist"
+  
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_CONFIG_AUDIT = "false"
+  NPM_CONFIG_FUND = "false"
 
 # Basic redirects for SPA
 [[redirects]]
