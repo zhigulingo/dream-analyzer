@@ -1,0 +1,13 @@
+# netlify.toml for TMA deployment
+
+[build]
+  # Build command for TMA
+  command = "npm run build"
+  # Published directory - where static files are served from
+  publish = "dist"
+
+# Basic redirects for SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

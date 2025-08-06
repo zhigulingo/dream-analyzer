@@ -7,8 +7,8 @@
 
 # Build settings for web version
 [build]
-  # Build command for web version
-  command = "cd web && npm run build"
+  # Build command for web version - robust path handling
+  command = "if [ -f 'web/package.json' ]; then cd web && npm run build; elif [ -f 'package.json' ]; then npm run build; else echo 'No package.json found' && exit 1; fi"
   # Published directory - where static files are served from
   publish = "web/dist"
 
@@ -41,11 +41,6 @@
 [[redirects]]
   from = "/api/dashboard"
   to = "/.netlify/functions/monitoring-dashboard"
-  status = 200
-
-[[redirects]]
-  from = "/.netlify/functions/cache-monitoring"
-  to = "/.netlify/functions/cache-monitoring"
   status = 200
 
 # Bot webhook redirect

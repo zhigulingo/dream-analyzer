@@ -34,7 +34,7 @@ export default defineConfig({
     // Bundle analyzer для анализа размера
     visualizer({
       filename: 'dist/stats.html',
-      open: true,
+      open: false, // Disabled auto-opening browser
       gzipSize: true,
       brotliSize: true,
       template: 'treemap' // 'sunburst', 'treemap', 'network'
