@@ -1,4 +1,5 @@
 // vite.config.js
+import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { visualizer } from 'rollup-plugin-visualizer'
@@ -38,6 +39,11 @@ export default defineConfig({
       template: 'treemap' // 'sunburst', 'treemap', 'network'
     })
   ],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    }
+  },
   build: {
     // Target modern browsers for better optimization
     target: 'es2020',
