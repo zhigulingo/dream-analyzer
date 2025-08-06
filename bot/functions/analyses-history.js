@@ -1,6 +1,7 @@
 // bot/functions/analyses-history.js (Modified for Web Authentication and syntax fix)
 
 const { createClient } = require("@supabase/supabase-js");
+const { DatabaseQueries, createOptimizedClient } = require('./shared/database/queries');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken'); // Assuming jsonwebtoken is available
 
@@ -123,48 +124,34 @@ exports.handler = async (event) => {
         return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Missing authentication.' }) };
     }
 
-     // --- Ensure we have a verified Telegram ID and Supabase ID ---
-     // If authentication was via InitData, we need to fetch the Supabase ID
-    if (!userDbId && verifiedTgId) {
-         console.log(`[analyses-history] Supabase ID not available from token. Fetching for tg_id ${verifiedTgId}...`);
-         try {
-              const { data: userData, error: fetchIdError } = await createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
-                .from('users').select('id').eq('tg_id', verifiedTgId).single();
-
-              if (fetchIdError || !userData) {
-                   console.error(`[analyses-history] Failed to fetch Supabase ID for tg_id ${verifiedTgId}:`, fetchIdError);
-                   throw new Error("Could not retrieve internal user ID.");
-              }
-              userDbId = userData.id;
-              console.log(`[analyses-history] Fetched Supabase ID: ${userDbId}`);
-
-         } catch (error) {
-              console.error(`[analyses-history] Error fetching Supabase ID for tg_id ${verifiedTgId}:`, error.message);
-              return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Internal Server Error while fetching user ID.' }) };
-         }
-    } else if (!verifiedTgId) {
-         console.error("[analyses-history] Internal authentication error: No verified Telegram ID after checks.");
-         return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Internal authentication error.' }) };
-    }
-     // Now userDbId should be available whether using InitData or JWT
-
-    // --- Main Logic (Fetch History Data) ---
+    // --- Main Logic (Optimized Database Operations) ---
     try {
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-             auth: { autoRefreshToken: false, persistSession: false }
-        });
+        const supabase = createOptimizedClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+        const dbQueries = new DatabaseQueries(supabase);
 
-        // Query history using the internal user_id
-        const { data: history, error: historyError } = await supabase
-            .from('analyses')
-            .select('id, dream_text, analysis, created_at')
-            .eq('user_id', userDbId)
-            .order('created_at', { ascending: false })
-            .limit(50);
-
-        if (historyError) {
-            console.error(`[analyses-history] Supabase error fetching history for user_id ${userDbId}:`, historyError);
-            throw new Error("Database query failed while fetching history");
+        let history;
+        
+        if (userDbId) {
+            // If we already have the Supabase ID (from JWT), use it directly
+            console.log(`[analyses-history] Using existing Supabase ID ${userDbId} to fetch history...`);
+            history = await dbQueries.getAnalysesHistory(userDbId, 50, 0);
+        } else {
+            // If we only have Telegram ID, we need to get user profile first
+            // This will be optimized to get user data in one query instead of two separate calls
+            console.log(`[analyses-history] Getting user profile and history for tg_id ${verifiedTgId}...`);
+            
+            const userProfile = await dbQueries.getUserProfile(verifiedTgId);
+            if (!userProfile) {
+                console.error(`[analyses-history] User profile not found for tg_id ${verifiedTgId}`);
+                return { 
+                    statusCode: 404, 
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ error: 'User not found.' }) 
+                };
+            }
+            
+            userDbId = userProfile.id;
+            history = await dbQueries.getAnalysesHistory(userDbId, 50, 0);
         }
 
         console.log(`[analyses-history] History fetched for user_id ${userDbId}. Count: ${history?.length ?? 0}`);

@@ -9,12 +9,14 @@ const jwt = require('jsonwebtoken'); // Assuming you have jsonwebtoken installed
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const JWT_SECRET = process.env.JWT_SECRET; // You need to set this environment variable
+const REFRESH_SECRET = process.env.REFRESH_SECRET || process.env.JWT_SECRET + '_refresh';
 
 // --- CORS Headers (consider making this a shared helper) ---
 const generateCorsHeaders = () => ({
     'Access-Control-Allow-Origin': process.env.ALLOWED_WEB_ORIGIN || '*', // Set ALLOWED_WEB_ORIGIN
     'Access-Control-Allow-Headers': 'Content-Type, Authorization', // Allow Authorization header
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true', // Important for cookies
 });
 
 exports.handler = async (event) => {
@@ -83,14 +85,38 @@ exports.handler = async (event) => {
              return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Invalid Telegram ID or password.' }) };
         }
 
-        // --- Authentication successful, generate JWT ---
-        console.log(`[web-login] Authentication successful for tg_id ${tg_id}. Generating token...`);
-        const token = jwt.sign({ userId: user.id, tgId: tg_id }, JWT_SECRET, { expiresIn: '7d' }); // Token expires in 7 days
+        // --- Authentication successful, generate JWT tokens ---
+        console.log(`[web-login] Authentication successful for tg_id ${tg_id}. Generating tokens...`);
+        
+        // Generate access token (short-lived)
+        const accessToken = jwt.sign({ userId: user.id, tgId: tg_id }, JWT_SECRET, { expiresIn: '15m' });
+        
+        // Generate refresh token (long-lived)
+        const refreshToken = jwt.sign(
+            { userId: user.id, tgId: tg_id, tokenVersion: 1 }, 
+            REFRESH_SECRET, 
+            { expiresIn: '7d' }
+        );
+
+        // --- Set secure httpOnly cookies ---
+        const isProduction = process.env.NODE_ENV === 'production';
+        const secureCookieSettings = `Path=/; HttpOnly; SameSite=Strict; ${isProduction ? 'Secure;' : ''} Max-Age=`;
 
         return {
             statusCode: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: token })
+            headers: { 
+                ...corsHeaders, 
+                'Content-Type': 'application/json',
+                'Set-Cookie': [
+                    `dream_analyzer_jwt=${accessToken}; ${secureCookieSettings}900`, // 15 minutes
+                    `dream_analyzer_refresh=${refreshToken}; ${secureCookieSettings}604800` // 7 days
+                ]
+            },
+            body: JSON.stringify({ 
+                success: true,
+                message: 'Login successful',
+                user: { id: user.id, tgId: tg_id }
+            })
         };
 
     } catch (error) {

@@ -3,11 +3,14 @@
 // --- Imports ---
 const { Bot, Api, GrammyError, HttpError, webhookCallback } = require("grammy");
 const { createClient } = require("@supabase/supabase-js");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { DatabaseQueries, createOptimizedClient } = require('./shared/database/queries');
+const geminiService = require("./shared/services/gemini-service");
+const userCacheService = require('./shared/services/user-cache-service');
 const crypto = require('crypto');
 const util = require('util');
 const scryptAsync = util.promisify(crypto.scrypt);
 const jwt = require('jsonwebtoken');
+const { validateTelegramData } = require('./shared/auth/telegram-validator');
 
 // --- Environment Variables ---
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -22,8 +25,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 // --- Global Initialization ----
 let bot;
 let supabaseAdmin;
-let genAI; // Only GoogleGenerativeAI instance
-let geminiModel = null; // The model itself will be initialized on demand
+
 let initializationError = null;
 let botInitializedAndHandlersSet = false;
 
@@ -34,7 +36,7 @@ try {
     }
 
     supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
-    genAI = new GoogleGenerativeAI(GEMINI_API_KEY); // Create the main Google AI object
+
     bot = new Bot(BOT_TOKEN);
     console.log("[Bot Global Init] Clients and bot instance created.");
 
@@ -286,53 +288,14 @@ async function getOrCreateUser(supabase, userId) {
 }
 
 
-// getGeminiAnalysis (Takes model, initializes if needed)
+// getGeminiAnalysis using unified Gemini service
 async function getGeminiAnalysis(passedModel, dreamText) {
-     console.log("[getGeminiAnalysis] Function called.");
-     let modelToUse = passedModel;
-
-     if (!modelToUse) {
-         console.log("[getGeminiAnalysis] Model not passed or null, attempting initialization...");
-         try {
-             if (!genAI) { throw new Error("GoogleGenerativeAI instance (genAI) is not available."); }
-             modelToUse = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-             geminiModel = modelToUse;
-             console.log("[getGeminiAnalysis] Gemini model initialized successfully within function.");
-         } catch (initErr) {
-             console.error("[getGeminiAnalysis] Failed to initialize Gemini model:", initErr);
-             throw new Error(`Failed to initialize analysis service: ${initErr.message}`);
-         }
-     } else {
-          console.log("[getGeminiAnalysis] Using pre-initialized/passed model.");
-     }
-
-     const MAX_DREAM_LENGTH = 4000;
-     if (!dreamText || dreamText.trim().length === 0) { throw new Error("Empty dream text."); }
-     if (dreamText.length > MAX_DREAM_LENGTH) { throw new Error(`Dream too long (>${MAX_DREAM_LENGTH} chars).`); }
-
+     console.log("[getGeminiAnalysis] Function called, using unified Gemini service.");
      try {
-         console.log("[getGeminiAnalysis] Requesting Gemini analysis...");
-         const prompt = `You are an empathetic dream interpreter. Analyze the dream, maintaining confidentiality, avoiding medical diagnoses/predictions. Dream: "${dreamText}". Analysis (2-4 paragraphs): 1. Symbols/meanings. 2. Emotions/connection to reality (if applicable). 3. Themes/messages. Respond softly, supportively.`;
-         const result = await modelToUse.generateContent(prompt);
-         const response = await result.response;
-
-         if (response.promptFeedback?.blockReason) {
-             console.warn(`[getGeminiAnalysis] Gemini blocked: ${response.promptFeedback.blockReason}`);
-             throw new Error(`Analysis blocked (${response.promptFeedback.blockReason}).`);
-         }
-         const analysisText = response.text();
-         if (!analysisText || analysisText.trim().length === 0) {
-             console.error("[getGeminiAnalysis] Gemini returned empty response.");
-             throw new Error("Empty response from analysis service.");
-         }
-         console.log("[getGeminiAnalysis] Gemini analysis received successfully.");
-         return analysisText;
+         return await geminiService.analyzeDream(dreamText, 'basic');
      } catch (error) {
-         console.error("[getGeminiAnalysis] Error during Gemini API call:", error);
-         if (error.message?.includes("API key not valid")) throw new Error("Invalid Gemini API key.");
-         else if (error.status === 404 || error.message?.includes("404") || error.message?.includes("is not found")) throw new Error("Gemini model not found.");
-         else if (error.message?.includes("quota")) throw new Error("Gemini API quota exceeded.");
-         throw new Error(`Error communicating with analysis service (${error.message})`);
+         console.error("[getGeminiAnalysis] Error from Gemini service:", error);
+         throw error;
      }
 }
 
@@ -361,7 +324,7 @@ async function analyzeDream(ctx, supabase, passedGeminiModel, dreamText) {
         // 3. Get analysis from Gemini (pass model, catch errors)
         console.log(`[analyzeDream] Requesting analysis...`);
         // <<<--- FIX: Passing passedGeminiModel ---
-        const analysisResultText = await getGeminiAnalysis(passedGeminiModel, dreamText);
+        const analysisResultText = await getGeminiAnalysis(null, dreamText);
         // <<<--- END FIX ---
         console.log(`[analyzeDream] Analysis received successfully.`);
 
@@ -401,30 +364,7 @@ exports.handler = async (event) => {
 
 console.log("[Bot Global Init] Netlify handler exported.");
 
-function validateTelegramData(initData, botToken) {
-    if (!initData || !botToken) return { valid: false, data: null, error: "Missing initData or botToken" };
-    const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
-    if (!hash) return { valid: false, data: null, error: "Hash is missing" };
-    params.delete('hash');
-    const dataCheckArr = [];
-    params.sort();
-    params.forEach((value, key) => dataCheckArr.push(`${key}=${value}`));
-    const dataCheckString = dataCheckArr.join('\n');
-    try {
-        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
-        const checkHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-        if (checkHash === hash) {
-            const userDataString = params.get('user');
-            if (!userDataString) return { valid: true, data: null, error: "User data missing" };
-            try {
-                const userData = JSON.parse(decodeURIComponent(userDataString));
-                if (!userData || typeof userData.id === 'undefined') return { valid: true, data: null, error: "User ID missing in parsed data" };
-                return { valid: true, data: userData, error: null };
-            } catch (parseError) { return { valid: true, data: null, error: "Failed to parse user data" }; }
-        } else { return { valid: false, data: null, error: "Hash mismatch" }; }
-    } catch (error) { return { valid: false, data: null, error: "Validation crypto error" }; }
-}
+// validateTelegramData теперь импортируется из общей библиотеки
 
 exports.handler = async (event) => {
     const allowedOrigins = [ALLOWED_TMA_ORIGIN, ALLOWED_WEB_ORIGIN].filter(Boolean);
@@ -471,26 +411,52 @@ exports.handler = async (event) => {
     }
 
     try {
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+        const supabase = createOptimizedClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+        const dbQueries = new DatabaseQueries(supabase);
         
-        // Ensure user exists or create them
-        await getOrCreateUser(supabase, verifiedUserId);
+        // Проверяем кеш сначала
+        let userData = userCacheService.getFullUserData(verifiedUserId);
         
-        const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('tokens, subscription_type, subscription_end, deep_analysis_credits')
-            .eq('tg_id', verifiedUserId)
-            .maybeSingle();
-
-        if (userError) {
-            throw new Error("Database query failed");
+        if (!userData) {
+            console.log(`[user-profile] Cache miss for user ${verifiedUserId}, querying database...`);
+            
+            // Получить полный профиль пользователя одним оптимизированным запросом
+            // Если пользователь не существует, он будет создан автоматически
+            userData = await dbQueries.getUserProfile(verifiedUserId);
+            
+            // Если пользователь не найден, создаем его и пытаемся снова
+            if (!userData) {
+                console.log(`[user-profile] User ${verifiedUserId} not found, creating...`);
+                await getOrCreateUser(supabase, verifiedUserId);
+                userData = await dbQueries.getUserProfile(verifiedUserId);
+            }
+            
+            // Кешируем результат если получены данные
+            if (userData) {
+                userCacheService.cacheFullUserData(verifiedUserId, userData);
+                console.log(`[user-profile] Cached user data for ${verifiedUserId}`);
+            }
+        } else {
+            console.log(`[user-profile] Cache hit for user ${verifiedUserId}`);
         }
 
         let responseBody;
         if (!userData) {
-            responseBody = { tokens: 0, subscription_type: 'free', subscription_end: null, deep_analysis_credits: 0 };
+            responseBody = { 
+                tokens: 0, 
+                subscription_type: 'free', 
+                subscription_end: null, 
+                deep_analysis_credits: 0,
+                total_analyses: 0
+            };
         } else {
-            responseBody = { ...userData, deep_analysis_credits: userData.deep_analysis_credits || 0 };
+            responseBody = {
+                tokens: userData.tokens || 0,
+                subscription_type: userData.subscription_type || 'free',
+                subscription_end: userData.subscription_end,
+                deep_analysis_credits: userData.deep_analysis_credits || 0,
+                total_analyses: userData.total_analyses || 0
+            };
         }
 
         return {

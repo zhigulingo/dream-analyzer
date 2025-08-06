@@ -8,3 +8,39 @@
 # Build settings and redirects for 'tma' and 'web' sites should be configured
 # in their respective Netlify site settings in the UI.
 # Remove the incorrect [[build]] and [[redirects]] from here.
+
+# Monitoring endpoints
+[[redirects]]
+  from = "/api/cache/*"
+  to = "/.netlify/functions/cache-monitoring"
+  status = 200
+
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health-check"
+  status = 200
+
+[[redirects]]
+  from = "/api/metrics"
+  to = "/.netlify/functions/performance-metrics"
+  status = 200
+
+[[redirects]]
+  from = "/api/errors"
+  to = "/.netlify/functions/error-monitoring"
+  status = 200
+
+[[redirects]]
+  from = "/api/business"
+  to = "/.netlify/functions/business-metrics"
+  status = 200
+
+[[redirects]]
+  from = "/api/dashboard"
+  to = "/.netlify/functions/monitoring-dashboard"
+  status = 200
+
+[[redirects]]
+  from = "/.netlify/functions/cache-monitoring"
+  to = "/.netlify/functions/cache-monitoring"
+  status = 200

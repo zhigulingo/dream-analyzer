@@ -1,6 +1,8 @@
 const { createClient } = require("@supabase/supabase-js");
 const jwt = require('jsonwebtoken');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { wrapApiHandler, createApiError } = require('./shared/middleware/api-wrapper');
+const { createSuccessResponse, createErrorResponse } = require('./shared/middleware/error-handler');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -9,54 +11,19 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
 const ALLOWED_WEB_ORIGIN = process.env.ALLOWED_WEB_ORIGIN;
 
-// Gemini/AI analysis logic (copied from bot.js)
+// Gemini/AI analysis logic using unified service
 async function getGeminiAnalysis(dreamText) {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-    const MAX_DREAM_LENGTH = 4000;
-    if (!dreamText || dreamText.trim().length === 0) throw new Error("Empty dream text.");
-    if (dreamText.length > MAX_DREAM_LENGTH) throw new Error(`Dream too long (> ${MAX_DREAM_LENGTH} chars).`);
     try {
-        const prompt = `You are an empathetic dream interpreter. Analyze the dream, maintaining confidentiality, avoiding medical diagnoses/predictions. Dream: "${dreamText}". Analysis (2-4 paragraphs): 1. Symbols/meanings. 2. Emotions/connection to reality (if applicable). 3. Themes/messages. Respond softly, supportively.`;
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        if (response.promptFeedback?.blockReason) {
-            throw new Error(`Analysis blocked (${response.promptFeedback.blockReason}).`);
-        }
-        const analysisText = response.text();
-        if (!analysisText || analysisText.trim().length === 0) {
-            throw new Error("Empty response from analysis service.");
-        }
-        return analysisText;
+        return await geminiService.analyzeDream(dreamText, 'basic');
     } catch (error) {
-        if (error.message?.includes("API key not valid")) throw new Error("Invalid Gemini API key.");
-        else if (error.status === 404 || error.message?.includes("404") || error.message?.includes("is not found")) throw new Error("Gemini model not found.");
-        else if (error.message?.includes("quota")) throw new Error("Gemini API quota exceeded.");
-        throw new Error(`Error communicating with analysis service (${error.message})`);
+        console.error("[getGeminiAnalysis] Error from Gemini service:", error);
+        throw error;
     }
 }
 
-exports.handler = async (event) => {
-    const allowedOrigins = [ALLOWED_TMA_ORIGIN, ALLOWED_WEB_ORIGIN].filter(Boolean);
-    const requestOrigin = event.headers.origin || event.headers.Origin;
-    const corsHeaders = {
-        'Access-Control-Allow-Origin': allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0] || '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    };
-
-    // Handle CORS preflight
-    if (event.httpMethod === 'OPTIONS') {
-        return { statusCode: 204, headers: corsHeaders, body: '' };
-    }
-
-    if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Method Not Allowed' }) };
-    }
-
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !JWT_SECRET || !GEMINI_API_KEY) {
-        return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Internal Server Error: Configuration missing.' }) };
-    }
+// --- Internal Handler Function ---
+async function handleAnalyzeDream(event, context, corsHeaders) {
+    console.log(`[analyze-dream] Processing dream analysis request`);
 
     // JWT auth
     const authHeader = event.headers['authorization'];
@@ -69,10 +36,10 @@ exports.handler = async (event) => {
             verifiedTgId = decoded.tgId;
             userDbId = decoded.userId;
         } catch (error) {
-            return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid or expired token.' }) };
+            throw createApiError('Unauthorized: Invalid or expired token.', 401);
         }
     } else {
-        return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Missing token.' }) };
+        throw createApiError('Unauthorized: Missing token.', 401);
     }
 
     // Parse dream_text from body
@@ -81,10 +48,10 @@ exports.handler = async (event) => {
         const body = JSON.parse(event.body);
         dreamText = body.dream_text;
     } catch (e) {
-        return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Invalid JSON body.' }) };
+        throw createApiError('Invalid JSON body.', 400);
     }
     if (!dreamText || typeof dreamText !== 'string') {
-        return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Missing or invalid dream_text.' }) };
+        throw createApiError('Missing or invalid dream_text.', 400);
     }
 
     // Supabase client
@@ -95,22 +62,22 @@ exports.handler = async (event) => {
         const { data: userData, error: fetchIdError } = await supabase
             .from('users').select('id').eq('tg_id', verifiedTgId).single();
         if (fetchIdError || !userData) {
-            return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Could not retrieve internal user ID.' }) };
+            throw createApiError('Could not retrieve internal user ID.', 500);
         }
         userDbId = userData.id;
     }
     if (!userDbId) {
-        return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Internal authentication error.' }) };
+        throw createApiError('Internal authentication error.', 500);
     }
 
     // Check and decrement token
     const { data: tokenDecremented, error: rpcError } = await supabase
         .rpc('decrement_token_if_available', { user_tg_id: verifiedTgId });
     if (rpcError) {
-        return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Internal token error: ${rpcError.message}` }) };
+        throw createApiError(`Internal token error: ${rpcError.message}`, 500);
     }
     if (!tokenDecremented) {
-        return { statusCode: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Insufficient tokens for analysis.' }) };
+        throw createApiError('Insufficient tokens for analysis.', 402);
     }
 
     // Analyze dream
@@ -118,7 +85,7 @@ exports.handler = async (event) => {
     try {
         analysisResultText = await getGeminiAnalysis(dreamText);
     } catch (error) {
-        return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: error.message || 'Analysis failed.' }) };
+        throw createApiError(error.message || 'Analysis failed.', 500);
     }
 
     // Save result to DB
@@ -126,16 +93,20 @@ exports.handler = async (event) => {
         const { error: insertError } = await supabase
             .from('analyses').insert({ user_id: userDbId, dream_text: dreamText, analysis: analysisResultText });
         if (insertError) {
-            return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Error saving analysis: ${insertError.message}` }) };
+            throw createApiError(`Error saving analysis: ${insertError.message}`, 500);
         }
     } catch (error) {
-        return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Internal Server Error while saving analysis.' }) };
+        if (error.statusCode) throw error; // Re-throw our own errors
+        throw createApiError('Internal Server Error while saving analysis.', 500);
     }
 
     // Return analysis result
-    return {
-        statusCode: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ analysis: analysisResultText })
-    };
-}; 
+    return createSuccessResponse({ analysis: analysisResultText }, corsHeaders);
+}
+
+// --- Exported Handler ---
+exports.handler = wrapApiHandler(handleAnalyzeDream, {
+    allowedMethods: 'POST',
+    allowedOrigins: [ALLOWED_TMA_ORIGIN, ALLOWED_WEB_ORIGIN].filter(Boolean),
+    requiredEnvVars: ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'JWT_SECRET', 'GEMINI_API_KEY']
+}); 

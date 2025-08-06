@@ -6,6 +6,37 @@ const config: Config = {
     "./src/**/*.{vue,js,ts,jsx,tsx}",
   ],
   darkMode: 'class', // Dark-only theme
+  
+  // Оптимизации для production build
+  corePlugins: {
+    // Отключаем неиспользуемые core plugins для уменьшения bundle
+    float: false,
+    clear: false,
+    objectFit: false,
+    objectPosition: false,
+    textDecorationColor: false,
+    textDecorationStyle: false,
+    textDecorationThickness: false,
+    textUnderlineOffset: false,
+    listStyleType: false,
+    listStylePosition: false,
+    placeholderColor: false,
+    placeholderOpacity: false,
+    skew: false,
+    rotate: false,
+    scale: false,
+    translate: false,
+    backdropSepia: false,
+    backdropHueRotate: false,
+    backdropInvert: false,
+    sepia: false,
+    hueRotate: false,
+    invert: false,
+    saturate: false,
+    grayscale: false,
+    contrast: false,
+    brightness: false,
+  },
   theme: {
     extend: {
       colors: {
@@ -148,6 +179,30 @@ const config: Config = {
       },
     },
   },
+  
+  // Дополнительные оптимизации
+  experimental: {
+    optimizeUniversalDefaults: true,
+  },
+  
+  // Улучшения для современных браузеров
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
+  
+  // Сафелист для динамически используемых классов
+  safelist: [
+    // Только необходимые динамические классы
+    'bg-gradient-to-r',
+    'from-user-card-from',
+    'to-user-card-to',
+    'from-fact-card-1-from',
+    'to-fact-card-1-to',
+    'from-fact-card-2-from',
+    'to-fact-card-2-to',
+    'from-deep-analysis-from',
+    'to-deep-analysis-to',
+  ],
 } satisfies Config
 
 export default config

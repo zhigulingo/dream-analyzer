@@ -4,44 +4,95 @@
     :class="[isOpen ? 'pb-32' : 'h-[11.55vh] md:h-[10.5rem]']"
     @click="toggle"
   >
+    <!-- Loading overlay для профиля -->
+    <LoadingSpinner 
+      v-if="userStore?.isLoadingProfile && !isOpen"
+      overlay
+      variant="white"
+      size="sm"
+      label="Загрузка профиля..."
+    />
+    
     <div class="px-8 md:px-16" :class="[isOpen ? 'pt-8' : 'flex items-center h-full']">
       <div class="flex items-center" :class="[isOpen ? 'mb-4' : 'flex-1']">
-        <img class="w-10 h-10 rounded-full object-cover" :src="userAvatar" />
+        <div class="relative">
+          <img class="w-10 h-10 rounded-full object-cover" :src="userAvatar" />
+          <LoadingSpinner 
+            v-if="userStore?.isLoadingProfile"
+            class="absolute inset-0"
+            size="sm"
+            variant="white"
+          />
+        </div>
         <span class="ml-4 truncate">{{ userDisplayName }}</span>
       </div>
-      <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap">
-        <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
-        <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
-      </div>
-      <div v-if="!isOpen" class="flex flex-col gap-2 ml-auto">
-        <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
-        <Badge class="whitespace-nowrap">{{ userStore?.profile?.subscription_type || 'Free' }}</Badge>
-      </div>
+      
+      <!-- Скелет для badges при загрузке -->
+      <template v-if="userStore?.isLoadingProfile">
+        <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap">
+          <SkeletonLoader type="line" width="w-20" height="h-6" />
+          <SkeletonLoader type="line" width="w-24" height="h-6" />
+        </div>
+        <div v-if="!isOpen" class="flex flex-col gap-2 ml-auto">
+          <SkeletonLoader type="line" width="w-16" height="h-5" />
+          <SkeletonLoader type="line" width="w-12" height="h-5" />
+        </div>
+      </template>
+      
+      <!-- Обычное содержимое -->
+      <template v-else>
+        <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap">
+          <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
+          <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
+        </div>
+        <div v-if="!isOpen" class="flex flex-col gap-2 ml-auto">
+          <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
+          <Badge class="whitespace-nowrap">{{ userStore?.profile?.subscription_type || 'Free' }}</Badge>
+        </div>
+      </template>
       <div v-if="isOpen" class="space-y-2 text-sm">
-        <div class="flex justify-between">
-          <span class="opacity-80">Пользователь уже:</span>
-          <span>{{ userExperienceTime }}</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="opacity-80">Интерпретировано снов:</span>
-          <span>{{ userStore?.profile?.total_dreams_count || 0 }}</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="opacity-80">Глубоких анализов:</span>
-          <span>{{ userStore?.profile?.deep_analyses_count || 0 }}</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="opacity-80">Приглашено друзей:</span>
-          <span>{{ userStore?.profile?.invited_friends_count || 0 }}</span>
-        </div>
+        <!-- Показываем скелет статистики при загрузке -->
+        <template v-if="userStore?.isLoadingProfile">
+          <div v-for="i in 4" :key="i" class="flex justify-between">
+            <SkeletonLoader type="line" width="w-24" height="h-4" />
+            <SkeletonLoader type="line" width="w-8" height="h-4" />
+          </div>
+        </template>
+        
+        <!-- Обычная статистика -->
+        <template v-else>
+          <div class="flex justify-between">
+            <span class="opacity-80">Пользователь уже:</span>
+            <span>{{ userExperienceTime }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="opacity-80">Интерпретировано снов:</span>
+            <span>{{ userStore?.profile?.total_dreams_count || 0 }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="opacity-80">Глубоких анализов:</span>
+            <span>{{ userStore?.profile?.deep_analyses_count || 0 }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="opacity-80">Приглашено друзей:</span>
+            <span>{{ userStore?.profile?.invited_friends_count || 0 }}</span>
+          </div>
+        </template>
       </div>
     </div>
     <transition name="fade">
       <div v-if="isOpen" class="absolute bottom-4 left-4 right-4 space-y-2">
         <button
-          class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors"
+          class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors flex items-center justify-center"
           @click.stop="openTariff"
+          :disabled="userStore?.isLoadingProfile"
         >
+          <LoadingSpinner 
+            v-if="userStore?.isLoadingProfile"
+            size="xs"
+            variant="white"
+            class="mr-2"
+          />
           Сменить тариф
         </button>
         <button
@@ -58,6 +109,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import Badge from '@/components/Badge.vue'
+import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import SkeletonLoader from '@/components/SkeletonLoader.vue'
 
 const props = defineProps(['userStore'])
 

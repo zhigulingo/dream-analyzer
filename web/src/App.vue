@@ -1,50 +1,102 @@
 <template>
-  <div class="web-app-container">
-    <template v-if="isAuthenticated">
-        <!-- User is authenticated, show account info -->
-        <div class="personal-account">
-            <h1>Ваш Личный кабинет (Web)</h1>
+  <ErrorBoundary 
+    @retry="handleGlobalRetry"
+    @error="handleGlobalError"
+    :show-retry="true"
+  >
+    <div class="web-app-container">
+      <!-- Offline indicator -->
+      <div v-if="!isOnline" class="offline-banner">
+        <span>⚠️ Нет подключения к интернету</span>
+        <span v-if="pendingOperations.length > 0" class="pending-count">
+          ({{ pendingOperations.length }} операций в очереди)
+        </span>
+      </div>
 
-            <!-- Logout Button -->
-            <button @click="handleLogout" class="logout-button">Logout</button>
+      <template v-if="isAuthenticated">
+          <!-- User is authenticated, show account info -->
+          <div class="personal-account">
+              <h1>Ваш Личный кабинет (Web)</h1>
 
-            <!-- Блок 1: Информация о пользователе -->
-            <section class="user-info card">
-                <h2>Ваш профиль</h2>
-                <div v-if="isLoadingProfile">Загрузка профиля...</div>
-                <div v-else-if="errorProfile" class="error-message">
-                    Ошибка загрузки профиля: {{ errorProfile }}
-                </div>
-                <div v-else-if="profile.tokens !== null">
-                    <p>Остаток токенов: <strong>{{ profile.tokens }}</strong></p>
-                    <p>
-                        Текущий тариф: <strong class="capitalize">{{ profile.subscription_type }}</strong>
-                        <span v-if="profile.subscription_end">
-                            (до {{ formatDate(profile.subscription_end) }})
-                        </span>
-                    </p>
-                </div>
-                <div v-else>
-                    <p>Не удалось загрузить данные профиля.</p>
-                </div>
-            </section>
+              <!-- Logout Button -->
+              <button @click="handleLogout" class="logout-button">Logout</button>
+
+              <!-- Блок 1: Информация о пользователе -->
+              <section class="user-info card">
+                  <h2>Ваш профиль</h2>
+                  <div v-if="isLoadingProfile" class="loading-section">
+                      <LoadingSpinner size="sm" label="Загрузка профиля..." />
+                      <SkeletonLoader type="user-profile" class="mt-4" />
+                  </div>
+                  <div v-else-if="errorProfile" class="error-section">
+                      <div class="error-message">
+                          Ошибка загрузки профиля: {{ errorProfile }}
+                      </div>
+                      <button 
+                        @click="retryFetchProfile" 
+                        :disabled="isRetryingProfile"
+                        class="retry-button"
+                      >
+                        <LoadingSpinner v-if="isRetryingProfile" size="xs" variant="white" class="mr-2" />
+                        {{ isRetryingProfile ? 'Повторная попытка...' : 'Попробовать снова' }}
+                      </button>
+                  </div>
+                  <div v-else-if="profile.tokens !== null">
+                      <p>Остаток токенов: <strong>{{ profile.tokens }}</strong></p>
+                      <p>
+                          Текущий тариф: <strong class="capitalize">{{ profile.subscription_type }}</strong>
+                          <span v-if="profile.subscription_end">
+                              (до {{ formatDate(profile.subscription_end) }})
+                          </span>
+                      </p>
+                  </div>
+                  <div v-else>
+                      <p>Не удалось загрузить данные профиля.</p>
+                  </div>
+              </section>
 
             <!-- Dream input section -->
             <section class="dream-input card">
                 <h2>Анализировать новый сон</h2>
                 <textarea v-model="newDream" :disabled="isSubmittingDream" rows="4" placeholder="Введите ваш сон..."></textarea>
-                <button @click="submitDream" :disabled="isSubmittingDream || !newDream.trim()">
+                <button @click="submitDream" :disabled="isSubmittingDream || !newDream.trim()" class="dream-submit-btn">
+                  <LoadingSpinner v-if="isSubmittingDream" size="xs" variant="white" class="mr-2" />
                   {{ isSubmittingDream ? 'Анализируем...' : 'Анализировать сон' }}
                 </button>
                 <div v-if="errorDream" class="error-message">{{ errorDream }}</div>
+                
+                <!-- Прогресс анализа -->
+                <div v-if="isSubmittingDream" class="mt-4">
+                  <ProgressBar 
+                    :progress="dreamAnalysisProgress" 
+                    label="Анализ сна"
+                    :steps="dreamAnalysisSteps"
+                    :currentStep="currentAnalysisStep"
+                    showPercentage
+                    animated
+                  />
+                </div>
             </section>
 
             <!-- Блок 2: История анализов -->
             <section class="history card">
                 <h2>История анализов</h2>
-                <div v-if="isLoadingHistory">Загрузка истории...</div>
-                <div v-else-if="errorHistory" class="error-message">
-                    Ошибка загрузки истории: {{ errorHistory }}
+                <div v-if="isLoadingHistory" class="loading-section">
+                    <LoadingSpinner size="sm" label="Загрузка истории..." />
+                    <SkeletonLoader type="dream-history" :count="3" class="mt-4" />
+                </div>
+                <div v-else-if="errorHistory" class="error-section">
+                    <div class="error-message">
+                        Ошибка загрузки истории: {{ errorHistory }}
+                    </div>
+                    <button 
+                      @click="retryFetchHistory" 
+                      :disabled="isRetryingHistory"
+                      class="retry-button"
+                    >
+                      <LoadingSpinner v-if="isRetryingHistory" size="xs" variant="white" class="mr-2" />
+                      {{ isRetryingHistory ? 'Повторная попытка...' : 'Попробовать снова' }}
+                    </button>
                 </div>
                 <div v-else-if="history && history.length > 0">
                     <ul>
@@ -66,17 +118,40 @@
             </section>
 
         </div>
-    </template>
-    <template v-else>
-        <!-- User is not authenticated, show login form -->
-        <Login @login-success="handleLoginSuccess" />
-    </template>
-  </div>
+      </template>
+      <template v-else>
+          <!-- User is not authenticated, show login form -->
+          <Login @login-success="handleLoginSuccess" />
+      </template>
+    </div>
+  </ErrorBoundary>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import Login from './components/Login.vue';
+import { defineAsyncComponent } from 'vue'
+import ErrorBoundary from './components/ErrorBoundary.vue'
+
+// Lazy-loaded компоненты для оптимизации bundle
+const Login = defineAsyncComponent({
+  loader: () => import('./components/Login.vue'),
+  delay: 200
+})
+const LoadingSpinner = defineAsyncComponent(() => import('./components/LoadingSpinner.vue'))
+const SkeletonLoader = defineAsyncComponent(() => import('./components/SkeletonLoader.vue'))
+const ProgressBar = defineAsyncComponent(() => import('./components/ProgressBar.vue'))
+import apiService from './utils/api.js';
+import { errorService } from './services/errorService.js';
+import { useOfflineDetection } from './composables/useOfflineDetection.js';
+import { getAuthToken, getUserData, clearAllAuthCookies } from './utils/cookies.js';
+
+// Initialize offline detection
+const {
+  isOnline,
+  pendingOperations,
+  executeOnlineOperation,
+  addPendingOperation
+} = useOfflineDetection();
 
 const profile = ref({ tokens: null, subscription_type: 'free', subscription_end: null });
 const history = ref([]);
@@ -87,45 +162,70 @@ const errorHistory = ref(null);
 const isAuthenticated = ref(false); // Reactive state for authentication status
 const expandedDreams = ref([]);
 
+// Retry states
+const isRetryingProfile = ref(false);
+const isRetryingHistory = ref(false);
+const retryCountProfile = ref(0);
+const retryCountHistory = ref(0);
+
 // Dream input feature
 const newDream = ref("");
 const isSubmittingDream = ref(false);
 const errorDream = ref(null);
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; // Re-using the backend URL env var
-if (!API_BASE_URL) { console.error("VITE_API_BASE_URL is not set"); }
+// Progress tracking for dream analysis
+const dreamAnalysisProgress = ref(0);
+const currentAnalysisStep = ref(0);
+const dreamAnalysisSteps = ref([
+  { title: 'Подготовка запроса', description: 'Обработка текста сна', duration: '2-3 сек' },
+  { title: 'Анализ содержания', description: 'Интерпретация символов и образов', duration: '5-8 сек' },
+  { title: 'Генерация результата', description: 'Создание персонального анализа', duration: '3-5 сек' },
+  { title: 'Сохранение', description: 'Добавление в историю', duration: '1-2 сек' }
+]);
 
-const getToken = () => localStorage.getItem('dream_analyzer_jwt');
-const setToken = (token) => localStorage.setItem('dream_analyzer_jwt', token);
-const removeToken = () => localStorage.removeItem('dream_analyzer_jwt');
-
-const checkAuthentication = () => {
-    isAuthenticated.value = getToken() !== null;
+const checkAuthentication = async () => {
+    try {
+        // First check if we have authentication data in cookies
+        const authToken = getAuthToken();
+        const userData = getUserData();
+        
+        if (!authToken && !userData) {
+            isAuthenticated.value = false;
+            return;
+        }
+        
+        // Check with backend if we have local auth data
+        const isAuth = await apiService.checkAuth();
+        isAuthenticated.value = isAuth;
+        
+        // If backend auth fails but we have local auth data, clear it
+        if (!isAuth && (authToken || userData)) {
+            console.log('Backend auth failed, clearing local auth data');
+            clearAllAuthCookies();
+        }
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        isAuthenticated.value = false;
+        
+        // Clear any stale auth data on error
+        clearAllAuthCookies();
+    }
 };
 
 const fetchProfile = async () => {
-  const token = getToken();
-  if (!token) { // Should not happen if isAuthenticated is true, but as a safeguard
-      console.warn('fetchProfile called without token.');
-      isAuthenticated.value = false; // Force logout state
+  if (!isAuthenticated.value) {
+      console.warn('fetchProfile called without authentication.');
       return;
   }
 
   isLoadingProfile.value = true;
   errorProfile.value = null;
+  
   try {
-    const response = await fetch(`${API_BASE_URL}/user-profile`, {
-        headers: {
-            'Authorization': `Bearer ${token}`, // Include the JWT
-        },
-    });
-
-    if (response.status === 401 || response.status === 403) {
-         console.warn('Profile fetch: Authentication failed (401/403).');
-         // Token is invalid or expired, force re-authentication
-         handleLogout();
-         return;
-    }
+    const response = await executeOnlineOperation(
+      () => apiService.post('/user-profile', {}),
+      'Загрузка профиля'
+    );
 
     if (!response.ok) {
         const errorData = await response.json();
@@ -134,38 +234,62 @@ const fetchProfile = async () => {
 
     const data = await response.json();
     profile.value = data;
+    
+    // Reset retry count on success
+    retryCountProfile.value = 0;
 
   } catch (err) {
     console.error('Error fetching profile:', err);
-    errorProfile.value = err.message;
+    
+    // Use error service for better error handling
+    const errorInfo = errorService.handleError(err, { action: 'fetchProfile' });
+    errorProfile.value = errorInfo.userMessage;
+    
+    // If authentication error, force logout
+    if (errorInfo.category === 'auth') {
+        handleLogout();
+    }
   } finally {
     isLoadingProfile.value = false;
   }
 };
 
+const retryFetchProfile = async () => {
+  if (retryCountProfile.value >= 3) {
+    errorService.handleError(new Error('Maximum retry attempts reached'), { action: 'retryFetchProfile' });
+    return;
+  }
+  
+  isRetryingProfile.value = true;
+  retryCountProfile.value++;
+  
+  try {
+    await fetchProfile();
+    if (!errorProfile.value) {
+      // Success notification handled by errorService
+      console.log('Profile fetch retry successful');
+    }
+  } catch (error) {
+    console.error('Retry fetchProfile failed:', error);
+  } finally {
+    isRetryingProfile.value = false;
+  }
+};
+
 const fetchHistory = async () => {
-  const token = getToken();
-  if (!token) { // Should not happen if isAuthenticated is true, but as a safeguard
-      console.warn('fetchHistory called without token.');
-      isAuthenticated.value = false; // Force logout state
+  if (!isAuthenticated.value) {
+      console.warn('fetchHistory called without authentication.');
       return;
   }
 
   isLoadingHistory.value = true;
   errorHistory.value = null;
+  
   try {
-    const response = await fetch(`${API_BASE_URL}/analyses-history`, {
-        headers: {
-            'Authorization': `Bearer ${token}`, // Include the JWT
-        },
-    });
-
-     if (response.status === 401 || response.status === 403) {
-         console.warn('History fetch: Authentication failed (401/403).');
-         // Token is invalid or expired, force re-authentication
-         handleLogout();
-         return;
-    }
+    const response = await executeOnlineOperation(
+      () => apiService.post('/analyses-history', {}),
+      'Загрузка истории'
+    );
 
     if (!response.ok) {
          const errorData = await response.json();
@@ -174,12 +298,44 @@ const fetchHistory = async () => {
 
     const data = await response.json();
     history.value = data;
+    
+    // Reset retry count on success
+    retryCountHistory.value = 0;
 
   } catch (err) {
     console.error('Error fetching history:', err);
-    errorHistory.value = err.message;
+    
+    // Use error service for better error handling
+    const errorInfo = errorService.handleError(err, { action: 'fetchHistory' });
+    errorHistory.value = errorInfo.userMessage;
+    
+    // If authentication error, force logout
+    if (errorInfo.category === 'auth') {
+        handleLogout();
+    }
   } finally {
     isLoadingHistory.value = false;
+  }
+};
+
+const retryFetchHistory = async () => {
+  if (retryCountHistory.value >= 3) {
+    errorService.handleError(new Error('Maximum retry attempts reached'), { action: 'retryFetchHistory' });
+    return;
+  }
+  
+  isRetryingHistory.value = true;
+  retryCountHistory.value++;
+  
+  try {
+    await fetchHistory();
+    if (!errorHistory.value) {
+      console.log('History fetch retry successful');
+    }
+  } catch (error) {
+    console.error('Retry fetchHistory failed:', error);
+  } finally {
+    isRetryingHistory.value = false;
   }
 };
 
@@ -192,16 +348,24 @@ const formatDate = (dateString) => {
   }
 };
 
-const handleLoginSuccess = () => {
+const handleLoginSuccess = async () => {
     console.log('Login success event received.');
-    checkAuthentication(); // Check if token is now present
+    await checkAuthentication(); // Check if user is now authenticated
 };
 
-const handleLogout = () => {
+const handleLogout = async () => {
     console.log('Logging out.');
-    removeToken();
-    checkAuthentication(); // Update authentication status
-    // Clear displayed data
+    try {
+        await apiService.logout();
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+    
+    // Clear all authentication data from cookies
+    clearAllAuthCookies();
+    
+    // Update authentication status and clear displayed data
+    isAuthenticated.value = false;
     profile.value = { tokens: null, subscription_type: 'free', subscription_end: null };
     history.value = [];
 };
@@ -214,6 +378,23 @@ const toggleDream = (id) => {
     }
 };
 
+// Progress update helper
+const updateProgress = (step, progress) => {
+  currentAnalysisStep.value = step;
+  dreamAnalysisProgress.value = progress;
+  
+  // Обновляем статус шагов
+  dreamAnalysisSteps.value.forEach((s, index) => {
+    if (index < step) {
+      s.status = 'completed';
+    } else if (index === step) {
+      s.status = 'loading';
+    } else {
+      s.status = 'pending';
+    }
+  });
+};
+
 // Dream submission logic
 const submitDream = async () => {
     errorDream.value = null;
@@ -221,28 +402,60 @@ const submitDream = async () => {
         errorDream.value = 'Введите текст сна для анализа.';
         return;
     }
+    
     isSubmittingDream.value = true;
+    dreamAnalysisProgress.value = 0;
+    currentAnalysisStep.value = 0;
+    
     try {
-        const token = getToken();
-        const response = await fetch(`${API_BASE_URL}/analyze-dream`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({ dream_text: newDream.value.trim() }),
+        // Симуляция прогресса для улучшения UX
+        updateProgress(0, 10);
+        
+        const progressTimer1 = setTimeout(() => updateProgress(1, 35), 1000);
+        const progressTimer2 = setTimeout(() => updateProgress(2, 70), 3000);
+        const progressTimer3 = setTimeout(() => updateProgress(3, 90), 6000);
+        
+        const response = await apiService.post('/analyze-dream', { 
+            dream_text: newDream.value.trim() 
         });
+        
+        // Очищаем таймеры если запрос завершился быстрее
+        clearTimeout(progressTimer1);
+        clearTimeout(progressTimer2);
+        clearTimeout(progressTimer3);
+        
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || 'Ошибка анализа сна.');
         }
+        
+        // Завершаем прогресс
+        updateProgress(4, 100);
+        
         // On success, clear input and reload history
         newDream.value = '';
         await fetchHistory();
     } catch (err) {
         errorDream.value = err.message;
+        
+        // Отмечаем текущий шаг как ошибочный
+        if (dreamAnalysisSteps.value[currentAnalysisStep.value]) {
+            dreamAnalysisSteps.value[currentAnalysisStep.value].status = 'error';
+        }
+        
+        // If authentication error, force logout
+        if (err.message.includes('Authentication failed')) {
+            handleLogout();
+        }
     } finally {
         isSubmittingDream.value = false;
+        
+        // Сброс прогресса через небольшую задержку
+        setTimeout(() => {
+            dreamAnalysisProgress.value = 0;
+            currentAnalysisStep.value = 0;
+            dreamAnalysisSteps.value.forEach(s => s.status = 'pending');
+        }, 2000);
     }
 };
 
@@ -257,9 +470,36 @@ watch(isAuthenticated, (newVal) => {
     }
 });
 
-onMounted(() => {
+// Global error handlers for ErrorBoundary
+const handleGlobalError = (errorEvent) => {
+  console.error('Global error caught by ErrorBoundary:', errorEvent);
+  errorService.handleError(errorEvent.error, { 
+    component: 'App',
+    context: 'global_error_boundary'
+  });
+};
+
+const handleGlobalRetry = async () => {
+  console.log('Global retry triggered');
+  
+  // Retry all failed operations
+  if (errorProfile.value && !isLoadingProfile.value) {
+    await retryFetchProfile();
+  }
+  
+  if (errorHistory.value && !isLoadingHistory.value) {
+    await retryFetchHistory();
+  }
+  
+  // Re-check authentication if needed
+  if (!isAuthenticated.value) {
+    await checkAuthentication();
+  }
+};
+
+onMounted(async () => {
   console.log('App mounted, checking authentication...');
-  checkAuthentication();
+  await checkAuthentication();
 });
 </script>
 
@@ -352,6 +592,45 @@ h1, h2 {
     border-radius: 4px;
 }
 
+/* Loading styles */
+.loading-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+}
+
+.dream-submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.dream-submit-btn:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+.dream-submit-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+.mr-2 {
+    margin-right: 0.5rem;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
 .dream-input textarea {
   width: 100%;
   padding: 10px;
@@ -374,6 +653,60 @@ h1, h2 {
 }
 .dream-input button:disabled {
   background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Offline banner styles */
+.offline-banner {
+  background-color: #fbbf24;
+  color: #92400e;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  font-weight: 500;
+  border-bottom: 1px solid #f59e0b;
+}
+
+.pending-count {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+/* Error section styles */
+.error-section {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.error-section .error-message {
+  margin-bottom: 0.75rem;
+}
+
+/* Retry button styles */
+.retry-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 0.875rem;
+}
+
+.retry-button:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.retry-button:disabled {
+  background-color: #9ca3af;
   cursor: not-allowed;
 }
 

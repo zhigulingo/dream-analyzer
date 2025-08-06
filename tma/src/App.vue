@@ -2,12 +2,30 @@
 <template>
   <div class="tma-app-container">
     <PersonalAccount />
+    <NotificationSystem />
   </div>
 </template>
 
 <script setup>
-// Импортируем главный компонент (или представление роутера)
-import PersonalAccount from './views/PersonalAccount.vue'; // Убедитесь, что путь верный
+import { defineAsyncComponent } from 'vue'
+
+// Lazy-loaded компоненты для уменьшения начального bundle
+const PersonalAccount = defineAsyncComponent({
+  loader: () => import('./views/PersonalAccount.vue'),
+  // Loading component для лучшего UX
+  loadingComponent: () => import('./components/LoadingSpinner.vue'),
+  // Delay before showing loading component
+  delay: 200,
+  // Error component в случае ошибки загрузки
+  errorComponent: () => import('./components/ErrorBoundary.vue'),
+  // Timeout для загрузки компонента
+  timeout: 30000
+})
+
+const NotificationSystem = defineAsyncComponent({
+  loader: () => import('./components/NotificationSystem.vue'),
+  delay: 100
+})
 </script>
 
 <style>

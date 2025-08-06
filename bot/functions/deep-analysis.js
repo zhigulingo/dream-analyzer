@@ -1,8 +1,15 @@
 // bot/functions/deep-analysis.js (Новая функция)
 
 const { createClient } = require("@supabase/supabase-js");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { DatabaseQueries, createOptimizedClient } = require('./shared/database/queries');
+const geminiService = require("./shared/services/gemini-service");
 const crypto = require('crypto');
+const { validateTelegramData } = require('./shared/auth/telegram-validator');
+const { wrapApiHandler, createApiError } = require('./shared/middleware/api-wrapper');
+const { createSuccessResponse, createErrorResponse, parseJsonBody } = require('./shared/middleware/error-handler');
+
+// Импорт structured logger
+const { createLogger } = require('./shared/utils/logger');
 
 // --- Переменные Окружения ---
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -12,259 +19,174 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
 
 // --- Константы ---
-const REQUIRED_DREAMS = 5; // Сколько снов нужно для анализа
-const DEEP_ANALYSIS_PROMPT = `Ты — опытный психоаналитик и толкователь снов, специализирующийся на поиске закономерностей и глубинных тем. Проанализируй ПОСЛЕДОВАТЕЛЬНОСТЬ из ${REQUIRED_DREAMS} недавних снов пользователя. Ищи:
-1.  **Повторяющиеся символы/образы:** Что они могут означать в контексте серии снов?
-2.  **Общие темы или сюжеты:** Есть ли сквозная линия или проблема?
-3.  **Эмоциональная динамика:** Меняются ли эмоции от сна к сну? Есть ли прогресс или зацикливание?
-4.  **Возможные связи с реальностью:** На какие аспекты жизни пользователя могут указывать эти сны (очень осторожно, без диагнозов)?
-5.  **Общее послание или вывод:** Какой главный урок или сообщение несет эта серия снов?
+const { REQUIRED_DREAMS } = require("./shared/prompts/dream-prompts");
 
-Отвечай эмпатично, структурированно (можно по пунктам), избегая прямых предсказаний и медицинских диагнозов. Сохраняй конфиденциальность.
+// Создание логгера для deep analysis
+const logger = createLogger({ module: 'deep-analysis' });
 
-Сны пользователя (разделены '--- СОН ---'):
-"""
-[DREAM_TEXT_PLACEHOLDER]
-"""
-
-Твой глубокий анализ:`;
-
-// --- Функция валидации InitData (такая же, как в других функциях) ---
-function validateTelegramData(initData, botToken) {
-    if (!initData || !botToken) {
-        console.warn("[validateTelegramData] Missing initData or botToken");
-        return { valid: false, data: null, error: "Missing initData or botToken" };
-    }
-    const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
-    if (!hash) {
-        console.warn("[validateTelegramData] Hash is missing in initData");
-        return { valid: false, data: null, error: "Hash is missing" };
-    }
-    params.delete('hash'); // Удаляем hash для проверки
-    const dataCheckArr = [];
-    params.sort(); // Важно сортировать параметры
-    params.forEach((value, key) => dataCheckArr.push(`${key}=${value}`));
-    const dataCheckString = dataCheckArr.join('\n');
-
-    try {
-        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
-        const checkHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-
-        if (checkHash === hash) {
-            // Валидация успешна, пытаемся извлечь данные пользователя
-            const userDataString = params.get('user');
-            if (!userDataString) {
-                console.warn("[validateTelegramData] User data is missing in initData");
-                return { valid: true, data: null, error: "User data missing" }; // Валидно, но данных нет
-            }
-            try {
-                const userData = JSON.parse(decodeURIComponent(userDataString));
-                 // Проверяем наличие ID пользователя
-                 if (!userData || typeof userData.id === 'undefined') {
-                    console.warn("[validateTelegramData] Parsed user data is missing ID");
-                    return { valid: true, data: null, error: "User ID missing in parsed data" };
-                 }
-                return { valid: true, data: userData, error: null };
-            } catch (parseError) {
-                console.error("[validateTelegramData] Error parsing user data JSON:", parseError);
-                return { valid: true, data: null, error: "Failed to parse user data" }; // Валидно, но данные пользователя не распарсились
-            }
-        } else {
-            console.warn("[validateTelegramData] Hash mismatch during validation.");
-            return { valid: false, data: null, error: "Hash mismatch" };
-        }
-    } catch (error) {
-        console.error("[validateTelegramData] Crypto error during validation:", error);
-        return { valid: false, data: null, error: "Validation crypto error" };
-    }
-}
-// --- Вставьте сюда ТОЧНО ТАКУЮ ЖЕ функцию validateTelegramData, как в user-profile.js ---
-// (Важно: не забудьте скопировать ее сюда полностью)
-
-// --- Генерация Заголовков CORS ---
-const generateCorsHeaders = () => {
-    const originToAllow = ALLOWED_TMA_ORIGIN || '*';
-    console.log(`[deep-analysis] CORS Headers: Allowing Origin: ${originToAllow}`);
-    return {
-        'Access-Control-Allow-Origin': originToAllow,
-        'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS', // Только POST и OPTIONS
-    };
-};
+// --- Используем общую библиотеку авторизации вместо дублированной функции ---
 
 // --- Функция вызова Gemini для глубокого анализа ---
 async function getDeepGeminiAnalysis(geminiModel, combinedDreams) {
-    if (!geminiModel) { throw new Error("Gemini model is not initialized."); }
-    if (!combinedDreams || combinedDreams.trim().length === 0) { throw new Error("No dream text provided for deep analysis."); }
-
     try {
-        console.log("[deep-analysis] Requesting deep analysis from Gemini...");
-        const prompt = DEEP_ANALYSIS_PROMPT.replace('[DREAM_TEXT_PLACEHOLDER]', combinedDreams);
-        // console.log("[deep-analysis] Prompt:", prompt); // Раскомментируйте для отладки промпта
-
-        const result = await geminiModel.generateContent(prompt);
-        const response = await result.response;
-
-        if (response.promptFeedback?.blockReason) {
-            console.warn(`[deep-analysis] Gemini blocked: ${response.promptFeedback.blockReason}`);
-            throw new Error(`Анализ заблокирован моделью: ${response.promptFeedback.blockReason}`);
-        }
-        const analysisText = response.text();
-        if (!analysisText || analysisText.trim().length === 0) {
-            console.error("[deep-analysis] Gemini returned empty response.");
-            throw new Error("Сервис анализа вернул пустой ответ.");
-        }
-        console.log("[deep-analysis] Deep analysis received successfully.");
-        return analysisText;
+        logger.geminiOperation('deep_analysis_request', 'gemini-pro');
+        const result = await geminiService.deepAnalyzeDreams(combinedDreams);
+        logger.geminiOperation('deep_analysis_success', 'gemini-pro', null, null, {
+            dreamsCount: combinedDreams.length
+        });
+        return result;
     } catch (error) {
-        console.error("[deep-analysis] Error calling Gemini:", error);
-        // Перевыбрасываем ошибку для обработки в главном хендлере
-        throw new Error(`Ошибка при обращении к сервису анализа: ${error.message}`);
+        logger.geminiError('deep_analysis_failed', error, {
+            dreamsCount: combinedDreams.length
+        });
+        throw error;
     }
 }
 
 
-// --- Главный обработчик Netlify Function ---
-exports.handler = async (event) => {
-    const corsHeaders = generateCorsHeaders();
 
-    // OPTIONS
-    if (event.httpMethod === 'OPTIONS') {
-        return { statusCode: 204, headers: corsHeaders, body: '' };
-    }
-    // POST
-    if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: false, error: 'Method Not Allowed' }) };
-    }
-    // Config Check
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN || !GEMINI_API_KEY || !ALLOWED_TMA_ORIGIN) {
-        console.error("[deep-analysis] Server configuration missing.");
-        return { statusCode: 500, headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ success: false, error: 'Internal Server Error: Configuration missing.' }) };
-    }
+// --- Internal Handler Function ---
+async function handleDeepAnalysis(event, context, corsHeaders) {
+    const requestLogger = logger.child({ 
+        requestId: context.awsRequestId || crypto.randomBytes(8).toString('hex')
+    });
+    requestLogger.generateCorrelationId();
+    
+    requestLogger.apiRequest(event.httpMethod, event.path, null, null, null, {
+        headers: Object.keys(event.headers)
+    });
 
-    // Validate InitData
+    // --- Валидация InitData ---
     const initDataHeader = event.headers['x-telegram-init-data'];
-    let verifiedUserId;
-    if (!initDataHeader) { return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: false, error: 'Unauthorized: Missing InitData' }) }; }
+    if (!initDataHeader) {
+        requestLogger.authError('missing_init_data', new Error('Missing InitData header'));
+        throw createApiError('Unauthorized: Missing InitData', 401);
+    }
+
     const validationResult = validateTelegramData(initDataHeader, BOT_TOKEN);
-    if (!validationResult.valid || !validationResult.data?.id) { return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: false, error: `Forbidden: Invalid InitData (${validationResult.error})` }) }; }
-    verifiedUserId = validationResult.data.id;
-    console.log(`[deep-analysis] Access validated for user: ${verifiedUserId}`);
+    if (!validationResult.valid || !validationResult.data?.id) {
+        requestLogger.authError('invalid_init_data', new Error(validationResult.error));
+        throw createApiError(`Forbidden: Invalid InitData (${validationResult.error})`, 403);
+    }
+
+    const verifiedUserId = validationResult.data.id;
+    requestLogger.authEvent('init_data_validated', verifiedUserId, 'success');
 
     // --- Основная логика ---
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
-    let geminiModelInstance;
-    try {
-        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        geminiModelInstance = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-    } catch (e) {
-         console.error("[deep-analysis] Failed to initialize Gemini:", e);
-         return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: false, error: 'Ошибка инициализации сервиса анализа.' }) };
-    }
+    const supabase = createOptimizedClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const dbQueries = new DatabaseQueries(supabase);
 
+    // Gemini initialization is now handled by the unified service
 
     try {
+        // 1. Получить пользователя со статистикой снов одним оптимизированным запросом
+        requestLogger.dbOperation('SELECT', 'user_profile_with_stats', null, null, {
+            userId: verifiedUserId
+        });
+        const userProfile = await dbQueries.getUserProfileWithStats(verifiedUserId);
         
-        // 2. Получить ID пользователя и проверить кредиты глубокого анализа
-        const { data: user, error: userFindError } = await supabase
-            .from('users').select('id, deep_analysis_credits').eq('tg_id', verifiedUserId).single();
-
-        if (userFindError || !user) {
-            if (userFindError?.code !== 'PGRST116') console.error(`[deep-analysis] Error finding user DB ID for ${verifiedUserId}:`, userFindError);
-            throw new Error('Профиль пользователя не найден в базе данных.');
+        if (!userProfile) {
+            requestLogger.dbError('SELECT', 'user_profile_with_stats', new Error('User profile not found'), {
+                userId: verifiedUserId
+            });
+            throw createApiError('Профиль пользователя не найден в базе данных.', 404);
         }
-        const userDbId = user.id;
-        const currentCredits = user.deep_analysis_credits || 0;
+        
+        const userDbId = userProfile.id;
+        const currentCredits = userProfile.deep_analysis_credits || 0;
+        const actualDreamCount = userProfile.total_analyses || 0;
+        
+        requestLogger.info("User profile retrieved", {
+            userDbId,
+            currentCredits,
+            actualDreamCount
+        });
 
-        // 2.1. Проверить наличие кредитов для глубокого анализа
+        // 2. Проверить наличие кредитов для глубокого анализа
         if (currentCredits <= 0) {
-            console.log(`[deep-analysis] User ${verifiedUserId} has no deep analysis credits (${currentCredits})`);
-            return { 
-                statusCode: 402, 
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ 
-                    success: false, 
-                    error: 'Недостаточно кредитов для глубокого анализа. Приобретите кредит, нажав на кнопку "Получить анализ (1 ⭐️)".' 
-                }) 
-            };
+            requestLogger.warn("Insufficient deep analysis credits", {
+                userId: verifiedUserId,
+                currentCredits
+            });
+            throw createApiError('Недостаточно кредитов для глубокого анализа. Приобретите кредит, нажав на кнопку "Получить анализ (1 ⭐️)".', 402);
         }
 
-        // 2.2. Проверить количество снов ДО списания кредита
-        console.log(`[deep-analysis] Checking dreams count for user_id ${userDbId}...`);
-        const { data: dreamCount, error: countError } = await supabase
-            .from('analyses')
-            .select('id', { count: 'exact' })
-            .eq('user_id', userDbId);
-
-        if (countError) {
-            console.error(`[deep-analysis] Error checking dream count for user_id ${userDbId}:`, countError);
-            throw new Error("Ошибка при проверке количества снов.");
-        }
-
-        const actualDreamCount = dreamCount?.length || 0;
+        // 3. Проверить количество снов ДО списания кредита
         if (actualDreamCount < REQUIRED_DREAMS) {
-            console.log(`[deep-analysis] Not enough dreams for user_id ${userDbId}. Found: ${actualDreamCount}, required: ${REQUIRED_DREAMS}`);
-            return { 
-                statusCode: 400, 
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ 
-                    success: false, 
-                    error: `Недостаточно снов для глубокого анализа. Нужно ${REQUIRED_DREAMS} снов, найдено ${actualDreamCount}. Пожалуйста, проанализируйте больше снов перед покупкой глубокого анализа.` 
-                }) 
-            };
+            requestLogger.warn("Insufficient dreams for deep analysis", {
+                userDbId,
+                actualDreamCount,
+                requiredDreams: REQUIRED_DREAMS
+            });
+            throw createApiError(`Недостаточно снов для глубокого анализа. Нужно ${REQUIRED_DREAMS} снов, найдено ${actualDreamCount}. Пожалуйста, проанализируйте больше снов перед покупкой глубокого анализа.`, 400);
         }
 
-        // 2.3. Списать один кредит глубокого анализа
-        const { error: creditDecrementError } = await supabase
-            .from('users').update({ deep_analysis_credits: currentCredits - 1 }).eq('tg_id', verifiedUserId);
+        // 4. Атомарно списать один кредит глубокого анализа
+        requestLogger.dbOperation('UPDATE', 'decrement_credits', null, null, {
+            userId: verifiedUserId
+        });
+        const decrementResult = await dbQueries.decrementDeepAnalysisCredits(verifiedUserId);
         
-        if (creditDecrementError) {
-            console.error(`[deep-analysis] Error decrementing deep analysis credit for ${verifiedUserId}:`, creditDecrementError);
-            throw new Error('Ошибка при списании кредита глубокого анализа.');
+        if (!decrementResult || !decrementResult.success) {
+            requestLogger.dbError('UPDATE', 'decrement_credits', new Error('Failed to decrement credits'), {
+                userId: verifiedUserId
+            });
+            throw createApiError('Ошибка при списании кредита глубокого анализа.', 500);
         }
         
-        console.log(`[deep-analysis] Decremented deep analysis credit for user ${verifiedUserId}. Remaining: ${currentCredits - 1}`);
+        requestLogger.info("Deep analysis credit decremented", {
+            userId: verifiedUserId,
+            remainingCredits: decrementResult.remaining_credits
+        });
 
-        // 4. Получить последние N снов
-        console.log(`[deep-analysis] Fetching last ${REQUIRED_DREAMS} dreams for user_id ${userDbId}...`);
-        const { data: dreams, error: historyError } = await supabase
-            .from('analyses')
-            .select('dream_text') // Выбираем только текст сна
-            .eq('user_id', userDbId)
-            .order('created_at', { ascending: false }) // Сначала самые новые
-            .limit(REQUIRED_DREAMS);
+        // 5. Получить последние N снов оптимизированным запросом
+        requestLogger.dbOperation('SELECT', 'user_dreams', null, null, {
+            userDbId,
+            limit: REQUIRED_DREAMS
+        });
+        const dreams = await dbQueries.getUserDreams(userDbId, REQUIRED_DREAMS);
 
-        if (historyError) {
-            console.error(`[deep-analysis] Error fetching dream history for user_id ${userDbId}:`, historyError);
-            throw new Error("Ошибка при получении истории снов.");
+        if (!dreams || dreams.length === 0) {
+            requestLogger.dbError('SELECT', 'user_dreams', new Error('No dreams found'), {
+                userDbId
+            });
+            throw createApiError("Сны не найдены.", 404);
         }
 
-        // 5. Объединить тексты снов
+        // 6. Объединить тексты снов
         const combinedDreamsText = dreams
             .map(d => d.dream_text.trim()) // Убираем лишние пробелы
             .reverse() // Переворачиваем, чтобы были от старого к новому для анализа динамики
             .join('\n\n--- СОН ---\n\n'); // Разделяем сны
-        console.log(`[deep-analysis] Combined dreams text length: ${combinedDreamsText.length}`);
+        
+        requestLogger.info("Dreams fetched and combined", {
+            dreamsCount: dreams.length,
+            combinedTextLength: combinedDreamsText.length
+        });
 
-        // 6. Вызвать Gemini для анализа
-        const deepAnalysisResult = await getDeepGeminiAnalysis(geminiModelInstance, combinedDreamsText);
+        // 7. Вызвать Gemini для анализа
+        const deepAnalysisResult = await getDeepGeminiAnalysis(null, combinedDreamsText);
 
-        // 7. Вернуть успешный результат
-        console.log(`[deep-analysis] Deep analysis successful for user ${verifiedUserId}.`);
-        return {
-            statusCode: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ success: true, analysis: deepAnalysisResult })
-        };
-
+        // 8. Вернуть успешный результат
+        requestLogger.info("Deep analysis completed successfully", {
+            userId: verifiedUserId,
+            analysisLength: deepAnalysisResult ? deepAnalysisResult.length : 0
+        });
+        return createSuccessResponse({ analysis: deepAnalysisResult }, corsHeaders);
+        
     } catch (error) {
-        console.error(`[deep-analysis] Catch block error for user ${verifiedUserId}:`, error);
-        // Возвращаем ошибку, которую поймали (из RPC, Supabase, Gemini или нашу)
-        return {
-            statusCode: 500, // Или другой код, если ошибка специфична (напр. 400)
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ success: false, error: error.message || 'Внутренняя ошибка сервера при глубоком анализе.' })
-        };
+        requestLogger.error("Deep analysis failed", {
+            error: error.message,
+            stack: error.stack,
+            userId: verifiedUserId
+        });
+        throw error;
     }
-};
+}
+
+// --- Exported Handler ---
+exports.handler = wrapApiHandler(handleDeepAnalysis, {
+    allowedMethods: 'POST',
+    allowedOrigins: [ALLOWED_TMA_ORIGIN],
+    requiredEnvVars: ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'BOT_TOKEN', 'GEMINI_API_KEY', 'ALLOWED_TMA_ORIGIN']
+});

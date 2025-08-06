@@ -46,6 +46,7 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
 import api from '@/services/api';
 import botAuthService from '@/services/botAuthService';
+import { setAuthToken } from '@/utils/cookies';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -143,8 +144,8 @@ const handleAuthToken = (token) => {
     url.searchParams.delete('auth_token');
     window.history.replaceState({}, document.title, url);
     
-    // Store the token
-    localStorage.setItem('bot_auth_token', token);
+    // Store the token in secure cookie
+    setAuthToken(token);
     
     // Show success message
     sessionStatus.value = 'approved';
@@ -220,7 +221,7 @@ const checkSessionStatus = async () => {
       
       // Set the auth token
       if (response.data.token) {
-        localStorage.setItem('bot_auth_token', response.data.token);
+        setAuthToken(response.data.token);
         
         // Show success message
         sessionStatus.value = 'approved';
@@ -326,7 +327,7 @@ onMounted(async () => {
       userStore.isWebAuthenticated = false;
       
       // Clear all auth data
-      authService.default.clearAllAuthData();
+      authService.clearAllAuthData();
       
       console.log('[WebLogin] Emergency cleanup complete');
     } catch (e) {
@@ -342,7 +343,7 @@ onMounted(async () => {
   // Normal logout detection (preserve for compatibility)
   if (window.location.search.includes('logout=true')) {
     console.log('[WebLogin] Detected logout parameter, ensuring cleanout');
-    authService.default.clearAllAuthData();
+    authService.clearAllAuthData();
     userStore.webUser = null;
     userStore.isWebAuthenticated = false;
   }

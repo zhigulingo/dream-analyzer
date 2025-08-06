@@ -48,6 +48,7 @@ const handleLogin = async () => {
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'include', // Important for cookies
             body: JSON.stringify({
                 tg_id: parseInt(tgId.value, 10), // Ensure it's a number
                 password: password.value,
@@ -60,15 +61,12 @@ const handleLogin = async () => {
         }
 
         const data = await response.json();
-        const token = data.token;
 
-        if (!token) {
-             throw new Error('Login successful, but no token received.');
+        if (!data.success) {
+             throw new Error('Login failed.');
         }
 
-        // Store the token (e.g., in localStorage)
-        localStorage.setItem('dream_analyzer_jwt', token);
-        console.log('Login successful, token stored.');
+        console.log('Login successful, tokens set in httpOnly cookies.');
 
         // Emit an event to indicate successful login
         emit('login-success');

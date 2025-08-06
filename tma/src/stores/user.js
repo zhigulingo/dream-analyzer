@@ -3,9 +3,24 @@
 import { defineStore } from 'pinia';
 // Импортируем и дефолтный экспорт (методы), и именованный (клиент)
 import api, { apiClient } from '@/services/api';
+import { useNotificationStore } from '@/stores/notifications';
+import { errorService } from '@/services/errorService';
+import { useOfflineDetection } from '@/composables/useOfflineDetection';
 
 export const useUserStore = defineStore('user', {
   state: () => ({
+    // Notification store instance
+    notificationStore: null,
+    // Offline detection instance
+    offlineDetection: null,
+    // --- Retry state ---
+    retryState: {
+      fetchProfile: { count: 0, isRetrying: false },
+      fetchHistory: { count: 0, isRetrying: false },
+      claimReward: { count: 0, isRetrying: false },
+      payment: { count: 0, isRetrying: false },
+      deepAnalysis: { count: 0, isRetrying: false }
+    },
     // --- Состояние для получения награды ---
     isClaimingReward: false,
     claimRewardError: null,
@@ -72,33 +87,152 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
-    async fetchProfile() {
-      this.isLoadingProfile = true; this.errorProfile = null;
-      this.claimRewardError = null; this.claimRewardSuccessMessage = null; this.userCheckedSubscription = false;
-      try {
-        console.log(`[UserStore:fetchProfile] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
-        const response = await api.getUserProfile();
-        this.profile = { ...this.profile, ...response.data };
-        this.rewardAlreadyClaimed = this.profile?.channel_reward_claimed ?? false;
-        console.log("[UserStore] Profile loaded:", this.profile);
-      } catch (err) {
-        console.error("[UserStore:fetchProfile] Error:", err);
-        this.errorProfile = err.response?.data?.error || err.message || 'Network Error';
-      } finally { this.isLoadingProfile = false; }
+    // Initialize notification store
+    initNotifications() {
+      if (!this.notificationStore) {
+        this.notificationStore = useNotificationStore();
+      }
     },
 
-    async fetchHistory() {
-      this.isLoadingHistory = true; this.errorHistory = null;
-      try {
-        console.log(`[UserStore:fetchHistory] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
-        const response = await api.getAnalysesHistory();
-        this.history = response.data;
-        console.log("[UserStore] History loaded, count:", this.history.length);
-      } catch (err) {
-        console.error("[UserStore:fetchHistory] Error:", err);
-        this.errorHistory = err.response?.data?.error || err.message || 'Network Error';
-      } finally { this.isLoadingHistory = false; }
+    // Initialize offline detection
+    initOfflineDetection() {
+      if (!this.offlineDetection) {
+        this.offlineDetection = useOfflineDetection();
+      }
     },
+
+    // Initialize all services
+    initServices() {
+      this.initNotifications();
+      this.initOfflineDetection();
+      errorService.init();
+    },
+
+    // Helper method to reset retry state
+    resetRetryState(action) {
+      if (this.retryState[action]) {
+        this.retryState[action] = { count: 0, isRetrying: false };
+      }
+    },
+
+    // Helper method to increment retry count
+    incrementRetryCount(action) {
+      if (this.retryState[action]) {
+        this.retryState[action].count++;
+        this.retryState[action].isRetrying = true;
+      }
+    },
+
+    // Helper method to check if can retry
+    canRetry(action, maxRetries = 3) {
+      return this.retryState[action]?.count < maxRetries;
+    },
+
+      async fetchProfile() {
+    this.initServices();
+    this.isLoadingProfile = true; 
+    this.errorProfile = null;
+    this.claimRewardError = null; 
+    this.claimRewardSuccessMessage = null; 
+    this.userCheckedSubscription = false;
+    
+    try {
+      console.log(`[UserStore:fetchProfile] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
+      
+      // Используем offline-aware операцию
+      const response = await this.offlineDetection.executeOnlineOperation(
+        () => api.getUserProfile(),
+        'Загрузка профиля'
+      );
+      
+      this.profile = { ...this.profile, ...response.data };
+      this.rewardAlreadyClaimed = this.profile?.channel_reward_claimed ?? false;
+      console.log("[UserStore] Profile loaded:", this.profile);
+      
+      // Сбрасываем retry состояние при успехе
+      this.resetRetryState('fetchProfile');
+      
+    } catch (err) {
+      console.error("[UserStore:fetchProfile] Error:", err);
+      
+      // Используем ErrorService для обработки
+      const errorInfo = errorService.handleError(err, { action: 'fetchProfile' });
+      this.errorProfile = errorInfo.userMessage;
+      
+    } finally { 
+      this.isLoadingProfile = false; 
+    }
+  },
+
+  // Retry версия fetchProfile
+  async retryFetchProfile() {
+    if (!this.canRetry('fetchProfile')) {
+      this.notificationStore?.error('Превышено максимальное количество попыток загрузки профиля');
+      return;
+    }
+    
+    this.incrementRetryCount('fetchProfile');
+    
+    try {
+      await this.fetchProfile();
+      this.notificationStore?.success('Профиль успешно загружен');
+    } catch (error) {
+      console.error('Retry fetchProfile failed:', error);
+    } finally {
+      this.retryState.fetchProfile.isRetrying = false;
+    }
+  },
+
+      async fetchHistory() {
+    this.initServices();
+    this.isLoadingHistory = true; 
+    this.errorHistory = null;
+    
+    try {
+      console.log(`[UserStore:fetchHistory] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
+      
+      // Используем offline-aware операцию
+      const response = await this.offlineDetection.executeOnlineOperation(
+        () => api.getAnalysesHistory(),
+        'Загрузка истории'
+      );
+      
+      this.history = response.data;
+      console.log("[UserStore] History loaded, count:", this.history.length);
+      
+      // Сбрасываем retry состояние при успехе
+      this.resetRetryState('fetchHistory');
+      
+    } catch (err) {
+      console.error("[UserStore:fetchHistory] Error:", err);
+      
+      // Используем ErrorService для обработки
+      const errorInfo = errorService.handleError(err, { action: 'fetchHistory' });
+      this.errorHistory = errorInfo.userMessage;
+      
+    } finally { 
+      this.isLoadingHistory = false; 
+    }
+  },
+
+  // Retry версия fetchHistory
+  async retryFetchHistory() {
+    if (!this.canRetry('fetchHistory')) {
+      this.notificationStore?.error('Превышено максимальное количество попыток загрузки истории');
+      return;
+    }
+    
+    this.incrementRetryCount('fetchHistory');
+    
+    try {
+      await this.fetchHistory();
+      this.notificationStore?.success('История успешно загружена');
+    } catch (error) {
+      console.error('Retry fetchHistory failed:', error);
+    } finally {
+      this.retryState.fetchHistory.isRetrying = false;
+    }
+  },
 
     openSubscriptionModal() { this.showSubscriptionModal = true; this.selectedPlan = 'premium'; this.selectedDuration = 3; console.log("[UserStore] Opening modal"); },
     closeSubscriptionModal() { this.showSubscriptionModal = false; console.log("[UserStore] Closing modal"); },
@@ -107,6 +241,7 @@ export const useUserStore = defineStore('user', {
 
     async initiatePayment() {
         console.log("[UserStore:initiatePayment] Action started.");
+        this.initNotifications();
         const tg = window.Telegram?.WebApp;
         let amount = null, tgUserId = null, plan = null, duration = null, payload = null, initDataHeader = null;
         try {
@@ -138,16 +273,16 @@ export const useUserStore = defineStore('user', {
                 tg.openInvoice(invoiceUrl, (status) => {
                     console.log("[UserStore:initiatePayment] Invoice callback status:", status);
                     if (tg?.MainButton) { tg.MainButton.hideProgress(); tg.MainButton.enable(); }
-                    if (status === 'paid') { alert("Оплата прошла успешно! Профиль будет обновлен."); this.closeSubscriptionModal(); setTimeout(() => this.fetchProfile(), 4000); }
-                    else if (status === 'failed') { alert(`Платеж не удался: ${status}`); }
-                    else if (status === 'cancelled') { alert("Платеж отменен."); }
-                    else { alert(`Статус платежа: ${status}.`); } });
+                    if (status === 'paid') { this.notificationStore.success("Оплата прошла успешно! Профиль будет обновлен."); this.closeSubscriptionModal(); setTimeout(() => this.fetchProfile(), 4000); }
+                    else if (status === 'failed') { this.notificationStore.error(`Платеж не удался: ${status}`); }
+                    else if (status === 'cancelled') { this.notificationStore.warning("Платеж отменен."); }
+                    else { this.notificationStore.info(`Статус платежа: ${status}.`); } });
             } else { throw new Error("Метод Telegram openInvoice недоступен."); }
         } catch (error) {
             console.error("[UserStore:initiatePayment] Error caught:", error);
             let alertMessage = `Ошибка: ${error.message || 'Неизвестная ошибка'}`;
             if (error instanceof TypeError && error.message.toLowerCase().includes('failed to fetch')) { alertMessage = 'Сетевая ошибка. Проверьте интернет.'; }
-            alert(alertMessage);
+            this.notificationStore.error(alertMessage);
             if (tg?.MainButton) { tg.MainButton.hideProgress(); tg.MainButton.enable(); }
         }
     },
@@ -220,6 +355,7 @@ export const useUserStore = defineStore('user', {
     // <<<--- НОВЫЙ ЭКШЕН ДЛЯ ИНИЦИАЦИИ ОПЛАТЫ STARS ЗА АНАЛИЗ ---
     async initiateDeepAnalysisPayment() {
         console.log("[UserStore:initiateDeepPayment] Action started.");
+        this.initNotifications();
         this.isInitiatingDeepPayment = true;
         this.deepPaymentError = null;
         this.deepAnalysisResult = null; // Сбросим старый результат
@@ -274,7 +410,7 @@ export const useUserStore = defineStore('user', {
                 tg.openInvoice(invoiceUrl, async (status) => {
                     console.log("[UserStore:initiateDeepPayment] Invoice status callback:", status);
                     if (status === 'paid') {
-                        alert("Оплата прошла успешно! Начинаем глубокий анализ...");
+                        this.notificationStore.success("Оплата прошла успешно! Начинаем глубокий анализ...");
                         // Обновляем профиль для получения новых кредитов
                         await this.fetchProfile();
                         // <<<--- ВЫЗЫВАЕМ АНАЛИЗ ПОСЛЕ ОПЛАТЫ ---
@@ -282,13 +418,13 @@ export const useUserStore = defineStore('user', {
                         // >>>------------------------------------
                     } else if (status === 'failed') {
                         this.deepPaymentError = "Платеж не удался.";
-                        alert("Платеж не удался.");
+                        this.notificationStore.error("Платеж не удался.");
                     } else if (status === 'cancelled') {
                         this.deepPaymentError = "Платеж отменен.";
                         // alert("Платеж отменен."); // Можно не показывать alert при отмене
                     } else {
                         this.deepPaymentError = `Неизвестный статус платежа: ${status}.`;
-                        alert(`Статус платежа: ${status}.`);
+                        this.notificationStore.info(`Статус платежа: ${status}.`);
                     }
                     // Сбрасываем флаг инициации в любом случае после закрытия окна
                     this.isInitiatingDeepPayment = false;
@@ -298,7 +434,7 @@ export const useUserStore = defineStore('user', {
         } catch (error) {
             console.error("[UserStore:initiateDeepPayment] Error caught:", error);
             this.deepPaymentError = `Ошибка: ${error.message || 'Неизвестная ошибка'}`;
-            alert(this.deepPaymentError);
+            this.notificationStore.error(this.deepPaymentError);
             this.isInitiatingDeepPayment = false; // Сбрасываем флаг при ошибке
         }
         // Не сбрасываем флаг isInitiatingDeepPayment здесь, если openInvoice был вызван,

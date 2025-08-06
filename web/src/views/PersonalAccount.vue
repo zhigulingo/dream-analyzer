@@ -187,6 +187,7 @@ import AnalysisHistoryList from '@/components/AnalysisHistoryList.vue';
 import SubscriptionModal from '@/components/SubscriptionModal.vue';
 import FactsCarousel from '@/components/FactsCarousel.vue';
 import { safeCheckTelegram, safeGetTelegramInitData } from '@/services/api';
+import { getUserData, setUserData, setLastAuthUserId, getLastAuthUserId } from '@/utils/cookies';
 
 const userStore = useUserStore();
 const router = useRouter();
@@ -205,12 +206,11 @@ const getTelegramInitData = computed(() => safeGetTelegramInitData());
 
 const getLocalStorageUserString = computed(() => {
   try {
-    const userData = localStorage.getItem('telegram_user');
+    const userData = getUserData();
     if (userData) {
-      const parsed = JSON.parse(userData);
-      return JSON.stringify(parsed, null, 2);
+      return JSON.stringify(userData, null, 2);
     }
-    return 'No user data in localStorage';
+    return 'No user data in cookies';
   } catch (e) {
     return `Error parsing: ${e.message}`;
   }
@@ -283,7 +283,7 @@ const checkCORS = async () => {
     }
     
     // Third test: GET request with auth headers
-    const userId = userStore.webUser?.id || localStorage.getItem('last_auth_user_id') || 'test';
+    const userId = userStore.webUser?.id || getLastAuthUserId() || 'test';
     
     const authRequest = await fetch(`${getApiBaseUrl.value}/user-profile`, {
       method: 'GET',
@@ -585,9 +585,9 @@ const testManualAuth = async () => {
       auth_date: Math.floor(Date.now() / 1000).toString()
     };
     
-    // Store in localStorage
-    localStorage.setItem('telegram_user', JSON.stringify(testUser));
-    localStorage.setItem('last_auth_user_id', userId);
+    // Store in cookies
+    setUserData(testUser);
+    setLastAuthUserId(userId);
     
     // Update the store
     userStore.setWebUser(testUser);
