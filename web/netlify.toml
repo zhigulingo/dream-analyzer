@@ -1,0 +1,60 @@
+# netlify.toml for web deployment
+
+[functions]
+  # Path to the bot functions folder (relative to repo root from web base)
+  directory = "../bot/functions"
+  node_bundler = "esbuild"
+
+# Build settings for web version
+[build]
+  # Build command for web version
+  command = "npm run build"
+  # Published directory - dist folder in web directory
+  publish = "dist"
+
+# Environment variables needed for build
+[build.environment]
+  NODE_VERSION = "18"
+
+# Monitoring endpoints
+[[redirects]]
+  from = "/api/cache/*"
+  to = "/.netlify/functions/cache-monitoring"
+  status = 200
+
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health-check"
+  status = 200
+
+[[redirects]]
+  from = "/api/metrics"
+  to = "/.netlify/functions/performance-metrics"
+  status = 200
+
+[[redirects]]
+  from = "/api/errors"
+  to = "/.netlify/functions/error-monitoring"
+  status = 200
+
+[[redirects]]
+  from = "/api/business"
+  to = "/.netlify/functions/business-metrics"
+  status = 200
+
+[[redirects]]
+  from = "/api/dashboard"
+  to = "/.netlify/functions/monitoring-dashboard"
+  status = 200
+
+# Bot webhook redirect
+[[redirects]]
+  from = "/bot"
+  to = "/.netlify/functions/bot"
+  status = 200
+
+# SPA fallback - все неизвестные роуты перенаправляем на index.html для Vue роутера
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
