@@ -106,7 +106,7 @@ export default defineConfig({
       },
       
       // External dependencies that should not be bundled
-      external: [],
+      external: ['fsevents'],
       
       // Tree-shaking optimizations
       treeshake: {

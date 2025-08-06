@@ -58,8 +58,8 @@ export default defineConfig({
           // Vue ecosystem
           vue: ['vue', 'pinia'],
           
-          // Utilities and JWT
-          utils: ['axios', 'jsonwebtoken'],
+          // Utilities
+          utils: ['axios'],
           
           // Separate vendor chunk for build tools
           vendor: ['@vitejs/plugin-vue']
@@ -95,6 +95,9 @@ export default defineConfig({
         }
       },
       
+      // External dependencies that should not be bundled
+      external: ['fsevents'],
+      
       // Tree-shaking optimizations
       treeshake: {
         moduleSideEffects: false,
@@ -118,8 +121,7 @@ export default defineConfig({
     include: [
       'vue',
       'pinia',
-      'axios',
-      'jsonwebtoken'
+      'axios'
     ],
     exclude: []
   }
