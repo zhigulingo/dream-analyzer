@@ -177,8 +177,7 @@ class DatabaseQueries {
                 tokens,
                 subscription_type,
                 subscription_end,
-                channel_reward_claimed,
-                deep_analysis_credits
+                channel_reward_claimed
             `)
             .eq('tg_id', tgUserId)
             .single();

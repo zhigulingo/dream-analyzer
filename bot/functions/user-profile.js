@@ -185,8 +185,8 @@ exports.handler = async (event) => {
                 subscription_type: 'free', 
                 subscription_end: null, 
                 channel_reward_claimed: false,
-                deep_analysis_credits: 0,
-                total_analyses: 0
+                deep_analysis_credits: 0, // Default value
+                total_analyses: 0 // Default value
             };
         } else {
             responseBody = {
@@ -194,8 +194,8 @@ exports.handler = async (event) => {
                 subscription_type: userData.subscription_type || 'free',
                 subscription_end: userData.subscription_end,
                 channel_reward_claimed: userData.channel_reward_claimed || false,
-                deep_analysis_credits: userData.deep_analysis_credits || 0,
-                total_analyses: userData.total_analyses || 0
+                deep_analysis_credits: 0, // Default value until column is added
+                total_analyses: 0 // Default value, can be calculated separately if needed
             };
         }
 
