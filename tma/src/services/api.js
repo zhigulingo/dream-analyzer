@@ -115,8 +115,8 @@ apiClient.interceptors.response.use(
 // Объект с методами API для вызова из сторов/компонентов
 const apiMethods = {
   getUserProfile() {
-    console.log("[api.js] Calling GET /user-profile");
-    return apiClient.get('/user-profile');
+    console.log("[api.js] Calling POST /user-profile");
+    return apiClient.post('/user-profile');
   }, // <--- Запятая
 
   // Метод для получения награды за подписку
