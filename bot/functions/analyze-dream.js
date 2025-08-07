@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { wrapApiHandler, createApiError } = require('./shared/middleware/api-wrapper');
 const { createSuccessResponse, createErrorResponse } = require('./shared/middleware/error-handler');
+const geminiService = require('./shared/services/gemini-service');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -25,16 +26,35 @@ async function getGeminiAnalysis(dreamText) {
 async function handleAnalyzeDream(event, context, corsHeaders) {
     console.log(`[analyze-dream] Processing dream analysis request`);
 
-    // JWT auth
+    // JWT auth - support both Authorization header and httpOnly cookies
     const authHeader = event.headers['authorization'];
+    const cookies = event.headers.cookie || '';
     let verifiedTgId = null;
     let userDbId = null;
+    
+    // Try JWT from Authorization header first
     if (authHeader && authHeader.startsWith('Bearer ')) {
         try {
             const token = authHeader.substring(7);
             const decoded = jwt.verify(token, JWT_SECRET);
             verifiedTgId = decoded.tgId;
             userDbId = decoded.userId;
+        } catch (error) {
+            throw createApiError('Unauthorized: Invalid or expired token.', 401);
+        }
+    }
+    // Try JWT from httpOnly cookie as fallback
+    else if (cookies.includes('dream_analyzer_jwt=')) {
+        try {
+            const jwtMatch = cookies.match(/dream_analyzer_jwt=([^;]+)/);
+            if (jwtMatch) {
+                const token = jwtMatch[1];
+                const decoded = jwt.verify(token, JWT_SECRET);
+                verifiedTgId = decoded.tgId;
+                userDbId = decoded.userId;
+            } else {
+                throw new Error('JWT cookie found but could not extract token');
+            }
         } catch (error) {
             throw createApiError('Unauthorized: Invalid or expired token.', 401);
         }

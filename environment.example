@@ -25,6 +25,11 @@ ALLOWED_WEB_ORIGIN=your_web_domain
 # API Configuration
 VITE_API_BASE_URL=your_api_base_url
 VITE_WEB_LOGIN_API_URL=your_web_login_url
+VITE_REFRESH_TOKEN_API_URL=your_refresh_token_url
+VITE_LOGOUT_API_URL=your_logout_url
+
+# Additional Web Configuration
+WEB_URL=your_web_app_url
 
 # =================================
 # ОПИСАНИЕ ПЕРЕМЕННЫХ:
@@ -40,6 +45,9 @@ VITE_WEB_LOGIN_API_URL=your_web_login_url
 # ALLOWED_WEB_ORIGIN - домен веб-приложения для CORS
 # VITE_API_BASE_URL - базовый URL API для фронтенда
 # VITE_WEB_LOGIN_API_URL - URL для веб-логина
+# VITE_REFRESH_TOKEN_API_URL - URL для обновления токенов
+# VITE_LOGOUT_API_URL - URL для выхода из системы
+# WEB_URL - URL веб-приложения
 
 # =================================
 # ИНСТРУКЦИИ ПО НАСТРОЙКЕ:

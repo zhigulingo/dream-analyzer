@@ -73,17 +73,35 @@ exports.handler = async (event) => {
     }
 
     const authHeader = event.headers['authorization'];
+    const cookies = event.headers.cookie || '';
     let verifiedUserId = null;
 
+    // Try JWT from Authorization header first
     if (authHeader && authHeader.startsWith('Bearer ')) {
-        // Web: JWT auth
         try {
             const token = authHeader.substring(7);
             const decoded = jwt.verify(token, JWT_SECRET);
             verifiedUserId = decoded.tgId;
-            console.log("[user-profile] Web user authenticated:", verifiedUserId);
+            console.log("[user-profile] Web user authenticated via Authorization header:", verifiedUserId);
         } catch (error) {
             console.error("[user-profile] JWT verification failed:", error.message);
+            return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid or expired token.' }) };
+        }
+    } 
+    // Try JWT from httpOnly cookie as fallback
+    else if (cookies.includes('dream_analyzer_jwt=')) {
+        try {
+            const jwtMatch = cookies.match(/dream_analyzer_jwt=([^;]+)/);
+            if (jwtMatch) {
+                const token = jwtMatch[1];
+                const decoded = jwt.verify(token, JWT_SECRET);
+                verifiedUserId = decoded.tgId;
+                console.log("[user-profile] Web user authenticated via cookie:", verifiedUserId);
+            } else {
+                throw new Error('JWT cookie found but could not extract token');
+            }
+        } catch (error) {
+            console.error("[user-profile] JWT cookie verification failed:", error.message);
             return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid or expired token.' }) };
         }
     } else {

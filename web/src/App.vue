@@ -187,29 +187,16 @@ const dreamAnalysisSteps = ref([
 
 const checkAuthentication = async () => {
     try {
-        // First check if we have authentication data in cookies
-        const authToken = getAuthToken();
-        const userData = getUserData();
-        
-        if (!authToken && !userData) {
-            isAuthenticated.value = false;
-            return;
-        }
-        
-        // Check with backend if we have local auth data
+        // Check with backend to see if we have valid httpOnly cookies
         const isAuth = await apiService.checkAuth();
         isAuthenticated.value = isAuth;
         
-        // If backend auth fails but we have local auth data, clear it
-        if (!isAuth && (authToken || userData)) {
-            console.log('Backend auth failed, clearing local auth data');
-            clearAllAuthCookies();
-        }
+        console.log('[checkAuthentication] Backend auth result:', isAuth);
     } catch (error) {
         console.error('Auth check failed:', error);
         isAuthenticated.value = false;
         
-        // Clear any stale auth data on error
+        // Clear any stale local auth data on error (for cleanup)
         clearAllAuthCookies();
     }
 };
@@ -289,7 +276,7 @@ const fetchHistory = async () => {
   
   try {
     const response = await executeOnlineOperation(
-      () => apiService.post('/analyses-history', {}),
+      () => apiService.get('/analyses-history'),
       'Загрузка истории'
     );
 

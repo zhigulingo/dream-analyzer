@@ -89,6 +89,7 @@ exports.handler = async (event) => {
 
     const initDataHeader = event.headers['x-telegram-init-data'];
     const authHeader = event.headers['authorization'];
+    const cookies = event.headers.cookie || '';
 
     if (initDataHeader) {
         // --- Authenticate using Telegram InitData (for TMA) ---
@@ -103,19 +104,37 @@ exports.handler = async (event) => {
         console.log(`[analyses-history] InitData validated for tg_id: ${verifiedTgId}`);
 
     } else if (authHeader && authHeader.startsWith('Bearer ')) {
-        // --- Authenticate using JWT (for Web) ---
-        console.log("[analyses-history] Attempting authentication with JWT.");
+        // --- Authenticate using JWT from Authorization header (for Web) ---
+        console.log("[analyses-history] Attempting authentication with JWT from Authorization header.");
         const token = authHeader.substring(7);
 
         try {
             const decoded = jwt.verify(token, JWT_SECRET);
-            // Use the tgId from the token payload
             verifiedTgId = decoded.tgId;
-            userDbId = decoded.userId; // Get the internal Supabase ID from the token
+            userDbId = decoded.userId;
             console.log(`[analyses-history] JWT validated for tg_id: ${verifiedTgId}, Supabase ID: ${userDbId}`);
 
         } catch (error) {
             console.error(`[analyses-history] JWT validation failed: ${error.message}`);
+            return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid or expired token.' }) };
+        }
+    } else if (cookies.includes('dream_analyzer_jwt=')) {
+        // --- Authenticate using JWT from httpOnly cookie (for Web) ---
+        console.log("[analyses-history] Attempting authentication with JWT from cookie.");
+        
+        try {
+            const jwtMatch = cookies.match(/dream_analyzer_jwt=([^;]+)/);
+            if (jwtMatch) {
+                const token = jwtMatch[1];
+                const decoded = jwt.verify(token, JWT_SECRET);
+                verifiedTgId = decoded.tgId;
+                userDbId = decoded.userId;
+                console.log(`[analyses-history] JWT cookie validated for tg_id: ${verifiedTgId}, Supabase ID: ${userDbId}`);
+            } else {
+                throw new Error('JWT cookie found but could not extract token');
+            }
+        } catch (error) {
+            console.error(`[analyses-history] JWT cookie validation failed: ${error.message}`);
             return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid or expired token.' }) };
         }
     } else {
