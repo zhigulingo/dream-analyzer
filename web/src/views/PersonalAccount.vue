@@ -127,15 +127,19 @@
         <section class="deep-analysis card">
             <h2>Глубокий анализ</h2>
             <p>Получите комплексный анализ ваших последних {{ REQUIRED_DREAMS }} снов. Стоимость: 1 ⭐️ (Telegram Star).</p>
+            <div v-if="userStore.profile?.deep_analysis_credits" class="credits-info">
+                У вас: {{ userStore.profile.deep_analysis_credits }} кредит(ов) анализа
+            </div>
 
             <button
-                @click="userStore.initiateDeepAnalysisPayment"
+                @click="handleDeepAnalysisClick"
                 :disabled="!userStore.canAttemptDeepAnalysis || userStore.isInitiatingDeepPayment || userStore.isDoingDeepAnalysis"
                 class="deep-analysis-button"
             >
                 <span v-if="userStore.isInitiatingDeepPayment">Создаем счет... <span class="spinner white"></span></span>
                 <span v-else-if="userStore.isDoingDeepAnalysis">Анализируем... <span class="spinner white"></span></span>
-                <span v-else>Провести глубокий анализ (1 ⭐️)</span>
+                <span v-else-if="userStore.profile?.deep_analysis_credits > 0">Провести глубокий анализ</span>
+                <span v-else>Купить глубокий анализ (1 ⭐️)</span>
             </button>
 
             <p v-if="!userStore.canAttemptDeepAnalysis && !userStore.isInitiatingDeepPayment && !userStore.isDoingDeepAnalysis" class="info-message hint">
@@ -181,7 +185,7 @@
 
 <script setup>
 import { onMounted, ref, watch, computed } from 'vue';
-import { useUserStore } from '@/stores/user';
+import { useUserStore, REQUIRED_DREAMS } from '@/stores/user';
 import { useRouter } from 'vue-router';
 import AnalysisHistoryList from '@/components/AnalysisHistoryList.vue';
 import SubscriptionModal from '@/components/SubscriptionModal.vue';
@@ -193,7 +197,6 @@ const userStore = useUserStore();
 const router = useRouter();
 const tg = typeof window !== 'undefined' && safeCheckTelegram() ? window.Telegram?.WebApp : null;
 const showRewardClaimView = ref(false);
-const REQUIRED_DREAMS = 5;
 
 // Debug features
 const showDebugInfo = ref(true);
@@ -248,6 +251,17 @@ const clearAndReload = () => {
     localStorage.clear();
     sessionStorage.clear();
     window.location.reload();
+  }
+};
+
+// Функция обработки клика по кнопке глубокого анализа
+const handleDeepAnalysisClick = () => {
+  // Если у пользователя есть кредиты, выполняем анализ напрямую
+  if (userStore.profile?.deep_analysis_credits > 0) {
+    userStore.performDeepAnalysis();
+  } else {
+    // Если кредитов нет, инициируем покупку (пока показываем сообщение о боте)
+    userStore.initiateDeepAnalysisPayment();
   }
 };
 
@@ -896,6 +910,16 @@ button:hover:not(:disabled), a.subscribe-button:hover {
     margin-bottom: 10px;
 }
 .deep-analysis-button .spinner.white { border-top-color: white; }
+
+.credits-info {
+    background-color: rgba(0, 150, 0, 0.1);
+    border: 1px solid rgba(0, 150, 0, 0.3);
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 10px 0;
+    font-size: 0.9em;
+    color: var(--tg-theme-text-color);
+}
 
 .analysis-result {
     margin-top: 20px;

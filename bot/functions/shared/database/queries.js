@@ -160,6 +160,24 @@ class DatabaseQueries {
     }
 
     /**
+     * Получение количества снов пользователя
+     */
+    async getUserDreamCount(userDbId) {
+        console.log(`[DatabaseQueries] Getting dream count for user ${userDbId}`);
+        
+        const { count, error } = await this.supabase
+            .from('analyses')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userDbId);
+
+        if (error) {
+            throw new Error(`Failed to get user dream count: ${error.message}`);
+        }
+
+        return count || 0;
+    }
+
+    /**
      * Получение полного профиля пользователя одним запросом
      * Заменяет множественные SELECT в user-profile.js
      */
@@ -176,7 +194,8 @@ class DatabaseQueries {
                 tokens,
                 subscription_type,
                 subscription_end,
-                channel_reward_claimed
+                channel_reward_claimed,
+                deep_analysis_credits
             `)
             .eq('tg_id', tgUserId)
             .single();

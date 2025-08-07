@@ -93,8 +93,16 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         }
         
         const userDbId = userProfile.id;
-        const currentCredits = 0; // Временно отключаем кредиты до добавления столбца
-        const actualDreamCount = 0; // Подсчитаем отдельно если нужно
+        
+        // 2. Получить количество снов пользователя
+        requestLogger.dbOperation('SELECT', 'count_user_dreams', null, null, {
+            userDbId
+        });
+        const dreamCountResult = await dbQueries.getUserDreamCount(userDbId);
+        const actualDreamCount = dreamCountResult || 0;
+        
+        // 3. Получить текущие кредиты глубокого анализа
+        const currentCredits = userProfile.deep_analysis_credits || 0;
         
         requestLogger.info("User profile retrieved", {
             userDbId,
@@ -102,13 +110,7 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             actualDreamCount
         });
 
-        // 2. Временно пропускаем проверку кредитов (пока столбец не добавлен)
-        // TODO: Восстановить проверку кредитов после добавления столбца deep_analysis_credits
-        requestLogger.info("Skipping credits check temporarily", {
-            userId: verifiedUserId
-        });
-
-        // 3. Проверить количество снов ДО списания кредита
+        // 4. Проверить количество снов ДО списания кредита
         if (actualDreamCount < REQUIRED_DREAMS) {
             requestLogger.warn("Insufficient dreams for deep analysis", {
                 userDbId,
@@ -118,7 +120,16 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             throw createApiError(`Недостаточно снов для глубокого анализа. Нужно ${REQUIRED_DREAMS} снов, найдено ${actualDreamCount}. Пожалуйста, проанализируйте больше снов перед покупкой глубокого анализа.`, 400);
         }
 
-        // 4. Атомарно списать один кредит глубокого анализа
+        // 5. Проверить наличие кредитов
+        if (currentCredits < 1) {
+            requestLogger.warn("Insufficient credits for deep analysis", {
+                userDbId,
+                currentCredits
+            });
+            throw createApiError('Недостаточно кредитов для глубокого анализа. Необходимо приобрести кредиты.', 400);
+        }
+
+        // 6. Атомарно списать один кредит глубокого анализа
         requestLogger.dbOperation('UPDATE', 'decrement_credits', null, null, {
             userId: verifiedUserId
         });
@@ -136,7 +147,7 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             remainingCredits: decrementResult.remaining_credits
         });
 
-        // 5. Получить последние N снов оптимизированным запросом
+        // 7. Получить последние N снов оптимизированным запросом
         requestLogger.dbOperation('SELECT', 'user_dreams', null, null, {
             userDbId,
             limit: REQUIRED_DREAMS
@@ -150,7 +161,7 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             throw createApiError("Сны не найдены.", 404);
         }
 
-        // 6. Объединить тексты снов
+        // 8. Объединить тексты снов
         const combinedDreamsText = dreams
             .map(d => d.dream_text.trim()) // Убираем лишние пробелы
             .reverse() // Переворачиваем, чтобы были от старого к новому для анализа динамики
@@ -161,10 +172,10 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             combinedTextLength: combinedDreamsText.length
         });
 
-        // 7. Вызвать Gemini для анализа
+        // 9. Вызвать Gemini для анализа
         const deepAnalysisResult = await getDeepGeminiAnalysis(null, combinedDreamsText);
 
-        // 8. Вернуть успешный результат
+        // 10. Вернуть успешный результат
         requestLogger.info("Deep analysis completed successfully", {
             userId: verifiedUserId,
             analysisLength: deepAnalysisResult ? deepAnalysisResult.length : 0

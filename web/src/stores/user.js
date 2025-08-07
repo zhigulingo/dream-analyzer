@@ -2,6 +2,12 @@
 import { defineStore } from 'pinia';
 import apiService from '@/utils/api.js';
 
+// Константа для требуемого количества снов
+const REQUIRED_DREAMS = 5;
+
+// Экспортируем константу для использования в компонентах
+export { REQUIRED_DREAMS };
+
 export const useUserStore = defineStore('user', {
   state: () => ({
     // Профиль пользователя
@@ -32,7 +38,14 @@ export const useUserStore = defineStore('user', {
     retryState: {
       fetchProfile: { count: 0, isRetrying: false },
       fetchHistory: { count: 0, isRetrying: false }
-    }
+    },
+    
+    // Глубокий анализ
+    isDoingDeepAnalysis: false,
+    isInitiatingDeepPayment: false,
+    deepAnalysisResult: null,
+    deepAnalysisError: null,
+    deepPaymentError: null
   }),
 
   getters: {
@@ -40,7 +53,15 @@ export const useUserStore = defineStore('user', {
     hasHistory: (state) => state.history && state.history.length > 0,
     canRetry: (state) => (action, maxRetries = 3) => {
       return state.retryState[action]?.count < maxRetries;
-    }
+    },
+    
+    // Проверка возможности выполнения глубокого анализа
+    canAttemptDeepAnalysis: (state) =>
+        !state.isLoadingProfile && // Профиль загружен
+        !state.isInitiatingDeepPayment && // Не идет оплата
+        !state.isDoingDeepAnalysis &&    // Не идет анализ
+        !state.isLoadingHistory &&
+        state.history && state.history.length >= REQUIRED_DREAMS // Есть нужное количество снов
   },
 
   actions: {
@@ -195,6 +216,14 @@ export const useUserStore = defineStore('user', {
         this.history = [];
         this.webUser = null;
         this.isAuthenticated = false;
+        
+        // Очистить состояние глубокого анализа
+        this.isDoingDeepAnalysis = false;
+        this.isInitiatingDeepPayment = false;
+        this.deepAnalysisResult = null;
+        this.deepAnalysisError = null;
+        this.deepPaymentError = null;
+        
         this.clearErrors();
         
         // Очистить localStorage
@@ -218,6 +247,66 @@ export const useUserStore = defineStore('user', {
         console.error('[UserStore] Auth check failed:', error);
         this.isAuthenticated = false;
         return false;
+      }
+    },
+
+    // Выполнение глубокого анализа (после оплаты или при наличии кредитов)
+    async performDeepAnalysis() {
+      console.log('[UserStore:performDeepAnalysis] Action started');
+      this.isDoingDeepAnalysis = true;
+      this.deepAnalysisResult = null;
+      this.deepAnalysisError = null;
+
+      try {
+        console.log('[UserStore:performDeepAnalysis] Calling API /deep-analysis...');
+        const response = await apiService.getDeepAnalysis();
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[UserStore:performDeepAnalysis] Backend error:', errorText);
+          throw new Error(`Server error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('[UserStore:performDeepAnalysis] Response received:', data);
+
+        if (data.success) {
+          this.deepAnalysisResult = data.analysis;
+          // Обновляем профиль, т.к. кредиты глубокого анализа изменились
+          await this.fetchProfile();
+        } else {
+          this.deepAnalysisError = data.error || 'Не удалось выполнить глубокий анализ.';
+        }
+      } catch (err) {
+        console.error('[UserStore:performDeepAnalysis] API Error:', err);
+        let errorMsg = 'Ошибка сети/сервера при выполнении анализа.';
+        if (err.message) { 
+          errorMsg = err.message; 
+        }
+        this.deepAnalysisError = errorMsg;
+      } finally {
+        this.isDoingDeepAnalysis = false;
+        console.log('[UserStore:performDeepAnalysis] Action finished');
+      }
+    },
+
+    // Инициация покупки глубокого анализа (заглушка для веб-версии)
+    async initiateDeepAnalysisPayment() {
+      console.log('[UserStore:initiateDeepAnalysisPayment] Action started');
+      this.isInitiatingDeepPayment = true;
+      this.deepPaymentError = null;
+      this.deepAnalysisResult = null;
+      this.deepAnalysisError = null;
+
+      try {
+        // Для веб-версии пока показываем сообщение о покупке кредитов в боте
+        this.deepPaymentError = 'Для покупки кредитов глубокого анализа используйте Telegram-бота';
+      } catch (error) {
+        console.error('[UserStore:initiateDeepAnalysisPayment] Error:', error);
+        this.deepPaymentError = error.message || 'Ошибка при инициации платежа';
+      } finally {
+        this.isInitiatingDeepPayment = false;
+        console.log('[UserStore:initiateDeepAnalysisPayment] Action finished');
       }
     }
   }

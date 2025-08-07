@@ -180,6 +180,24 @@ class ApiService {
     async delete(endpoint, options = {}) {
         return this.apiCall(endpoint, { method: 'DELETE', ...options });
     }
+
+    // Дополнительные методы для веб-приложения
+    
+    // Верификация веб-аутентификации
+    async verifyWebAuth(userData) {
+        return this.post('/web-login', userData);
+    }
+
+    // Проверка статуса сессии
+    async checkSessionStatus(sessionId) {
+        return this.get(`/web-login?session=${sessionId}`);
+    }
+
+    // Глубокий анализ
+    async getDeepAnalysis() {
+        console.log('[ApiService] Calling POST /deep-analysis');
+        return this.post('/deep-analysis');
+    }
 }
 
 // Export singleton instance
