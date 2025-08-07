@@ -79,7 +79,7 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
     // Gemini initialization is now handled by the unified service
 
     try {
-        // 1. Получить профиль пользователя (упрощенный запрос без отсутствующих столбцов)
+        // 1. Получить профиль пользователя
         requestLogger.dbOperation('SELECT', 'user_profile', null, null, {
             userId: verifiedUserId
         });
