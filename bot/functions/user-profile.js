@@ -153,7 +153,14 @@ exports.handler = async (event) => {
             
             // Получить полный профиль пользователя одним оптимизированным запросом
             // Если пользователь не существует, он будет создан автоматически
-            userData = await dbQueries.getUserProfile(verifiedUserId);
+            console.log(`[user-profile] 🔍 Calling dbQueries.getUserProfile(${verifiedUserId})`);
+            try {
+                userData = await dbQueries.getUserProfile(verifiedUserId);
+                console.log(`[user-profile] ✅ getUserProfile returned:`, !!userData);
+            } catch (dbError) {
+                console.error(`[user-profile] ❌ Database query failed:`, dbError.message);
+                throw new Error(`Database query failed: ${dbError.message}`);
+            }
             
             // Если пользователь не найден, создаем его и пытаемся снова
             if (!userData) {

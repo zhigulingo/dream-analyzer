@@ -167,11 +167,23 @@ class DatabaseQueries {
     async getUserProfile(tgUserId) {
         console.log(`[DatabaseQueries] Getting complete profile for ${tgUserId}`);
         
-        // Используем RPC для более сложного запроса с подсчетом
+        // Временно заменяем RPC на простой запрос для диагностики
+        console.log(`[DatabaseQueries] Attempting to get user profile for tgUserId: ${tgUserId}`);
+        
         const { data, error } = await this.supabase
-            .rpc('get_user_profile_with_stats', { 
-                user_tg_id: tgUserId 
-            });
+            .from('users')
+            .select(`
+                id,
+                tokens,
+                subscription_type,
+                subscription_end,
+                channel_reward_claimed,
+                deep_analysis_credits
+            `)
+            .eq('tg_id', tgUserId)
+            .single();
+            
+        console.log(`[DatabaseQueries] Query result:`, { data: !!data, error: error?.message });
 
         if (error) {
             throw new Error(`Failed to get user profile: ${error.message}`);
