@@ -133,10 +133,13 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         requestLogger.dbOperation('UPDATE', 'decrement_credits', null, null, {
             userId: verifiedUserId
         });
-        const decrementResult = await dbQueries.decrementDeepAnalysisCredits(verifiedUserId);
         
-        if (!decrementResult || !decrementResult.success) {
-            requestLogger.dbError('UPDATE', 'decrement_credits', new Error('Failed to decrement credits'), {
+        // Используем RPC функцию для безопасного списания кредитов
+        const { data: decrementResult, error: decrementError } = await supabase
+            .rpc('decrement_deep_analysis_credits_safe', { user_tg_id: verifiedUserId });
+        
+        if (decrementError || !decrementResult?.[0]?.success) {
+            requestLogger.dbError('UPDATE', 'decrement_credits', new Error('Failed to decrement credits: ' + (decrementError?.message || 'Unknown error')), {
                 userId: verifiedUserId
             });
             throw createApiError('Ошибка при списании кредита глубокого анализа.', 500);
@@ -144,7 +147,7 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         
         requestLogger.info("Deep analysis credit decremented", {
             userId: verifiedUserId,
-            remainingCredits: decrementResult.remaining_credits
+            remainingCredits: decrementResult[0].remaining_credits
         });
 
         // 7. Получить последние N снов оптимизированным запросом
