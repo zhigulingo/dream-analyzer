@@ -124,7 +124,6 @@ class DatabaseQueries {
             .from('users')
             .select(`
                 id,
-                deep_analysis_credits,
                 subscription_type,
                 subscription_end,
                 tokens,

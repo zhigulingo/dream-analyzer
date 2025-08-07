@@ -79,22 +79,22 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
     // Gemini initialization is now handled by the unified service
 
     try {
-        // 1. Получить пользователя со статистикой снов одним оптимизированным запросом
-        requestLogger.dbOperation('SELECT', 'user_profile_with_stats', null, null, {
+        // 1. Получить профиль пользователя (упрощенный запрос без отсутствующих столбцов)
+        requestLogger.dbOperation('SELECT', 'user_profile', null, null, {
             userId: verifiedUserId
         });
-        const userProfile = await dbQueries.getUserProfileWithStats(verifiedUserId);
+        const userProfile = await dbQueries.getUserProfile(verifiedUserId);
         
         if (!userProfile) {
-            requestLogger.dbError('SELECT', 'user_profile_with_stats', new Error('User profile not found'), {
+            requestLogger.dbError('SELECT', 'user_profile', new Error('User profile not found'), {
                 userId: verifiedUserId
             });
             throw createApiError('Профиль пользователя не найден в базе данных.', 404);
         }
         
         const userDbId = userProfile.id;
-        const currentCredits = userProfile.deep_analysis_credits || 0;
-        const actualDreamCount = userProfile.total_analyses || 0;
+        const currentCredits = 0; // Временно отключаем кредиты до добавления столбца
+        const actualDreamCount = 0; // Подсчитаем отдельно если нужно
         
         requestLogger.info("User profile retrieved", {
             userDbId,
@@ -102,14 +102,11 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             actualDreamCount
         });
 
-        // 2. Проверить наличие кредитов для глубокого анализа
-        if (currentCredits <= 0) {
-            requestLogger.warn("Insufficient deep analysis credits", {
-                userId: verifiedUserId,
-                currentCredits
-            });
-            throw createApiError('Недостаточно кредитов для глубокого анализа. Приобретите кредит, нажав на кнопку "Получить анализ (1 ⭐️)".', 402);
-        }
+        // 2. Временно пропускаем проверку кредитов (пока столбец не добавлен)
+        // TODO: Восстановить проверку кредитов после добавления столбца deep_analysis_credits
+        requestLogger.info("Skipping credits check temporarily", {
+            userId: verifiedUserId
+        });
 
         // 3. Проверить количество снов ДО списания кредита
         if (actualDreamCount < REQUIRED_DREAMS) {
