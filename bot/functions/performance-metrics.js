@@ -365,8 +365,8 @@ async function handlePerformanceMetrics(event, context, corsHeaders) {
 exports.handler = wrapApiHandler(handlePerformanceMetrics, {
     allowedMethods: ['GET', 'POST', 'DELETE'],
     allowedOrigins: [
-        process.env.TMA_URL,
-        process.env.WEB_URL,
+        process.env.ALLOWED_TMA_ORIGIN,  // ✅ ИСПРАВЛЕНО: используем правильную переменную без слэша
+        process.env.ALLOWED_WEB_ORIGIN,  // ✅ ИСПРАВЛЕНО: используем правильную переменную
         'https://dream-analyzer.netlify.app',
         'http://localhost:5173',
         'http://localhost:3000'
