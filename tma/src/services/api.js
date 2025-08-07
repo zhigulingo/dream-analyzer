@@ -29,19 +29,51 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     const initData = window.Telegram?.WebApp?.initData;
+    
+    // Детальное логирование для диагностики
+    console.log("[api.js] Request interceptor - URL:", config.url);
+    console.log("[api.js] Telegram WebApp available:", !!window.Telegram?.WebApp);
+    console.log("[api.js] InitData available:", !!initData);
+    
     if (initData) {
       config.headers['X-Telegram-Init-Data'] = initData;
-      // console.log("[api.js] Sending InitData header");
+      console.log("[api.js] ✅ Added InitData header (length:", initData.length, ")");
+      
+      // Парсим initData для дополнительной диагностики
+      try {
+        const params = new URLSearchParams(initData);
+        const hasHash = !!params.get('hash');
+        const hasUser = !!params.get('user');
+        console.log("[api.js] InitData validation - Hash:", hasHash, "User:", hasUser);
+        
+        if (hasUser) {
+          const userStr = params.get('user');
+          const userData = JSON.parse(decodeURIComponent(userStr));
+          console.log("[api.js] User ID from initData:", userData.id);
+        }
+      } catch (e) {
+        console.error("[api.js] Error parsing initData for diagnostics:", e);
+      }
     } else {
-        // Если initData нет, бэкенд должен вернуть 401/403.
-        // Прерывать запрос здесь не стоит, лучше пусть сервер решает.
-        console.warn("[api.js] Telegram WebApp initData not available when creating request. API calls might fail authorization.");
+      console.warn("[api.js] ❌ InitData not available - API calls will likely fail");
+      
+      // Детальная диагностика почему initData недоступна
+      console.log("[api.js] Diagnostic info:");
+      console.log("  - window.Telegram exists:", !!window.Telegram);
+      console.log("  - window.Telegram.WebApp exists:", !!window.Telegram?.WebApp);
+      console.log("  - navigator.userAgent:", navigator.userAgent);
+      console.log("  - window.TelegramWebviewProxy exists:", !!window.TelegramWebviewProxy);
+      
+      // Проверяем если мы в среде разработки
+      if (import.meta.env.MODE === 'development') {
+        console.log("[api.js] 🧪 Development mode - consider adding test initData");
+      }
     }
+    
     return config;
   },
   (error) => {
-    // Ошибка при формировании запроса (редко)
-    console.error("[api.js] Axios request interceptor error:", error);
+    console.error("[api.js] Request interceptor error:", error);
     return Promise.reject(error);
   }
 );

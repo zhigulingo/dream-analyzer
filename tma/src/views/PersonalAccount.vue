@@ -4,6 +4,9 @@
     @error="handleError"
     :show-retry="true"
   >
+    <!-- Debug Info Component -->
+    <DebugInfo />
+    
     <!-- Offline indicator -->
     <div v-if="!isOnline" class="offline-banner">
       <span>⚠️ Нет подключения к интернету</span>
@@ -42,6 +45,9 @@ import { useOfflineDetection } from '@/composables/useOfflineDetection.js'
 import { errorService } from '@/services/errorService.js'
 import { defineAsyncComponent } from 'vue'
 import ErrorBoundary from '@/components/ErrorBoundary.vue'
+
+// Debug component (always loaded for diagnostic purposes)
+import DebugInfo from '@/components/DebugInfo.vue'
 
 // Lazy-loaded компоненты для оптимизации bundle
 const UserInfoCard = defineAsyncComponent(() => import('@/components/UserInfoCard.vue'))

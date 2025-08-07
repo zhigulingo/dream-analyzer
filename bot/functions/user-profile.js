@@ -61,11 +61,19 @@ exports.handler = async (event) => {
     
     const allowedOrigins = [ALLOWED_TMA_ORIGIN, ALLOWED_WEB_ORIGIN].filter(Boolean);
     const requestOrigin = event.headers.origin || event.headers.Origin;
+    
+    // Детальное логирование для диагностики CORS
+    console.log(`[user-profile] Request origin: ${requestOrigin}`);
+    console.log(`[user-profile] Allowed origins:`, allowedOrigins);
+    console.log(`[user-profile] Origin allowed:`, allowedOrigins.includes(requestOrigin));
+    
     const corsHeaders = {
         'Access-Control-Allow-Origin': allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0] || '*',
         'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, Authorization',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
     };
+    
+    console.log(`[user-profile] CORS origin set to: ${corsHeaders['Access-Control-Allow-Origin']}`);
 
     // Handle CORS preflight OPTIONS request at the very top
     if (event.httpMethod === 'OPTIONS') {
