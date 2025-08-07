@@ -44,9 +44,12 @@ const structuredFormat = winston.format.combine(
   })
 );
 
+// Проверяем, запущено ли в serverless-среде (Netlify Functions)
+const isServerless = process.env.NETLIFY_FUNCTIONS_PORT || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.VERCEL;
+
 // Транспорты для логирования
 const transports = [
-  // Console transport для разработки
+  // Console transport (всегда доступен)
   new winston.transports.Console({
     level: DEFAULT_LOG_LEVEL,
     format: process.env.NODE_ENV === 'development' 
@@ -61,24 +64,28 @@ const transports = [
           })
         )
       : structuredFormat
-  }),
-
-  // File transport для production
-  new winston.transports.File({
-    filename: 'logs/error.log',
-    level: 'error',
-    format: structuredFormat,
-    maxsize: 5242880, // 5MB
-    maxFiles: 5
-  }),
-
-  new winston.transports.File({
-    filename: 'logs/combined.log',
-    format: structuredFormat,
-    maxsize: 5242880, // 5MB
-    maxFiles: 5
   })
 ];
+
+// File transports только для локальной разработки (не в serverless среде)
+if (!isServerless) {
+  transports.push(
+    new winston.transports.File({
+      filename: 'logs/error.log',
+      level: 'error',
+      format: structuredFormat,
+      maxsize: 5242880, // 5MB
+      maxFiles: 5
+    }),
+
+    new winston.transports.File({
+      filename: 'logs/combined.log',
+      format: structuredFormat,
+      maxsize: 5242880, // 5MB
+      maxFiles: 5
+    })
+  );
+}
 
 // External logging service transport (если настроен)
 if (EXTERNAL_LOG_SERVICE_URL && EXTERNAL_LOG_SERVICE_TOKEN) {
@@ -310,17 +317,19 @@ class StructuredLogger {
   }
 }
 
-// Создание директории для логов если её нет
-const fs = require('fs');
-const path = require('path');
+// Создание директории для логов только в локальной среде
+if (!isServerless) {
+  const fs = require('fs');
+  const path = require('path');
 
-try {
-  const logsDir = path.join(process.cwd(), 'logs');
-  if (!fs.existsSync(logsDir)) {
-    fs.mkdirSync(logsDir, { recursive: true });
+  try {
+    const logsDir = path.join(process.cwd(), 'logs');
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+  } catch (error) {
+    console.warn('Failed to create logs directory:', error.message);
   }
-} catch (error) {
-  console.warn('Failed to create logs directory:', error.message);
 }
 
 // Экспорт
