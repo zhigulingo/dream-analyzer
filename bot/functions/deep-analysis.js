@@ -177,13 +177,19 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         // 9. Вызвать Gemini для анализа
         const deepAnalysisResult = await getDeepGeminiAnalysis(null, combinedDreamsText);
 
-        // 10. Сохранить результат в БД (deep_analyses)
+        // 10. Сохранить результат в БД в основной истории с пометкой глубокого анализа
         try {
             const { error: insertDeepError } = await supabase
-                .from('deep_analyses')
-                .insert({ user_id: userDbId, analysis: deepAnalysisResult });
+                .from('analyses')
+                .insert({ 
+                    user_id: userDbId, 
+                    dream_text: '[DEEP_ANALYSIS_SOURCE]',
+                    analysis: deepAnalysisResult,
+                    is_deep_analysis: true,
+                    deep_source: { required_dreams: REQUIRED_DREAMS }
+                });
             if (insertDeepError) {
-                requestLogger.dbError('INSERT', 'deep_analyses', insertDeepError, { userDbId });
+                requestLogger.dbError('INSERT', 'analyses', insertDeepError, { userDbId });
             }
         } catch (insErr) {
             requestLogger.warn('Failed to persist deep analysis result', { error: insErr?.message, userDbId });

@@ -151,10 +151,24 @@ exports.handler = async (event) => {
 
         let history;
         
+        const isDeepOnly = (event.queryStringParameters && event.queryStringParameters.type === 'deep');
+
         if (userDbId) {
             // If we already have the Supabase ID (from JWT), use it directly
             console.log(`[analyses-history] Using existing Supabase ID ${userDbId} to fetch history...`);
-            history = await dbQueries.getAnalysesHistory(userDbId, 50, 0);
+            if (isDeepOnly) {
+                const { data, error } = await supabase
+                  .from('analyses')
+                  .select('id, dream_text, analysis, created_at')
+                  .eq('user_id', userDbId)
+                  .eq('is_deep_analysis', true)
+                  .order('created_at', { ascending: false })
+                  .limit(50);
+                if (error) throw error;
+                history = data || [];
+            } else {
+                history = await dbQueries.getAnalysesHistory(userDbId, 50, 0);
+            }
         } else {
             // If we only have Telegram ID, we need to get user profile first
             // This will be optimized to get user data in one query instead of two separate calls
@@ -171,7 +185,19 @@ exports.handler = async (event) => {
             }
             
             userDbId = userProfile.id;
-            history = await dbQueries.getAnalysesHistory(userDbId, 50, 0);
+            if (isDeepOnly) {
+                const { data, error } = await supabase
+                  .from('analyses')
+                  .select('id, dream_text, analysis, created_at')
+                  .eq('user_id', userDbId)
+                  .eq('is_deep_analysis', true)
+                  .order('created_at', { ascending: false })
+                  .limit(50);
+                if (error) throw error;
+                history = data || [];
+            } else {
+                history = await dbQueries.getAnalysesHistory(userDbId, 50, 0);
+            }
         }
 
         console.log(`[analyses-history] History fetched for user_id ${userDbId}. Count: ${history?.length ?? 0}`);

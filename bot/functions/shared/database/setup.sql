@@ -246,6 +246,25 @@ CREATE TABLE IF NOT EXISTS deep_analyses (
 
 CREATE INDEX IF NOT EXISTS idx_deep_analyses_user_created ON deep_analyses(user_id, created_at DESC);
 
+-- Миграция существующей таблицы analyses: добавляем флаги для глубокого анализа
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema='public' AND table_name='analyses' AND column_name='is_deep_analysis'
+    ) THEN
+        ALTER TABLE public.analyses ADD COLUMN is_deep_analysis BOOLEAN NOT NULL DEFAULT FALSE;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema='public' AND table_name='analyses' AND column_name='deep_source'
+    ) THEN
+        ALTER TABLE public.analyses ADD COLUMN deep_source JSONB;
+    END IF;
+END$$;
+
+CREATE INDEX IF NOT EXISTS idx_analyses_user_deep_created ON analyses(user_id, is_deep_analysis, created_at DESC);
+
 -- Дополнительные изменения для Web/TMA интеграции
 
 -- Гарантируем наличие колонки для кредитов глубокого анализа
