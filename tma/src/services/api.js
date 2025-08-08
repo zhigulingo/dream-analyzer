@@ -140,6 +140,12 @@ const apiMethods = {
     return apiClient.post('/deep-analysis');
   },
 
+  // История глубоких анализов
+  getDeepAnalysesHistory() {
+    console.log("[api.js] Calling GET /deep-analyses-history");
+    return apiClient.get('/deep-analyses-history');
+  }
+
   // Метод для создания ссылки на инвойс
   createInvoiceLink(plan, duration, amount, payload) {
      console.log("[api.js] Calling POST /create-invoice");

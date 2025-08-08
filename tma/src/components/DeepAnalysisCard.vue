@@ -27,8 +27,9 @@
         />
       </div>
       <div v-if="userStore?.deepAnalysisResult" class="mt-4 p-4 bg-white/10 rounded-lg text-sm">
-        <h4 class="font-semibold mb-2">Результат анализа:</h4>
+        <h4 class="font-semibold mb-2">Результат анализа (последний):</h4>
         <p class="text-xs leading-relaxed">{{ userStore.deepAnalysisResult }}</p>
+        <div class="mt-2 text-[10px] opacity-80">Сохранено во вкладке «Глубокий анализ»</div>
       </div>
       <div v-if="userStore?.deepAnalysisError" class="mt-4 p-4 bg-red-500/20 rounded-lg text-sm">
         ⚠️ {{ userStore.deepAnalysisError }}
