@@ -73,8 +73,9 @@ const handleLogin = async () => {
             throw new Error(serverMessage || `Login failed (${response.status})`);
         }
 
+        const raw = await response.text();
         let data = null;
-        try { data = await response.json(); } catch (_) { data = null; }
+        try { data = JSON.parse(raw); } catch (_) { throw new Error('Unexpected server response'); }
         if (!data.success) throw new Error('Login failed.');
         if (data.accessToken) {
           apiService.setTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
