@@ -10,12 +10,12 @@ Dream Analyzer - это система анализа снов, состояща
 ## 🛠 Технологический стек
 
 ### Разработка и развертывание:
-- **IDE:** Cursor с Claude-4-Sonnet для написания и редактирования кода
-- **VCS:** GitHub монорепозиторий для версионирования
-- **Хостинг:** Netlify (3 отдельных приложения)
-  - Bot: `sparkling-cupcake-940504.netlify.app` (API functions)
-  - TMA: `tourmaline-eclair-9d40ea.netlify.app` (статические файлы)
-  - Web: `bot.dreamstalk.ru` (статические файлы)
+- **IDE:** Cursor с GPT‑5 для написания и редактирования кода
+- **VCS:** GitHub монорепозиторий (автодеплой по push)
+- **Хостинг:** Netlify (3 отдельных приложения из монорепозитория)
+  - Bot: `sparkling-cupcake-940504.netlify.app` (Netlify Functions)
+  - TMA: `tourmaline-eclair-9d40ea.netlify.app` (статический фронтенд; открывается внутри Telegram)
+  - Web: `bot.dreamstalk.ru` (статический фронтенд)
 - **База данных:** Supabase (PostgreSQL)
 
 ### Фронтенд:
@@ -33,7 +33,7 @@ Dream Analyzer - это система анализа снов, состояща
 - **Auth:** JWT + httpOnly cookies (Web), Telegram InitData (TMA)
 
 ### Развертывание:
-- **CI/CD:** Автоматический деплой после push в GitHub
+- **CI/CD:** Автоматический деплой после push в GitHub (3 сайта Netlify)
 - **Тестирование:** Только после деплоя (production testing)
 
 ## 🏗 Архитектура системы
@@ -121,6 +121,7 @@ web/
 - **Метод**: JWT токены + пароли
 - **Поток**: Telegram ID + password → JWT tokens → API access
 - **Storage**: httpOnly cookies + Authorization header
+- Важно: cookies должны быть установлены как `SameSite=None; Secure` и сервер обязан отвечать `Access-Control-Allow-Credentials: true`, т.к. фронтенд (`bot.dreamstalk.ru`) обращается к домену функций (`sparkling-cupcake-940504.netlify.app`).
 
 ### Bot
 - **Метод**: Telegram Bot API
@@ -248,20 +249,83 @@ VITE_API_BASE_URL=  # URL к bot site с /.netlify/functions
 
 ## ⚠️ Текущие проблемы и статус
 
-### 🚫 Не работает:
-1. **Web версия** - отсутствуют переменные окружения в Vite конфиге
-2. **Глубокий анализ в TMA** - не настроен API URL в конфигурации
-3. **RPC функции в Supabase** - возможно не применены из setup.sql
+### 🚫 Не работает сейчас
+1. **Web‑версия** — после авторизации запросы к API не считают/не присылают httpOnly cookies.
+2. **Глубокий анализ (TMA)** — после оплаты не выполняется из‑за отсутствия кредитов/ошибок RPC.
 
-### ✅ Частично работает:
-1. **TMA основной функционал** - обычный анализ снов работает
-2. **Bot функции** - базовые операции выполняются
-3. **База данных** - подключение есть, но оптимизированные запросы могут не работать
+### 📌 Причины (по коду)
+- **Куки и CORS для Web настроены некорректно:**
+  - Куки выставляются как `SameSite=Strict`, что блокирует их в cross‑site сценарии (Web → Netlify Functions). Нужно `SameSite=None; Secure`.
+  - Не везде возвращается `Access-Control-Allow-Credentials: true` и точный `Access-Control-Allow-Origin`.
+  - См. выставление куки и CORS:
+    - web‑login (Set‑Cookie и CORS):
+      ```1:131:bot/functions/web-login.js
+      // ... existing code ...
+      'Access-Control-Allow-Origin': process.env.ALLOWED_WEB_ORIGIN || '*',
+      'Access-Control-Allow-Credentials': 'true',
+      // ...
+      'Set-Cookie': [
+        `dream_analyzer_jwt=...; Path=/; HttpOnly; SameSite=Strict; ...`,
+        `dream_analyzer_refresh=...; Path=/; HttpOnly; SameSite=Strict; ...`
+      ]
+      // ... existing code ...
+      ```
+    - refresh‑token (Set‑Cookie и CORS):
+      ```1:174:bot/functions/refresh-token.js
+      // ... existing code ...
+      'Access-Control-Allow-Origin': process.env.ALLOWED_WEB_ORIGIN || '*',
+      'Access-Control-Allow-Credentials': 'true',
+      // ...
+      `SameSite=Strict;`
+      // ... existing code ...
+      ```
+    - user‑profile (CORS для web без credentials):
+      ```1:218:bot/functions/user-profile.js
+      // ... existing code ...
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0] || '*',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, Authorization',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      };
+      // ... existing code ...
+      ```
+    - analyses‑history (нет credentials):
+      ```1:192:bot/functions/analyses-history.js
+      // ... existing code ...
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0] || '*',
+        'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, Authorization',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      };
+      // ... existing code ...
+      ```
 
-### 🎯 Приоритетные проблемы:
-1. **Переменные окружения** - основная причина проблем
-2. **Конфигурация Vite** - неправильные настройки сборки
-3. **Supabase RPC** - отсутствуют оптимизированные функции
+- **RPC/схема Supabase не полностью применены:**
+  - Глубокий анализ списывает кредиты и читает последние N снов:
+    ```1:204:bot/functions/deep-analysis.js
+    // ... existing code ...
+    const { data: decrementResult } = await supabase
+      .rpc('decrement_deep_analysis_credits_safe', { user_tg_id: verifiedUserId });
+    // ... existing code ...
+    ```
+  - Оплата deep‑analysis добавляет кредиты через RPC:
+    ```1:199:bot/functions/bot/services/user-service.js
+    // ... existing code ...
+    const newCredits = await this.dbQueries.incrementDeepAnalysisCredits(userId);
+    // ... existing code ...
+    ```
+  - Эти RPC определены в `setup.sql`, их нужно применить. Дополнительно в коде используются RPC, которых нет в `setup.sql`:
+    - `decrement_token_if_available` (используется в `analyze-dream.js`)
+    - `process_successful_payment` (используется в `user-service.js`)
+
+### ✅ Частично работает
+1. **TMA** — профиль и история загружаются; платеж Stars проходит; базовый анализ снов работает.
+2. **Bot** — обработчики команд/платежа корректны; добавление кредита deep‑analysis реализовано на стороне бота.
+
+### 🎯 Что исправляем в первую очередь
+1. CORS и cookie‑флаги для Web (SameSite=None; Secure, Credentials=true).
+2. Применение схемы БД и RPC из `setup.sql` + добавление двух отсутствующих RPC.
+3. Включение `Access-Control-Allow-Credentials: true` на всех веб‑эндпойнтах.
 
 ### Мониторинг:
 - Логи Netlify Functions
@@ -286,38 +350,17 @@ VITE_API_BASE_URL=  # URL к bot site с /.netlify/functions
 - Offline detection в TMA
 - Error handling centralized
 
-## 🔧 ПЛАН ИСПРАВЛЕНИЯ ПРОБЛЕМ
+## 🔧 ПЛАН ИСПРАВЛЕНИЯ ПРОБЛЕМ (ссылки на код и точные правки)
 
-### Этап 1: Исправление конфигураций Vite
+### Этап 1: Web авторизация — куки и CORS
+Обновить CORS и флаги Set‑Cookie для кросс‑доменных запросов (Web → Functions):
+- В `bot/functions/web-login.js` и `bot/functions/refresh-token.js`:
+  - В заголовках ответа добавить/оставить: `Access-Control-Allow-Credentials: true` и точный `Access-Control-Allow-Origin: https://bot.dreamstalk.ru` (через `ALLOWED_WEB_ORIGIN`).
+  - В Set‑Cookie заменить `SameSite=Strict` на `SameSite=None; Secure`.
+  - Пример мест правки см. блоки кода выше (раздел Причины → «Куки и CORS для Web»).
+- В `bot/functions/user-profile.js` и `bot/functions/analyses-history.js` добавить `Access-Control-Allow-Credentials: true` в `corsHeaders`.
 
-#### 1.1 Исправить web/vite.config.js
-```javascript
-// Добавить define секцию с переменными окружения
-define: {
-  'import.meta.env.VITE_API_BASE_URL': JSON.stringify(
-    process.env.VITE_API_BASE_URL || 'https://sparkling-cupcake-940504.netlify.app/.netlify/functions'
-  ),
-  'import.meta.env.VITE_WEB_LOGIN_API_URL': JSON.stringify(
-    process.env.VITE_WEB_LOGIN_API_URL || 'https://sparkling-cupcake-940504.netlify.app/.netlify/functions/web-login'
-  ),
-  'import.meta.env.VITE_REFRESH_TOKEN_API_URL': JSON.stringify(
-    process.env.VITE_REFRESH_TOKEN_API_URL || 'https://sparkling-cupcake-940504.netlify.app/.netlify/functions/refresh-token'
-  ),
-  'import.meta.env.VITE_LOGOUT_API_URL': JSON.stringify(
-    process.env.VITE_LOGOUT_API_URL || 'https://sparkling-cupcake-940504.netlify.app/.netlify/functions/logout'
-  )
-}
-```
-
-#### 1.2 Исправить tma/vite.config.js
-```javascript
-// Добавить define секцию с API URL
-define: {
-  'import.meta.env.VITE_API_BASE_URL': JSON.stringify(
-    process.env.VITE_API_BASE_URL || 'https://sparkling-cupcake-940504.netlify.app/.netlify/functions'
-  )
-}
-```
+Проверка после деплоя: открыть Web, выполнить логин, убедиться что в DevTools → Application → Cookies появились `dream_analyzer_jwt` и `dream_analyzer_refresh`, а запросы к `/user-profile` возвращают 200.
 
 ### Этап 2: Настройка переменных окружения в Netlify
 
@@ -339,6 +382,7 @@ define: {
 - `VITE_WEB_LOGIN_API_URL` - `https://sparkling-cupcake-940504.netlify.app/.netlify/functions/web-login`
 - `VITE_REFRESH_TOKEN_API_URL` - `https://sparkling-cupcake-940504.netlify.app/.netlify/functions/refresh-token`
 - `VITE_LOGOUT_API_URL` - `https://sparkling-cupcake-940504.netlify.app/.netlify/functions/logout`
+Примечание: переменные уже проброшены в `web/vite.config.js` и `tma/vite.config.js` (см. файлы), так что правок Vite не требуется.
 
 ### Этап 3: Настройка базы данных Supabase
 
@@ -348,6 +392,46 @@ define: {
 3. Выполнить SQL скрипт для создания всех RPC функций
 
 #### 3.2 Проверить структуру таблиц
+- Дополнительно создать два RPC, которые используются кодом, но не входят в `setup.sql`:
+  1) `decrement_token_if_available(user_tg_id BIGINT) RETURNS BOOLEAN` — атомарное списание обычного токена анализа. Минимальная реализация:
+     ```sql
+     CREATE OR REPLACE FUNCTION decrement_token_if_available(user_tg_id BIGINT)
+     RETURNS BOOLEAN AS $$
+     DECLARE current_tokens INTEGER;
+     BEGIN
+       SELECT COALESCE(tokens, 0) INTO current_tokens FROM users WHERE tg_id = user_tg_id FOR UPDATE;
+       IF current_tokens <= 0 THEN RETURN FALSE; END IF;
+       UPDATE users SET tokens = current_tokens - 1 WHERE tg_id = user_tg_id;
+       RETURN TRUE;
+     END; $$ LANGUAGE plpgsql;
+     ```
+  2) `process_successful_payment(user_tg_id BIGINT, plan_type TEXT, duration_months INT)` — обновляет подписку/токены после оплаты подписки. Минимально можно инкрементировать токены и продлить подписку:
+     ```sql
+     CREATE OR REPLACE FUNCTION process_successful_payment(user_tg_id BIGINT, plan_type TEXT, duration_months INT)
+     RETURNS VOID AS $$
+     DECLARE now_ts TIMESTAMPTZ := NOW();
+     BEGIN
+       UPDATE users
+       SET subscription_type = plan_type,
+           subscription_end = COALESCE(subscription_end, now_ts) + (duration_months || ' months')::INTERVAL,
+           tokens = COALESCE(tokens, 0) + CASE WHEN plan_type = 'premium' THEN 30 ELSE 15 END
+       WHERE tg_id = user_tg_id;
+     END; $$ LANGUAGE plpgsql;
+     ```
+  После добавления — повторно проверить `analyze-dream` и оплату подписки из бота.
+
+### Этап 4: Глубокий анализ (TMA)
+1. Убедиться, что после оплаты добавляется кредит:
+   - Бот вызывает `addDeepAnalysisCredit` → `increment_deep_analysis_credits` RPC
+     ```1:126:bot/functions/bot/handlers/payment-handlers.js
+     // ... existing code ...
+     const newCredits = await userService.addDeepAnalysisCredit(userId);
+     // ... existing code ...
+     ```
+2. Вызов эндпойнта TMA `/deep-analysis` списывает кредит и собирает последние 5 снов. Требуется наличие RPC `decrement_deep_analysis_credits_safe` и колонки `deep_analysis_credits`.
+3. Если снов < 5 — вернётся 400 (ожидаемо) — добавьте/проанализируйте ещё сны.
+
+### Этап 5: Тестирование и валидация
 Убедиться, что таблицы содержат все необходимые поля:
 - `users`: id, tg_id, tokens, subscription_type, subscription_end, deep_analysis_credits, channel_reward_claimed, last_start_message_id, web_password_hash
 - `analyses`: id, user_id, dream_text, analysis, created_at
@@ -371,16 +455,20 @@ const { data: decrementResult, error } = await supabase
 ### Этап 5: Тестирование и валидация
 
 #### 5.1 Последовательность тестирования:
-1. Коммит изменений в GitHub
-2. Дождаться автоматического деплоя всех трех сайтов
-3. Проверить TMA: глубокий анализ должен работать
-4. Проверить Web: авторизация и основной функционал
-5. Проверить Bot: команды должны работать корректно
+1. Коммит изменений в GitHub → дождаться автодеплоя 3 сайтов Netlify.
+2. Web:
+   - Выполнить логин → проверить, что установились куки (`SameSite=None; Secure`) и API возвращает 200.
+   - Проверить загрузку профиля/истории и анализ нового сна.
+3. TMA:
+   - Купить 1 кредит deep‑analysis через Stars → убедиться, что кредиты увеличились в профиле.
+   - Выполнить «Глубокий анализ» при наличии ≥ 5 снов.
+4. Bot:
+   - Проверить обработку `/start`, `/setpassword`, оплат.
 
 #### 5.2 Критерии успеха:
 - ✅ TMA загружается и показывает данные пользователя
-- ✅ Глубокий анализ в TMA работает после покупки
-- ✅ Web версия открывается и позволяет авторизоваться
+- ✅ Глубокий анализ в TMA работает после покупки (списывается 1 кредит)
+- ✅ Web версия открывается, выполняется авторизация (куки установлены), профиль/история загружаются
 - ✅ Web версия показывает профиль пользователя
 - ✅ Bot отвечает на команды /start и анализирует сны
 
@@ -392,9 +480,9 @@ const { data: decrementResult, error } = await supabase
 - Browser DevTools → Network/Console
 
 #### 6.2 Типичные ошибки:
-- CORS errors → проверить ALLOWED_*_ORIGIN переменные
+- CORS errors → проверить ALLOWED_*_ORIGIN и `Access-Control-Allow-Credentials`
 - 401/403 errors → проверить токены и секреты
-- Database errors → проверить RPC функции в Supabase
+- Database errors → проверить RPC функции в Supabase и наличие колонок (например, `deep_analysis_credits`)
 - Environment variable undefined → проверить Netlify settings
 
 ---

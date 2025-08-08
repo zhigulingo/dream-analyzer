@@ -63,11 +63,12 @@ exports.handler = async (event) => {
         'Access-Control-Allow-Origin': allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0] || '*',
         'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, Authorization',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Credentials': 'true',
     };
 
     // --- Handle Preflight (OPTIONS) ---
     if (event.httpMethod === 'OPTIONS') {
-        console.log("[analyses-history] Responding to OPTIONS request");
+        console.log("[analyses-history] Responding to OPTIONS request from origin:", requestOrigin);
         return { statusCode: 204, headers: corsHeaders, body: '' };
     }
 

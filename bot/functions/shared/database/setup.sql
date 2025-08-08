@@ -235,3 +235,44 @@ COMMENT ON FUNCTION decrement_deep_analysis_credits_safe(BIGINT) IS 'Безоп�
 COMMENT ON FUNCTION batch_insert_analyses(JSON[]) IS 'Массовая вставка анализов для оптимизации производительности';
 COMMENT ON FUNCTION get_or_create_user_atomic(BIGINT) IS 'Атомарная операция получения или создания пользователя';
 COMMENT ON FUNCTION get_database_performance_stats() IS 'Получает статистику производительности для мониторинга';
+
+-- Дополнительные изменения для Web/TMA интеграции
+
+-- Гарантируем наличие колонки для кредитов глубокого анализа
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'deep_analysis_credits'
+    ) THEN
+        ALTER TABLE public.users ADD COLUMN deep_analysis_credits INTEGER DEFAULT 0;
+    END IF;
+END$$;
+
+-- RPC: Атомарное списание обычного токена анализа (используется в analyze-dream.js)
+CREATE OR REPLACE FUNCTION decrement_token_if_available(user_tg_id BIGINT)
+RETURNS BOOLEAN AS $$
+DECLARE current_tokens INTEGER;
+BEGIN
+  SELECT COALESCE(tokens, 0) INTO current_tokens FROM users WHERE tg_id = user_tg_id FOR UPDATE;
+  IF current_tokens <= 0 THEN
+    RETURN FALSE;
+  END IF;
+  UPDATE users SET tokens = current_tokens - 1 WHERE tg_id = user_tg_id;
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- RPC: Обработка успешной оплаты подписки (используется в bot/services/user-service.js)
+CREATE OR REPLACE FUNCTION process_successful_payment(user_tg_id BIGINT, plan_type TEXT, duration_months INT)
+RETURNS VOID AS $$
+DECLARE now_ts TIMESTAMPTZ := NOW();
+BEGIN
+  UPDATE users
+  SET subscription_type = plan_type,
+      subscription_end = COALESCE(subscription_end, now_ts) + (duration_months || ' months')::INTERVAL,
+      tokens = COALESCE(tokens, 0) + CASE WHEN plan_type = 'premium' THEN 30 ELSE 15 END
+  WHERE tg_id = user_tg_id;
+END;
+$$ LANGUAGE plpgsql;

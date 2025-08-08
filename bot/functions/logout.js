@@ -13,6 +13,7 @@ exports.handler = async (event) => {
 
     // --- Handle Preflight (OPTIONS) ---
     if (event.httpMethod === 'OPTIONS') {
+        console.log("[logout] OPTIONS preflight from origin:", event.headers.origin || event.headers.Origin);
         return { statusCode: 204, headers: corsHeaders, body: '' };
     }
 
@@ -29,8 +30,8 @@ exports.handler = async (event) => {
         console.log("[logout] Processing logout request");
 
         // --- Clear cookies by setting them to expire immediately ---
-        const isProduction = process.env.NODE_ENV === 'production';
-        const secureCookieSettings = `Path=/; HttpOnly; SameSite=Strict; ${isProduction ? 'Secure;' : ''} Max-Age=0`;
+        // Cross-site cookie clearing
+        const secureCookieSettings = `Path=/; HttpOnly; SameSite=None; Secure; Max-Age=0`;
 
         return {
             statusCode: 200,

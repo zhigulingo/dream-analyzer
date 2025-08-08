@@ -22,6 +22,7 @@ exports.handler = async (event) => {
 
     // --- Handle Preflight (OPTIONS) ---
     if (event.httpMethod === 'OPTIONS') {
+        console.log("[refresh-token] OPTIONS preflight from origin:", event.headers.origin || event.headers.Origin);
         return { statusCode: 204, headers: corsHeaders, body: '' };
     }
 
@@ -46,6 +47,7 @@ exports.handler = async (event) => {
 
     try {
         // --- Extract refresh token from httpOnly cookie ---
+        console.log("[refresh-token] Request origin:", event.headers.origin || event.headers.Origin);
         const cookies = event.headers.cookie || '';
         const refreshTokenMatch = cookies.match(/dream_analyzer_refresh=([^;]+)/);
         
@@ -144,15 +146,15 @@ exports.handler = async (event) => {
         console.log(`[refresh-token] Tokens refreshed successfully for user ${userId}`);
 
         // --- Set cookies and return success ---
-        const isProduction = process.env.NODE_ENV === 'production';
-        const secureCookieSettings = `Path=/; HttpOnly; SameSite=Strict; ${isProduction ? 'Secure;' : ''} Max-Age=`;
+        // Cross-site cookies are required
+        const secureCookieSettings = `Path=/; HttpOnly; SameSite=None; Secure; Max-Age=`;
 
         return {
             statusCode: 200,
             headers: { 
                 ...corsHeaders, 
                 'Content-Type': 'application/json',
-                'Set-Cookie': [
+                    'Set-Cookie': [
                     `dream_analyzer_jwt=${newAccessToken}; ${secureCookieSettings}900`, // 15 minutes
                     `dream_analyzer_refresh=${newRefreshToken}; ${secureCookieSettings}604800` // 7 days
                 ]

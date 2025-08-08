@@ -71,12 +71,14 @@ exports.handler = async (event) => {
         'Access-Control-Allow-Origin': allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0] || '*',
         'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, Authorization',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Credentials': 'true',
     };
     
     console.log(`[user-profile] CORS origin set to: ${corsHeaders['Access-Control-Allow-Origin']}`);
 
     // Handle CORS preflight OPTIONS request at the very top
     if (event.httpMethod === 'OPTIONS') {
+        console.log("[user-profile] OPTIONS preflight from origin:", requestOrigin);
         return { statusCode: 204, headers: corsHeaders, body: '' };
     }
 

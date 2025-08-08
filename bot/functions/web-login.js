@@ -24,6 +24,7 @@ exports.handler = async (event) => {
 
     // --- Handle Preflight (OPTIONS) ---
     if (event.httpMethod === 'OPTIONS') {
+        console.log("[web-login] OPTIONS preflight from origin:", event.headers.origin || event.headers.Origin);
         return { statusCode: 204, headers: corsHeaders, body: '' };
     }
 
@@ -48,6 +49,7 @@ exports.handler = async (event) => {
     }
 
     const { tg_id, password } = requestBody;
+    console.log("[web-login] Incoming login request for tg_id:", tg_id, "origin:", event.headers.origin || event.headers.Origin);
 
     if (!tg_id || !password) {
         return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Telegram ID and password are required.' }) };
@@ -99,8 +101,8 @@ exports.handler = async (event) => {
         );
 
         // --- Set secure httpOnly cookies ---
-        const isProduction = process.env.NODE_ENV === 'production';
-        const secureCookieSettings = `Path=/; HttpOnly; SameSite=Strict; ${isProduction ? 'Secure;' : ''} Max-Age=`;
+        // Always require cross-site cookies; Netlify uses HTTPS, set explicit flags
+        const secureCookieSettings = `Path=/; HttpOnly; SameSite=None; Secure; Max-Age=`;
 
         return {
             statusCode: 200,
