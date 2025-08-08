@@ -122,6 +122,8 @@ exports.handler = async (event) => {
             body: JSON.stringify({ 
                 success: true,
                 message: 'Login successful',
+                accessToken,
+                refreshToken,
                 user: { id: user.id, tgId: tg_id }
             })
         };

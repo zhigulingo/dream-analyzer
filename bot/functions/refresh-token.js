@@ -46,21 +46,39 @@ exports.handler = async (event) => {
     }
 
     try {
-        // --- Extract refresh token from httpOnly cookie ---
+        // --- Extract refresh token ---
         console.log("[refresh-token] Request origin:", event.headers.origin || event.headers.Origin);
-        const cookies = event.headers.cookie || '';
-        const refreshTokenMatch = cookies.match(/dream_analyzer_refresh=([^;]+)/);
-        
-        if (!refreshTokenMatch) {
-            console.warn("[refresh-token] No refresh token cookie found");
+        let refreshToken = null;
+
+        // Prefer JSON body token for web Bearer flow
+        try {
+            if (event.body) {
+                const parsed = JSON.parse(event.body);
+                if (parsed && typeof parsed.refreshToken === 'string' && parsed.refreshToken.length > 0) {
+                    refreshToken = parsed.refreshToken;
+                }
+            }
+        } catch (_) {
+            // ignore parse error, will fallback to cookies
+        }
+
+        // Fallback: httpOnly cookie for backward compatibility
+        if (!refreshToken) {
+            const cookies = event.headers.cookie || '';
+            const match = cookies.match(/dream_analyzer_refresh=([^;]+)/);
+            if (match) {
+                refreshToken = match[1];
+            }
+        }
+
+        if (!refreshToken) {
+            console.warn("[refresh-token] No refresh token provided (body or cookie)");
             return { 
                 statusCode: 401, 
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
                 body: JSON.stringify({ error: 'No refresh token provided.' }) 
             };
         }
-
-        const refreshToken = refreshTokenMatch[1];
 
         // --- Verify refresh token ---
         let decoded;
@@ -145,8 +163,7 @@ exports.handler = async (event) => {
 
         console.log(`[refresh-token] Tokens refreshed successfully for user ${userId}`);
 
-        // --- Set cookies and return success ---
-        // Cross-site cookies are required
+        // --- Set cookies (compat) and return tokens in JSON ---
         const secureCookieSettings = `Path=/; HttpOnly; SameSite=None; Secure; Max-Age=`;
 
         return {
@@ -154,14 +171,16 @@ exports.handler = async (event) => {
             headers: { 
                 ...corsHeaders, 
                 'Content-Type': 'application/json',
-                    'Set-Cookie': [
-                    `dream_analyzer_jwt=${newAccessToken}; ${secureCookieSettings}900`, // 15 minutes
-                    `dream_analyzer_refresh=${newRefreshToken}; ${secureCookieSettings}604800` // 7 days
+                'Set-Cookie': [
+                    `dream_analyzer_jwt=${newAccessToken}; ${secureCookieSettings}900`,
+                    `dream_analyzer_refresh=${newRefreshToken}; ${secureCookieSettings}604800`
                 ]
             },
             body: JSON.stringify({ 
                 success: true,
-                message: 'Tokens refreshed successfully' 
+                message: 'Tokens refreshed successfully',
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken
             })
         };
 

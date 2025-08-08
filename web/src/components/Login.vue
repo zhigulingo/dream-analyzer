@@ -19,6 +19,7 @@
 
 <script setup>
 import { ref, defineEmits } from 'vue';
+import apiService from '@/utils/api.js';
 
 const emit = defineEmits(['login-success']);
 const tgId = ref('');
@@ -56,18 +57,12 @@ const handleLogin = async () => {
             throw new Error(errorData.error || 'Login failed.');
         }
 
-        let data;
-        try {
-          data = await response.json();
-        } catch (_) {
-          data = { success: true };
+        const data = await response.json();
+        if (!data.success) throw new Error('Login failed.');
+        if (data.accessToken) {
+          apiService.setTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
         }
-
-        if (!data.success) {
-             throw new Error('Login failed.');
-        }
-
-        console.log('Login successful, tokens set in httpOnly cookies.');
+        console.log('Login successful. Tokens received and stored.');
 
         // Emit an event to indicate successful login
         emit('login-success');
