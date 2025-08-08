@@ -11,16 +11,21 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const JWT_SECRET = process.env.JWT_SECRET; // You need to set this environment variable
 const REFRESH_SECRET = process.env.REFRESH_SECRET || process.env.JWT_SECRET + '_refresh';
 
-// --- CORS Headers (consider making this a shared helper) ---
-const generateCorsHeaders = () => ({
-    'Access-Control-Allow-Origin': process.env.ALLOWED_WEB_ORIGIN || '*', // Set ALLOWED_WEB_ORIGIN
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization', // Allow Authorization header
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true', // Important for cookies
-});
+// --- CORS Headers ---
+const getCorsHeaders = (event) => {
+    const requestOrigin = event.headers.origin || event.headers.Origin;
+    const allowOrigin = requestOrigin || process.env.ALLOWED_WEB_ORIGIN || '*';
+    return {
+        'Access-Control-Allow-Origin': allowOrigin,
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Credentials': 'true',
+        'Vary': 'Origin'
+    };
+};
 
 exports.handler = async (event) => {
-    const corsHeaders = generateCorsHeaders();
+    const corsHeaders = getCorsHeaders(event);
 
     // --- Handle Preflight (OPTIONS) ---
     if (event.httpMethod === 'OPTIONS') {

@@ -120,16 +120,7 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             throw createApiError(`Недостаточно снов для глубокого анализа. Нужно ${REQUIRED_DREAMS} снов, найдено ${actualDreamCount}. Пожалуйста, проанализируйте больше снов перед покупкой глубокого анализа.`, 400);
         }
 
-        // 5. Проверить наличие кредитов
-        if (currentCredits < 1) {
-            requestLogger.warn("Insufficient credits for deep analysis", {
-                userDbId,
-                currentCredits
-            });
-            throw createApiError('Недостаточно кредитов для глубокого анализа. Необходимо приобрести кредиты.', 400);
-        }
-
-        // 6. Атомарно списать один кредит глубокого анализа
+        // 5. Атомарно списать один кредит глубокого анализа (источник истины — БД)
         requestLogger.dbOperation('UPDATE', 'decrement_credits', null, null, {
             userId: verifiedUserId
         });
@@ -138,19 +129,27 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         const { data: decrementResult, error: decrementError } = await supabase
             .rpc('decrement_deep_analysis_credits_safe', { user_tg_id: verifiedUserId });
         
-        if (decrementError || !decrementResult?.[0]?.success) {
+        if (decrementError) {
             requestLogger.dbError('UPDATE', 'decrement_credits', new Error('Failed to decrement credits: ' + (decrementError?.message || 'Unknown error')), {
                 userId: verifiedUserId
             });
             throw createApiError('Ошибка при списании кредита глубокого анализа.', 500);
         }
+
+        const rpcRow = Array.isArray(decrementResult) ? decrementResult[0] : decrementResult;
+        if (!rpcRow?.success) {
+            requestLogger.dbError('UPDATE', 'decrement_credits', new Error('Failed to decrement credits: ' + (decrementError?.message || 'Unknown error')), {
+                userId: verifiedUserId
+            });
+            throw createApiError('Недостаточно кредитов для глубокого анализа. Необходимо приобрести кредиты.', 400);
+        }
         
         requestLogger.info("Deep analysis credit decremented", {
             userId: verifiedUserId,
-            remainingCredits: decrementResult[0].remaining_credits
+            remainingCredits: rpcRow.remaining_credits
         });
 
-        // 7. Получить последние N снов оптимизированным запросом
+        // 6. Получить последние N снов оптимизированным запросом
         requestLogger.dbOperation('SELECT', 'user_dreams', null, null, {
             userDbId,
             limit: REQUIRED_DREAMS
