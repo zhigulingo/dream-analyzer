@@ -421,9 +421,10 @@ const submitDream = async () => {
         // Завершаем прогресс
         updateProgress(4, 100);
         
-        // On success, clear input and reload history
+        // On success, clear input and reload history and profile (to refresh tokens count)
         newDream.value = '';
         await fetchHistory();
+        await fetchProfile();
     } catch (err) {
         errorDream.value = err.message;
         
