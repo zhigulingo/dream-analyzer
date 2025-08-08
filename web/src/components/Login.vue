@@ -32,8 +32,21 @@ const handleLogin = async () => {
     error.value = null;
 
     // Basic validation
-    if (!tgId.value || !password.value) {
+    const tgIdStr = String(tgId.value || '').trim();
+    const pwd = String(password.value || '');
+    if (tgIdStr.length === 0 || pwd.length === 0) {
         error.value = 'Please enter both Telegram ID and password.';
+        isLoading.value = false;
+        return;
+    }
+    if (!/^\d+$/.test(tgIdStr)) {
+        error.value = 'Telegram ID must contain digits only.';
+        isLoading.value = false;
+        return;
+    }
+    const tgIdNum = Number(tgIdStr);
+    if (!Number.isSafeInteger(tgIdNum) || tgIdNum <= 0) {
+        error.value = 'Telegram ID is invalid.';
         isLoading.value = false;
         return;
     }
@@ -47,8 +60,8 @@ const handleLogin = async () => {
             },
             credentials: 'include', // Important for cookies
             body: JSON.stringify({
-                tg_id: parseInt(tgId.value, 10), // Ensure it's a number
-                password: password.value,
+                tg_id: tgIdNum,
+                password: pwd,
             }),
         });
 

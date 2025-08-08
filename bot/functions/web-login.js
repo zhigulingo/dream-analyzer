@@ -54,11 +54,26 @@ exports.handler = async (event) => {
     }
 
     const { tg_id, password } = requestBody;
-    console.log("[web-login] Incoming login request for tg_id:", tg_id, "origin:", event.headers.origin || event.headers.Origin);
+    console.log("[web-login] Incoming login request, origin:", event.headers.origin || event.headers.Origin);
 
-    if (!tg_id || !password) {
-        return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Telegram ID and password are required.' }) };
+    // Validate input types
+    if (password == null || (typeof password !== 'string') || password.trim().length === 0) {
+        return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Password is required.' }) };
     }
+    // Coerce tg_id to number safely
+    let tgIdNum = null;
+    if (typeof tg_id === 'number') {
+        tgIdNum = tg_id;
+    } else if (typeof tg_id === 'string') {
+        if (!/^\d+$/.test(tg_id)) {
+            return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Telegram ID must be a numeric string.' }) };
+        }
+        tgIdNum = Number(tg_id);
+    }
+    if (!Number.isFinite(tgIdNum) || !Number.isSafeInteger(tgIdNum) || tgIdNum <= 0) {
+        return { statusCode: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Invalid Telegram ID.' }) };
+    }
+    console.log("[web-login] Parsed tg_id:", tgIdNum);
 
     try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
