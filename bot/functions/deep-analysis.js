@@ -182,6 +182,16 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             userId: verifiedUserId,
             analysisLength: deepAnalysisResult ? deepAnalysisResult.length : 0
         });
+        // Попытаться уведомить пользователя через бота (не критично при ошибке)
+        try {
+            if (BOT_TOKEN) {
+                const { Api } = require('grammy');
+                const botApi = new Api(BOT_TOKEN);
+                await botApi.sendMessage(verifiedUserId, 'Ваш глубокий анализ готов! Откройте приложение, вкладка «Глубокий анализ».');
+            }
+        } catch (notifyErr) {
+            requestLogger.warn('Failed to notify user via bot about deep analysis completion', { error: notifyErr?.message });
+        }
         return createSuccessResponse({ analysis: deepAnalysisResult }, corsHeaders);
         
     } catch (error) {

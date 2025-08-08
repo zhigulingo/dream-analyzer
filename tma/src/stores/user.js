@@ -333,7 +333,12 @@ export const useUserStore = defineStore('user', {
 
             if (response.data.success) {
                 this.deepAnalysisResult = response.data.analysis;
-                // Обновляем профиль, т.к. кредиты глубокого анализа изменились
+                // Сохраняем результат в localStorage для отдельной вкладки "Глубокий анализ"
+                try {
+                  localStorage.setItem('latest_deep_analysis', this.deepAnalysisResult);
+                } catch (_) {}
+                this.notificationStore?.success('Глубокий анализ выполнен! Посмотрите вкладку «Глубокий анализ».');
+                // Обновляем профиль (кредиты)
                 await this.fetchProfile();
             } else {
                 // Ошибка от бэкенда (мало снов и т.д.)

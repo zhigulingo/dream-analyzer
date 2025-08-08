@@ -78,7 +78,9 @@ class ApiService {
 
     // Main API call method with automatic token refresh
     async apiCall(endpoint, options = {}) {
-        const url = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
+        // Use site-local /api proxy to keep cookies first-party in Safari
+        const isAbsolute = endpoint.startsWith('http');
+        const url = isAbsolute ? endpoint : (endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`);
         
         const defaultOptions = {
             credentials: 'include',

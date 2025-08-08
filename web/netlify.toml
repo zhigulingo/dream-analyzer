@@ -17,9 +17,12 @@
   NPM_CONFIG_AUDIT = "false"
   NPM_CONFIG_FUND = "false"
 
-# API redirects DISABLED - все API функции находятся в bot-проекте
-# Web-сайт содержит только статические файлы
-# API calls должны идти напрямую к sparkling-cupcake-940504.netlify.app
+# API proxy: проксируем все вызовы на bot-сайт, чтобы куки были first-party для Safari
+[[redirects]]
+  from = "/api/*"
+  to = "https://sparkling-cupcake-940504.netlify.app/.netlify/functions/:splat"
+  status = 200
+  force = true
 
 # SPA fallback - все неизвестные роуты перенаправляем на index.html для Vue роутера
 [[redirects]]
