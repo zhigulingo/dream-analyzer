@@ -53,11 +53,15 @@ const handleLogin = async () => {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Login failed.');
+            let serverMessage = '';
+            try { serverMessage = (await response.json()).error; } catch (_) {
+              try { serverMessage = await response.text(); } catch (_) {}
+            }
+            throw new Error(serverMessage || `Login failed (${response.status})`);
         }
 
-        const data = await response.json();
+        let data = null;
+        try { data = await response.json(); } catch (_) { data = null; }
         if (!data.success) throw new Error('Login failed.');
         if (data.accessToken) {
           apiService.setTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });

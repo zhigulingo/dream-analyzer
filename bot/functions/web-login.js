@@ -82,14 +82,38 @@ exports.handler = async (event) => {
         }
 
         // --- Compare password hash ---
-        const [salt, hash] = user.web_password_hash.split(':');
+        const parts = String(user.web_password_hash).split(':');
+        if (parts.length !== 2 || !parts[0] || !parts[1]) {
+            console.warn(`[web-login] Invalid password hash format for tg_id ${tg_id}`);
+            return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Invalid Telegram ID or password.' }) };
+        }
+        const [salt, hash] = parts;
         const derivedKey = await scryptAsync(password, salt, 64);
+        const derivedHex = derivedKey.toString('hex');
+        const derivedBuf = Buffer.from(derivedHex, 'hex');
+        let hashBuf;
+        try {
+            hashBuf = Buffer.from(hash, 'hex');
+        } catch (e) {
+            console.warn(`[web-login] Stored hash not hex for tg_id ${tg_id}`);
+            return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Invalid Telegram ID or password.' }) };
+        }
 
-        const hashMatch = crypto.timingSafeEqual(Buffer.from(derivedKey.toString('hex'), 'hex'), Buffer.from(hash, 'hex'));
+        let hashMatch = false;
+        if (derivedBuf.length === hashBuf.length) {
+            try {
+                hashMatch = crypto.timingSafeEqual(derivedBuf, hashBuf);
+            } catch (_) {
+                hashMatch = false;
+            }
+        } else {
+            // Length mismatch -> definitely not a match
+            hashMatch = false;
+        }
 
         if (!hashMatch) {
-             console.warn(`[web-login] Login failed for tg_id ${tg_id}: Password mismatch.`);
-             return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Invalid Telegram ID or password.' }) };
+            console.warn(`[web-login] Login failed for tg_id ${tg_id}: Password mismatch.`);
+            return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Invalid Telegram ID or password.' }) };
         }
 
         // --- Authentication successful, generate JWT tokens ---
