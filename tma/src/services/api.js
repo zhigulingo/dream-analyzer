@@ -140,10 +140,10 @@ const apiMethods = {
     return apiClient.post('/deep-analysis');
   },
 
-  // История глубоких анализов
+  // История глубоких анализов (фильтрация из общей истории)
   getDeepAnalysesHistory() {
-    console.log("[api.js] Calling GET /deep-analyses-history");
-    return apiClient.get('/deep-analyses-history');
+    console.log("[api.js] Calling GET /analyses-history?type=deep");
+    return apiClient.get('/analyses-history', { params: { type: 'deep' } });
   }
 
   // Метод для создания ссылки на инвойс

@@ -38,12 +38,8 @@ const handleLogin = async () => {
     }
 
     try {
-        // Replace with your actual backend login endpoint URL
-        const LOGIN_API_URL = import.meta.env.VITE_WEB_LOGIN_API_URL; // Need to set this env var
-        if (!LOGIN_API_URL) { throw new Error("Login API URL is not configured."); }
-
-
-        const response = await fetch(LOGIN_API_URL, {
+        // Use site-local proxy to keep cookies first-party
+        const response = await fetch('/api/web-login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
