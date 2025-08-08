@@ -144,7 +144,7 @@ const apiMethods = {
   getDeepAnalysesHistory() {
     console.log("[api.js] Calling GET /analyses-history?type=deep");
     return apiClient.get('/analyses-history', { params: { type: 'deep' } });
-  }
+  },
 
   // Метод для создания ссылки на инвойс
   createInvoiceLink(plan, duration, amount, payload) {
