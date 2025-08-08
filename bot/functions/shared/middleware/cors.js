@@ -16,8 +16,13 @@ function getCorsHeaders(event, allowedOrigins = []) {
         'Access-Control-Allow-Origin': filteredOrigins.includes(requestOrigin) 
             ? requestOrigin 
             : filteredOrigins[0] || '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        // Allow Telegram InitData header for TMA and Authorization for Web
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Telegram-Init-Data',
         'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+        // Enable credentials so httpOnly cookies work for Web
+        'Access-Control-Allow-Credentials': 'true',
+        // Helpful for caches when echoing Origin
+        'Vary': 'Origin'
     };
 }
 
