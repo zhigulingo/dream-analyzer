@@ -37,10 +37,12 @@ exports.handler = async (event) => {
             statusCode: 200,
             headers: { 
                 ...corsHeaders, 
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            multiValueHeaders: {
                 'Set-Cookie': [
-                    `dream_analyzer_jwt=; ${secureCookieSettings}`, // Clear access token
-                    `dream_analyzer_refresh=; ${secureCookieSettings}` // Clear refresh token
+                    `dream_analyzer_jwt=; ${secureCookieSettings}`,
+                    `dream_analyzer_refresh=; ${secureCookieSettings}`
                 ]
             },
             body: JSON.stringify({ 
