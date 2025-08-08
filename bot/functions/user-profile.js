@@ -68,10 +68,12 @@ exports.handler = async (event) => {
     console.log(`[user-profile] Origin allowed:`, allowedOrigins.includes(requestOrigin));
     
     const corsHeaders = {
-        'Access-Control-Allow-Origin': allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0] || '*',
+        // Always echo back request origin to allow credentialed requests
+        'Access-Control-Allow-Origin': requestOrigin || allowedOrigins[0] || '*',
         'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, Authorization',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Credentials': 'true',
+        'Vary': 'Origin'
     };
     
     console.log(`[user-profile] CORS origin set to: ${corsHeaders['Access-Control-Allow-Origin']}`);
@@ -187,8 +189,7 @@ exports.handler = async (event) => {
                 subscription_type: 'free', 
                 subscription_end: null, 
                 channel_reward_claimed: false,
-                deep_analysis_credits: 0, // Default value
-                total_analyses: 0 // Default value
+                deep_analysis_credits: 0
             };
         } else {
             responseBody = {
@@ -196,8 +197,7 @@ exports.handler = async (event) => {
                 subscription_type: userData.subscription_type || 'free',
                 subscription_end: userData.subscription_end,
                 channel_reward_claimed: userData.channel_reward_claimed || false,
-                deep_analysis_credits: 0, // Default value until column is added
-                total_analyses: 0 // Default value, can be calculated separately if needed
+                deep_analysis_credits: userData.deep_analysis_credits || 0
             };
         }
 
