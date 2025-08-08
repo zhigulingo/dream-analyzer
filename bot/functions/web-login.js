@@ -152,7 +152,9 @@ exports.handler = async (event) => {
             statusCode: 200,
             headers: { 
                 ...corsHeaders, 
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            multiValueHeaders: {
                 'Set-Cookie': [
                     `dream_analyzer_jwt=${accessToken}; ${secureCookieSettings}900`, // 15 minutes
                     `dream_analyzer_refresh=${refreshToken}; ${secureCookieSettings}604800` // 7 days
