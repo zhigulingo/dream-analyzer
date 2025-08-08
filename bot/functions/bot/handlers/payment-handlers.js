@@ -41,7 +41,8 @@ function createSuccessfulPaymentHandler(userService, messageService) {
             return;
         }
 
-        const parts = payload.split(/\s+/).filter(Boolean);
+        // Robust payload parser: supports "sub_{plan}_{duration}mo_{tgId}" and "deepanalysis_{tgId}"
+        const parts = payload.split('_').filter(Boolean);
         const paymentType = parts[0]; // 'sub' или 'deepanalysis'
 
         try {
