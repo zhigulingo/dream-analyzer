@@ -265,6 +265,62 @@ END$$;
 
 CREATE INDEX IF NOT EXISTS idx_analyses_user_deep_created ON analyses(user_id, is_deep_analysis, created_at DESC);
 
+-- Бесплатный кредит для глубокого анализа
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema='public' AND table_name='users' AND column_name='free_deep_analysis'
+    ) THEN
+        ALTER TABLE public.users ADD COLUMN free_deep_analysis INTEGER NOT NULL DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema='public' AND table_name='users' AND column_name='free_deep_granted'
+    ) THEN
+        ALTER TABLE public.users ADD COLUMN free_deep_granted BOOLEAN NOT NULL DEFAULT FALSE;
+    END IF;
+END$$;
+
+-- RPC: атомарное предоставление бесплатного кредита при выполнении условий
+CREATE OR REPLACE FUNCTION grant_free_deep_if_eligible(user_tg_id BIGINT)
+RETURNS BOOLEAN AS $$
+DECLARE
+  uid BIGINT;
+  dreams_count INTEGER;
+BEGIN
+  SELECT id INTO uid FROM users WHERE tg_id = user_tg_id;
+  IF uid IS NULL THEN RETURN FALSE; END IF;
+
+  SELECT COUNT(*) INTO dreams_count FROM analyses WHERE user_id = uid;
+
+  IF EXISTS (
+      SELECT 1 FROM users 
+      WHERE id = uid AND subscription_type = 'premium' 
+        AND COALESCE(free_deep_granted, FALSE) = FALSE
+        AND dreams_count >= 5
+  ) THEN
+      UPDATE users 
+        SET free_deep_analysis = 1, free_deep_granted = TRUE
+      WHERE id = uid;
+      RETURN TRUE;
+  END IF;
+  RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- RPC: атомарное списание бесплатного кредита
+CREATE OR REPLACE FUNCTION consume_free_deep_if_available(user_tg_id BIGINT)
+RETURNS BOOLEAN AS $$
+DECLARE current_free INTEGER;
+BEGIN
+  SELECT COALESCE(free_deep_analysis,0) INTO current_free FROM users WHERE tg_id = user_tg_id FOR UPDATE;
+  IF current_free <= 0 THEN RETURN FALSE; END IF;
+  UPDATE users SET free_deep_analysis = current_free - 1 WHERE tg_id = user_tg_id;
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Дополнительные изменения для Web/TMA интеграции
 
 -- Гарантируем наличие колонки для кредитов глубокого анализа

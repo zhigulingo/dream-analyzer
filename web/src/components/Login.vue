@@ -56,7 +56,12 @@ const handleLogin = async () => {
             throw new Error(errorData.error || 'Login failed.');
         }
 
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (_) {
+          data = { success: true };
+        }
 
         if (!data.success) {
              throw new Error('Login failed.');

@@ -120,33 +120,46 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             throw createApiError(`Недостаточно снов для глубокого анализа. Нужно ${REQUIRED_DREAMS} снов, найдено ${actualDreamCount}. Пожалуйста, проанализируйте больше снов перед покупкой глубокого анализа.`, 400);
         }
 
-        // 5. Атомарно списать один кредит глубокого анализа (источник истины — БД)
+        // 5. Если доступен бесплатный кредит – списать его, иначе – платный кредит
         requestLogger.dbOperation('UPDATE', 'decrement_credits', null, null, {
             userId: verifiedUserId
         });
         
-        // Используем RPC функцию для безопасного списания кредитов
-        const { data: decrementResult, error: decrementError } = await supabase
-            .rpc('decrement_deep_analysis_credits_safe', { user_tg_id: verifiedUserId });
-        
-        if (decrementError) {
-            requestLogger.dbError('UPDATE', 'decrement_credits', new Error('Failed to decrement credits: ' + (decrementError?.message || 'Unknown error')), {
-                userId: verifiedUserId
-            });
-            throw createApiError('Ошибка при списании кредита глубокого анализа.', 500);
-        }
+        // Сначала пытаемся списать бесплатный кредит
+        let usedFree = false;
+        try {
+            const { data: freeUsed, error: freeErr } = await supabase
+              .rpc('consume_free_deep_if_available', { user_tg_id: verifiedUserId });
+            if (freeErr) {
+              requestLogger.warn('consume_free_deep_if_available error', { error: freeErr?.message });
+            } else if (freeUsed === true) {
+              usedFree = true;
+              requestLogger.info('Consumed free deep analysis credit');
+            }
+        } catch (_) {}
 
-        const rpcRow = Array.isArray(decrementResult) ? decrementResult[0] : decrementResult;
-        if (!rpcRow?.success) {
-            requestLogger.dbError('UPDATE', 'decrement_credits', new Error('Failed to decrement credits: ' + (decrementError?.message || 'Unknown error')), {
-                userId: verifiedUserId
-            });
-            throw createApiError('Недостаточно кредитов для глубокого анализа. Необходимо приобрести кредиты.', 400);
+        let rpcRow = null;
+        if (!usedFree) {
+          // Используем RPC функцию для безопасного списания ПЛАТНОГО кредита
+          const { data: decrementResult, error: decrementError } = await supabase
+              .rpc('decrement_deep_analysis_credits_safe', { user_tg_id: verifiedUserId });
+          if (decrementError) {
+              requestLogger.dbError('UPDATE', 'decrement_credits', new Error('Failed to decrement credits: ' + (decrementError?.message || 'Unknown error')), {
+                  userId: verifiedUserId
+              });
+              throw createApiError('Ошибка при списании кредита глубокого анализа.', 500);
+          }
+          rpcRow = Array.isArray(decrementResult) ? decrementResult[0] : decrementResult;
+          if (!rpcRow?.success) {
+              requestLogger.dbError('UPDATE', 'decrement_credits', new Error('No credits available'));
+              throw createApiError('Недостаточно кредитов для глубокого анализа. Необходимо приобрести кредиты.', 400);
+          }
         }
         
         requestLogger.info("Deep analysis credit decremented", {
             userId: verifiedUserId,
-            remainingCredits: rpcRow.remaining_credits
+            remainingCredits: rpcRow?.remaining_credits,
+            usedFree
         });
 
         // 6. Получить последние N снов оптимизированным запросом
