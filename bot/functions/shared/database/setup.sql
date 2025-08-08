@@ -236,6 +236,16 @@ COMMENT ON FUNCTION batch_insert_analyses(JSON[]) IS 'Массовая вста�
 COMMENT ON FUNCTION get_or_create_user_atomic(BIGINT) IS 'Атомарная операция получения или создания пользователя';
 COMMENT ON FUNCTION get_database_performance_stats() IS 'Получает статистику производительности для мониторинга';
 
+-- Таблица для хранения результатов глубоких анализов
+CREATE TABLE IF NOT EXISTS deep_analyses (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  analysis TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_deep_analyses_user_created ON deep_analyses(user_id, created_at DESC);
+
 -- Дополнительные изменения для Web/TMA интеграции
 
 -- Гарантируем наличие колонки для кредитов глубокого анализа
