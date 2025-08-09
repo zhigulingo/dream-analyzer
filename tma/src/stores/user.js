@@ -33,6 +33,7 @@ export const useUserStore = defineStore('user', {
     isDoingDeepAnalysis: false,     // Флаг выполнения анализа (ПОСЛЕ оплаты)
     deepAnalysisResult: null,
     deepAnalysisError: null,
+    deepAnalysisSuccess: false,
     // --- Основное состояние ---
     profile: { tokens: null, subscription_type: 'free', subscription_end: null, channel_reward_claimed: false, deep_analysis_credits: 0 },
     history: [],
@@ -320,6 +321,7 @@ export const useUserStore = defineStore('user', {
         this.isDoingDeepAnalysis = true;
         this.deepAnalysisResult = null;
         this.deepAnalysisError = null;
+        this.deepAnalysisSuccess = false;
 
       // Проверка initData (на всякий случай)
      const tg = window.Telegram?.WebApp; const initDataHeader = tg?.initData;
@@ -334,11 +336,13 @@ export const useUserStore = defineStore('user', {
       if (response.data.success) {
                 this.deepAnalysisResult = response.data.analysis;
                 try { localStorage.setItem('latest_deep_analysis', this.deepAnalysisResult); } catch (_) {}
-                // Сообщаем пользователю в баннере, что результат готов и смотреть нужно в разделе
-                this.notificationStore?.success('Глубокий анализ выполнен! Результат доступен во вкладке «Глубокий анализ».');
+                // Отмечаем успешное выполнение для показа сообщения внутри баннера
+                this.deepAnalysisSuccess = true;
                 // Обновляем профиль без кеша (гарантированно увидеть списание кредита)
                 try { await api.getUserProfileFresh(); } catch (_) {}
                 await this.fetchProfile();
+                // Обновляем историю, чтобы вкладка «Глубокий анализ» показала новую карточку
+                await this.fetchHistory();
             } else {
                 // Ошибка от бэкенда (мало снов и т.д.)
                 this.deepAnalysisError = response.data.error || "Не удалось выполнить глубокий анализ.";
@@ -349,6 +353,10 @@ export const useUserStore = defineStore('user', {
             if (err.response?.data?.error) { errorMsg = err.response.data.error; }
             else if (err.message) { errorMsg = err.message; }
             this.deepAnalysisError = errorMsg;
+            // Если ошибка связана с отсутствием кредитов — показываем путь покупки сразу
+            if (/кредитов/i.test(errorMsg) || /Недостаточно/i.test(errorMsg)) {
+              this.profile.deep_analysis_credits = 0;
+            }
         } finally {
             this.isDoingDeepAnalysis = false;
             console.log("[UserStore:performDeepAnalysis] Action finished.");

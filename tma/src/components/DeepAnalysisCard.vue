@@ -24,9 +24,12 @@
           animated
         />
       </div>
-      <!-- Результат внутри баннера не показываем; после завершения анализа уведомляем и отправляем в раздел списка -->
+      <!-- Сообщения внутри баннера -->
       <div v-if="userStore?.deepAnalysisError" class="mt-4 p-4 bg-red-500/20 rounded-lg text-sm">
         ⚠️ {{ userStore.deepAnalysisError }}
+      </div>
+      <div v-else-if="userStore?.deepAnalysisSuccess" class="mt-4 p-4 bg-green-500/20 rounded-lg text-sm">
+        ✅ Глубокий анализ выполнен! Результат доступен во вкладке «Глубокий анализ» ниже.
       </div>
     </div>
     <transition name="fade">
