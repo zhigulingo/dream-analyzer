@@ -331,14 +331,13 @@ export const useUserStore = defineStore('user', {
             const response = await api.getDeepAnalysis();
             console.log("[UserStore:performDeepAnalysis] Response received:", response.data);
 
-            if (response.data.success) {
+      if (response.data.success) {
                 this.deepAnalysisResult = response.data.analysis;
-                // Сохраняем результат в localStorage для отдельной вкладки "Глубокий анализ"
-                try {
-                  localStorage.setItem('latest_deep_analysis', this.deepAnalysisResult);
-                } catch (_) {}
-                this.notificationStore?.success('Глубокий анализ выполнен! Посмотрите вкладку «Глубокий анализ».');
-                // Обновляем профиль (кредиты)
+                try { localStorage.setItem('latest_deep_analysis', this.deepAnalysisResult); } catch (_) {}
+                // Сообщаем пользователю в баннере, что результат готов и смотреть нужно в разделе
+                this.notificationStore?.success('Глубокий анализ выполнен! Результат доступен во вкладке «Глубокий анализ».');
+                // Обновляем профиль без кеша (гарантированно увидеть списание кредита)
+                try { await api.getUserProfileFresh(); } catch (_) {}
                 await this.fetchProfile();
             } else {
                 // Ошибка от бэкенда (мало снов и т.д.)

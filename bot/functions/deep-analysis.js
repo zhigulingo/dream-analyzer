@@ -120,6 +120,11 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             throw createApiError(`Недостаточно снов для глубокого анализа. Нужно ${REQUIRED_DREAMS} снов, найдено ${actualDreamCount}. Пожалуйста, проанализируйте больше снов перед покупкой глубокого анализа.`, 400);
         }
 
+        // Попытаться выдать бесплатный кредит, если пользователь уже достиг 5 снов, но кредит ранее не выдавался
+        try {
+            await supabase.rpc('grant_free_deep_if_eligible', { user_tg_id: verifiedUserId });
+        } catch (_) {}
+
         // 5. Если доступен бесплатный кредит – списать его, иначе – платный кредит
         requestLogger.dbOperation('UPDATE', 'decrement_credits', null, null, {
             userId: verifiedUserId

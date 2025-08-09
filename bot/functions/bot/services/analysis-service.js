@@ -54,6 +54,14 @@ class AnalysisService {
             
             console.log(`[AnalysisService] Analysis saved successfully.`);
 
+            // Попытаться выдать бесплатный кредит глубокого анализа,
+            // если пользователь впервые достиг 5 снов
+            try {
+                await this.supabase.rpc('grant_free_deep_if_eligible', { user_tg_id: tgUserId });
+            } catch (e) {
+                console.warn('[AnalysisService] grant_free_deep_if_eligible RPC failed or not available:', e?.message);
+            }
+
         } catch (error) {
             console.error(`[AnalysisService] FAILED for user ${tgUserId}: ${error.message}`);
             throw error;

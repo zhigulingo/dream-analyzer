@@ -282,7 +282,6 @@ BEGIN
     END IF;
 END$$;
 
--- RPC: атомарное предоставление бесплатного кредита при выполнении условий
 CREATE OR REPLACE FUNCTION grant_free_deep_if_eligible(user_tg_id BIGINT)
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -294,11 +293,10 @@ BEGIN
 
   SELECT COUNT(*) INTO dreams_count FROM analyses WHERE user_id = uid;
 
-  IF EXISTS (
+  -- Условие: первый раз достигнуто >= 5 снов и ранее бесплатный кредит не выдавался
+  IF (COALESCE(dreams_count, 0) >= 5) AND EXISTS (
       SELECT 1 FROM users 
-      WHERE id = uid AND subscription_type = 'premium' 
-        AND COALESCE(free_deep_granted, FALSE) = FALSE
-        AND dreams_count >= 5
+      WHERE id = uid AND COALESCE(free_deep_granted, FALSE) = FALSE
   ) THEN
       UPDATE users 
         SET free_deep_analysis = 1, free_deep_granted = TRUE

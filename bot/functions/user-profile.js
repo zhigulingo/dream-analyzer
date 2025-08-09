@@ -146,11 +146,13 @@ exports.handler = async (event) => {
     }
 
     try {
+        const noCache = (event.queryStringParameters && (event.queryStringParameters.noCache === '1' || event.queryStringParameters.nocache === '1')) ||
+                        (event.headers && (event.headers['x-bypass-cache'] === '1'));
         const supabase = createOptimizedClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
         const dbQueries = new DatabaseQueries(supabase);
         
         // Проверяем кеш сначала
-        let userData = userCacheService.getFullUserData(verifiedUserId);
+        let userData = noCache ? null : userCacheService.getFullUserData(verifiedUserId);
         
         if (!userData) {
             console.log(`[user-profile] Cache miss for user ${verifiedUserId}, querying database...`);
@@ -174,7 +176,7 @@ exports.handler = async (event) => {
             }
             
             // Кешируем результат если получены данные
-            if (userData) {
+            if (userData && !noCache) {
                 userCacheService.cacheFullUserData(verifiedUserId, userData);
                 console.log(`[user-profile] Cached user data for ${verifiedUserId}`);
             }
@@ -197,7 +199,9 @@ exports.handler = async (event) => {
                 subscription_type: userData.subscription_type || 'free',
                 subscription_end: userData.subscription_end,
                 channel_reward_claimed: userData.channel_reward_claimed || false,
-                deep_analysis_credits: userData.deep_analysis_credits || 0
+                deep_analysis_credits: userData.deep_analysis_credits || 0,
+                free_deep_analysis: userData.free_deep_analysis || 0,
+                free_deep_granted: !!userData.free_deep_granted
             };
         }
 

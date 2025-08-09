@@ -7,9 +7,7 @@
     <div class="px-8 md:px-16" :class="[isOpen ? 'pt-8' : '']">
       <h3 class="text-xl font-bold">Глубокий Анализ</h3>
       <p class="mt-1">Получите комплексный анализ ваших последних 5 снов.</p>
-      <div v-if="userStore?.profile?.deep_analysis_credits" class="mt-2 text-sm opacity-80">
-        У вас: {{ userStore.profile.deep_analysis_credits }} кредит(ов) анализа
-      </div>
+      <!-- Количество токенов/кредитов не показываем в ТМА (мобильный UX) -->
       
       <div v-if="userStore?.isInitiatingDeepPayment" class="mt-4">
         <LoadingSpinner size="xs" variant="white" label="Создаем счёт..." />
@@ -26,11 +24,7 @@
           animated
         />
       </div>
-      <div v-if="userStore?.deepAnalysisResult" class="mt-4 p-4 bg-white/10 rounded-lg text-sm">
-        <h4 class="font-semibold mb-2">Результат анализа (последний):</h4>
-        <p class="text-xs leading-relaxed">{{ userStore.deepAnalysisResult }}</p>
-        <div class="mt-2 text-[10px] opacity-80">Сохранено во вкладке «Глубокий анализ»</div>
-      </div>
+      <!-- Результат внутри баннера не показываем; после завершения анализа уведомляем и отправляем в раздел списка -->
       <div v-if="userStore?.deepAnalysisError" class="mt-4 p-4 bg-red-500/20 rounded-lg text-sm">
         ⚠️ {{ userStore.deepAnalysisError }}
       </div>
@@ -41,7 +35,7 @@
         class="absolute bottom-4 left-4 right-4 bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors"
         @click.stop="requestAnalysis"
       >
-        {{ userStore?.profile?.deep_analysis_credits > 0 ? 'Выполнить анализ' : 'Получить анализ (1 ⭐️)' }}
+        {{ ((userStore?.profile?.deep_analysis_credits || 0) > 0) || ((userStore?.profile?.free_deep_analysis || 0) > 0) ? 'Выполнить анализ' : 'Получить анализ (1 ⭐️)' }}
       </button>
     </transition>
   </article>
@@ -118,7 +112,7 @@ const requestAnalysis = () => {
     }
     
     // Если у пользователя есть кредиты, выполняем анализ напрямую
-    if (props.userStore?.profile?.deep_analysis_credits > 0) {
+    if ((props.userStore?.profile?.deep_analysis_credits || 0) > 0 || (props.userStore?.profile?.free_deep_analysis || 0) > 0) {
       props.userStore.performDeepAnalysis()
     } else {
       // Если кредитов нет, инициируем покупку

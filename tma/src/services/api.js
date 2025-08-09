@@ -119,6 +119,12 @@ const apiMethods = {
     return apiClient.post('/user-profile');
   }, // <--- Запятая
 
+  // Свежая версия профиля с отключением кеша на сервере
+  getUserProfileFresh() {
+    console.log("[api.js] Calling POST /user-profile?noCache=1");
+    return apiClient.post('/user-profile?noCache=1');
+  },
+
   // Метод для получения награды за подписку
   claimChannelReward() {
     console.log("[api.js] Calling POST /claim-channel-token");

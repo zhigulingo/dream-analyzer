@@ -116,6 +116,11 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
         if (insertError) {
             throw createApiError(`Error saving analysis: ${insertError.message}`, 500);
         }
+        // После успешного сохранения обычного анализа пытаемся выдать бесплатный кредит глубокого анализа,
+        // если пользователь впервые достиг 5 снов
+        try {
+            await supabase.rpc('grant_free_deep_if_eligible', { user_tg_id: verifiedTgId });
+        } catch (_) {}
     } catch (error) {
         if (error.statusCode) throw error; // Re-throw our own errors
         throw createApiError('Internal Server Error while saving analysis.', 500);

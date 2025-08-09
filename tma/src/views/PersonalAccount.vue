@@ -22,11 +22,8 @@
       <section class="account-block w-full max-w-72r">
         <FactsCarousel />
       </section>
-      <section v-if="showDeepAnalysis" class="account-block w-full max-w-72r">
+      <section v-if="showDeepAnalysisBanner" class="account-block w-full max-w-72r">
         <DeepAnalysisCard :user-store="userStore" />
-      </section>
-      <section class="account-block w-full max-w-72r">
-        <DeepAnalysesList />
       </section>
       <section class="account-block w-full max-w-72r">
         <AnalysisHistoryList :user-store="userStore" />
@@ -56,15 +53,13 @@ import DebugInfo from '@/components/DebugInfo.vue'
 const UserInfoCard = defineAsyncComponent(() => import('@/components/UserInfoCard.vue'))
 const FactsCarousel = defineAsyncComponent(() => import('@/components/FactsCarousel.vue'))
 const DeepAnalysisCard = defineAsyncComponent(() => import('@/components/DeepAnalysisCard.vue'))
-const DeepAnalysesList = defineAsyncComponent(() => import('@/components/DeepAnalysesList.vue'))
 const AnalysisHistoryList = defineAsyncComponent(() => import('@/components/AnalysisHistoryList.vue'))
 const SubscriptionModal = defineAsyncComponent(() => import('@/components/SubscriptionModal.vue'))
 
 const userStore = useUserStore()
 const { isOnline, pendingOperations } = useOfflineDetection()
 
-const showDeepAnalysis = computed(() => userStore.history && userStore.history.length >= 5)
-
+const showDeepAnalysisBanner = computed(() => userStore.history && userStore.history.length >= 5)
 // Global error handlers for ErrorBoundary
 const handleError = (errorEvent) => {
   console.error('PersonalAccount error caught by ErrorBoundary:', errorEvent);
