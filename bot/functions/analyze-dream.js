@@ -2,6 +2,7 @@ const { createClient } = require("@supabase/supabase-js");
 const jwt = require('jsonwebtoken');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { wrapApiHandler, createApiError } = require('./shared/middleware/api-wrapper');
+const userCacheService = require('./shared/services/user-cache-service');
 const { createSuccessResponse, createErrorResponse } = require('./shared/middleware/error-handler');
 const geminiService = require('./shared/services/gemini-service');
 
@@ -119,6 +120,9 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
         if (error.statusCode) throw error; // Re-throw our own errors
         throw createApiError('Internal Server Error while saving analysis.', 500);
     }
+
+    // Invalidate user cache so tokens/profile are fresh on next fetch
+    try { await userCacheService.invalidateUser(verifiedTgId); } catch (_) {}
 
     // Return analysis result
     return createSuccessResponse({ analysis: analysisResultText }, corsHeaders);
