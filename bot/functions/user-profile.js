@@ -199,9 +199,7 @@ exports.handler = async (event) => {
                 subscription_type: userData.subscription_type || 'free',
                 subscription_end: userData.subscription_end,
                 channel_reward_claimed: userData.channel_reward_claimed || false,
-                deep_analysis_credits: userData.deep_analysis_credits || 0,
-                free_deep_analysis: userData.free_deep_analysis || 0,
-                free_deep_granted: !!userData.free_deep_granted
+                deep_analysis_credits: userData.deep_analysis_credits || 0
             };
         }
 
