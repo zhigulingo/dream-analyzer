@@ -92,6 +92,7 @@ h1, h2 {
   animation: fadeInUp 0.7s var(--transition) forwards;
 }
 /* Unified sequential fade utility */
+.fade-seq { --seq-offset: 0ms; }
 .fade-seq > * {
   opacity: 0;
   transform: translateY(6px);
@@ -103,21 +104,26 @@ h1, h2 {
   transform: none;
 }
 
-/* Open sequence delays (1..6) */
-.fade-seq.is-open > *:nth-child(1) { transition-delay: 0ms; }
-.fade-seq.is-open > *:nth-child(2) { transition-delay: 80ms; }
-.fade-seq.is-open > *:nth-child(3) { transition-delay: 160ms; }
-.fade-seq.is-open > *:nth-child(4) { transition-delay: 240ms; }
-.fade-seq.is-open > *:nth-child(5) { transition-delay: 320ms; }
-.fade-seq.is-open > *:nth-child(6) { transition-delay: 400ms; }
+/* Open sequence delays (1..6) with base offset */
+.fade-seq.is-open > *:nth-child(1) { transition-delay: calc(var(--seq-offset) + 0ms); }
+.fade-seq.is-open > *:nth-child(2) { transition-delay: calc(var(--seq-offset) + 80ms); }
+.fade-seq.is-open > *:nth-child(3) { transition-delay: calc(var(--seq-offset) + 160ms); }
+.fade-seq.is-open > *:nth-child(4) { transition-delay: calc(var(--seq-offset) + 240ms); }
+.fade-seq.is-open > *:nth-child(5) { transition-delay: calc(var(--seq-offset) + 320ms); }
+.fade-seq.is-open > *:nth-child(6) { transition-delay: calc(var(--seq-offset) + 400ms); }
 
-/* Close (reverse) sequence delays */
-.fade-seq:not(.is-open) > *:nth-child(1) { transition-delay: 240ms; }
-.fade-seq:not(.is-open) > *:nth-child(2) { transition-delay: 160ms; }
-.fade-seq:not(.is-open) > *:nth-child(3) { transition-delay: 80ms; }
-.fade-seq:not(.is-open) > *:nth-child(4) { transition-delay: 0ms; }
-.fade-seq:not(.is-open) > *:nth-child(5) { transition-delay: 0ms; }
-.fade-seq:not(.is-open) > *:nth-child(6) { transition-delay: 0ms; }
+/* Close (reverse) sequence delays with base offset */
+.fade-seq:not(.is-open) > *:nth-child(1) { transition-delay: calc(var(--seq-offset) + 240ms); }
+.fade-seq:not(.is-open) > *:nth-child(2) { transition-delay: calc(var(--seq-offset) + 160ms); }
+.fade-seq:not(.is-open) > *:nth-child(3) { transition-delay: calc(var(--seq-offset) + 80ms); }
+.fade-seq:not(.is-open) > *:nth-child(4) { transition-delay: calc(var(--seq-offset) + 0ms); }
+.fade-seq:not(.is-open) > *:nth-child(5) { transition-delay: calc(var(--seq-offset) + 0ms); }
+.fade-seq:not(.is-open) > *:nth-child(6) { transition-delay: calc(var(--seq-offset) + 0ms); }
+
+/* helpers to set base offset */
+.seq-offset-240 { --seq-offset: 240ms; }
+.seq-offset-320 { --seq-offset: 320ms; }
+.seq-offset-400 { --seq-offset: 400ms; }
 
 
 @keyframes fadeInUp {
