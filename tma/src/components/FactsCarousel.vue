@@ -4,7 +4,7 @@
     - Убираем растягивание на всю ширину (full-bleed) и сохраняем левый отступ как у остальных секций
     - Убираем только правый отступ за счёт отрицательного margin-right, чтобы следующая карточка чуть выглядывала
   -->
-  <section class="relative -mr-4 sm:-mr-6 md:-mr-8 mb-8">
+  <section class="relative mb-8">
     <Swiper
       :modules="modules"
       :spaceBetween="16"
@@ -20,7 +20,7 @@
         v-for="fact in facts"
         :key="fact.id"
         ref="cardRefs"
-        class="carousel-card w-[85%] sm:w-[75%] md:w-[66%] lg:w-[60%] rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
+        class="carousel-card w-[calc(100%_-_48px)] sm:w-[calc(100%_-_56px)] md:w-[calc(100%_-_64px)] rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
         :style="{ height: maxCardHeight + 'px' }"
       >
         <div class="mb-4">
@@ -30,7 +30,7 @@
       </SwiperSlide>
     </Swiper>
     <!-- Пагинация вынесена за пределы контейнера Swiper, чтобы гарантированно отображаться ниже карточек -->
-    <div class="facts-pagination mt-4 text-center"></div>
+    <div class="facts-pagination mt-4"></div>
   </section>
 </template>
 
@@ -78,21 +78,15 @@ onMounted(() => {
 </script>
 
 <style scoped>
-:deep(.swiper-pagination),
-:deep(.swiper-pagination-custom) {
-  position: static !important;
-  text-align: center !important;
-  margin-top: 1.5rem !important;
+.facts-pagination {
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
   gap: 10px !important;
-  z-index: 50 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+  width: 100% !important;
 }
 
-:deep(.swiper-pagination-bullet) {
+:deep(.facts-pagination .swiper-pagination-bullet) {
   background: rgba(255, 255, 255, 0.6) !important;
   opacity: 1 !important;
   width: 12px !important;
@@ -103,7 +97,7 @@ onMounted(() => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
-:deep(.swiper-pagination-bullet-active) {
+:deep(.facts-pagination .swiper-pagination-bullet-active) {
   background: white !important;
   transform: scale(1.25) !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4) !important;
