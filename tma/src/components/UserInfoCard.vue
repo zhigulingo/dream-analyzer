@@ -13,7 +13,7 @@
       label="Загрузка профиля..."
     />
     
-    <div class="px-8 md:px-16 py-4">
+    <div class="px-8 md:px-16 py-4" :class="[isOpen ? 'pt-8' : 'flex items-center h-full']">
       <div class="flex items-center mb-4">
         <div class="relative">
           <img class="w-10 h-10 rounded-full object-cover" :src="userAvatar" />
@@ -80,8 +80,8 @@
         </template>
       </div>
     </div>
-    <div class="absolute bottom-4 left-4 right-4 space-y-2 transition-opacity duration-300"
-         :class="isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'">
+    <div class="absolute left-4 right-4 space-y-2 transition-all duration-300"
+         :class="isOpen ? 'bottom-4 opacity-100' : '-bottom-24 opacity-0 pointer-events-none'">
       <button
         class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors flex items-center justify-center"
         @click.stop="openTariff"

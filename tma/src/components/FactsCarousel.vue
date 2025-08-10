@@ -8,7 +8,7 @@
         delay: 5000,
         disableOnInteraction: false,
       }"
-      :pagination="{ clickable: true, el: '.swiper-pagination-custom' }"
+      :pagination="{ clickable: true, el: '.swiper-pagination-custom', dynamicBullets: true }"
       class="pl-4 sm:pl-6 md:pl-8"
       :style="{ height: maxCardHeight + 'px' }"
     >
@@ -16,7 +16,7 @@
         v-for="fact in facts"
         :key="fact.id"
         ref="cardRefs"
-        class="carousel-card w-[82%] md:w-[70%] lg:w-[64%] rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
+        class="carousel-card w-[85%] sm:w-[75%] md:w-[66%] lg:w-[60%] rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
         :style="{ height: maxCardHeight + 'px' }"
       >
         <div class="mb-4">

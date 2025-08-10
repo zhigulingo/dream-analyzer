@@ -33,7 +33,7 @@
       </div>
     </div>
     <div class="absolute left-4 right-4 transition-all duration-300"
-         :class="isOpen && userStore?.canAttemptDeepAnalysis ? 'bottom-4 opacity-100' : 'bottom-0 opacity-0 pointer-events-none'">
+         :class="isOpen && userStore?.canAttemptDeepAnalysis ? 'bottom-4 opacity-100' : '-bottom-24 opacity-0 pointer-events-none'">
       <button
         class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors"
         @click.stop="requestAnalysis"
