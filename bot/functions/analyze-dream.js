@@ -16,7 +16,7 @@ const ALLOWED_WEB_ORIGIN = process.env.ALLOWED_WEB_ORIGIN;
 // Gemini/AI analysis logic using unified service
 async function getGeminiAnalysis(dreamText) {
     try {
-        return await geminiService.analyzeDream(dreamText, 'basic');
+        return await geminiService.analyzeDreamJSON(dreamText);
     } catch (error) {
         console.error("[getGeminiAnalysis] Error from Gemini service:", error);
         throw error;
@@ -102,9 +102,9 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
     }
 
     // Analyze dream
-    let analysisResultText;
+    let analysisResult;
     try {
-        analysisResultText = await getGeminiAnalysis(dreamText);
+        analysisResult = await getGeminiAnalysis(dreamText);
     } catch (error) {
         throw createApiError(error.message || 'Analysis failed.', 500);
     }
@@ -112,23 +112,16 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
     // Save result to DB
     try {
         // Generate a short 2-3 word title (heuristic; stored in deep_source.title for now)
-        const shortTitle = (() => {
-            try {
-                const firstSentence = String(dreamText).split(/[.!?\n]/)[0];
-                const words = firstSentence
-                  .toLowerCase()
-                  .replace(/[^\p{L}\p{N}\s-]/gu, '')
-                  .split(/\s+/)
-                  .filter(w => w && w.length > 3)
-                  .slice(0, 3)
-                  .map(w => w.charAt(0).toUpperCase() + w.slice(1));
-                const t = words.join(' ');
-                return t || 'Сон';
-            } catch (_) { return 'Сон'; }
-        })();
-
         const { error: insertError } = await supabase
-            .from('analyses').insert({ user_id: userDbId, dream_text: dreamText, analysis: analysisResultText, deep_source: { title: shortTitle } });
+            .from('analyses').insert({ 
+                user_id: userDbId, 
+                dream_text: dreamText, 
+                analysis: analysisResult?.analysis || String(analysisResult || ''),
+                deep_source: { 
+                    title: analysisResult?.title || null,
+                    tags: Array.isArray(analysisResult?.tags) ? analysisResult.tags : []
+                }
+            });
         if (insertError) {
             throw createApiError(`Error saving analysis: ${insertError.message}`, 500);
         }
@@ -146,7 +139,11 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
     try { await userCacheService.invalidateUser(verifiedTgId); } catch (_) {}
 
     // Return analysis result
-    return createSuccessResponse({ analysis: analysisResultText }, corsHeaders);
+    return createSuccessResponse({ 
+        analysis: analysisResult?.analysis || String(analysisResult || ''),
+        title: analysisResult?.title || null,
+        tags: Array.isArray(analysisResult?.tags) ? analysisResult.tags : []
+    }, corsHeaders);
 }
 
 // --- Exported Handler ---

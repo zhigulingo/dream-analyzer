@@ -11,6 +11,11 @@
       </span>
     </div>
     <div v-if="active" class="mt-4 space-y-3 text-sm">
+      <div v-if="displayTags.length" class="flex flex-wrap gap-2">
+        <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">
+          {{ tag }}
+        </span>
+      </div>
       <div>
         <h4 class="font-semibold mb-1">Сон:</h4>
         <p class="leading-snug opacity-90">{{ dream.dream_text }}</p>
@@ -124,6 +129,12 @@ const displayTitle = computed(() => {
   // Fallback to dream text
   const t = extractTitleFromText(props.dream?.dream_text)
   return t || 'Без названия'
+})
+
+const displayTags = computed(() => {
+  const tags = props.dream?.deep_source?.tags
+  if (Array.isArray(tags)) return tags.slice(0, 5)
+  return []
 })
 
 const relativeDate = computed(() => {

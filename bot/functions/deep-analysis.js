@@ -193,7 +193,15 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         });
 
         // 9. Вызвать Gemini для анализа
-        const deepAnalysisResult = await getDeepGeminiAnalysis(null, combinedDreamsText);
+        // Request JSON-structured deep analysis
+        let deepAnalysisResultJson;
+        try {
+            deepAnalysisResultJson = await geminiService.deepAnalyzeDreamsJSON(combinedDreamsText);
+        } catch (_) {
+            // Fallback to legacy text
+            const legacyText = await getDeepGeminiAnalysis(null, combinedDreamsText);
+            deepAnalysisResultJson = { title: '', tags: [], analysis: legacyText };
+        }
 
         // 10. Сгенерировать короткий заголовок и сохранить результат в БД в основной истории с пометкой глубокого анализа
         try {
@@ -217,9 +225,13 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
                 .insert({ 
                     user_id: userDbId, 
                     dream_text: '[DEEP_ANALYSIS_SOURCE]',
-                    analysis: deepAnalysisResult,
+                    analysis: deepAnalysisResultJson.analysis,
                     is_deep_analysis: true,
-                    deep_source: { required_dreams: REQUIRED_DREAMS, title: deepShortTitle }
+                    deep_source: { 
+                        required_dreams: REQUIRED_DREAMS, 
+                        title: deepAnalysisResultJson.title || deepShortTitle,
+                        tags: Array.isArray(deepAnalysisResultJson.tags) ? deepAnalysisResultJson.tags : []
+                    }
                 });
             if (insertDeepError) {
                 requestLogger.dbError('INSERT', 'analyses', insertDeepError, { userDbId });
@@ -231,7 +243,7 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         // 11. Вернуть успешный результат
         requestLogger.info("Deep analysis completed successfully", {
             userId: verifiedUserId,
-            analysisLength: deepAnalysisResult ? deepAnalysisResult.length : 0
+            analysisLength: deepAnalysisResultJson?.analysis ? deepAnalysisResultJson.analysis.length : 0
         });
         // Попытаться уведомить пользователя через бота (не критично при ошибке)
         try {
@@ -243,7 +255,11 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         } catch (notifyErr) {
             requestLogger.warn('Failed to notify user via bot about deep analysis completion', { error: notifyErr?.message });
         }
-        return createSuccessResponse({ analysis: deepAnalysisResult }, corsHeaders);
+        return createSuccessResponse({ 
+            analysis: deepAnalysisResultJson.analysis,
+            title: deepAnalysisResultJson.title || null,
+            tags: Array.isArray(deepAnalysisResultJson.tags) ? deepAnalysisResultJson.tags : []
+        }, corsHeaders);
         
     } catch (error) {
         requestLogger.error("Deep analysis failed", {

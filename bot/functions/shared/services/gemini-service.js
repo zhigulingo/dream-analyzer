@@ -133,6 +133,37 @@ class GeminiService {
     }
 
     /**
+     * JSON-structured versions that parse and validate JSON
+     */
+    async analyzeDreamJSON(dreamText) {
+        const raw = await this.analyzeDream(dreamText, 'basic_json');
+        return this._parseStructuredJson(raw, 'basic_json');
+    }
+
+    async deepAnalyzeDreamsJSON(combinedDreams) {
+        const raw = await this.deepAnalyzeDreams(combinedDreams, 'deep_json');
+        return this._parseStructuredJson(raw, 'deep_json');
+    }
+
+    _parseStructuredJson(rawText, mode) {
+        try {
+            // Trim potential code fences/markdown just in case
+            const cleaned = String(rawText).trim().replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+            const obj = JSON.parse(cleaned);
+            if (!obj || typeof obj !== 'object') throw new Error('Not an object');
+            if (typeof obj.title !== 'string' || !Array.isArray(obj.tags) || typeof obj.analysis !== 'string') {
+                throw new Error('Missing required fields');
+            }
+            obj.tags = obj.tags.slice(0, 5).map(t => String(t).trim()).filter(Boolean);
+            obj.title = obj.title.trim().replace(/[\p{P}\p{S}]/gu, '').slice(0, 60);
+            return obj;
+        } catch (e) {
+            console.warn(`[GeminiService] Failed to parse ${mode} JSON, falling back to raw text.`, e?.message);
+            return { title: '', tags: [], analysis: rawText };
+        }
+    }
+
+    /**
      * Retry mechanism с exponential backoff
      */
     async _retryAnalysis(analysisFunction) {
