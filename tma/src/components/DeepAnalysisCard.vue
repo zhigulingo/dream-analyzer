@@ -4,7 +4,7 @@
     :class="[isOpen ? 'pb-20' : 'min-h-[8rem]']"
     @click="toggle"
   >
-    <div class="px-8 md:px-16 py-2">
+    <div class="px-8 md:px-16 py-2 fade-seq" :class="isOpen ? 'is-open' : ''">
       <h3 class="text-xl font-bold">Глубокий Анализ</h3>
       <p class="mt-1">Получите комплексный анализ ваших последних 5 снов.</p>
       <!-- Количество токенов/кредитов не показываем в ТМА (мобильный UX) -->
@@ -32,7 +32,7 @@
         ✅ Глубокий анализ выполнен! Результат доступен во вкладке «Глубокий анализ» ниже.
       </div>
     </div>
-    <div class="absolute left-4 right-4 transition-all duration-300"
+    <div class="absolute left-4 right-4 transition-all duration-300 fade-seq" :class="isOpen ? 'is-open' : ''"
          :class="isOpen && userStore?.canAttemptDeepAnalysis ? 'bottom-4 opacity-100' : '-bottom-24 opacity-0 pointer-events-none'">
       <button
         class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors"

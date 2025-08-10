@@ -13,7 +13,7 @@
       label="Загрузка профиля..."
     />
     
-    <div class="px-8 md:px-16 py-6" :class="[isOpen ? '' : 'flex items-center justify-between']">
+    <div class="px-8 md:px-16 py-6 fade-seq" :class="[isOpen ? 'is-open' : 'flex items-center justify-between']">
       <div class="flex items-center mb-4" :class="[isOpen ? '' : 'mb-0 flex-1']">
         <div class="relative">
           <img class="w-10 h-10 rounded-full object-cover" :src="userAvatar" />
@@ -41,7 +41,7 @@
       
       <!-- Обычное содержимое -->
        <template v-else>
-        <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap transition-opacity duration-300" :class="isOpen ? 'opacity-100 delay-100' : 'opacity-0'">
+        <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap">
           <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
           <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
         </div>
@@ -61,30 +61,29 @@
         
         <!-- Обычная статистика -->
         <template v-else>
-          <div class="flex justify-between transition-opacity duration-300" :class="isOpen ? 'opacity-100 delay-150' : 'opacity-0'">
+          <div class="flex justify-between">
             <span class="opacity-80">Пользователь уже:</span>
             <span>{{ userExperienceTime }}</span>
           </div>
-          <div class="flex justify-between transition-opacity duration-300" :class="isOpen ? 'opacity-100 delay-200' : 'opacity-0'">
+          <div class="flex justify-between">
             <span class="opacity-80">Проанализировано снов:</span>
             <span>{{ userStore?.profile?.total_dreams_count || 0 }}</span>
           </div>
-          <div class="flex justify-between transition-opacity duration-300" :class="isOpen ? 'opacity-100 delay-250' : 'opacity-0'">
+          <div class="flex justify-between">
             <span class="opacity-80">Глубоких анализов:</span>
             <span>{{ userStore?.profile?.deep_analyses_count || 0 }}</span>
           </div>
-          <div class="flex justify-between transition-opacity duration-300" :class="isOpen ? 'opacity-100 delay-300' : 'opacity-0'">
+          <div class="flex justify-between">
             <span class="opacity-80">Приглашено друзей:</span>
             <span>{{ userStore?.profile?.invited_friends_count || 0 }}</span>
           </div>
         </template>
       </div>
     </div>
-    <div class="absolute left-4 right-4 space-y-2 transition-all duration-300"
+    <div class="absolute left-4 right-4 space-y-2 transition-all duration-300 fade-seq"
          :class="isOpen ? 'bottom-4 opacity-100' : '-bottom-24 opacity-0 pointer-events-none'">
       <button
-        class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors flex items-center justify-center transition-opacity duration-300 delay-100"
-        :class="isOpen ? 'opacity-100' : 'opacity-0'"
+        class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors flex items-center justify-center"
         @click.stop="openTariff"
         :disabled="userStore?.isLoadingProfile"
       >
@@ -97,8 +96,7 @@
         Сменить тариф
       </button>
       <button
-        class="w-full bg-white/10 text-white/60 rounded-xl py-3 font-semibold cursor-not-allowed transition-opacity duration-300 delay-200"
-        :class="isOpen ? 'opacity-100' : 'opacity-0'"
+        class="w-full bg-white/10 text-white/60 rounded-xl py-3 font-semibold cursor-not-allowed"
         disabled
       >
         Получить токены

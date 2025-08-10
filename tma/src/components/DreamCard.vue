@@ -10,21 +10,21 @@
         {{ relativeDate }}
       </span>
     </div>
-    <div v-if="active" class="mt-4 space-y-3 text-sm">
-      <div v-if="displayTags.length" class="flex flex-wrap gap-2 transition-opacity duration-300" :class="active ? 'opacity-100' : 'opacity-0'">
+    <div v-if="active" class="mt-4 space-y-3 text-sm fade-seq is-open">
+      <div v-if="displayTags.length" class="flex flex-wrap gap-2">
         <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">
           {{ tag }}
         </span>
       </div>
-      <div class="transition-opacity duration-300 delay-100" :class="active ? 'opacity-100' : 'opacity-0'">
+      <div>
         <h4 class="font-semibold mb-1">Сон:</h4>
         <p class="leading-snug opacity-90">{{ dream.dream_text }}</p>
       </div>
-      <div class="transition-opacity duration-300 delay-200" :class="active ? 'opacity-100' : 'opacity-0'">
+      <div>
         <h4 class="font-semibold mb-1">Анализ:</h4>
         <p class="leading-snug opacity-90">{{ dream.analysis }}</p>
       </div>
-      <div class="mt-4 flex gap-2 transition-opacity duration-300 delay-300" :class="active ? 'opacity-100' : 'opacity-0'">
+      <div class="mt-4 flex gap-2">
         <button 
           class="flex-1 bg-white/20 hover:bg-white/30 text-white rounded-xl py-2 text-sm font-medium transition-colors"
           @click.stop="handleLike"

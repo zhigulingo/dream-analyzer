@@ -91,6 +91,34 @@ h1, h2 {
   transform: translateY(24px);
   animation: fadeInUp 0.7s var(--transition) forwards;
 }
+/* Unified sequential fade utility */
+.fade-seq > * {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 250ms ease, transform 250ms ease;
+}
+
+.fade-seq.is-open > * {
+  opacity: 1;
+  transform: none;
+}
+
+/* Open sequence delays (1..6) */
+.fade-seq.is-open > *:nth-child(1) { transition-delay: 0ms; }
+.fade-seq.is-open > *:nth-child(2) { transition-delay: 80ms; }
+.fade-seq.is-open > *:nth-child(3) { transition-delay: 160ms; }
+.fade-seq.is-open > *:nth-child(4) { transition-delay: 240ms; }
+.fade-seq.is-open > *:nth-child(5) { transition-delay: 320ms; }
+.fade-seq.is-open > *:nth-child(6) { transition-delay: 400ms; }
+
+/* Close (reverse) sequence delays */
+.fade-seq:not(.is-open) > *:nth-child(1) { transition-delay: 240ms; }
+.fade-seq:not(.is-open) > *:nth-child(2) { transition-delay: 160ms; }
+.fade-seq:not(.is-open) > *:nth-child(3) { transition-delay: 80ms; }
+.fade-seq:not(.is-open) > *:nth-child(4) { transition-delay: 0ms; }
+.fade-seq:not(.is-open) > *:nth-child(5) { transition-delay: 0ms; }
+.fade-seq:not(.is-open) > *:nth-child(6) { transition-delay: 0ms; }
+
 
 @keyframes fadeInUp {
   to {
