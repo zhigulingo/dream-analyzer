@@ -194,10 +194,10 @@ export const useUserStore = defineStore('user', {
       console.log(`[UserStore:fetchHistory] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
       
       // Используем offline-aware операцию
-      // Просим сервер не использовать кеш, чтобы новые записи появлялись быстрее
+      // Загружаем историю обычным способом (без нестандартных заголовков для совместимости CORS)
       const response = await this.offlineDetection.executeOnlineOperation(
-        () => apiClient.get('/analyses-history', { headers: { 'x-bypass-cache': '1' } }),
-        'Загрузка истории (fresh)'
+        () => api.getAnalysesHistory(),
+        'Загрузка истории'
       );
       
       this.history = response.data;
