@@ -159,7 +159,7 @@ exports.handler = async (event) => {
             if (isDeepOnly) {
                 const { data, error } = await supabase
                   .from('analyses')
-                  .select('id, dream_text, analysis, created_at')
+                  .select('id, dream_text, analysis, created_at, is_deep_analysis, deep_source')
                   .eq('user_id', userDbId)
                   .eq('is_deep_analysis', true)
                   .order('created_at', { ascending: false })
@@ -188,7 +188,7 @@ exports.handler = async (event) => {
             if (isDeepOnly) {
                 const { data, error } = await supabase
                   .from('analyses')
-                  .select('id, dream_text, analysis, created_at')
+                  .select('id, dream_text, analysis, created_at, is_deep_analysis, deep_source')
                   .eq('user_id', userDbId)
                   .eq('is_deep_analysis', true)
                   .order('created_at', { ascending: false })
