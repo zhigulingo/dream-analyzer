@@ -4,23 +4,25 @@
     - Убираем растягивание на всю ширину (full-bleed) и сохраняем левый отступ как у остальных секций
     - Убираем только правый отступ за счёт отрицательного margin-right, чтобы следующая карточка чуть выглядывала
   -->
-  <section class="relative mb-8">
+  <section class="carousel-root relative mb-8">
     <Swiper
       :modules="modules"
-      :spaceBetween="16"
+      :spaceBetween="gapSize"
       slides-per-view="auto"
-      :autoplay="{
-        delay: 5000,
-        disableOnInteraction: false,
-      }"
-      :pagination="{ clickable: true, el: '.facts-pagination', dynamicBullets: true }"
+      :centeredSlides="false"
+      :autoplay="autoplay"
+      :pagination="pagination"
+      :keyboard="{ enabled: true }"
+      :a11y="{ enabled: true }"
       :style="{ height: maxCardHeight + 'px' }"
+      class="w-full"
     >
       <SwiperSlide
         v-for="fact in facts"
         :key="fact.id"
         ref="cardRefs"
-        class="carousel-card w-[calc(100%_-_48px)] sm:w-[calc(100%_-_56px)] md:w-[calc(100%_-_64px)] rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
+        class="carousel-card rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
+        :class="slideWidthClass"
         :style="{ height: maxCardHeight + 'px' }"
       >
         <div class="mb-4">
@@ -35,17 +37,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed, onBeforeUnmount } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Autoplay, Pagination } from 'swiper/modules'
+import { Autoplay, Pagination, A11y, Keyboard } from 'swiper/modules'
 import Badge from '@/components/Badge.vue'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import 'swiper/css/autoplay'
 
-const modules = [Autoplay, Pagination]
+const modules = [Autoplay, Pagination, A11y, Keyboard]
 const cardRefs = ref([])
 const maxCardHeight = ref(224)
+const gapSize = 16
+
+const autoplay = {
+  delay: 5000,
+  disableOnInteraction: false,
+}
+
+const pagination = { clickable: true, el: '.facts-pagination', dynamicBullets: true }
+
+// Ширина слайда: меньше контейнера на "peek" и gap, чтобы следующая карточка выглядывала
+const slideWidthClass = computed(() => 'w-[calc(100%_-_var(--peek)_-_var(--gap))]')
 
 const facts = ref([
   { id: 1, type: 'Факт', text: 'Большинство снов забываются в течение первых 5-10 минут после пробуждения.' },
@@ -74,10 +87,29 @@ const calculateMaxHeight = () => {
 
 onMounted(() => {
   calculateMaxHeight()
+  window.addEventListener('resize', calculateMaxHeight)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', calculateMaxHeight)
 })
 </script>
 
 <style scoped>
+.carousel-root {
+  /* amount of next-card preview and inter-slide gap */
+  --peek: 48px;
+  --gap: 16px; /* must match gapSize */
+}
+
+@media (min-width: 640px) {
+  .carousel-root { --peek: 56px; }
+}
+
+@media (min-width: 768px) {
+  .carousel-root { --peek: 64px; }
+}
+
 .facts-pagination {
   display: flex !important;
   justify-content: center !important;
