@@ -141,7 +141,7 @@ try {
 let netlifyWebhookHandler = null;
 if (botInitializedAndHandlersSet && bot) {
     try {
-        netlifyWebhookHandler = webhookCallback(bot, 'aws-lambda-async');
+        netlifyWebhookHandler = webhookCallback(bot, 'aws-lambda');
         logger.info("Webhook callback created successfully");
     } catch (callbackError) { 
         logger.error("Failed to create webhook callback", {}, callbackError); 
@@ -155,7 +155,7 @@ if (botInitializedAndHandlersSet && bot) {
     }); 
 }
 
-exports.handler = async (event) => {
+exports.handler = async (event, context) => {
     const handlerLogger = logger.child({ handler: 'netlify-webhook' });
     handlerLogger.generateCorrelationId();
     
@@ -177,7 +177,7 @@ exports.handler = async (event) => {
     }
     
     handlerLogger.info("Calling webhook callback handler");
-    return netlifyWebhookHandler(event);
+    return netlifyWebhookHandler(event, context);
 };
 
 logger.info("Netlify handler exported successfully");
