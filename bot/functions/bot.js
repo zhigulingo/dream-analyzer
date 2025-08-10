@@ -27,6 +27,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TMA_URL = process.env.TMA_URL;
+const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
 
 // --- Global Initialization ---
 let bot;
@@ -50,8 +51,8 @@ try {
     });
     
     // Validate environment variables
-    if (!BOT_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_KEY || !GEMINI_API_KEY || !TMA_URL) {
-        throw new Error("FATAL: Missing one or more environment variables!");
+    if (!BOT_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_KEY || !GEMINI_API_KEY) {
+        throw new Error("FATAL: Missing one or more critical environment variables! (BOT_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY)");
     }
 
     // Initialize clients
@@ -64,6 +65,9 @@ try {
         botToken: BOT_TOKEN ? 'configured' : 'missing',
         supabaseUrl: SUPABASE_URL ? 'configured' : 'missing'
     });
+
+    // Resolve TMA app URL (fallback to allowed origin if TMA_URL is not set)
+    const TMA_APP_URL = TMA_URL || ALLOWED_TMA_ORIGIN || 'https://tourmaline-eclair-9d40ea.netlify.app';
 
     // Initialize services
     userService = new UserService(supabaseAdmin);
@@ -78,11 +82,11 @@ try {
     logger.info("Setting up bot handlers");
 
     // Command handlers
-    bot.command("start", createStartCommandHandler(userService, messageService, TMA_URL));
+    bot.command("start", createStartCommandHandler(userService, messageService, TMA_APP_URL));
     bot.command("setpassword", createSetPasswordCommandHandler(userService, messageService));
 
     // Message handlers
-    bot.on("message:text", createTextMessageHandler(userService, messageService, analysisService, TMA_URL));
+    bot.on("message:text", createTextMessageHandler(userService, messageService, analysisService, TMA_APP_URL));
 
     // Payment handlers
     bot.on('pre_checkout_query', createPreCheckoutQueryHandler(messageService));
