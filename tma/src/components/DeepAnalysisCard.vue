@@ -32,15 +32,15 @@
         ✅ Глубокий анализ выполнен! Результат доступен во вкладке «Глубокий анализ» ниже.
       </div>
     </div>
-    <transition name="fade">
+    <div class="absolute left-4 right-4 transition-all duration-300"
+         :class="isOpen && userStore?.canAttemptDeepAnalysis ? 'bottom-4 opacity-100' : 'bottom-0 opacity-0 pointer-events-none'">
       <button
-        v-if="isOpen && userStore?.canAttemptDeepAnalysis"
-        class="absolute bottom-4 left-4 right-4 bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors"
+        class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors"
         @click.stop="requestAnalysis"
       >
         {{ ((userStore?.profile?.deep_analysis_credits || 0) > 0) || ((userStore?.profile?.free_deep_analysis || 0) > 0) ? 'Выполнить анализ' : 'Получить анализ (1 ⭐️)' }}
       </button>
-    </transition>
+    </div>
   </article>
 </template>
 

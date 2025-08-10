@@ -1,7 +1,7 @@
 <template>
   <article
     class="relative rounded-xl bg-gradient-to-br from-[#5461FF] to-[#4857FF] text-white overflow-hidden transition-all"
-    :class="[isOpen ? 'pb-32' : 'min-h-[10.5rem]']"
+    :class="[isOpen ? 'pb-32' : 'h-[11.55vh] md:h-[10.5rem]']"
     @click="toggle"
   >
     <!-- Loading overlay для профиля -->
@@ -41,9 +41,13 @@
       
       <!-- Обычное содержимое -->
        <template v-else>
-        <div class="mb-4 flex gap-2 flex-wrap">
+        <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap">
           <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
           <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
+        </div>
+        <div v-else class="flex flex-col gap-2 ml-auto">
+          <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
+          <Badge class="whitespace-nowrap">{{ userStore?.profile?.subscription_type || 'Free' }}</Badge>
         </div>
       </template>
       <div v-if="isOpen" class="space-y-2 text-sm">
@@ -76,29 +80,28 @@
         </template>
       </div>
     </div>
-    <transition name="fade">
-      <div v-if="isOpen" class="absolute bottom-4 left-4 right-4 space-y-2">
-        <button
-          class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors flex items-center justify-center"
-          @click.stop="openTariff"
-          :disabled="userStore?.isLoadingProfile"
-        >
-          <LoadingSpinner 
-            v-if="userStore?.isLoadingProfile"
-            size="xs"
-            variant="white"
-            class="mr-2"
-          />
-          Сменить тариф
-        </button>
-        <button
-          class="w-full bg-white/10 text-white/60 rounded-xl py-3 font-semibold cursor-not-allowed"
-          disabled
-        >
-          Получить токены
-        </button>
-      </div>
-    </transition>
+    <div class="absolute bottom-4 left-4 right-4 space-y-2 transition-opacity duration-300"
+         :class="isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'">
+      <button
+        class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors flex items-center justify-center"
+        @click.stop="openTariff"
+        :disabled="userStore?.isLoadingProfile"
+      >
+        <LoadingSpinner 
+          v-if="userStore?.isLoadingProfile"
+          size="xs"
+          variant="white"
+          class="mr-2"
+        />
+        Сменить тариф
+      </button>
+      <button
+        class="w-full bg-white/10 text-white/60 rounded-xl py-3 font-semibold cursor-not-allowed"
+        disabled
+      >
+        Получить токены
+      </button>
+    </div>
   </article>
 </template>
 

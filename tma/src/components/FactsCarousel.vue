@@ -1,22 +1,22 @@
 <template>
-  <section class="relative mb-8 w-full max-w-72r mx-auto px-0">
+  <section class="relative -mx-4 sm:-mx-6 md:-mx-8 mb-8">
     <Swiper
       :modules="modules"
-      :spaceBetween="12"
-      :slides-per-view="1.1"
+      :spaceBetween="16"
+      slides-per-view="auto"
       :autoplay="{
         delay: 5000,
         disableOnInteraction: false,
       }"
       :pagination="{ clickable: true, el: '.swiper-pagination-custom' }"
-      class=""
+      class="pl-4 sm:pl-6 md:pl-8"
       :style="{ height: maxCardHeight + 'px' }"
     >
       <SwiperSlide
         v-for="fact in facts"
         :key="fact.id"
         ref="cardRefs"
-        class="carousel-card rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
+        class="carousel-card w-[82%] md:w-[70%] lg:w-[64%] rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
         :style="{ height: maxCardHeight + 'px' }"
       >
         <div class="mb-4">
@@ -78,12 +78,15 @@ onMounted(() => {
 :deep(.swiper-pagination),
 :deep(.swiper-pagination-custom) {
   position: static !important;
-  text-align: center;
-  margin-top: 1.5rem;
+  text-align: center !important;
+  margin-top: 1.5rem !important;
   display: flex !important;
   justify-content: center !important;
-  gap: 12px !important;
-  z-index: 10 !important;
+  align-items: center !important;
+  gap: 10px !important;
+  z-index: 50 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 :deep(.swiper-pagination-bullet) {
@@ -92,14 +95,23 @@ onMounted(() => {
   width: 12px !important;
   height: 12px !important;
   border-radius: 50% !important;
-  transition: all 0.3s ease !important;
+  transition: transform 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease !important;
   cursor: pointer !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
 :deep(.swiper-pagination-bullet-active) {
   background: white !important;
-  transform: scale(1.3) !important;
+  transform: scale(1.25) !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Сгладить прокрутку/смещение карточек */
+:deep(.swiper) {
+  scroll-behavior: smooth;
+}
+
+:deep(.swiper-wrapper) {
+  transition-timing-function: ease-in-out !important;
 }
 </style>
