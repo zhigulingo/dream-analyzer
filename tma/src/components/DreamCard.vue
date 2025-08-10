@@ -5,7 +5,7 @@
     @click="handleToggle"
   >
     <div class="flex justify-between items-center" :class="[active ? 'pt-8' : '']">
-      <h3 class="truncate">{{ dreamTitle }}</h3>
+      <h3 class="truncate">{{ displayTitle }}</h3>
       <span class="bg-white/10 rounded-full px-2 py-1 text-sm min-w-[3rem] text-center whitespace-nowrap">
         {{ relativeDate }}
       </span>
@@ -87,12 +87,43 @@ const handleDelete = () => {
   // TODO: Implement delete functionality
 }
 
-const dreamTitle = computed(() => {
-  if (!props.dream.dream_text) return 'Без названия'
-  const title = props.dream.dream_text.length > 50 
-    ? props.dream.dream_text.substring(0, 47) + '...' 
-    : props.dream.dream_text
-  return title
+const stopwords = new Set([
+  'и','в','во','не','что','он','на','я','с','со','как','а','то','все','она','так','его','но','да','ты','к','у','же','вы','за','бы','по','ее','мне','было','вот','от','меня','еще','нет','о','из','ему','теперь','когда','даже','ну','вдруг','ли','если','уже','или','ни','быть','был','него','до','вас','нибудь','опять','уж','вам','ведь','там','потом','себя','ничего','ей','может','они','тут','где','есть','надо','ней','для','мы','тебя','их','чем','была','сам','чтоб','без','будто','чего','раз','тоже','себе','под','будет','ж','тогда','кто','этот','того','потому','этого','какой','совсем','ним','здесь','этом','один','почти','мой','тем','чтобы','нее','кажется','сейчас','были','куда','зачем','всех','никогда','можно','при','наконец','два','об','другой','хоть','после','над','больше','тот','через','эти','нас','про','всего','них','какая','много','разве','три','эту','моя','впрочем','хорошо','свою','этой','перед','иногда','лучше','чуть','том','нельзя','такой','им','более','всегда','конечно','всю','между'
+])
+
+function toTitleCase(text) {
+  return text.replace(/\s+/g, ' ').trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
+
+function extractTitleFromText(text) {
+  if (!text) return ''
+  const firstSentence = String(text).split(/[.!?\n]/)[0]
+  const words = firstSentence
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .split(/\s+/)
+    .filter(w => w && !stopwords.has(w) && w.length > 3)
+
+  const picked = words.slice(0, 3)
+  if (picked.length === 0) {
+    return firstSentence.slice(0, 40)
+  }
+  return toTitleCase(picked.join(' '))
+}
+
+const displayTitle = computed(() => {
+  // Prefer explicit title if backend ever provides it
+  const anyTitle = (props.dream && (props.dream.title || props.dream?.deep_source?.title)) || ''
+  if (anyTitle) return anyTitle
+
+  const isDeep = !!props.dream?.is_deep_analysis || props.dream?.dream_text === '[DEEP_ANALYSIS_SOURCE]'
+  if (isDeep) {
+    const t = extractTitleFromText(props.dream?.analysis)
+    return t ? t : 'Глубокий анализ'
+  }
+  // Fallback to dream text
+  const t = extractTitleFromText(props.dream?.dream_text)
+  return t || 'Без названия'
 })
 
 const relativeDate = computed(() => {

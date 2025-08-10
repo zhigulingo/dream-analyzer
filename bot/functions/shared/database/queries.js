@@ -217,7 +217,7 @@ class DatabaseQueries {
         
         const { data, error } = await this.supabase
             .from('analyses')
-            .select('id, dream_text, analysis, created_at, is_deep_analysis')
+            .select('id, dream_text, analysis, created_at, is_deep_analysis, deep_source')
             .eq('user_id', userDbId)
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);

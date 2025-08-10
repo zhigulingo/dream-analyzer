@@ -111,8 +111,24 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
 
     // Save result to DB
     try {
+        // Generate a short 2-3 word title (heuristic; stored in deep_source.title for now)
+        const shortTitle = (() => {
+            try {
+                const firstSentence = String(dreamText).split(/[.!?\n]/)[0];
+                const words = firstSentence
+                  .toLowerCase()
+                  .replace(/[^\p{L}\p{N}\s-]/gu, '')
+                  .split(/\s+/)
+                  .filter(w => w && w.length > 3)
+                  .slice(0, 3)
+                  .map(w => w.charAt(0).toUpperCase() + w.slice(1));
+                const t = words.join(' ');
+                return t || 'Сон';
+            } catch (_) { return 'Сон'; }
+        })();
+
         const { error: insertError } = await supabase
-            .from('analyses').insert({ user_id: userDbId, dream_text: dreamText, analysis: analysisResultText });
+            .from('analyses').insert({ user_id: userDbId, dream_text: dreamText, analysis: analysisResultText, deep_source: { title: shortTitle } });
         if (insertError) {
             throw createApiError(`Error saving analysis: ${insertError.message}`, 500);
         }
