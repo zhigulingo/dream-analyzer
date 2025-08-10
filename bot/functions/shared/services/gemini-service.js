@@ -98,12 +98,12 @@ class GeminiService {
     /**
      * Специальный метод для глубокого анализа
      */
-    async deepAnalyzeDreams(combinedDreams) {
+    async deepAnalyzeDreams(combinedDreams, promptKey = 'deep') {
         if (!combinedDreams || combinedDreams.trim().length === 0) {
             throw new Error("No dream text provided for deep analysis");
         }
 
-        const cacheKey = this._getCacheKey(combinedDreams, 'deep');
+        const cacheKey = this._getCacheKey(combinedDreams, promptKey);
         const cachedResult = this.cache.get(cacheKey);
         if (cachedResult) {
             console.log("[GeminiService] Returning cached deep analysis result");
@@ -113,7 +113,7 @@ class GeminiService {
         const model = await this.initialize();
         
         return this._retryAnalysis(async () => {
-            const prompt = this._getPrompt('deep', combinedDreams);
+            const prompt = this._getPrompt(promptKey, combinedDreams);
             console.log("[GeminiService] Requesting deep analysis from Gemini...");
             
             const result = await model.generateContent(prompt);
@@ -125,7 +125,7 @@ class GeminiService {
             this._validateAnalysisText(analysisText);
             
             // Сохраняем в кеш с тегами для invalidation
-            this.cache.setWithTags(cacheKey, analysisText, this.cacheTimeout * 2, ['gemini', 'deep-analysis']);
+            this.cache.setWithTags(cacheKey, analysisText, this.cacheTimeout * 2, ['gemini', promptKey === 'deep' ? 'deep-analysis' : promptKey]);
             
             console.log("[GeminiService] Deep analysis completed successfully");
             return analysisText;
@@ -148,8 +148,21 @@ class GeminiService {
     _parseStructuredJson(rawText, mode) {
         try {
             // Trim potential code fences/markdown just in case
-            const cleaned = String(rawText).trim().replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
-            const obj = JSON.parse(cleaned);
+            let cleaned = String(rawText).trim().replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+            let obj;
+            try {
+                obj = JSON.parse(cleaned);
+            } catch (e1) {
+                // Try to extract JSON substring between first { and last }
+                const start = cleaned.indexOf('{');
+                const end = cleaned.lastIndexOf('}');
+                if (start !== -1 && end !== -1 && end > start) {
+                    const candidate = cleaned.slice(start, end + 1);
+                    obj = JSON.parse(candidate);
+                } else {
+                    throw e1;
+                }
+            }
             if (!obj || typeof obj !== 'object') throw new Error('Not an object');
             if (typeof obj.title !== 'string' || !Array.isArray(obj.tags) || typeof obj.analysis !== 'string') {
                 throw new Error('Missing required fields');

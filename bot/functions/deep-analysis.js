@@ -199,7 +199,7 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             deepAnalysisResultJson = await geminiService.deepAnalyzeDreamsJSON(combinedDreamsText);
         } catch (_) {
             // Fallback to legacy text
-            const legacyText = await getDeepGeminiAnalysis(null, combinedDreamsText);
+            const legacyText = await geminiService.deepAnalyzeDreams(combinedDreamsText, 'deep');
             deepAnalysisResultJson = { title: '', tags: [], analysis: legacyText };
         }
 
