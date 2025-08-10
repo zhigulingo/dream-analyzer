@@ -13,7 +13,7 @@
       label="Загрузка профиля..."
     />
     
-    <div class="px-8 md:px-16 py-6" :class="[isOpen ? 'fade-seq is-open seq-offset-0 pt-2' : 'flex items-center justify-between']">
+    <div class="px-8 md:px-16 py-4" :class="[isOpen ? 'fade-seq is-open seq-offset-0' : 'flex items-center justify-between']">
       <div class="flex items-center mb-4" :class="[isOpen ? '' : 'mb-0 flex-1']">
         <div class="relative">
           <img class="w-10 h-10 rounded-full object-cover" :src="userAvatar" />
@@ -41,16 +41,16 @@
       
       <!-- Обычное содержимое -->
        <template v-else>
-        <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap">
+        <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap fade-seq is-open">
           <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
           <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
         </div>
-        <div v-else class="flex flex-col gap-2 ml-auto items-end">
+        <div v-else class="flex flex-col gap-1 ml-auto items-end">
           <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
           <Badge class="whitespace-nowrap">{{ userStore?.profile?.subscription_type || 'Free' }}</Badge>
         </div>
        </template>
-       <div v-if="isOpen" class="space-y-2 text-sm">
+       <div v-if="isOpen" class="space-y-2 text-sm fade-seq is-open">
         <!-- Показываем скелет статистики при загрузке -->
         <template v-if="userStore?.isLoadingProfile">
           <div v-for="i in 4" :key="i" class="flex justify-between">
@@ -80,8 +80,8 @@
         </template>
       </div>
     </div>
-    <div class="absolute left-4 right-4 space-y-2 transition-all duration-300"
-         :class="isOpen ? 'bottom-4 opacity-100' : '-bottom-24 opacity-0 pointer-events-none'">
+    <div class="absolute left-4 right-4 bottom-4 space-y-2 transition-opacity duration-300"
+         :class="isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'">
       <button
         class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors flex items-center justify-center"
         @click.stop="openTariff"
