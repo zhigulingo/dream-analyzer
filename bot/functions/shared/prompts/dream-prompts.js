@@ -82,6 +82,26 @@ Rules:
 - Верни только валидный JSON без форматирования и пояснений.
 - Заголовок максимально короткий и ёмкий.
 - Теги без спецсимволов и '#'.`
+ - Теги без спецсимволов и '#'.`,
+
+    /**
+     * Repair: convert any text to valid JSON per schema
+     */
+    repair_json: `Convert the following text into STRICTLY valid JSON with EXACT fields:
+{
+  "title": string,   // 2-3 Russian words (no punctuation)
+  "tags": string[],  // 3-5 Russian tags (1-3 words each, no '#')
+  "analysis": string // Russian analysis text
+}
+
+Text:
+"""
+[DREAM_TEXT]
+"""
+
+Rules:
+- Output ONLY JSON, no markdown, no comments.
+- If information is missing, infer best possible based on the text.`
 };
 
 /**

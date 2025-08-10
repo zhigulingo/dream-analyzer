@@ -171,7 +171,20 @@ class GeminiService {
             obj.title = obj.title.trim().replace(/[\p{P}\p{S}]/gu, '').slice(0, 60);
             return obj;
         } catch (e) {
-            console.warn(`[GeminiService] Failed to parse ${mode} JSON, falling back to raw text.`, e?.message);
+            console.warn(`[GeminiService] Failed to parse ${mode} JSON, attempting repair.`, e?.message);
+            try {
+                const repairPrompt = this._getPrompt('repair_json', rawText);
+                const model = this.model || await this.initialize();
+                const result = await model.generateContent(repairPrompt);
+                const response = await result.response;
+                const repaired = response.text();
+                const obj = JSON.parse(repaired);
+                if (typeof obj.title === 'string' && Array.isArray(obj.tags) && typeof obj.analysis === 'string') {
+                    return obj;
+                }
+            } catch (e2) {
+                console.warn('[GeminiService] Repair failed, returning raw text.', e2?.message);
+            }
             return { title: '', tags: [], analysis: rawText };
         }
     }
