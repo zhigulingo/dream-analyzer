@@ -14,7 +14,7 @@
     />
     
     <div class="px-8 md:px-16 py-6" :class="[isOpen ? '' : 'flex items-center justify-between']">
-      <div class="flex items-center mb-4" :class="[isOpen ? '' : 'mb-0']">
+      <div class="flex items-center mb-4" :class="[isOpen ? '' : 'mb-0 flex-1']">
         <div class="relative">
           <img class="w-10 h-10 rounded-full object-cover" :src="userAvatar" />
           <LoadingSpinner 
@@ -41,7 +41,7 @@
       
       <!-- Обычное содержимое -->
        <template v-else>
-        <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap transition-opacity duration-300 delay-75" :class="isOpen ? 'opacity-100' : 'opacity-0'">
+        <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap transition-opacity duration-300" :class="isOpen ? 'opacity-100 delay-100' : 'opacity-0'">
           <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
           <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
         </div>
@@ -50,7 +50,7 @@
           <Badge class="whitespace-nowrap">{{ userStore?.profile?.subscription_type || 'Free' }}</Badge>
         </div>
        </template>
-      <div v-if="isOpen" class="space-y-2 text-sm">
+       <div v-if="isOpen" class="space-y-2 text-sm">
         <!-- Показываем скелет статистики при загрузке -->
         <template v-if="userStore?.isLoadingProfile">
           <div v-for="i in 4" :key="i" class="flex justify-between">
@@ -61,19 +61,19 @@
         
         <!-- Обычная статистика -->
         <template v-else>
-          <div class="flex justify-between">
+          <div class="flex justify-between transition-opacity duration-300" :class="isOpen ? 'opacity-100 delay-150' : 'opacity-0'">
             <span class="opacity-80">Пользователь уже:</span>
             <span>{{ userExperienceTime }}</span>
           </div>
-          <div class="flex justify-between">
+          <div class="flex justify-between transition-opacity duration-300" :class="isOpen ? 'opacity-100 delay-200' : 'opacity-0'">
             <span class="opacity-80">Проанализировано снов:</span>
             <span>{{ userStore?.profile?.total_dreams_count || 0 }}</span>
           </div>
-          <div class="flex justify-between">
+          <div class="flex justify-between transition-opacity duration-300" :class="isOpen ? 'opacity-100 delay-250' : 'opacity-0'">
             <span class="opacity-80">Глубоких анализов:</span>
             <span>{{ userStore?.profile?.deep_analyses_count || 0 }}</span>
           </div>
-          <div class="flex justify-between">
+          <div class="flex justify-between transition-opacity duration-300" :class="isOpen ? 'opacity-100 delay-300' : 'opacity-0'">
             <span class="opacity-80">Приглашено друзей:</span>
             <span>{{ userStore?.profile?.invited_friends_count || 0 }}</span>
           </div>
