@@ -84,7 +84,11 @@ class GeminiService {
             
             this._validateResponse(response);
             
-            const analysisText = response.text();
+            // Ensure plain text without code fences
+            const analysisText = String(response.text())
+                .replace(/^```[\s\S]*?\n/, '')
+                .replace(/```$/,'')
+                .trim();
             this._validateAnalysisText(analysisText);
             
             // Сохраняем в кеш с тегами для invalidation

@@ -17,8 +17,13 @@ class AnalysisService {
         try {
             return await geminiService.analyzeDream(dreamText, 'basic');
         } catch (error) {
-            console.error("[AnalysisService] Error from Gemini service:", error);
-            throw error;
+            console.warn("[AnalysisService] Primary prompt failed, trying brief:", error?.message);
+            try {
+                return await geminiService.analyzeDream(dreamText, 'brief');
+            } catch (error2) {
+                console.error("[AnalysisService] Brief prompt failed:", error2?.message);
+                return "Краткий анализ временно недоступен. Попробуйте ещё раз позже. Обратите внимание на ключевые образы и эмоции сна — это поможет понять основной посыл.";
+            }
         }
     }
 
