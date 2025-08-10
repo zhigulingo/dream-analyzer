@@ -98,7 +98,7 @@ class GeminiService {
     /**
      * Специальный метод для глубокого анализа
      */
-    async deepAnalyzeDreams(combinedDreams, promptKey = 'deep') {
+    async deepAnalyzeDreams(combinedDreams, promptKey = 'deep', options = {}) {
         if (!combinedDreams || combinedDreams.trim().length === 0) {
             throw new Error("No dream text provided for deep analysis");
         }
@@ -112,6 +112,7 @@ class GeminiService {
 
         const model = await this.initialize();
         
+        const attemptsOverride = typeof options.attempts === 'number' ? options.attempts : (promptKey === 'deep_json' ? 1 : undefined);
         return this._retryAnalysis(async () => {
             const prompt = this._getPrompt(promptKey, combinedDreams);
             console.log("[GeminiService] Requesting deep analysis from Gemini...");
@@ -129,7 +130,7 @@ class GeminiService {
             
             console.log("[GeminiService] Deep analysis completed successfully");
             return analysisText;
-        });
+        }, attemptsOverride);
     }
 
     /**
@@ -137,15 +138,15 @@ class GeminiService {
      */
     async analyzeDreamJSON(dreamText) {
         const raw = await this.analyzeDream(dreamText, 'basic_json');
-        return this._parseStructuredJson(raw, 'basic_json');
+        return await this._parseStructuredJson(raw, 'basic_json');
     }
 
     async deepAnalyzeDreamsJSON(combinedDreams) {
-        const raw = await this.deepAnalyzeDreams(combinedDreams, 'deep_json');
-        return this._parseStructuredJson(raw, 'deep_json');
+        const raw = await this.deepAnalyzeDreams(combinedDreams, 'deep_json', { attempts: 1 });
+        return await this._parseStructuredJson(raw, 'deep_json');
     }
 
-    _parseStructuredJson(rawText, mode) {
+    async _parseStructuredJson(rawText, mode) {
         try {
             // Trim potential code fences/markdown just in case
             let cleaned = String(rawText).trim().replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
@@ -172,9 +173,13 @@ class GeminiService {
             return obj;
         } catch (e) {
             console.warn(`[GeminiService] Failed to parse ${mode} JSON, attempting repair.`, e?.message);
+            if (mode === 'deep_json') {
+                // Avoid expensive repair for deep to stay within function time limits
+                return { title: '', tags: [], analysis: rawText };
+            }
             try {
                 const repairPrompt = this._getPrompt('repair_json', rawText);
-                const model = this.model || await this.initialize();
+                const model = this.model || (await this.initialize());
                 const result = await model.generateContent(repairPrompt);
                 const response = await result.response;
                 const repaired = response.text();
@@ -192,10 +197,10 @@ class GeminiService {
     /**
      * Retry mechanism с exponential backoff
      */
-    async _retryAnalysis(analysisFunction) {
+    async _retryAnalysis(analysisFunction, attemptsOverride) {
         let lastError;
-        
-        for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+        const maxAttempts = attemptsOverride && attemptsOverride > 0 ? attemptsOverride : this.maxRetries;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
                 return await analysisFunction();
             } catch (error) {
@@ -208,7 +213,7 @@ class GeminiService {
                 }
                 
                 // Ждем перед следующей попыткой (exponential backoff)
-                if (attempt < this.maxRetries) {
+                if (attempt < maxAttempts) {
                     const delay = this.baseDelay * Math.pow(2, attempt - 1);
                     console.log(`[GeminiService] Waiting ${delay}ms before retry...`);
                     await this._sleep(delay);
