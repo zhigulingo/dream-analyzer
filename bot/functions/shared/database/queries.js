@@ -206,7 +206,42 @@ class DatabaseQueries {
             throw new Error(`Failed to get user profile: ${error.message}`);
         }
 
-        return data;
+        if (!data) {
+            return data;
+        }
+
+        // Добавляем агрегированные счётчики: всего анализов и глубоких анализов
+        try {
+            const userDbId = data.id;
+
+            const [{ count: totalCount, error: totalErr }, { count: deepCount, error: deepErr }] = await Promise.all([
+                this.supabase
+                    .from('analyses')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', userDbId),
+                this.supabase
+                    .from('analyses')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', userDbId)
+                    .eq('is_deep_analysis', true)
+            ]);
+
+            if (totalErr) {
+                throw new Error(totalErr.message);
+            }
+            if (deepErr) {
+                throw new Error(deepErr.message);
+            }
+
+            return {
+                ...data,
+                total_dreams_count: totalCount || 0,
+                deep_analyses_count: deepCount || 0
+            };
+        } catch (aggErr) {
+            console.warn('[DatabaseQueries] Failed to compute aggregated counts, returning base profile only:', aggErr?.message);
+            return data;
+        }
     }
 
     /**

@@ -34,7 +34,8 @@ exports.handler = async (event) => {
     const apiBase = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
     // If ?action=info, return current webhook info
-    const action = (event.queryStringParameters && event.queryStringParameters.action) || 'set';
+    const qs = event.queryStringParameters || {};
+    const action = qs.action || 'set';
     if (action === 'info') {
       const resp = await fetch(`${apiBase}/getWebhookInfo`);
       const data = await resp.json();
@@ -49,7 +50,7 @@ exports.handler = async (event) => {
         'pre_checkout_query', 'shipping_query', 'poll_answer',
         'my_chat_member'
       ],
-      drop_pending_updates: false
+      drop_pending_updates: qs.drop === '1'
     };
     const resp = await fetch(`${apiBase}/setWebhook`, {
       method: 'POST',

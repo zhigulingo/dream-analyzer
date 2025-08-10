@@ -66,7 +66,7 @@
             <span>{{ userExperienceTime }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="opacity-80">Интерпретировано снов:</span>
+            <span class="opacity-80">Проанализировано снов:</span>
             <span>{{ userStore?.profile?.total_dreams_count || 0 }}</span>
           </div>
           <div class="flex justify-between">

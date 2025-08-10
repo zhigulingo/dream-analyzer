@@ -191,7 +191,9 @@ exports.handler = async (event) => {
                 subscription_type: 'free', 
                 subscription_end: null, 
                 channel_reward_claimed: false,
-                deep_analysis_credits: 0
+                deep_analysis_credits: 0,
+                total_dreams_count: 0,
+                deep_analyses_count: 0
             };
         } else {
             responseBody = {
@@ -199,7 +201,9 @@ exports.handler = async (event) => {
                 subscription_type: userData.subscription_type || 'free',
                 subscription_end: userData.subscription_end,
                 channel_reward_claimed: userData.channel_reward_claimed || false,
-                deep_analysis_credits: userData.deep_analysis_credits || 0
+                deep_analysis_credits: userData.deep_analysis_credits || 0,
+                total_dreams_count: userData.total_dreams_count || 0,
+                deep_analyses_count: userData.deep_analyses_count || 0
             };
         }
 

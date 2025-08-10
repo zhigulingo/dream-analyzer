@@ -13,6 +13,7 @@
 - TMA авторизация: заголовок `X-Telegram-Init-Data`
 - Web авторизация: Bearer JWT в `Authorization` + refresh по `/refresh-token`
 - CORS: echo `Origin`, `Access-Control-Allow-Credentials: true`, allow `X-Telegram-Init-Data`
+ - Для TMA используем общий валидатор: `bot/functions/shared/auth/telegram-validator.js`
 
 ## Ключевые файлы (для задач анализа снов)
 - `bot/functions/analyze-dream.js` — обычный анализ сна
@@ -41,6 +42,7 @@
 ## Переменные окружения
 - Функции: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `JWT_SECRET`, `ALLOWED_TMA_ORIGIN`, `ALLOWED_WEB_ORIGIN`
 - TMA/Web: `VITE_API_BASE_URL` указывает на Bot site `/.netlify/functions`
+- Web: прямые `VITE_*_API_URL` опциональны — по умолчанию используется прокси `/api/*`
 
 ## Частые задачи
 - Изменить поведение анализа: редактировать `dream-prompts.js` и/или обработку в `analyze-dream.js`
