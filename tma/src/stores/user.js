@@ -141,9 +141,10 @@ export const useUserStore = defineStore('user', {
       console.log(`[UserStore:fetchProfile] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
       
       // Используем offline-aware операцию
+      // Берем свежие данные профиля, чтобы сразу видеть изменения кредитов/токенов
       const response = await this.offlineDetection.executeOnlineOperation(
-        () => api.getUserProfile(),
-        'Загрузка профиля'
+        () => api.getUserProfileFresh(),
+        'Загрузка профиля (fresh)'
       );
       
       this.profile = { ...this.profile, ...response.data };
@@ -193,9 +194,10 @@ export const useUserStore = defineStore('user', {
       console.log(`[UserStore:fetchHistory] Requesting from Base URL: ${apiClient.defaults.baseURL}`);
       
       // Используем offline-aware операцию
+      // Просим сервер не использовать кеш, чтобы новые записи появлялись быстрее
       const response = await this.offlineDetection.executeOnlineOperation(
-        () => api.getAnalysesHistory(),
-        'Загрузка истории'
+        () => apiClient.get('/analyses-history', { headers: { 'x-bypass-cache': '1' } }),
+        'Загрузка истории (fresh)'
       );
       
       this.history = response.data;

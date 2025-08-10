@@ -47,10 +47,14 @@
 import { computed } from 'vue'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
 import 'dayjs/locale/ru'
 
 dayjs.extend(relativeTime)
 dayjs.locale('ru')
+dayjs.extend(utc)
+dayjs.extend(timezone)
 
 const props = defineProps<{ dream: any; active: boolean }>()
 const emit = defineEmits(['toggle'])
@@ -94,13 +98,14 @@ const dreamTitle = computed(() => {
 const relativeDate = computed(() => {
   if (!props.dream.created_at) return ''
   try {
-    const date = dayjs(props.dream.created_at)
-    const now = dayjs()
+    const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || dayjs.tz.guess()
+    const date = dayjs.utc(props.dream.created_at).tz(userTz).startOf('day')
+    const now = dayjs().tz(userTz).startOf('day')
     const diffDays = now.diff(date, 'day')
     const diffWeeks = Math.floor(diffDays / 7)
     const diffMonths = Math.floor(diffDays / 30)
     const diffYears = Math.floor(diffDays / 365)
-    
+
     if (diffDays === 0) return 'сегодня'
     if (diffDays === 1) return 'вчера'
     if (diffDays < 7) return `${diffDays} д`
