@@ -205,21 +205,8 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
 
         // 10. Сгенерировать короткий заголовок и сохранить результат в БД в основной истории с пометкой глубокого анализа
         try {
-            const deepShortTitle = (() => {
-                try {
-                    // Попробуем выделить ключевые слова из анализа
-                    const firstSentence = String(deepAnalysisResult).split(/[.!?\n]/)[0];
-                    const words = firstSentence
-                      .toLowerCase()
-                      .replace(/[^\p{L}\p{N}\s-]/gu, '')
-                      .split(/\s+/)
-                      .filter(w => w && w.length > 3)
-                      .slice(0, 3)
-                      .map(w => w.charAt(0).toUpperCase() + w.slice(1));
-                    const t = words.join(' ');
-                    return t || 'Глубокий анализ';
-                } catch (_) { return 'Глубокий анализ'; }
-            })();
+            const deepShortTitle = deepAnalysisResultJson.title && deepAnalysisResultJson.title.trim() ? deepAnalysisResultJson.title : 'Глубокий анализ';
+            const deepTags = Array.isArray(deepAnalysisResultJson.tags) && deepAnalysisResultJson.tags.length > 0 ? deepAnalysisResultJson.tags : [];
             const { error: insertDeepError } = await supabase
                 .from('analyses')
                 .insert({ 
@@ -229,8 +216,8 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
                     is_deep_analysis: true,
                     deep_source: { 
                         required_dreams: REQUIRED_DREAMS, 
-                        title: deepAnalysisResultJson.title || deepShortTitle,
-                        tags: Array.isArray(deepAnalysisResultJson.tags) ? deepAnalysisResultJson.tags : []
+                        title: deepShortTitle,
+                        tags: deepTags
                     }
                 });
             if (insertDeepError) {

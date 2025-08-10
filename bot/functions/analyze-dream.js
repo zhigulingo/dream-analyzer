@@ -23,6 +23,22 @@ async function getGeminiAnalysis(dreamText) {
     }
 }
 
+// Simple fallback tag extraction (RU stopwords)
+function extractFallbackTags(text, maxTags = 5) {
+    try {
+        if (!text) return [];
+        const stop = new Set(['и','в','во','не','что','он','на','я','с','со','как','а','то','все','она','так','его','но','да','ты','к','у','же','вы','за','бы','по','ее','мне','было','вот','от','меня','еще','нет','о','из','ему','теперь','когда','даже','ну','вдруг','ли','если','уже','или','ни','быть','был','него','до','вас','нибудь','опять','уж','вам','ведь','там','потом','себя','ничего','ей','может','они','тут','где','есть','надо','ней','для','мы','тебя','их','чем','была','сам','чтоб','без','будто','чего','раз','тоже','себе','под','будет','ж','тогда','кто','этот','того','потому','этого','какой','совсем','ним','здесь','этом','один','почти','мой','тем','чтобы','нее','кажется','сейчас','были','куда','зачем','всех','никогда','можно','при','наконец','два','об','другой','хоть','после','над','больше','тот','через','эти','нас','про','всего','них','какая','много','разве','три','эту','моя','впрочем','хорошо','свою','этой','перед','иногда','лучше','чуть','том','нельзя','такой','им','более','всегда','конечно','всю','между']);
+        const tokens = String(text).toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, ' ').split(/\s+/).filter(Boolean);
+        const freq = new Map();
+        for (const t of tokens) {
+            if (t.length < 4 || stop.has(t)) continue;
+            freq.set(t, (freq.get(t) || 0) + 1);
+        }
+        const sorted = Array.from(freq.entries()).sort((a,b)=>b[1]-a[1]).slice(0, maxTags).map(([w])=>w);
+        return sorted;
+    } catch (_) { return []; }
+}
+
 // --- Internal Handler Function ---
 async function handleAnalyzeDream(event, context, corsHeaders) {
     console.log(`[analyze-dream] Processing dream analysis request`);
@@ -112,14 +128,20 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
     // Save result to DB
     try {
         // Generate a short 2-3 word title (heuristic; stored in deep_source.title for now)
+        // Fallbacks for title/tags if model returned plain text
+        const finalTitle = (analysisResult && analysisResult.title) ? analysisResult.title : null;
+        const finalTags = Array.isArray(analysisResult?.tags) && analysisResult.tags.length > 0
+            ? analysisResult.tags
+            : extractFallbackTags(analysisResult?.analysis || dreamText);
+
         const { error: insertError } = await supabase
             .from('analyses').insert({ 
                 user_id: userDbId, 
                 dream_text: dreamText, 
                 analysis: analysisResult?.analysis || String(analysisResult || ''),
                 deep_source: { 
-                    title: analysisResult?.title || null,
-                    tags: Array.isArray(analysisResult?.tags) ? analysisResult.tags : []
+                    title: finalTitle,
+                    tags: finalTags
                 }
             });
         if (insertError) {
