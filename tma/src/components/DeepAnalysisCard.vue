@@ -1,10 +1,10 @@
 <template>
   <article
-    class="relative rounded-xl bg-gradient-to-br from-[#9C41FF] to-[#C03AFF] text-white overflow-hidden transition-all cursor-pointer"
-    :class="[isOpen ? 'pb-20' : 'py-6']"
+    class="relative rounded-xl bg-gradient-to-br from-[#9C41FF] to-[#C03AFF] text-white overflow-hidden transition-all cursor-pointer py-6"
+    :class="[isOpen ? 'pb-20' : 'min-h-[8rem]']"
     @click="toggle"
   >
-    <div class="px-8 md:px-16" :class="[isOpen ? 'pt-8' : '']">
+    <div class="px-8 md:px-16 py-2">
       <h3 class="text-xl font-bold">Глубокий Анализ</h3>
       <p class="mt-1">Получите комплексный анализ ваших последних 5 снов.</p>
       <!-- Количество токенов/кредитов не показываем в ТМА (мобильный UX) -->

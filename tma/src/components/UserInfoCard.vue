@@ -1,7 +1,7 @@
 <template>
   <article
     class="relative rounded-xl bg-gradient-to-br from-[#5461FF] to-[#4857FF] text-white overflow-hidden transition-all"
-    :class="[isOpen ? 'pb-32' : 'h-[11.55vh] md:h-[10.5rem]']"
+    :class="[isOpen ? 'pb-32' : 'min-h-[10.5rem]']"
     @click="toggle"
   >
     <!-- Loading overlay для профиля -->
@@ -13,8 +13,8 @@
       label="Загрузка профиля..."
     />
     
-    <div class="px-8 md:px-16" :class="[isOpen ? 'pt-8' : 'flex items-center h-full']">
-      <div class="flex items-center" :class="[isOpen ? 'mb-4' : 'flex-1']">
+    <div class="px-8 md:px-16 py-4">
+      <div class="flex items-center mb-4">
         <div class="relative">
           <img class="w-10 h-10 rounded-full object-cover" :src="userAvatar" />
           <LoadingSpinner 
@@ -40,14 +40,10 @@
       </template>
       
       <!-- Обычное содержимое -->
-      <template v-else>
-        <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap">
+       <template v-else>
+        <div class="mb-4 flex gap-2 flex-wrap">
           <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
           <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
-        </div>
-        <div v-if="!isOpen" class="flex flex-col gap-2 ml-auto">
-          <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
-          <Badge class="whitespace-nowrap">{{ userStore?.profile?.subscription_type || 'Free' }}</Badge>
         </div>
       </template>
       <div v-if="isOpen" class="space-y-2 text-sm">

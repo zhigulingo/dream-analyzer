@@ -1,22 +1,22 @@
 <template>
-  <section class="relative -mx-4 sm:-mx-6 md:-mx-8 mb-8">
+  <section class="relative mb-8 w-full max-w-72r mx-auto px-0">
     <Swiper
       :modules="modules"
-      :spaceBetween="16"
-      slides-per-view="auto"
+      :spaceBetween="12"
+      :slides-per-view="1.1"
       :autoplay="{
         delay: 5000,
         disableOnInteraction: false,
       }"
       :pagination="{ clickable: true, el: '.swiper-pagination-custom' }"
-      class="pl-4 sm:pl-6 md:pl-8"
+      class=""
       :style="{ height: maxCardHeight + 'px' }"
     >
       <SwiperSlide
         v-for="fact in facts"
         :key="fact.id"
         ref="cardRefs"
-        class="carousel-card w-[90%] rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
+        class="carousel-card rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
         :style="{ height: maxCardHeight + 'px' }"
       >
         <div class="mb-4">

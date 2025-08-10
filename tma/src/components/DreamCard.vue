@@ -1,10 +1,10 @@
 <template>
   <article
-    class="rounded-xl bg-gradient-to-br from-[#4A58FF] to-[#5664FF] text-white px-8 md:px-16 transition-all overflow-hidden cursor-pointer"
-    :class="[active ? 'pb-20' : 'py-6 h-[4.5rem]']"
+    class="rounded-xl bg-gradient-to-br from-[#4A58FF] to-[#5664FF] text-white px-8 md:px-16 transition-all overflow-hidden cursor-pointer py-6"
+    :class="[active ? 'pb-20' : 'min-h-[4.5rem]']"
     @click="handleToggle"
   >
-    <div class="flex justify-between items-center" :class="[active ? 'pt-8' : '']">
+    <div class="flex justify-between items-center py-2 min-h-[2.5rem]">
       <h3 class="truncate">{{ displayTitle }}</h3>
       <span class="bg-white/10 rounded-full px-2 py-1 text-sm min-w-[3rem] text-center whitespace-nowrap">
         {{ relativeDate }}
