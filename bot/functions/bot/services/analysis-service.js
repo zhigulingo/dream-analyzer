@@ -45,7 +45,7 @@ class AnalysisService {
         try {
             // Get analysis from Gemini
             console.log(`[AnalysisService] Requesting analysis...`);
-            const analysisResultText = await this.getGeminiAnalysis(dreamText);
+            let analysisResultText = await this.getGeminiAnalysis(dreamText);
             console.log(`[AnalysisService] Analysis received successfully.`);
 
             // Save result to DB
