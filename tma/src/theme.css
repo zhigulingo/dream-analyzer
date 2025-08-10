@@ -124,6 +124,7 @@ h1, h2 {
 .seq-offset-240 { --seq-offset: 240ms; }
 .seq-offset-320 { --seq-offset: 320ms; }
 .seq-offset-400 { --seq-offset: 400ms; }
+.seq-offset-0 { --seq-offset: 0ms; }
 
 
 @keyframes fadeInUp {
