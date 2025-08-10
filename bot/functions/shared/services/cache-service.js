@@ -37,6 +37,15 @@ class CacheService {
         });
     }
 
+    // --- Compatibility helpers for tests ---
+    get size() {
+        return this.cache.size;
+    }
+
+    clear() {
+        return this.flushall();
+    }
+
     /**
      * Установить значение с TTL (Redis-совместимый API)
      */
@@ -134,6 +143,13 @@ class CacheService {
             return false;
         }
         return this.cache.has(key);
+    }
+
+    /**
+     * Alias for Map.has used by tests
+     */
+    has(key) {
+        return this.exists(key);
     }
 
     /**

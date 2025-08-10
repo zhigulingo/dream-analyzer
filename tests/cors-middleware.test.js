@@ -12,8 +12,10 @@ describe('CORS Middleware', () => {
 
       expect(headers).toEqual({
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS, GET'
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Telegram-Init-Data',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+        'Access-Control-Allow-Credentials': 'true',
+        'Vary': 'Origin'
       });
     });
 
@@ -24,8 +26,10 @@ describe('CORS Middleware', () => {
 
       expect(headers).toEqual({
         'Access-Control-Allow-Origin': 'https://app.example.com',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS, GET'
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Telegram-Init-Data',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+        'Access-Control-Allow-Credentials': 'true',
+        'Vary': 'Origin'
       });
     });
 
@@ -37,8 +41,10 @@ describe('CORS Middleware', () => {
 
       expect(headers).toEqual({
         'Access-Control-Allow-Origin': requestOrigin,
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS, GET'
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Telegram-Init-Data',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+        'Access-Control-Allow-Credentials': 'true',
+        'Vary': 'Origin'
       });
     });
 
@@ -82,7 +88,9 @@ describe('CORS Middleware', () => {
       expect(headers).toHaveProperty('Access-Control-Allow-Origin');
       expect(headers).toHaveProperty('Access-Control-Allow-Headers');
       expect(headers).toHaveProperty('Access-Control-Allow-Methods');
-      expect(headers['Access-Control-Allow-Headers']).toBe('Content-Type, Authorization');
+      expect(headers).toHaveProperty('Access-Control-Allow-Credentials');
+      expect(headers).toHaveProperty('Vary');
+      expect(headers['Access-Control-Allow-Headers']).toBe('Content-Type, Authorization, X-Telegram-Init-Data');
       expect(headers['Access-Control-Allow-Methods']).toBe('POST, OPTIONS, GET');
     });
 
@@ -117,8 +125,10 @@ describe('CORS Middleware', () => {
         statusCode: 204,
         headers: {
           'Access-Control-Allow-Origin': 'https://app.example.com',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS, GET'
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Telegram-Init-Data',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+          'Access-Control-Allow-Credentials': 'true',
+          'Vary': 'Origin'
         },
         body: ''
       });
@@ -146,8 +156,10 @@ describe('CORS Middleware', () => {
         statusCode: 204,
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS, GET'
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Telegram-Init-Data',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+          'Access-Control-Allow-Credentials': 'true',
+          'Vary': 'Origin'
         },
         body: ''
       });

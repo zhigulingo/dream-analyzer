@@ -13,16 +13,21 @@ class AnalysisService {
      * @returns {Promise<string>} - Analysis result
      */
     async getGeminiAnalysis(dreamText) {
-        console.log("[AnalysisService] Getting analysis from unified Gemini service.");
+        console.log("[AnalysisService] Getting analysis from unified Gemini service (basic_meta).");
         try {
-            return await geminiService.analyzeDream(dreamText, 'basic');
+            return await geminiService.analyzeDream(dreamText, 'basic_meta');
         } catch (error) {
-            console.warn("[AnalysisService] Primary prompt failed, trying brief:", error?.message);
+            console.warn("[AnalysisService] basic_meta failed, trying basic:", error?.message);
             try {
-                return await geminiService.analyzeDream(dreamText, 'brief');
+                return await geminiService.analyzeDream(dreamText, 'basic');
             } catch (error2) {
-                console.error("[AnalysisService] Brief prompt failed:", error2?.message);
-                return "Краткий анализ временно недоступен. Попробуйте ещё раз позже. Обратите внимание на ключевые образы и эмоции сна — это поможет понять основной посыл.";
+                console.error("[AnalysisService] basic failed:", error2?.message);
+                try {
+                    return await geminiService.analyzeDream(dreamText, 'brief');
+                } catch (error3) {
+                    console.error("[AnalysisService] brief failed:", error3?.message);
+                    return "Краткий анализ временно недоступен. Попробуйте ещё раз позже. Обратите внимание на ключевые образы и эмоции сна — это поможет понять основной посыл.";
+                }
             }
         }
     }
@@ -45,12 +50,37 @@ class AnalysisService {
 
             // Save result to DB
             console.log(`[AnalysisService] Saving analysis to DB for user ${userDbId}...`);
+            // Try parse inline metadata lines if present
+            let title = null; let tags = [];
+            if (typeof analysisResultText === 'string') {
+                const lines = analysisResultText.split(/\r?\n/);
+                for (let i = lines.length - 1; i >= 0; i--) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    if (!tags.length && /^Теги\s*:/i.test(line)) {
+                        const after = line.replace(/^Теги\s*:/i, '').trim();
+                        tags = after.split(',').map(s => s.trim()).filter(Boolean).slice(0,5);
+                        lines.splice(i, 1);
+                        continue;
+                    }
+                    if (!title && /^Заголовок\s*:/i.test(line)) {
+                        title = line.replace(/^Заголовок\s*:/i, '').trim().replace(/[\p{P}\p{S}]/gu, '').slice(0,60);
+                        lines.splice(i, 1);
+                        continue;
+                    }
+                    if (title && tags.length) break;
+                }
+                // cleaned analysis text
+                analysisResultText = lines.join('\n').trim();
+            }
+
             const { error: insertError } = await this.supabase
                 .from('analyses')
                 .insert({
                     user_id: userDbId,
                     dream_text: dreamText,
-                    analysis: analysisResultText
+                    analysis: analysisResultText,
+                    deep_source: { title: title || null, tags }
                 });
                 
             if (insertError) {

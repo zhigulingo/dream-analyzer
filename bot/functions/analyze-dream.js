@@ -13,14 +13,52 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
 const ALLOWED_WEB_ORIGIN = process.env.ALLOWED_WEB_ORIGIN;
 
-// Gemini/AI analysis logic using unified service
-async function getGeminiAnalysis(dreamText) {
+// Gemini/AI analysis logic using simplified prompt with metadata lines
+async function getGeminiAnalysisRaw(dreamText) {
     try {
-        return await geminiService.analyzeDreamJSON(dreamText);
+        return await geminiService.analyzeDream(dreamText, 'basic_meta');
     } catch (error) {
-        console.error("[getGeminiAnalysis] Error from Gemini service:", error);
+        console.error("[getGeminiAnalysisRaw] Error from Gemini service:", error);
         throw error;
     }
+}
+
+// Parse final two metadata lines: "Заголовок: ..." and "Теги: a, b, c"
+function parseAnalysisWithMeta(rawText, originalDreamText) {
+    const result = { analysis: '', title: null, tags: [] };
+    if (!rawText || typeof rawText !== 'string') return result;
+    const lines = rawText.split(/\r?\n/);
+    let title = null;
+    let tags = [];
+    // Scan from bottom up to find meta lines
+    for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        if (!tags.length && /^Теги\s*:/i.test(line)) {
+            const after = line.replace(/^Теги\s*:/i, '').trim();
+            tags = after.split(',').map(s => s.trim()).filter(Boolean).slice(0,5);
+            lines.splice(i, 1);
+            continue;
+        }
+        if (!title && /^Заголовок\s*:/i.test(line)) {
+            title = line.replace(/^Заголовок\s*:/i, '').trim();
+            // remove punctuation/specials, keep short
+            title = title.replace(/[\p{P}\p{S}]/gu, '').trim().slice(0, 60);
+            lines.splice(i, 1);
+            continue;
+        }
+        // stop once both found
+        if (title && tags.length) break;
+    }
+    const analysisText = lines.join('\n').trim();
+    result.analysis = analysisText || String(rawText);
+    result.title = title && title.length ? title : null;
+    if (!tags.length) {
+        // fallback simple tags from text
+        tags = extractFallbackTags(analysisText || originalDreamText);
+    }
+    result.tags = tags;
+    return result;
 }
 
 // Simple fallback tag extraction (RU stopwords)
@@ -120,7 +158,8 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
     // Analyze dream
     let analysisResult;
     try {
-        analysisResult = await getGeminiAnalysis(dreamText);
+        const raw = await getGeminiAnalysisRaw(dreamText);
+        analysisResult = parseAnalysisWithMeta(raw, dreamText);
     } catch (error) {
         throw createApiError(error.message || 'Analysis failed.', 500);
     }
@@ -129,7 +168,7 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
     try {
         // Generate a short 2-3 word title (heuristic; stored in deep_source.title for now)
         // Fallbacks for title/tags if model returned plain text
-        const finalTitle = (analysisResult && analysisResult.title) ? analysisResult.title : null;
+        const finalTitle = analysisResult?.title || null;
         const finalTags = Array.isArray(analysisResult?.tags) && analysisResult.tags.length > 0
             ? analysisResult.tags
             : extractFallbackTags(analysisResult?.analysis || dreamText);
@@ -138,7 +177,7 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
             .from('analyses').insert({ 
                 user_id: userDbId, 
                 dream_text: dreamText, 
-                analysis: analysisResult?.analysis || String(analysisResult || ''),
+                analysis: analysisResult?.analysis || '',
                 deep_source: { 
                     title: finalTitle,
                     tags: finalTags
@@ -162,7 +201,7 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
 
     // Return analysis result
     return createSuccessResponse({ 
-        analysis: analysisResult?.analysis || String(analysisResult || ''),
+        analysis: analysisResult?.analysis || '',
         title: analysisResult?.title || null,
         tags: Array.isArray(analysisResult?.tags) ? analysisResult.tags : []
     }, corsHeaders);

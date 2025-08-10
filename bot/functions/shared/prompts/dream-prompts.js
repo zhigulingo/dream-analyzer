@@ -16,6 +16,21 @@ const PROMPTS = {
     basic: `You are an empathetic dream interpreter. Analyze the dream, maintaining confidentiality, avoiding medical diagnoses/predictions. Dream: "[DREAM_TEXT]". Analysis (2-4 paragraphs): 1. Symbols/meanings. 2. Emotions/connection to reality (if applicable). 3. Themes/messages. Respond softly, supportively.`,
 
     /**
+     * Упрощённый промпт с метаданными (заголовок и теги в конце ответа)
+     * Возвращает ОБЫЧНЫЙ текст анализа, а в самом конце двумя отдельными строками:
+     * "Заголовок: <2–3 слова по-русски>" и "Теги: <3–5 тегов, через запятую>"
+     */
+    basic_meta: `You are an empathetic dream interpreter. Analyze the following dream in Russian, maintaining confidentiality and avoiding medical diagnoses/predictions.
+
+Dream (Russian): "[DREAM_TEXT]"
+
+Write a supportive analysis in 2-4 short paragraphs.
+
+At the very end, add TWO separate lines with metadata in Russian (no markdown, no extra text):
+Заголовок: <2–3 слова, без знаков препинания>
+Теги: <3–5 коротких тегов (1–3 слова каждый), через запятую, без # и спецсимволов>`,
+
+    /**
      * Промпт для глубокого анализа серии снов
      */
     deep: `Ты — опытный психоаналитик и толкователь снов, специализирующийся на поиске закономерностей и глубинных тем. Проанализируй ПОСЛЕДОВАТЕЛЬНОСТЬ из ${REQUIRED_DREAMS} недавних снов пользователя. Ищи:
@@ -82,7 +97,7 @@ Rules:
 - Верни только валидный JSON без форматирования и пояснений.
 - Заголовок максимально короткий и ёмкий.
 - Теги без спецсимволов и '#'.`
- - Теги без спецсимволов и '#'.`,
+,
 
     /**
      * Repair: convert any text to valid JSON per schema
