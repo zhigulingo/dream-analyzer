@@ -1,7 +1,7 @@
 <template>
   <article
     class="relative rounded-xl bg-gradient-to-br from-[#5461FF] to-[#4857FF] text-white overflow-hidden transition-all duration-500"
-    :class="[isOpen ? 'pb-32' : 'min-h-[4.5rem]']"
+    :class="[isOpen ? 'pb-32' : 'h-[4.5rem]']"
     @click="toggle"
   >
     <!-- Loading overlay для профиля -->
@@ -80,7 +80,7 @@
         </template>
       </div>
     </div>
-    <div class="absolute left-4 right-4 bottom-4 space-y-2 transition-opacity duration-500"
+    <div class="absolute left-4 right-4 bottom-4 space-y-2 transition-opacity duration-200 ease-out"
          :class="isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'">
       <button
         class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors flex items-center justify-center"
