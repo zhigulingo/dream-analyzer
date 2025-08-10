@@ -1,7 +1,7 @@
 <template>
   <article
     class="relative rounded-xl bg-gradient-to-br from-[#5461FF] to-[#4857FF] text-white overflow-hidden transition-all"
-    :class="[isOpen ? 'pb-32' : 'h-[11.55vh] md:h-[10.5rem]']"
+    :class="[isOpen ? 'pb-32' : 'h-[12rem]']"
     @click="toggle"
   >
     <!-- Loading overlay для профиля -->
@@ -45,7 +45,7 @@
           <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
           <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
         </div>
-        <div v-else class="flex flex-col gap-1 ml-auto items-end">
+        <div v-else class="flex flex-col gap-2 ml-auto items-end">
           <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
           <Badge class="whitespace-nowrap">{{ userStore?.profile?.subscription_type || 'Free' }}</Badge>
         </div>
