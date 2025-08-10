@@ -1,5 +1,10 @@
 <template>
-  <section class="relative -mx-4 sm:-mx-6 md:-mx-8 mb-8">
+  <!--
+    Правка размеров карусели:
+    - Убираем растягивание на всю ширину (full-bleed) и сохраняем левый отступ как у остальных секций
+    - Убираем только правый отступ за счёт отрицательного margin-right, чтобы следующая карточка чуть выглядывала
+  -->
+  <section class="relative -mr-4 sm:-mr-6 md:-mr-8 mb-8">
     <Swiper
       :modules="modules"
       :spaceBetween="16"
@@ -8,8 +13,7 @@
         delay: 5000,
         disableOnInteraction: false,
       }"
-      :pagination="{ clickable: true, el: '.swiper-pagination-custom', dynamicBullets: true }"
-      class="pl-4 sm:pl-6 md:pl-8"
+      :pagination="{ clickable: true, el: '.facts-pagination', dynamicBullets: true }"
       :style="{ height: maxCardHeight + 'px' }"
     >
       <SwiperSlide
@@ -24,10 +28,9 @@
         </div>
         <p class="text-lg leading-tight">{{ fact.text }}</p>
       </SwiperSlide>
-      <template #pagination>
-        <div class="swiper-pagination-custom mt-4 text-center"></div>
-      </template>
     </Swiper>
+    <!-- Пагинация вынесена за пределы контейнера Swiper, чтобы гарантированно отображаться ниже карточек -->
+    <div class="facts-pagination mt-4 text-center"></div>
   </section>
 </template>
 
