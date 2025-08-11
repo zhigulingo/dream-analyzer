@@ -4,7 +4,7 @@
     - Убираем растягивание на всю ширину (full-bleed) и сохраняем левый отступ как у остальных секций
     - Убираем только правый отступ за счёт отрицательного margin-right, чтобы следующая карточка чуть выглядывала
   -->
-  <section class="carousel-root relative -mr-4 sm:-mr-6 md:-mr-8 mb-8">
+  <section class="carousel-root relative mb-8 overflow-visible">
     <Swiper
       :modules="modules"
       :spaceBetween="gapSize"
@@ -25,7 +25,7 @@
         v-for="fact in facts"
         :key="fact.id"
         ref="cardRefs"
-        class="carousel-card rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between will-change-transform"
+        class="carousel-card rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between will-change-transform w-auto"
         :class="slideWidthClass"
         :style="{ height: maxCardHeight + 'px' }"
       >
@@ -63,8 +63,9 @@ const autoplay = {
 const pagination = { clickable: true, el: '.facts-pagination', dynamicBullets: true }
 
 // Ширина слайда: меньше контейнера на "peek" и gap, чтобы следующая карточка выглядывала
-// Используем дробные значения видимых слайдов как альтернатива calc, но сохраняем peek на правом краю контейнера
-const slideWidthClass = computed(() => 'w-[82%] sm:w-[78%] md:w-[72%]')
+// Фиксируем ширину фактической карточки по макету: 1146px на контейнер ~1242px ≈ 92%.
+// На мобильных делаем 86/82/78% чтобы справа оставался "peek".
+const slideWidthClass = computed(() => 'w-[86%] sm:w-[82%] md:w-[78%] lg:w-[72%]')
 
 const facts = ref([
   { id: 1, type: 'Факт', text: 'Большинство снов забываются в течение первых 5-10 минут после пробуждения.' },
@@ -152,6 +153,15 @@ const onSwiperInit = (swiper) => {
   background: white !important;
   transform: scale(1.25) !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Стиль под макет Figma: фон с блюром для контейнера пагинации */
+.facts-pagination {
+  background: var(--facts-pagination-bg, rgba(255,255,255,0.18));
+  -webkit-backdrop-filter: blur(44px);
+  backdrop-filter: blur(44px);
+  border-radius: 56px;
+  padding: 8px 10px;
 }
 
 /* Сгладить прокрутку/смещение карточек */
