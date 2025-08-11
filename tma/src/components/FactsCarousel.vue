@@ -14,6 +14,10 @@
       :pagination="pagination"
       :keyboard="{ enabled: true }"
       :a11y="{ enabled: true }"
+      :observer="true"
+      :observe-parents="true"
+      :watch-overflow="true"
+      @init="onSwiperInit"
       :style="{ height: maxCardHeight + 'px' }"
       class="w-full"
     >
@@ -49,6 +53,7 @@ const modules = [Autoplay, Pagination, A11y, Keyboard]
 const cardRefs = ref([])
 const maxCardHeight = ref(224)
 const gapSize = 16
+const swiperRef = ref(null)
 
 const autoplay = {
   delay: 5000,
@@ -93,7 +98,20 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', calculateMaxHeight)
+  if (swiperRef.value) {
+    window.removeEventListener('load', swiperRef.value.__updateHandler || (()=>{}))
+  }
 })
+
+const onSwiperInit = (swiper) => {
+  swiperRef.value = swiper
+  const update = () => swiper.update()
+  swiper.__updateHandler = update
+  // Обновить после рендера и загрузки шрифтов/ресурсов, чтобы корректно учесть ширины слайдов
+  requestAnimationFrame(update)
+  setTimeout(update, 0)
+  window.addEventListener('load', update)
+}
 </script>
 
 <style scoped>
