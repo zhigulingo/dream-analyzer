@@ -71,25 +71,67 @@ const handleToggle = () => {
   }
 }
 
-const handleLike = () => {
-  if (window.triggerHaptic) {
-    window.triggerHaptic('medium')
+import api from '@/services/api.js'
+import { useUserStore } from '@/stores/user.js'
+const userStore = useUserStore()
+
+const localFeedback = computed({
+  get: () => props.dream?.user_feedback ?? 0,
+  set: (v) => { if (props.dream) props.dream.user_feedback = v }
+})
+
+const sending = { like: false, dislike: false, delete: false }
+
+const sendFeedback = async (target) => {
+  if (sending.like || sending.dislike) return
+  const next = target === 1
+    ? (localFeedback.value === 1 ? 0 : 1)
+    : (localFeedback.value === 2 ? 0 : 2)
+  const prev = localFeedback.value
+  localFeedback.value = next
+  try {
+    if (window.triggerHaptic) window.triggerHaptic('medium')
+    if (target === 1) sending.like = true; else sending.dislike = true
+    await api.postAnalysisFeedback(props.dream.id, next)
+  } catch (e) {
+    // rollback
+    localFeedback.value = prev
+    console.error('Feedback error', e)
+  } finally {
+    sending.like = sending.dislike = false
   }
-  // TODO: Implement like functionality
 }
 
-const handleDislike = () => {
-  if (window.triggerHaptic) {
-    window.triggerHaptic('medium')
-  }
-  // TODO: Implement dislike functionality
-}
+const handleLike = () => sendFeedback(1)
 
-const handleDelete = () => {
-  if (window.triggerHaptic) {
-    window.triggerHaptic('heavy')
+const handleDislike = () => sendFeedback(2)
+
+const handleDelete = async () => {
+  if (sending.delete) return
+  const tg = window.Telegram?.WebApp
+  const confirmed = await new Promise((resolve) => {
+    if (tg?.showPopup) {
+      tg.showPopup({ title: 'Удалить запись?', message: 'Действие необратимо', buttons: [{ id: 'yes', type: 'destructive', text: 'Удалить' }, { id: 'no', type: 'cancel', text: 'Отмена' }] }, (id) => resolve(id === 'yes'))
+    } else {
+      resolve(window.confirm('Удалить запись?'))
+    }
+  })
+  if (!confirmed) return
+
+  try {
+    sending.delete = true
+    if (window.triggerHaptic) window.triggerHaptic('heavy')
+    await api.deleteAnalysis(props.dream.id)
+    // Убираем из локального стора истории
+    const idx = userStore.history.findIndex(d => d.id === props.dream.id)
+    if (idx > -1) userStore.history.splice(idx, 1)
+    // Обновляем профиль (счетчики)
+    userStore.fetchProfile()
+  } catch (e) {
+    console.error('Delete error', e)
+  } finally {
+    sending.delete = false
   }
-  // TODO: Implement delete functionality
 }
 
 const stopwords = new Set([

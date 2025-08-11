@@ -162,7 +162,19 @@ const apiMethods = {
         amount,
         payload
     });
-  } // <--- Запятая у последнего элемента не нужна
+  }, // <--- Запятая у последнего элемента не нужна
+
+  // Новый: отправка фидбека по анализу
+  postAnalysisFeedback(analysisId, feedback) {
+    console.log('[api.js] Calling POST /analysis-feedback');
+    return apiClient.post('/analysis-feedback', { analysisId, feedback });
+  },
+
+  // Новый: удаление анализа
+  deleteAnalysis(analysisId) {
+    console.log('[api.js] Calling DELETE /analysis');
+    return apiClient.delete('/analysis', { data: { analysisId } });
+  }
 };
 
 // Экспортируем именованный клиент Axios (если нужен доступ к нему напрямую)

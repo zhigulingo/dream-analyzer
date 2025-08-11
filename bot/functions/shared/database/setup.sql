@@ -92,6 +92,30 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Добавляем поля для фидбэка пользователя по анализам (если их нет)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema='public' AND table_name='analyses' AND column_name='user_feedback'
+    ) THEN
+        ALTER TABLE public.analyses ADD COLUMN user_feedback SMALLINT NOT NULL DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema='public' AND table_name='analyses' AND column_name='feedback_at'
+    ) THEN
+        ALTER TABLE public.analyses ADD COLUMN feedback_at TIMESTAMPTZ;
+    END IF;
+    -- Добавляем CHECK, если его нет (через попытку и игнор ошибки)
+    BEGIN
+        ALTER TABLE public.analyses ADD CONSTRAINT analyses_user_feedback_check CHECK (user_feedback IN (0,1,2));
+    EXCEPTION WHEN duplicate_object THEN
+        -- already exists
+        NULL;
+    END;
+END$$;
+
 -- Функция для batch операций: массовая вставка анализов
 -- Оптимизирует вставку множественных записей одной операцией
 CREATE OR REPLACE FUNCTION batch_insert_analyses(
