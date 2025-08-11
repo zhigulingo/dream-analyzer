@@ -20,12 +20,7 @@
         <UserInfoCard :user-store="userStore" />
       </section>
       <section class="account-block w-full max-w-72r">
-        <!-- Новый вариант карусели (для сравнения) -->
         <FactsCarouselV2 />
-      </section>
-      <section class="account-block w-full max-w-72r">
-        <!-- Текущий вариант карусели -->
-        <FactsCarousel />
       </section>
       <section v-if="showDeepAnalysisBanner" class="account-block w-full max-w-72r">
         <DeepAnalysisCard :user-store="userStore" />

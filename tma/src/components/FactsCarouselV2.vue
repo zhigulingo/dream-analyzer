@@ -5,7 +5,8 @@
       :modules="modules"
       slides-per-view="auto"
       :spaceBetween="gapSize"
-      :centeredSlides="false"
+      :centeredSlides="true"
+      :centeredSlidesBounds="true"
       :keyboard="{ enabled: true }"
       :a11y="{ enabled: true }"
       :observer="true"
@@ -75,6 +76,8 @@ const calcMaxHeight = () => {
 const onInit = (swiper: any) => {
   swiperInstance.value = swiper
   calcMaxHeight()
+  // Центрируем текущий слайд сразу после инициализации
+  requestAnimationFrame(() => swiper.slideTo(swiper.activeIndex, 0, false))
 }
 
 // Подгоняем ширину карточки под ширину карточки пользователя
@@ -92,6 +95,12 @@ onMounted(() => {
   measureUserCardWidth()
   window.addEventListener('resize', calcMaxHeight)
   window.addEventListener('resize', measureUserCardWidth)
+  window.addEventListener('resize', () => {
+    if (swiperInstance.value) {
+      swiperInstance.value.update()
+      swiperInstance.value.slideTo(swiperInstance.value.activeIndex, 0, false)
+    }
+  })
 })
 
 onBeforeUnmount(() => {
