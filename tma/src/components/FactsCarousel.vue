@@ -4,7 +4,7 @@
     - Убираем растягивание на всю ширину (full-bleed) и сохраняем левый отступ как у остальных секций
     - Убираем только правый отступ за счёт отрицательного margin-right, чтобы следующая карточка чуть выглядывала
   -->
-  <section class="carousel-root relative mb-8">
+  <section class="carousel-root relative -mr-4 sm:-mr-6 md:-mr-8 mb-8">
     <Swiper
       :modules="modules"
       :spaceBetween="gapSize"
@@ -21,7 +21,7 @@
         v-for="fact in facts"
         :key="fact.id"
         ref="cardRefs"
-        class="carousel-card rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between"
+        class="carousel-card rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between will-change-transform"
         :class="slideWidthClass"
         :style="{ height: maxCardHeight + 'px' }"
       >
@@ -58,7 +58,8 @@ const autoplay = {
 const pagination = { clickable: true, el: '.facts-pagination', dynamicBullets: true }
 
 // Ширина слайда: меньше контейнера на "peek" и gap, чтобы следующая карточка выглядывала
-const slideWidthClass = computed(() => 'w-[calc(100%_-_var(--peek)_-_var(--gap))]')
+// Используем дробные значения видимых слайдов как альтернатива calc, но сохраняем peek на правом краю контейнера
+const slideWidthClass = computed(() => 'w-[82%] sm:w-[78%] md:w-[72%]')
 
 const facts = ref([
   { id: 1, type: 'Факт', text: 'Большинство снов забываются в течение первых 5-10 минут после пробуждения.' },
