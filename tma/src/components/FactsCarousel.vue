@@ -11,7 +11,7 @@
       slides-per-view="auto"
       :centeredSlides="false"
       :autoplay="autoplay"
-      :pagination="pagination"
+      :pagination="false"
       :keyboard="{ enabled: true }"
       :a11y="{ enabled: true }"
       :observer="true"
@@ -35,21 +35,20 @@
         <p class="text-lg leading-tight">{{ fact.text }}</p>
       </SwiperSlide>
     </Swiper>
-    <!-- Пагинация вынесена за пределы контейнера Swiper, чтобы гарантированно отображаться ниже карточек -->
-    <div class="facts-pagination mt-4"></div>
+    
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick, computed, onBeforeUnmount } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Autoplay, Pagination, A11y, Keyboard } from 'swiper/modules'
+import { Autoplay, A11y, Keyboard } from 'swiper/modules'
 import Badge from '@/components/Badge.vue'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import 'swiper/css/autoplay'
 
-const modules = [Autoplay, Pagination, A11y, Keyboard]
+const modules = [Autoplay, A11y, Keyboard]
 const cardRefs = ref([])
 const maxCardHeight = ref(224)
 const gapSize = 16
@@ -60,7 +59,7 @@ const autoplay = {
   disableOnInteraction: false,
 }
 
-const pagination = { clickable: true, el: '.facts-pagination', dynamicBullets: true }
+// pagination отключена по требованию сценария
 
 // Ширина слайда: меньше контейнера на "peek" и gap, чтобы следующая карточка выглядывала
 // Фиксируем ширину фактической карточки по макету: 1146px на контейнер ~1242px ≈ 92%.
@@ -130,39 +129,7 @@ const onSwiperInit = (swiper) => {
   .carousel-root { --peek: 64px; }
 }
 
-.facts-pagination {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  gap: 10px !important;
-  width: 100% !important;
-}
-
-:deep(.facts-pagination .swiper-pagination-bullet) {
-  background: rgba(255, 255, 255, 0.6) !important;
-  opacity: 1 !important;
-  width: 12px !important;
-  height: 12px !important;
-  border-radius: 50% !important;
-  transition: transform 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease !important;
-  cursor: pointer !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
-}
-
-:deep(.facts-pagination .swiper-pagination-bullet-active) {
-  background: white !important;
-  transform: scale(1.25) !important;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4) !important;
-}
-
-/* Стиль под макет Figma: фон с блюром для контейнера пагинации */
-.facts-pagination {
-  background: var(--facts-pagination-bg, rgba(255,255,255,0.18));
-  -webkit-backdrop-filter: blur(44px);
-  backdrop-filter: blur(44px);
-  border-radius: 56px;
-  padding: 8px 10px;
-}
+/* Pagination удалена */
 
 /* Сгладить прокрутку/смещение карточек */
 :deep(.swiper) {

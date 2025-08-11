@@ -11,7 +11,6 @@
       :observer="true"
       :observe-parents="true"
       :watch-overflow="true"
-      @slideChange="onSlideChange"
       @init="onInit"
       class="w-screen"
       :style="{ height: maxCardHeight + 'px' }"
@@ -20,9 +19,8 @@
         v-for="fact in facts"
         :key="fact.id"
         ref="cardRefs"
-        :class="slideWidthClass"
-        class="rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between will-change-transform"
-        :style="{ height: maxCardHeight + 'px' }"
+        class="rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between will-change-transform w-auto flex-shrink-0"
+        :style="{ height: maxCardHeight + 'px', width: slideWidthPx + 'px' }"
       >
         <div class="mb-4">
           <Badge>{{ fact.type }}</Badge>
@@ -30,38 +28,24 @@
         <p class="text-lg leading-tight">{{ fact.text }}</p>
       </SwiperSlide>
     </Swiper>
-
-    <!-- Центрированная пагинация с видом «кнопки» как у «Загрузить ещё» -->
-    <div class="mt-4 w-full flex justify-center">
-      <div class="bg-white/10 rounded-full px-4 py-2 text-sm font-medium text-white flex items-center gap-3">
-        <button
-          v-for="i in 3"
-          :key="i"
-          class="w-2.5 h-2.5 rounded-full transition-all"
-          :class="currentPage === (i-1) ? 'bg-white scale-110' : 'bg-white/60'"
-          @click="goToPage(i-1)"
-        />
-      </div>
-    </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { A11y, Keyboard } from 'swiper/modules'
 import Badge from '@/components/Badge.vue'
 import 'swiper/css'
 
 const modules = [A11y, Keyboard]
-const gapSize = 16
-
-// Карточка по ширине меньше экрана, чтобы слева и справа был «peek» соседних
-const slideWidthClass = computed(() => 'w-[86%] sm:w-[82%] md:w-[78%] lg:w-[72%]')
+// Вдвое меньший горизонтальный отступ между карточками
+const gapSize = 8
 
 const cardRefs = ref<any[]>([])
 const maxCardHeight = ref(224)
 const swiperInstance = ref<any>(null)
+const slideWidthPx = ref<number>(Math.round(window.innerWidth * 0.86))
 
 const facts = ref([
   { id: 1, type: 'Факт', text: 'Большинство снов забываются в течение первых 5-10 минут после пробуждения.' },
@@ -79,9 +63,6 @@ const facts = ref([
   { id: 13, type: 'Символ', text: 'Животные во сне символизируют инстинкты и скрытые стороны личности.' }
 ])
 
-const currentPage = ref(0) // 0..2
-const groupSize = computed(() => Math.ceil(facts.value.length / 3))
-
 const calcMaxHeight = () => {
   nextTick(() => {
     if (cardRefs.value.length) {
@@ -96,24 +77,26 @@ const onInit = (swiper: any) => {
   calcMaxHeight()
 }
 
-const onSlideChange = (swiper: any) => {
-  const idx = swiper?.activeIndex || 0
-  currentPage.value = Math.min(2, Math.floor(idx / groupSize.value))
-}
-
-const goToPage = (page: number) => {
-  if (!swiperInstance.value) return
-  const target = page * groupSize.value
-  swiperInstance.value.slideTo(target, 300)
+// Подгоняем ширину карточки под ширину карточки пользователя
+const measureUserCardWidth = () => {
+  try {
+    const firstBlock = document.querySelector('main section.account-block');
+    const userCard = firstBlock?.querySelector('article') as HTMLElement | null;
+    const w = userCard?.getBoundingClientRect().width;
+    if (w && w > 0) slideWidthPx.value = Math.round(w);
+  } catch {}
 }
 
 onMounted(() => {
   calcMaxHeight()
+  measureUserCardWidth()
   window.addEventListener('resize', calcMaxHeight)
+  window.addEventListener('resize', measureUserCardWidth)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', calcMaxHeight)
+  window.removeEventListener('resize', measureUserCardWidth)
 })
 </script>
 
