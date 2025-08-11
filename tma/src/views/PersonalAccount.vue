@@ -20,6 +20,11 @@
         <UserInfoCard :user-store="userStore" />
       </section>
       <section class="account-block w-full max-w-72r">
+        <!-- Новый вариант карусели (для сравнения) -->
+        <FactsCarouselV2 />
+      </section>
+      <section class="account-block w-full max-w-72r">
+        <!-- Текущий вариант карусели -->
         <FactsCarousel />
       </section>
       <section v-if="showDeepAnalysisBanner" class="account-block w-full max-w-72r">
@@ -52,6 +57,7 @@ import DebugInfo from '@/components/DebugInfo.vue'
 // Lazy-loaded компоненты для оптимизации bundle
 const UserInfoCard = defineAsyncComponent(() => import('@/components/UserInfoCard.vue'))
 const FactsCarousel = defineAsyncComponent(() => import('@/components/FactsCarousel.vue'))
+const FactsCarouselV2 = defineAsyncComponent(() => import('@/components/FactsCarouselV2.vue'))
 const DeepAnalysisCard = defineAsyncComponent(() => import('@/components/DeepAnalysisCard.vue'))
 const AnalysisHistoryList = defineAsyncComponent(() => import('@/components/AnalysisHistoryList.vue'))
 const SubscriptionModal = defineAsyncComponent(() => import('@/components/SubscriptionModal.vue'))
