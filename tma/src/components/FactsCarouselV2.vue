@@ -6,8 +6,10 @@
       slides-per-view="auto"
       :spaceBetween="gapSize"
       :centeredSlides="true"
-      :centeredSlidesBounds="true"
+      :centeredSlidesBounds="false"
       :autoplay="autoplay"
+      :slidesOffsetBefore="edgeOffset"
+      :slidesOffsetAfter="edgeOffset"
       :keyboard="{ enabled: true }"
       :a11y="{ enabled: true }"
       :observer="true"
@@ -23,7 +25,7 @@
         :key="fact.id"
         ref="cardRefs"
         class="rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between will-change-transform w-auto flex-shrink-0"
-        :style="{ height: maxCardHeight + 'px', width: slideWidthPx + 'px', marginLeft: idx === 0 ? edgeOffset + 'px' : undefined, marginRight: idx === facts.length - 1 ? edgeOffset + 'px' : undefined }"
+        :style="{ height: maxCardHeight + 'px', width: slideWidthPx + 'px' }"
       >
         <div class="mb-4">
           <Badge>{{ fact.type }}</Badge>
@@ -43,7 +45,7 @@ import 'swiper/css'
 import 'swiper/css/autoplay'
 
 const modules = [A11y, Keyboard, Autoplay]
-const autoplay = { delay: 5000, disableOnInteraction: false }
+const autoplay = { delay: 5000, disableOnInteraction: false, pauseOnMouseEnter: false, stopOnLastSlide: false, reverseDirection: false }
 // Вдвое меньший горизонтальный отступ между карточками
 const gapSize = 8
 
