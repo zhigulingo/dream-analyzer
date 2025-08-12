@@ -76,8 +76,14 @@ import { useUserStore } from '@/stores/user.js'
 const userStore = useUserStore()
 
 const localFeedback = computed({
-  get: () => props.dream?.user_feedback ?? 0,
-  set: (v) => { if (props.dream) props.dream.user_feedback = v }
+  get: () => (props.dream?.user_feedback ?? props.dream?.deep_source?.user_feedback ?? 0),
+  set: (v) => {
+    if (!props.dream) return
+    props.dream.user_feedback = v
+    // Дублируем в deep_source для совместимости
+    if (!props.dream.deep_source) props.dream.deep_source = {}
+    props.dream.deep_source.user_feedback = v
+  }
 })
 
 const sending = { like: false, dislike: false, delete: false }
