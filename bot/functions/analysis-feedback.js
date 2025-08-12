@@ -107,19 +107,45 @@ exports.handler = async (event) => {
       userDbId = userRow.id
     }
 
-    const { data, error } = await supabase
+    // Primary path: update dedicated columns (requires migration)
+    let upd = await supabase
       .from('analyses')
       .update({ user_feedback: feedback, feedback_at: new Date().toISOString() })
       .eq('id', analysisId)
       .eq('user_id', userDbId)
       .select('id, user_feedback, feedback_at')
       .single()
-    if (error) throw error
+
+    if (upd.error) {
+      const msg = String(upd.error.message || '').toLowerCase()
+      const missingColumn = msg.includes('column') && (msg.includes('user_feedback') || msg.includes('feedback_at'))
+      if (!missingColumn) throw upd.error
+
+      // Fallback path: persist feedback into deep_source JSON (no migration required)
+      const { data: row, error: fetchErr } = await supabase
+        .from('analyses')
+        .select('id, deep_source')
+        .eq('id', analysisId)
+        .eq('user_id', userDbId)
+        .single()
+      if (fetchErr || !row) throw (fetchErr || new Error('Not found'))
+
+      const now = new Date().toISOString()
+      const nextDeep = { ...(row.deep_source || {}), user_feedback: feedback, feedback_at: now }
+      const { error: updJsonErr } = await supabase
+        .from('analyses')
+        .update({ deep_source: nextDeep })
+        .eq('id', analysisId)
+        .eq('user_id', userDbId)
+      if (updJsonErr) throw updJsonErr
+
+      return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: true, userFeedback: feedback, feedbackAt: now, persisted: 'deep_source' }) }
+    }
 
     // Optionally track activity
     try { userCacheService.trackUserActivity(verifiedTgId, 'feedback') } catch (_) {}
 
-    return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: true, userFeedback: data.user_feedback, feedbackAt: data.feedback_at }) }
+    return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: true, userFeedback: upd.data.user_feedback, feedbackAt: upd.data.feedback_at, persisted: 'columns' }) }
   } catch (e) {
     return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Failed to save feedback' }) }
   }
