@@ -142,8 +142,11 @@ const handleDelete = async () => {
     if (idx > -1) userStore.history.splice(idx, 1)
     // Обновляем профиль (счетчики)
     userStore.fetchProfile()
+    // Snackbar подтверждения
+    notificationStore.success('Запись удалена')
   } catch (e) {
     console.error('Delete error', e)
+    notificationStore.error('Не удалось удалить запись')
   } finally {
     sending.delete = false
   }
