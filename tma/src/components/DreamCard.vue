@@ -26,13 +26,15 @@
       </div>
       <div class="mt-4 flex gap-2">
         <button 
-          class="flex-1 bg-white/20 hover:bg-white/30 text-white rounded-xl py-2 text-sm font-medium transition-colors"
+          class="flex-1 rounded-xl py-2 text-sm font-medium transition-colors"
+          :class="localFeedback === 1 ? 'bg-green-500/30 text-white ring-2 ring-green-400/60' : 'bg-white/20 hover:bg-white/30 text-white'"
           @click.stop="handleLike"
         >
           👍 Нравится
         </button>
         <button 
-          class="flex-1 bg-white/20 hover:bg-white/30 text-white rounded-xl py-2 text-sm font-medium transition-colors"
+          class="flex-1 rounded-xl py-2 text-sm font-medium transition-colors"
+          :class="localFeedback === 2 ? 'bg-red-500/30 text-white ring-2 ring-red-400/60' : 'bg-white/20 hover:bg-white/30 text-white'"
           @click.stop="handleDislike"
         >
           👎 Не нравится
@@ -73,7 +75,9 @@ const handleToggle = () => {
 
 import api from '@/services/api.js'
 import { useUserStore } from '@/stores/user.js'
+import { useNotificationStore } from '@/stores/notifications.js'
 const userStore = useUserStore()
+const notificationStore = useNotificationStore()
 
 const localFeedback = computed({
   get: () => (props.dream?.user_feedback ?? props.dream?.deep_source?.user_feedback ?? 0),
@@ -99,10 +103,15 @@ const sendFeedback = async (target) => {
     if (window.triggerHaptic) window.triggerHaptic('medium')
     if (target === 1) sending.like = true; else sending.dislike = true
     await api.postAnalysisFeedback(props.dream.id, next)
+    // Snackbar
+    if (next === 0) notificationStore.info('Оценка снята')
+    else if (next === 1) notificationStore.success('Добавлено: нравится')
+    else if (next === 2) notificationStore.success('Добавлено: не нравится')
   } catch (e) {
     // rollback
     localFeedback.value = prev
     console.error('Feedback error', e)
+    notificationStore.error('Не удалось сохранить оценку')
   } finally {
     sending.like = sending.dislike = false
   }
