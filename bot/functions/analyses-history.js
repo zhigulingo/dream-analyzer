@@ -159,7 +159,7 @@ exports.handler = async (event) => {
             if (isDeepOnly) {
                 const { data, error } = await supabase
                   .from('analyses')
-                  .select('id, dream_text, analysis, created_at, is_deep_analysis, deep_source, user_feedback, feedback_at')
+                  .select('id, dream_text, analysis, created_at, is_deep_analysis, deep_source')
                   .eq('user_id', userDbId)
                   .eq('is_deep_analysis', true)
                   .order('created_at', { ascending: false })
@@ -176,11 +176,11 @@ exports.handler = async (event) => {
             
             const userProfile = await dbQueries.getUserProfile(verifiedTgId);
             if (!userProfile) {
-                console.error(`[analyses-history] User profile not found for tg_id ${verifiedTgId}`);
-                return { 
-                    statusCode: 404, 
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ error: 'User not found.' }) 
+                console.warn(`[analyses-history] No user profile for tg_id ${verifiedTgId}; returning empty history`);
+                return {
+                    statusCode: 200,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    body: JSON.stringify([])
                 };
             }
             
@@ -188,7 +188,7 @@ exports.handler = async (event) => {
             if (isDeepOnly) {
                 const { data, error } = await supabase
                   .from('analyses')
-                  .select('id, dream_text, analysis, created_at, is_deep_analysis, deep_source, user_feedback, feedback_at')
+                  .select('id, dream_text, analysis, created_at, is_deep_analysis, deep_source')
                   .eq('user_id', userDbId)
                   .eq('is_deep_analysis', true)
                   .order('created_at', { ascending: false })

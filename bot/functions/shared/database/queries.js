@@ -199,9 +199,13 @@ class DatabaseQueries {
             `)
             .eq('tg_id', tgUserId)
             .single();
-            
-        console.log(`[DatabaseQueries] Query result:`, { data: !!data, error: error?.message });
+        
+        console.log(`[DatabaseQueries] Query result:`, { data: !!data, error: error?.message, code: error?.code });
 
+        // Если пользователь не найден (PGRST116), возвращаем null вместо ошибки
+        if (error && error.code === 'PGRST116') {
+            return null;
+        }
         if (error) {
             throw new Error(`Failed to get user profile: ${error.message}`);
         }
@@ -252,7 +256,7 @@ class DatabaseQueries {
         
         const { data, error } = await this.supabase
             .from('analyses')
-            .select('id, dream_text, analysis, created_at, is_deep_analysis, deep_source, user_feedback, feedback_at')
+            .select('id, dream_text, analysis, created_at, is_deep_analysis, deep_source')
             .eq('user_id', userDbId)
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
