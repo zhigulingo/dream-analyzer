@@ -7,6 +7,7 @@
       :spaceBetween="gapSize"
       :centeredSlides="true"
       :centeredSlidesBounds="true"
+      :autoplay="autoplay"
       :keyboard="{ enabled: true }"
       :a11y="{ enabled: true }"
       :observer="true"
@@ -35,11 +36,13 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import { A11y, Keyboard } from 'swiper/modules'
+import { A11y, Keyboard, Autoplay } from 'swiper/modules'
 import Badge from '@/components/Badge.vue'
 import 'swiper/css'
+import 'swiper/css/autoplay'
 
-const modules = [A11y, Keyboard]
+const modules = [A11y, Keyboard, Autoplay]
+const autoplay = { delay: 5000, disableOnInteraction: false }
 // Вдвое меньший горизонтальный отступ между карточками
 const gapSize = 8
 
