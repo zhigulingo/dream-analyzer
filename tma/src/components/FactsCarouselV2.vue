@@ -6,10 +6,8 @@
       slides-per-view="auto"
       :spaceBetween="gapSize"
       :centeredSlides="true"
-      :centeredSlidesBounds="false"
+      :centeredSlidesBounds="true"
       :autoplay="autoplay"
-      :slidesOffsetBefore="edgeOffset"
-      :slidesOffsetAfter="edgeOffset"
       :keyboard="{ enabled: true }"
       :a11y="{ enabled: true }"
       :observer="true"
@@ -18,7 +16,7 @@
       :speed="650"
       @init="onInit"
       class="w-screen"
-      :style="{ height: maxCardHeight + 'px' }"
+      :style="{ height: maxCardHeight + 'px', paddingLeft: edgeOffset + 'px', paddingRight: edgeOffset + 'px' }"
     >
       <SwiperSlide
         v-for="(fact, idx) in facts"
