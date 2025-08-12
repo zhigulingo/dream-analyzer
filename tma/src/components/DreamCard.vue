@@ -1,7 +1,7 @@
 <template>
   <article
     class="rounded-xl bg-gradient-to-br from-[#4A58FF] to-[#5664FF] text-white px-8 md:px-16 transition-all overflow-hidden cursor-pointer py-6"
-    :class="[active ? 'pb-20' : 'min-h-[4.5rem]']"
+    :class="[active ? '' : 'min-h-[4.5rem]']"
     @click="handleToggle"
   >
     <div class="flex justify-between items-center py-2 min-h-[2.5rem]">
@@ -10,7 +10,7 @@
         {{ relativeDate }}
       </span>
     </div>
-    <div v-if="active" class="mt-4 space-y-3 text-sm fade-seq is-open">
+    <div v-if="active" class="mt-4 space-y-4 text-sm fade-seq is-open">
       <div v-if="displayTags.length" class="flex flex-wrap gap-2">
         <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">
           {{ tag }}
@@ -24,7 +24,7 @@
         <h4 class="font-semibold mb-1">Анализ:</h4>
         <p class="leading-snug opacity-90">{{ dream.analysis }}</p>
       </div>
-      <div class="mt-4 flex gap-2">
+      <div class="mt-6 flex gap-2">
         <button 
           class="flex-1 rounded-xl py-2 text-sm font-medium transition-colors"
           :class="localFeedback === 1 ? 'bg-green-500/30 text-white ring-2 ring-green-400/60' : 'bg-white/20 hover:bg-white/30 text-white'"
