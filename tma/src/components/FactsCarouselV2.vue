@@ -13,6 +13,7 @@
       :observer="true"
       :observe-parents="true"
       :watch-overflow="true"
+      :speed="650"
       @init="onInit"
       class="w-screen"
       :style="{ height: maxCardHeight + 'px' }"
@@ -115,7 +116,7 @@ onBeforeUnmount(() => {
 <style scoped>
 /* Специальных стилей немного: всё через утилитарные классы */
 :deep(.swiper) { margin-bottom: 0 !important; padding-bottom: 0 !important; }
-:deep(.swiper-wrapper) { margin-bottom: 0 !important; }
+:deep(.swiper-wrapper) { margin-bottom: 0 !important; transition-timing-function: ease-in-out !important; }
 </style>
 
 
