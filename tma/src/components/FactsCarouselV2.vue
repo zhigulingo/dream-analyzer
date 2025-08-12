@@ -8,6 +8,8 @@
       :centeredSlides="true"
       :centeredSlidesBounds="true"
       :autoplay="autoplay"
+      :slidesOffsetBefore="edgeOffset"
+      :slidesOffsetAfter="edgeOffset"
       :keyboard="{ enabled: true }"
       :a11y="{ enabled: true }"
       :observer="true"
@@ -51,6 +53,7 @@ const cardRefs = ref<any[]>([])
 const maxCardHeight = ref(224)
 const swiperInstance = ref<any>(null)
 const slideWidthPx = ref<number>(Math.round(window.innerWidth * 0.86))
+const edgeOffset = ref<number>(Math.max(0, Math.round((window.innerWidth - slideWidthPx.value) / 2)))
 
 const facts = ref([
   { id: 1, type: 'Факт', text: 'Большинство снов забываются в течение первых 5-10 минут после пробуждения.' },
@@ -90,7 +93,10 @@ const measureUserCardWidth = () => {
     const firstBlock = document.querySelector('main section.account-block');
     const userCard = firstBlock?.querySelector('article') as HTMLElement | null;
     const w = userCard?.getBoundingClientRect().width;
-    if (w && w > 0) slideWidthPx.value = Math.round(w);
+    if (w && w > 0) {
+      slideWidthPx.value = Math.round(w);
+      edgeOffset.value = Math.max(0, Math.round((window.innerWidth - slideWidthPx.value) / 2));
+    }
   } catch {}
 }
 
