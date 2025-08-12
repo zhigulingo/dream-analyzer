@@ -1,6 +1,6 @@
 <template>
   <!-- Полноэкранная по краям (full-bleed) дорожка, без внутренних паддингов -->
-  <section class="relative -mx-4 sm:-mx-6 md:-mx-8 mb-8">
+  <section class="relative -mx-4 sm:-mx-6 md:-mx-8 mb-0">
     <Swiper
       :modules="modules"
       slides-per-view="auto"

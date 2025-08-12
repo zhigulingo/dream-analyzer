@@ -4,7 +4,7 @@
     - Убираем растягивание на всю ширину (full-bleed) и сохраняем левый отступ как у остальных секций
     - Убираем только правый отступ за счёт отрицательного margin-right, чтобы следующая карточка чуть выглядывала
   -->
-  <section class="carousel-root relative mb-8 overflow-visible">
+  <section class="carousel-root relative mb-0 overflow-visible">
     <Swiper
       :modules="modules"
       :spaceBetween="gapSize"
