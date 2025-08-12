@@ -111,6 +111,8 @@ onBeforeUnmount(() => {
 
 <style scoped>
 /* Специальных стилей немного: всё через утилитарные классы */
+:deep(.swiper) { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+:deep(.swiper-wrapper) { margin-bottom: 0 !important; }
 </style>
 
 

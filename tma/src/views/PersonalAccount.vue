@@ -19,7 +19,7 @@
       <section class="account-block w-full max-w-72r">
         <UserInfoCard :user-store="userStore" />
       </section>
-      <section class="account-block w-full max-w-72r">
+      <section class="account-block w-full max-w-72r mb-0">
         <FactsCarouselV2 />
       </section>
       <section v-if="showDeepAnalysisBanner" class="account-block w-full max-w-72r">
