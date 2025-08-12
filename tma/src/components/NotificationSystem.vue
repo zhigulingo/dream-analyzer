@@ -16,7 +16,7 @@
           class="notification"
           @click="handleNotificationClick(notification)"
         >
-          <div class="notification-content">
+            <div class="notification-content">
             <div class="notification-icon">
               <component :is="getIcon(notification.type)" class="w-5 h-5" />
             </div>
@@ -106,17 +106,19 @@ const InformationCircleIcon = {
 <style scoped>
 .notification-container {
   position: fixed;
-  top: 1rem;
-  right: 1rem;
+  left: 50%;
+  bottom: 10vh; /* 10% от нижней части экрана */
+  transform: translateX(-50%);
+  width: 40vw; /* 40% ширины экрана */
   z-index: 9999;
   pointer-events: none;
-  max-width: 400px;
 }
 
 .notification-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  align-items: center;
 }
 
 .notification {
@@ -132,10 +134,11 @@ const InformationCircleIcon = {
 .notification-base {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   color: var(--tg-theme-text-color);
   transform: translateX(0);
+  width: 100%;
 }
 
 .notification-success {
@@ -275,14 +278,8 @@ const InformationCircleIcon = {
 /* Mobile responsiveness */
 @media (max-width: 640px) {
   .notification-container {
-    left: 1rem;
-    right: 1rem;
-    max-width: none;
-  }
-  
-  .notification-enter-from,
-  .notification-leave-to {
-    transform: translateY(-100%);
+    width: 90vw; /* на мобильных шире */
+    bottom: 8vh;
   }
 }
 </style>
