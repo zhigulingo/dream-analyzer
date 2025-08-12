@@ -8,8 +8,6 @@
       :centeredSlides="true"
       :centeredSlidesBounds="true"
       :autoplay="autoplay"
-      :slidesOffsetBefore="edgeOffset"
-      :slidesOffsetAfter="edgeOffset"
       :keyboard="{ enabled: true }"
       :a11y="{ enabled: true }"
       :observer="true"
@@ -21,11 +19,11 @@
       :style="{ height: maxCardHeight + 'px' }"
     >
       <SwiperSlide
-        v-for="fact in facts"
+        v-for="(fact, idx) in facts"
         :key="fact.id"
         ref="cardRefs"
         class="rounded-xl overflow-hidden bg-gradient-to-br from-[#6A4DFF] to-[#9A3CFF] text-white p-8 flex flex-col justify-between will-change-transform w-auto flex-shrink-0"
-        :style="{ height: maxCardHeight + 'px', width: slideWidthPx + 'px' }"
+        :style="{ height: maxCardHeight + 'px', width: slideWidthPx + 'px', marginLeft: idx === 0 ? edgeOffset + 'px' : undefined, marginRight: idx === facts.length - 1 ? edgeOffset + 'px' : undefined }"
       >
         <div class="mb-4">
           <Badge>{{ fact.type }}</Badge>
