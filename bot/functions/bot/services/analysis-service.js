@@ -46,6 +46,9 @@ class AnalysisService {
             // Get analysis from Gemini
             console.log(`[AnalysisService] Requesting analysis...`);
             let analysisResultText = await this.getGeminiAnalysis(dreamText);
+            if (!analysisResultText || analysisResultText.includes('Краткий анализ временно недоступен')) {
+                throw new Error('Analysis service temporarily unavailable');
+            }
             console.log(`[AnalysisService] Analysis received successfully.`);
 
             // Save result to DB

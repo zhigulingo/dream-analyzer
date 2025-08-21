@@ -103,7 +103,7 @@ let netlifyWebhookHandler = null;
 
 if (botInitializedAndHandlersSet && bot) {
     try {
-        netlifyWebhookHandler = webhookCallback(bot, 'aws-lambda-async');
+        netlifyWebhookHandler = webhookCallback(bot, 'aws-lambda');
         console.log("[Bot Global Init] webhookCallback created successfully.");
     } catch (callbackError) {
         console.error("[Bot Global Init] FAILED TO CREATE webhookCallback:", callbackError);

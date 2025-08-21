@@ -45,17 +45,23 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             
             // Get user data
             const userData = await userService.getOrCreateUser(userId);
-            
-            // Check and decrement token
-            console.log(`[TextMessageHandler] Checking/decrementing token for ${userId}...`);
-            const tokenDecremented = await userService.decrementTokenIfAvailable(userId);
-            if (!tokenDecremented) {
+
+            // Check token availability BEFORE any decrement
+            console.log(`[TextMessageHandler] Checking token availability for ${userId}...`);
+            const hasToken = await userService.hasAvailableToken(userId);
+            if (!hasToken) {
                 throw new Error("Insufficient tokens for analysis.");
             }
-            console.log(`[TextMessageHandler] Token decremented for user ${userId}.`);
-            
-            // Perform analysis
+
+            // Perform analysis first; only decrement token on success
             await analysisService.analyzeDream(userData.id, userId, dreamText);
+
+            // Decrement token now that analysis has succeeded
+            console.log(`[TextMessageHandler] Decrementing token after successful analysis for ${userId}...`);
+            const tokenDecremented = await userService.decrementTokenIfAvailable(userId);
+            if (!tokenDecremented) {
+                console.warn(`[TextMessageHandler] Token was not decremented post-success (possibly race condition).`);
+            }
             
             // Delete status message
             console.log(`[TextMessageHandler] Deleting status message ${statusMessage.message_id}`);
@@ -78,8 +84,8 @@ See it in your history in the Personal Account.`, {
                 await messageService.deleteStatusMessage(chatId, statusMessage);
             }
             
-            // Show error to user
-            await messageService.sendReply(ctx, `An error occurred: ${error.message || 'Unknown error'}`);
+            // Show error to user (do not decrement token on failure)
+            await messageService.sendReply(ctx, `Произошла ошибка при анализе сна: ${error.message || 'Неизвестная ошибка'}. Попробуйте позже.`);
         }
     };
 }

@@ -152,6 +152,24 @@ class UserService {
     }
 
     /**
+     * Checks if user has at least one token available
+     * @param {number} tgUserId - Telegram user ID
+     * @returns {Promise<boolean>}
+     */
+    async hasAvailableToken(tgUserId) {
+        const { data, error } = await this.supabase
+            .from('users')
+            .select('tokens')
+            .eq('tg_id', tgUserId)
+            .single();
+        if (error && error.code !== 'PGRST116') {
+            throw new Error(`Failed to fetch token balance: ${error.message}`);
+        }
+        const tokens = data?.tokens ?? 0;
+        return Number(tokens) > 0;
+    }
+
+    /**
      * Processes successful subscription payment
      * @param {number} userId - Telegram user ID
      * @param {string} plan - Plan type
