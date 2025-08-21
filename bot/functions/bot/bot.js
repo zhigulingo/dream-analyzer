@@ -113,9 +113,9 @@ if (botInitializedAndHandlersSet && bot) {
     console.error("[Bot Global Init] Skipping webhookCallback creation due to errors.");
 }
 
-exports.handler = async (event) => {
+exports.handler = async (event, context) => {
     console.log("[Netlify Handler] Invoked.");
-    
+
     if (initializationError || !netlifyWebhookHandler) {
         console.error("[Netlify Handler] Initialization/webhookCallback failed.", initializationError);
         return {
@@ -123,9 +123,9 @@ exports.handler = async (event) => {
             body: "Internal Server Error: Bot failed to initialize."
         };
     }
-    
-    console.log("[Netlify Handler] Calling pre-created webhookCallback handler...");
-    return netlifyWebhookHandler(event);
+
+    console.log("[Netlify Handler] Calling pre-created webhookCallback handler with context...");
+    return netlifyWebhookHandler(event, context);
 };
 
 console.log("[Bot Global Init] Netlify handler exported.");

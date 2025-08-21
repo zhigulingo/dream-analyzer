@@ -16,6 +16,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
         const userId = ctx.from?.id;
         const chatId = ctx.chat.id;
         const messageId = ctx.message.message_id;
+        const updateId = ctx.update?.update_id;
         
         if (!userId || !chatId) {
             console.warn("[TextMessageHandler] No user/chat ID.");
@@ -28,7 +29,20 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             return;
         }
         
-        console.log(`[TextMessageHandler] Processing dream for ${userId}`);
+        console.log(`[TextMessageHandler] Processing dream for ${userId} (update ${updateId})`);
+
+        // Basic idempotency: ignore duplicate updates with same update_id within a short window
+        try {
+            const cache = require('../../shared/services/cache-service');
+            const idemKey = `bot:idem:update:${updateId}`;
+            if (cache.get(idemKey)) {
+                console.warn(`[TextMessageHandler] Duplicate update ${updateId} ignored.`);
+                return;
+            }
+            cache.set(idemKey, true, 2 * 60 * 1000); // 2 minutes TTL
+        } catch (e) {
+            console.warn('[TextMessageHandler] Idempotency cache failed:', e?.message);
+        }
         
         let statusMessage;
         
