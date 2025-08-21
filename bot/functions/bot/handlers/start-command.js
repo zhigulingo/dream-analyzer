@@ -12,6 +12,7 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
         console.log("[StartCommandHandler] Command received.");
         const userId = ctx.from?.id;
         const chatId = ctx.chat.id;
+        const updateId = ctx.update?.update_id;
         
         // Extract startParam from /start command, if present
         let startParam;
@@ -27,7 +28,26 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
             return;
         }
         
-        console.log(`[StartCommandHandler] User ${userId} in chat ${chatId}`);
+        console.log(`[StartCommandHandler] User ${userId} in chat ${chatId} (update ${updateId})`);
+
+        // Idempotency by update_id + short debounce per user
+        try {
+            const cache = require('../../shared/services/cache-service');
+            const idemKey = `bot:idem:update:${updateId}`;
+            const debounceKey = `bot:debounce:start:${userId}`;
+            if (cache.get(idemKey)) {
+                console.warn(`[StartCommandHandler] Duplicate update ${updateId} ignored.`);
+                return;
+            }
+            if (cache.get(debounceKey)) {
+                console.warn(`[StartCommandHandler] Debounced /start for user ${userId}.`);
+                return;
+            }
+            cache.set(idemKey, true, 2 * 60 * 1000); // 2 minutes
+            cache.set(debounceKey, true, 30 * 1000); // 30 seconds
+        } catch (e) {
+            console.warn('[StartCommandHandler] Idempotency/debounce cache failed:', e?.message);
+        }
         
         try {
             const userData = await userService.getOrCreateUser(userId);
