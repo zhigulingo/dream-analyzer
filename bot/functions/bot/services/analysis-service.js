@@ -2,6 +2,17 @@
 
 const geminiService = require("../../shared/services/gemini-service");
 
+function withTimeout(promise, ms, label = 'operation') {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            reject(new Error(`${label} timeout`));
+        }, ms);
+        promise
+            .then((value) => { clearTimeout(timer); resolve(value); })
+            .catch((error) => { clearTimeout(timer); reject(error); });
+    });
+}
+
 class AnalysisService {
     constructor(supabaseClient) {
         this.supabase = supabaseClient;
@@ -45,7 +56,7 @@ class AnalysisService {
         try {
             // Get analysis from Gemini
             console.log(`[AnalysisService] Requesting analysis...`);
-            let analysisResultText = await this.getGeminiAnalysis(dreamText);
+            let analysisResultText = await withTimeout(this.getGeminiAnalysis(dreamText), 8000, 'gemini analysis');
             if (!analysisResultText || analysisResultText.includes('Краткий анализ временно недоступен')) {
                 throw new Error('Analysis service temporarily unavailable');
             }
