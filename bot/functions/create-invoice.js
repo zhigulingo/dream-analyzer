@@ -8,6 +8,21 @@ const { createSuccessResponse, createErrorResponse, parseJsonBody } = require('.
 const BOT_TOKEN = process.env.BOT_TOKEN;
 // Убедитесь, что эта переменная установлена в Netlify UI для сайта бэкенда!
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
+// Конфиг цен
+const DEEP_ANALYSIS_PRICE_XTR = Number.parseInt(process.env.DEEP_ANALYSIS_PRICE_XTR || '1', 10);
+let SUB_PRICES = {};
+try {
+    // Формат: { "basic": { "1": 15, "3": 40 }, "premium": { "1": 30 } }
+    SUB_PRICES = JSON.parse(process.env.SUBSCRIPTION_PRICES_JSON || '{}');
+} catch (_) { SUB_PRICES = {}; }
+
+function getSubscriptionPrice(plan, durationMonths) {
+    const planKey = String(plan || '').toLowerCase();
+    const durKey = String(durationMonths);
+    const value = SUB_PRICES?.[planKey]?.[durKey];
+    if (!Number.isInteger(value) || value <= 0) return null;
+    return value;
+}
 
 // --- Используем общую библиотеку авторизации ---
 
@@ -39,7 +54,7 @@ async function handleCreateInvoice(event, context, corsHeaders) {
     console.log(`[create-invoice] Parsed request body for user ${verifiedUserId}:`, requestBody);
 
     // Определяем тип запроса: подписка или глубокий анализ
-    const { plan, duration, amount, payload } = requestBody;
+    const { plan, duration, payload } = requestBody;
     let isDeepAnalysisPurchase = plan === 'deep_analysis'; // Признак покупки глубокого анализа
 
     // --- Валидация параметров ---
@@ -63,26 +78,31 @@ async function handleCreateInvoice(event, context, corsHeaders) {
     if (isDeepAnalysisPurchase) {
         // --- Параметры для глубокого анализа ---
         console.log(`[create-invoice] Preparing invoice for DEEP ANALYSIS for user ${verifiedUserId}`);
-        if (amount !== 1) { // Цена должна быть ровно 1 звезда
-             console.error(`[create-invoice] Invalid amount for deep analysis: ${amount}. Must be 1.`);
-             throw createApiError('Bad Request: Invalid amount for deep analysis', 400);
+        // Цена берётся из конфигурации окружения
+        if (!Number.isInteger(DEEP_ANALYSIS_PRICE_XTR) || DEEP_ANALYSIS_PRICE_XTR <= 0) {
+            throw createApiError('Bad Request: Deep analysis price is not configured', 400);
         }
         title = "Глубокий анализ снов";
         description = `Оплата глубокого анализа последних ${process.env.REQUIRED_DREAMS || 5} снов за Telegram Stars`;
         currency = 'XTR';
-        prices = [{ label: "Глубокий анализ", amount: 1 }]; // Цена = 1 XTR
+        prices = [{ label: "Глубокий анализ", amount: DEEP_ANALYSIS_PRICE_XTR }];
 
     } else {
         // --- Параметры для подписки (как было раньше) ---
          console.log(`[create-invoice] Preparing invoice for SUBSCRIPTION (${plan} ${duration}mo) for user ${verifiedUserId}`);
         // Валидация параметров подписки
-        if (!plan || typeof plan !== 'string' || !duration || typeof duration !== 'number' || !Number.isInteger(duration) || duration <= 0 || !amount || typeof amount !== 'number' || !Number.isInteger(amount) || amount < 1) {
+        if (!plan || typeof plan !== 'string' || !duration || typeof duration !== 'number' || !Number.isInteger(duration) || duration <= 0) {
             throw createApiError('Bad Request: Missing or invalid parameters for subscription', 400);
+        }
+        const normalizedPlan = plan.toLowerCase();
+        const priceXtr = getSubscriptionPrice(normalizedPlan, duration);
+        if (priceXtr == null) {
+            throw createApiError('Bad Request: Subscription price not configured', 400);
         }
         title = `Подписка ${plan.charAt(0).toUpperCase() + plan.slice(1)} (${duration} мес.)`;
         description = `Оплата подписки "${plan}" на ${duration} месяца в Dream Analyzer за Telegram Stars`;
         currency = 'XTR';
-        prices = [{ label: `Подписка ${plan} ${duration} мес.`, amount: amount }];
+        prices = [{ label: `Подписка ${plan} ${duration} мес.`, amount: priceXtr }];
     }
 
     // --- Создание ссылки на инвойс ---
