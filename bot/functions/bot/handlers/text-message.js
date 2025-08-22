@@ -11,6 +11,7 @@
 function createTextMessageHandler(userService, messageService, analysisService, TMA_URL) {
     return async (ctx) => {
         console.log("[TextMessageHandler] Received text message.");
+        const messages = require('../../shared/services/messages-service');
         
         const dreamText = ctx.message.text;
         const userId = ctx.from?.id;
@@ -65,7 +66,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             await messageService.deleteMessage(chatId, messageId);
             
             // Send status message
-            statusMessage = await messageService.sendStatusMessage(ctx, "Analyzing your dream... 🧠✨");
+            statusMessage = await messageService.sendStatusMessage(ctx, messages.get('analysis.status'));
             if (!statusMessage) {
                 throw new Error("Failed to send status message.");
             }
@@ -97,10 +98,8 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             console.log(`[TextMessageHandler] Analysis complete. Sending confirmation.`);
             
             // Send success message
-            await messageService.sendReply(ctx, `Your dream analysis is ready and saved! ✨
-
-See it in your history in the Personal Account.`, {
-                reply_markup: messageService.createWebAppButton("Open Personal Account", TMA_URL)
+            await messageService.sendReply(ctx, messages.get('analysis.success'), {
+                reply_markup: messageService.createWebAppButton(messages.get('buttons.open_account'), TMA_URL)
             });
             
         } catch (error) {
@@ -112,7 +111,7 @@ See it in your history in the Personal Account.`, {
             }
             
             // Show error to user (do not decrement token on failure)
-            await messageService.sendReply(ctx, `Произошла ошибка при анализе сна: ${error.message || 'Неизвестная ошибка'}. Попробуйте позже.`);
+            await messageService.sendReply(ctx, messages.get('analysis.error', { details: error.message || 'Неизвестная ошибка' }));
         }
         finally {
             try {

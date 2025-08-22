@@ -10,6 +10,7 @@
 function createStartCommandHandler(userService, messageService, TMA_URL) {
     return async (ctx) => {
         console.log("[StartCommandHandler] Command received.");
+        const messages = require('../../shared/services/messages-service');
         const userId = ctx.from?.id;
         const chatId = ctx.chat.id;
         const updateId = ctx.update?.update_id;
@@ -63,20 +64,16 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
             let messageText, buttonText, buttonUrl;
             
             if (userData.claimed) {
-                messageText = "Welcome back! 👋 Analyze dreams or visit your Personal Account.";
-                buttonText = "Personal Account";
+                messageText = messages.get('start.returning');
+                buttonText = messages.get('buttons.open_account');
                 buttonUrl = TMA_URL;
             } else if (startParam === 'weblogin') {
-                // Handle weblogin parameter with direct link to web app login
-                messageText = "🔐 Click the button below to log in to the web version.";
-                buttonText = "Открыть веб-версию";
+                messageText = messages.get('start.weblogin');
+                buttonText = messages.get('buttons.open_web');
                 buttonUrl = `${TMA_URL}/login`;
             } else {
-                // Default message for new users
-                messageText = `Hello! 👋 Dream Analyzer bot.
-
-Press the button to get your <b>first free token</b> for subscribing!`;
-                buttonText = "🎁 Open and claim token";
+                messageText = messages.get('start.new_user');
+                buttonText = messages.get('buttons.claim_reward');
                 buttonUrl = `${TMA_URL}?action=claim_reward`;
             }
             
@@ -97,7 +94,7 @@ Press the button to get your <b>first free token</b> for subscribing!`;
             
         } catch (error) {
             console.error("[StartCommandHandler] CRITICAL Error:", error.message);
-            await messageService.sendReply(ctx, `An error occurred while fetching user data (${error.message}). Please try again later.`);
+            await messageService.sendReply(ctx, messages.get('start.profile_error', { error: error.message }));
         }
     };
 }

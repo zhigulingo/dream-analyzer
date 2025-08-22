@@ -30,6 +30,7 @@ function createPreCheckoutQueryHandler(messageService) {
  */
 function createSuccessfulPaymentHandler(userService, messageService) {
     return async (ctx) => {
+        const messages = require('../../shared/services/messages-service');
         console.log("[PaymentHandlers:SuccessfulPayment] Received:", JSON.stringify(ctx.message.successful_payment));
         
         const payment = ctx.message.successful_payment;
@@ -53,12 +54,12 @@ function createSuccessfulPaymentHandler(userService, messageService) {
             } else {
                 // Unknown payload format
                 console.error(`[PaymentHandlers:SuccessfulPayment] Unknown or invalid payload format: ${payload} from user ${userId}`);
-                await messageService.sendReply(ctx, "Received payment with unknown purpose.");
+                await messageService.sendReply(ctx, messages.get('payments.unknown'));
             }
 
         } catch (error) {
             console.error(`[PaymentHandlers:SuccessfulPayment] Failed process payment for ${userId}:`, error);
-            await messageService.sendReply(ctx, "Your payment was received, but an error occurred during processing. Please contact support.");
+            await messageService.sendReply(ctx, messages.get('payments.process_error'));
         }
     };
 }
@@ -79,7 +80,8 @@ async function handleSubscriptionPayment(userService, messageService, ctx, parts
     
     if (isNaN(durationMonths) || isNaN(payloadUserId) || payloadUserId !== userId) {
         console.error(`[PaymentHandlers:SuccessfulPayment] Sub Payload error/mismatch: ${payload}`);
-        await messageService.sendReply(ctx, "Subscription payment data error.");
+        const messages = require('../../shared/services/messages-service');
+        await messageService.sendReply(ctx, messages.get('payments.subscription_data_error'));
         return;
     }
 
@@ -88,7 +90,10 @@ async function handleSubscriptionPayment(userService, messageService, ctx, parts
     await userService.processSubscriptionPayment(userId, plan, durationMonths);
     
     console.log(`[PaymentHandlers:SuccessfulPayment] Subscription payment processed via RPC for ${userId}.`);
-    await messageService.sendReply(ctx, `Thank you! Your "${plan.toUpperCase()}" subscription is active/extended. ✨`);
+    {
+        const messages = require('../../shared/services/messages-service');
+        await messageService.sendReply(ctx, messages.get('payments.subscription_success', { plan: String(plan).toUpperCase() }));
+    }
 }
 
 /**
@@ -105,7 +110,8 @@ async function handleDeepAnalysisPayment(userService, messageService, ctx, parts
     
     if (isNaN(payloadUserId) || payloadUserId !== userId) {
         console.error(`[PaymentHandlers:SuccessfulPayment] Deep Analysis Payload error/mismatch: ${payload}`);
-        await messageService.sendReply(ctx, "Deep analysis payment data error.");
+        const messages = require('../../shared/services/messages-service');
+        await messageService.sendReply(ctx, messages.get('payments.deep_data_error'));
         return;
     }
 
@@ -118,7 +124,10 @@ async function handleDeepAnalysisPayment(userService, messageService, ctx, parts
     const newCredits = await userService.addDeepAnalysisCredit(userId);
     
     console.log(`[PaymentHandlers:SuccessfulPayment] Deep analysis credit added for user ${userId}. New total: ${newCredits}`);
-    await messageService.sendReply(ctx, "Спасибо за покупку! Вам добавлен 1 кредит глубокого анализа. Используйте его в приложении.");
+    {
+        const messages = require('../../shared/services/messages-service');
+        await messageService.sendReply(ctx, messages.get('payments.deep_success'));
+    }
 }
 
 module.exports = {
