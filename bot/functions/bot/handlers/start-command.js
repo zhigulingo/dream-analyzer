@@ -30,7 +30,7 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
         
         console.log(`[StartCommandHandler] User ${userId} in chat ${chatId} (update ${updateId})`);
 
-        // Idempotency by update_id + short debounce per user
+        // Idempotency by update_id + debounce per user
         try {
             const cache = require('../../shared/services/cache-service');
             const idemKey = `bot:idem:update:${updateId}`;
@@ -39,12 +39,13 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
                 console.warn(`[StartCommandHandler] Duplicate update ${updateId} ignored.`);
                 return;
             }
+            // If we've recently sent a welcome, skip re-sending entirely
             if (cache.get(debounceKey)) {
                 console.warn(`[StartCommandHandler] Debounced /start for user ${userId}.`);
                 return;
             }
             cache.set(idemKey, true, 2 * 60 * 1000); // 2 minutes
-            cache.set(debounceKey, true, 30 * 1000); // 30 seconds
+            cache.set(debounceKey, true, 5 * 60 * 1000); // 5 minutes
         } catch (e) {
             console.warn('[StartCommandHandler] Idempotency/debounce cache failed:', e?.message);
         }
