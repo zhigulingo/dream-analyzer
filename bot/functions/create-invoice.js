@@ -62,7 +62,7 @@ async function handleCreateInvoice(event, context, corsHeaders) {
         throw createApiError('Bad Request: Missing or invalid payload', 400);
     }
 
-    // Проверка совпадения ID в payload и проверенного ID (делаем для обоих типов)
+    // Проверка совпадения ID в payload и проверенного ID (делаем для обоих типов) + консистентности payload
     const payloadParts = payload.split('_');
     const expectedUserIdIndex = isDeepAnalysisPurchase ? 1 : 3; // Индекс ID пользователя в payload
     const payloadUserId = payloadParts.length > expectedUserIdIndex ? parseInt(payloadParts[expectedUserIdIndex], 10) : null;
@@ -82,6 +82,12 @@ async function handleCreateInvoice(event, context, corsHeaders) {
         if (!Number.isInteger(DEEP_ANALYSIS_PRICE_XTR) || DEEP_ANALYSIS_PRICE_XTR <= 0) {
             throw createApiError('Bad Request: Deep analysis price is not configured', 400);
         }
+        // Строгая консистентность payload
+        const expectedPayload = `deepanalysis_${verifiedUserId}`;
+        if (payload !== expectedPayload) {
+            console.error(`[create-invoice] Payload mismatch for deep analysis. Expected ${expectedPayload} got ${payload}`);
+            throw createApiError('Bad Request: Invalid payload for deep analysis', 400);
+        }
         title = "Глубокий анализ снов";
         description = `Оплата глубокого анализа последних ${process.env.REQUIRED_DREAMS || 5} снов за Telegram Stars`;
         currency = 'XTR';
@@ -98,6 +104,12 @@ async function handleCreateInvoice(event, context, corsHeaders) {
         const priceXtr = getSubscriptionPrice(normalizedPlan, duration);
         if (priceXtr == null) {
             throw createApiError('Bad Request: Subscription price not configured', 400);
+        }
+        // Строгая консистентность payload
+        const expectedPayload = `sub_${normalizedPlan}_${duration}mo_${verifiedUserId}`;
+        if (payload !== expectedPayload) {
+            console.error(`[create-invoice] Payload mismatch for subscription. Expected ${expectedPayload} got ${payload}`);
+            throw createApiError('Bad Request: Invalid payload for subscription', 400);
         }
         title = `Подписка ${plan.charAt(0).toUpperCase() + plan.slice(1)} (${duration} мес.)`;
         description = `Оплата подписки "${plan}" на ${duration} месяца в Dream Analyzer за Telegram Stars`;
