@@ -63,8 +63,8 @@ export const useUserStore = defineStore('user', {
     isPremium: (state) => state.profile.subscription_type === 'premium',
     // <<<--- НАЧАЛО ИСПРАВЛЕНИЯ ЦЕН ---
     getPlanDetails: (state) => (plan, duration) => {
-      // ВАШИ ЦЕНЫ ДЛЯ ТЕСТОВ = 1 ЗВЕЗДА
-      const prices = { premium: { 1: 300, 3: 765, 12: 2160 }, basic: { 1: 50, 3: 125, 12: 360 } };
+      // Цены будут загружаться с бэкенда через /pricing-config и кэшироваться в state
+      const prices = state.__pricing?.subscription || {};
       const features = {
             premium: ["30 токенов", "Ранний доступ к фичам", "Глубокий анализ"],
             basic: ["15 токенов в месяц", "Стандартный анализ", "Поддержка"],
@@ -72,7 +72,7 @@ export const useUserStore = defineStore('user', {
         };
       const durationTextMap = { 1: '1 месяц', 3: '3 месяца', 12: '1 год' };
       return {
-            price: prices[plan]?.[duration] ?? null, // Используем ваши цены = 1
+            price: prices?.[plan]?.[String(duration)] ?? null,
             features: features[plan] ?? [],
             durationText: durationTextMap[duration] ?? `${duration} месяцев`
         };
@@ -88,6 +88,20 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
+    async loadPricing() {
+      try {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL;
+        if (!baseUrl) return;
+        const res = await fetch(`${baseUrl}/pricing-config`);
+        const data = await res.json();
+        if (data?.pricing) {
+          this.__pricing = data.pricing;
+          console.log('[UserStore] Pricing loaded:', this.__pricing);
+        }
+      } catch (e) {
+        console.warn('[UserStore] Failed to load pricing:', e);
+      }
+    },
     // Initialize notification store
     initNotifications() {
       if (!this.notificationStore) {
@@ -237,7 +251,7 @@ export const useUserStore = defineStore('user', {
     }
   },
 
-    openSubscriptionModal() { this.showSubscriptionModal = true; this.selectedPlan = 'premium'; this.selectedDuration = 3; console.log("[UserStore] Opening modal"); },
+    openSubscriptionModal() { this.showSubscriptionModal = true; this.selectedPlan = 'premium'; this.selectedDuration = 3; console.log("[UserStore] Opening modal"); this.loadPricing(); },
     closeSubscriptionModal() { this.showSubscriptionModal = false; console.log("[UserStore] Closing modal"); },
     selectPlan(plan) { this.selectedPlan = plan; this.selectedDuration = 3; console.log(`[UserStore] Plan selected: ${plan}`); },
     selectDuration(duration) { this.selectedDuration = duration; console.log(`[UserStore] Duration selected: ${duration}`); },
