@@ -2,6 +2,12 @@
 
 const fs = require('fs');
 const path = require('path');
+// Bundle built-in locales so they are available after esbuild packaging
+let builtInLocales = {};
+try {
+  // eslint-disable-next-line import/no-dynamic-require, global-require
+  builtInLocales.ru = require('../messages/ru.json');
+} catch (_) { builtInLocales.ru = {}; }
 
 function safeJsonParse(str) {
   try { return JSON.parse(str); } catch (_) { return null; }
@@ -21,13 +27,20 @@ function deepMerge(base, override) {
 }
 
 function loadLocale(locale) {
-  const filePath = path.join(__dirname, '..', 'messages', `${locale}.json`);
-  let defaults = {};
+  const lc = String(locale || '').toLowerCase();
+  // Start with bundled defaults if available
+  let defaults = builtInLocales[lc] || {};
+  // Optionally layer filesystem locale file (for local dev or added locales)
   try {
-    defaults = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  } catch (_) { defaults = {}; }
+    const filePath = path.join(__dirname, '..', 'messages', `${lc}.json`);
+    if (fs.existsSync(filePath)) {
+      const fileJson = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      defaults = deepMerge(defaults, fileJson);
+    }
+  } catch (_) { /* ignore */ }
 
-  const envVar = process.env[`MESSAGES_${locale.toUpperCase()}_JSON`];
+  // Finally apply ENV override
+  const envVar = process.env[`MESSAGES_${lc.toUpperCase()}_JSON`];
   const override = envVar ? safeJsonParse(envVar) : null;
   return deepMerge(defaults, override || {});
 }
