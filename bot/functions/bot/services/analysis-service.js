@@ -25,22 +25,8 @@ class AnalysisService {
      */
     async getGeminiAnalysis(dreamText) {
         console.log("[AnalysisService] Getting analysis from unified Gemini service (basic_meta).");
-        try {
-            return await geminiService.analyzeDream(dreamText, 'basic_meta');
-        } catch (error) {
-            console.warn("[AnalysisService] basic_meta failed, trying basic:", error?.message);
-            try {
-                return await geminiService.analyzeDream(dreamText, 'basic');
-            } catch (error2) {
-                console.error("[AnalysisService] basic failed:", error2?.message);
-                try {
-                    return await geminiService.analyzeDream(dreamText, 'brief');
-                } catch (error3) {
-                    console.error("[AnalysisService] brief failed:", error3?.message);
-                    return "Краткий анализ временно недоступен. Попробуйте ещё раз позже. Обратите внимание на ключевые образы и эмоции сна — это поможет понять основной посыл.";
-                }
-            }
-        }
+        // Один целевой промпт без каскада фолбэков, чтобы не распылять квоту
+        return await geminiService.analyzeDream(dreamText, 'basic_meta');
     }
 
     /**

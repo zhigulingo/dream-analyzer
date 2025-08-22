@@ -17,9 +17,9 @@ class GeminiService {
         this.cache = cacheService; // Используем новый cache service
         this.cacheTimeout = 60 * 60 * 1000; // 1 час
         
-        // Настройки retry
-        this.maxRetries = 3;
-        this.baseDelay = 1000; // 1 секунда
+        // Настройки retry (снижены для экономии квоты)
+        this.maxRetries = 2;
+        this.baseDelay = 750; // 0.75 секунды
         
         // Лимиты
         this.MAX_DREAM_LENGTH = 4000;

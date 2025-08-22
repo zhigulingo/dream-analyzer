@@ -31,15 +31,28 @@ function createTextMessageHandler(userService, messageService, analysisService, 
         
         console.log(`[TextMessageHandler] Processing dream for ${userId} (update ${updateId})`);
 
-        // Basic idempotency: ignore duplicate updates with same update_id within a short window
+        // Basic idempotency + per-user rate limit & in-flight guard
         try {
             const cache = require('../../shared/services/cache-service');
             const idemKey = `bot:idem:update:${updateId}`;
+            const rateKey = `bot:rate:text:${userId}`;
+            const inflightKey = `bot:inflight:text:${userId}`;
             if (cache.get(idemKey)) {
                 console.warn(`[TextMessageHandler] Duplicate update ${updateId} ignored.`);
                 return;
             }
+            // 1 запрос в 10 секунд на пользователя
+            if (cache.get(rateKey)) {
+                console.warn(`[TextMessageHandler] Rate limited user ${userId}.`);
+                return;
+            }
+            if (cache.get(inflightKey)) {
+                console.warn(`[TextMessageHandler] In-flight analysis exists for ${userId}, ignoring.`);
+                return;
+            }
             cache.set(idemKey, true, 2 * 60 * 1000); // 2 minutes TTL
+            cache.set(rateKey, true, 10 * 1000); // 10 seconds
+            cache.set(inflightKey, true, 60 * 1000); // 60 seconds safety
         } catch (e) {
             console.warn('[TextMessageHandler] Idempotency cache failed:', e?.message);
         }
@@ -100,6 +113,13 @@ See it in your history in the Personal Account.`, {
             
             // Show error to user (do not decrement token on failure)
             await messageService.sendReply(ctx, `Произошла ошибка при анализе сна: ${error.message || 'Неизвестная ошибка'}. Попробуйте позже.`);
+        }
+        finally {
+            try {
+                const cache = require('../../shared/services/cache-service');
+                const inflightKey = `bot:inflight:text:${userId}`;
+                cache.delete(inflightKey);
+            } catch (_) {}
         }
     };
 }
