@@ -70,7 +70,7 @@ export const useUserStore = defineStore('user', {
             basic: ["15 токенов в месяц", "Стандартный анализ", "Поддержка"],
             free: ["1 пробный токен"]
         };
-      const durationTextMap = { 1: '1 месяц', 3: '3 месяца', 12: '1 год' };
+      const durationTextMap = { 1: '1 месяц', 3: '3 месяца', 12: '12 месяцев' };
       return {
             price: prices?.[plan]?.[String(duration)] ?? null,
             features: features[plan] ?? [],

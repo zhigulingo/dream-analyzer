@@ -28,17 +28,22 @@
             name="duration"
             :value="duration"
             :checked="userStore.selectedDuration === duration"
+            :disabled="!getPlanDetails(userStore.selectedPlan, duration).price"
             @change="userStore.selectDuration(duration)"
           />
-          <div class="duration-card">
+          <div class="duration-card" :class="{ disabled: !getPlanDetails(userStore.selectedPlan, duration).price }">
              <span class="months">{{ duration }} {{ duration > 1 ? (duration < 5 ? 'месяца' : 'месяцев') : 'месяц' }}</span>
-             <span class="price" v-if="getPlanDetails(userStore.selectedPlan, duration).price">
-               {{ (getPlanDetails(userStore.selectedPlan, duration).price / duration).toFixed(0) }} / мес
-             </span>
-             <!-- <span class="save">Save X%</span> -->
-             <span class="total-price" v-if="getPlanDetails(userStore.selectedPlan, duration).price">
-               Всего: {{ getPlanDetails(userStore.selectedPlan, duration).price }} <span class="stars-icon">⭐</span>
-             </span>
+             <template v-if="getPlanDetails(userStore.selectedPlan, duration).price">
+               <span class="price">
+                 {{ (getPlanDetails(userStore.selectedPlan, duration).price / duration).toFixed(0) }} / мес
+               </span>
+               <span class="total-price">
+                 Всего: {{ getPlanDetails(userStore.selectedPlan, duration).price }} <span class="stars-icon">⭐</span>
+               </span>
+             </template>
+             <template v-else>
+               <span class="price">Не настроено</span>
+             </template>
           </div>
         </label>
       </div>
@@ -178,6 +183,7 @@ h2 { text-align: center; margin-bottom: 15px; }
   display: flex; justify-content: space-between; align-items: center; cursor: pointer;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
+.duration-card.disabled { opacity: 0.6; cursor: not-allowed; }
 .duration-label input[type="radio"]:checked + .duration-card {
   border-color: var(--tg-theme-button-color);
   background-color: rgba(var(--tg-theme-button-rgb-color, 82, 179, 244), 0.1);
