@@ -64,14 +64,14 @@ const isFreeFlow = computed(() => flow.value === 'free')
 
 const hasNewFlowEligibility = computed(() => {
   if (!userStore?.profile) return false
-  const stage = userStore.profile.onboarding_stage || 'stage1'
-  return stage === 'stage1'
+  const s = (userStore.profile.subscription_type || '').toLowerCase()
+  return s === 'onboarding1'
 })
 
 const hasFreeFlowEligibility = computed(() => {
-  const stage = userStore.profile?.onboarding_stage || 'stage1'
+  const s = (userStore.profile?.subscription_type || '').toLowerCase()
   const count = Array.isArray(userStore.history) ? userStore.history.length : 0
-  return (stage === 'stage2') && count === 1
+  return (s === 'onboarding2') && count === 1
 })
 
 // Initialize flow when profile/history are available
@@ -175,12 +175,18 @@ const verifySubscription = async () => {
     return
   }
   // Success: persist stage2 in DB
-  try { await api.setOnboardingStage('stage2'); userStore.profile.onboarding_stage = 'stage2' } catch (_) {}
+  try { await api.setOnboardingStage('stage2'); userStore.profile.onboarding_stage = 'stage2'; userStore.profile.subscription_type = 'onboarding2' } catch (_) {}
   flow.value = 'none'
 }
 
 const completeFree = async () => {
-  try { await api.setOnboardingStage('stage3'); userStore.profile.onboarding_stage = 'stage3' } catch (_) {}
+  try {
+    await api.setOnboardingStage('stage3');
+    userStore.profile.onboarding_stage = 'stage3';
+    if ((userStore.profile.subscription_type || '').toLowerCase().startsWith('onboarding')) {
+      userStore.profile.subscription_type = 'free';
+    }
+  } catch (_) {}
   flow.value = 'none'
 }
 
@@ -256,8 +262,9 @@ const secondaryAction = computed(() => {
 })
 
 // If profile turns claimed externally, auto-complete
-watch(() => userStore.profile?.onboarding_stage, (val) => {
-  if (val === 'stage3') {
+watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscription_type], ([stage, sub]) => {
+  const isDone = stage === 'stage3' || (sub && !String(sub).toLowerCase().startsWith('onboarding'))
+  if (isDone) {
     flow.value = 'none'
   }
 })

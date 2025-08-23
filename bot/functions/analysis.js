@@ -15,9 +15,9 @@ exports.handler = async (event, context) => {
     const check = validateTelegramData(initDataHeader, BOT_TOKEN, { enableLogging: false });
     if (!check.valid || !check.data?.id) return res;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
-    const { data: u } = await supabase.from('users').select('id, onboarding_stage').eq('tg_id', check.data.id).single();
-    if (u && (u.onboarding_stage === 'stage2')) {
-      await supabase.from('users').update({ onboarding_stage: 'stage3' }).eq('id', u.id);
+    const { data: u } = await supabase.from('users').select('id, onboarding_stage, subscription_type').eq('tg_id', check.data.id).single();
+    if (u && (u.onboarding_stage === 'stage2' || u.subscription_type === 'onboarding2')) {
+      await supabase.from('users').update({ onboarding_stage: 'stage3', subscription_type: (u.subscription_type === 'onboarding2' ? 'free' : u.subscription_type) }).eq('id', u.id);
     }
   } catch (_) {}
   return res;

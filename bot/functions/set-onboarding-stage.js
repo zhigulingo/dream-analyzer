@@ -28,9 +28,13 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid stage' }) };
     }
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
-    const { data: user } = await supabase.from('users').select('id').eq('tg_id', validation.data.id).single();
+    const { data: user } = await supabase.from('users').select('id, subscription_type').eq('tg_id', validation.data.id).single();
     if (!user) return { statusCode: 404, headers, body: JSON.stringify({ error: 'User not found' }) };
-    await supabase.from('users').update({ onboarding_stage: stage }).eq('id', user.id);
+    let nextSubscription = user.subscription_type || 'free';
+    if (stage === 'stage1') nextSubscription = 'onboarding1';
+    if (stage === 'stage2') nextSubscription = 'onboarding2';
+    if (stage === 'stage3' && (nextSubscription === 'onboarding1' || nextSubscription === 'onboarding2')) nextSubscription = 'free';
+    await supabase.from('users').update({ onboarding_stage: stage, subscription_type: nextSubscription }).eq('id', user.id);
     return { statusCode: 200, headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: true, stage }) };
   } catch (e) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Internal Server Error' }) };

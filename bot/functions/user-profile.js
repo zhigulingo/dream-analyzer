@@ -33,7 +33,7 @@ async function getOrCreateUser(supabase, userId) {
         } else {
             console.log(`[getOrCreateUser] User ${userId} not found. Creating...`);
             const { data: newUser, error: insertError } = await supabase
-                .from('users').insert({ tg_id: userId, subscription_type: 'free', tokens: 0, channel_reward_claimed: false, onboarding_stage: 'stage1' }).select('id').single();
+                .from('users').insert({ tg_id: userId, subscription_type: 'onboarding1', tokens: 0, channel_reward_claimed: false, onboarding_stage: 'stage1' }).select('id').single();
 
             if (insertError) {
                  console.error(`[getOrCreateUser] Supabase INSERT error: ${insertError.message}`);
