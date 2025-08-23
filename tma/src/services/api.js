@@ -139,6 +139,12 @@ const apiMethods = {
     return apiClient.get('/analyses-history');
   }, // <--- Запятая
 
+  // Обновление стадии онбординга
+  setOnboardingStage(stage) {
+    console.log("[api.js] Calling POST /set-onboarding-stage");
+    return apiClient.post('/set-onboarding-stage', { stage });
+  },
+
   // <<<--- НОВЫЙ МЕТОД ДЛЯ ГЛУБОКОГО АНАЛИЗА ---
   getDeepAnalysis() {
     console.log("[api.js] Calling POST /deep-analysis");

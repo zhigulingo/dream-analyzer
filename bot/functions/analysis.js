@@ -1,3 +1,28 @@
+// Minimal wrapper to hook onboarding stage after analysis, delegates to existing analyze-dream
+const analyzeDream = require('./analyze-dream');
+
+exports.handler = async (event, context) => {
+  const res = await analyzeDream.handler(event, context);
+  try {
+    // After successful analysis, move onboarding to stage3 if currently stage2
+    const { createClient } = require('@supabase/supabase-js');
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const { validateTelegramData } = require('./shared/auth/telegram-validator');
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    const initDataHeader = event.headers && (event.headers['x-telegram-init-data'] || event.headers['X-Telegram-Init-Data']);
+    if (!initDataHeader || !SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) return res;
+    const check = validateTelegramData(initDataHeader, BOT_TOKEN, { enableLogging: false });
+    if (!check.valid || !check.data?.id) return res;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+    const { data: u } = await supabase.from('users').select('id, onboarding_stage').eq('tg_id', check.data.id).single();
+    if (u && (u.onboarding_stage === 'stage2')) {
+      await supabase.from('users').update({ onboarding_stage: 'stage3' }).eq('id', u.id);
+    }
+  } catch (_) {}
+  return res;
+};
+
 // /.netlify/functions/analysis
 // DELETE: remove user's analysis by id
 

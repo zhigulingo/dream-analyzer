@@ -43,6 +43,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
 import { useUserStore } from '@/stores/user.js'
+import api from '@/services/api'
 import StickerPlayer from '@/components/StickerPlayer.vue'
 
 const tg: any = (window as any).Telegram?.WebApp
@@ -63,14 +64,14 @@ const isFreeFlow = computed(() => flow.value === 'free')
 
 const hasNewFlowEligibility = computed(() => {
   if (!userStore?.profile) return false
-  const alreadyDone = localStorage.getItem(NEW_DONE_KEY) === '1'
-  return !alreadyDone && userStore.profile.channel_reward_claimed === false
+  const stage = userStore.profile.onboarding_stage || 'stage1'
+  return stage === 'stage1'
 })
 
 const hasFreeFlowEligibility = computed(() => {
-  const alreadyDone = localStorage.getItem(FREE_DONE_KEY) === '1'
+  const stage = userStore.profile?.onboarding_stage || 'stage1'
   const count = Array.isArray(userStore.history) ? userStore.history.length : 0
-  return !alreadyDone && count === 1
+  return (stage === 'stage2') && count === 1
 })
 
 // Initialize flow when profile/history are available
@@ -173,13 +174,13 @@ const verifySubscription = async () => {
     // stay on step 2, show notification through notification store
     return
   }
-  // Success
-  localStorage.setItem(NEW_DONE_KEY, '1')
+  // Success: persist stage2 in DB
+  try { await api.setOnboardingStage('stage2'); userStore.profile.onboarding_stage = 'stage2' } catch (_) {}
   flow.value = 'none'
 }
 
-const completeFree = () => {
-  localStorage.setItem(FREE_DONE_KEY, '1')
+const completeFree = async () => {
+  try { await api.setOnboardingStage('stage3'); userStore.profile.onboarding_stage = 'stage3' } catch (_) {}
   flow.value = 'none'
 }
 
@@ -255,9 +256,8 @@ const secondaryAction = computed(() => {
 })
 
 // If profile turns claimed externally, auto-complete
-watch(() => userStore.profile?.channel_reward_claimed, (val) => {
-  if (flow.value === 'new' && val) {
-    localStorage.setItem(NEW_DONE_KEY, '1')
+watch(() => userStore.profile?.onboarding_stage, (val) => {
+  if (val === 'stage3') {
     flow.value = 'none'
   }
 })

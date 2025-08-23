@@ -134,11 +134,11 @@ exports.handler = async (event) => {
             .update({
                 tokens: (userRecord.tokens || 0) + 1, // <<<--- ИСПРАВЛЕНО: Добавляем 1 к текущему значению
                 channel_reward_claimed: true,         // Ставим флаг
-                onboarding_stage: 'new_2_verified'    // Отмечаем этап онбординга
+                onboarding_stage: 'stage2'            // Первый онбординг завершён
             })
             .eq('id', userRecord.id)                  // Обновляем по внутреннему ID
             .eq('channel_reward_claimed', false)      // Доп. проверка от гонки запросов
-            .select('tokens')                         // Возвращаем новое кол-во токенов
+            .select('tokens, onboarding_stage')       // Возвращаем новое кол-во токенов и стадию
             .single();                                // Ожидаем одну обновленную строку
 
         if (updateError) {
