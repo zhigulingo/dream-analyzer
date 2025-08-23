@@ -1,22 +1,40 @@
 <template>
-  <div v-if="visible" class="onboarding-overlay">
-    <div class="onboarding-card">
+  <div v-if="visible" class="onboarding-overlay" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
+    <!-- Stack 1: first card (Onboarding_new_1) -->
+    <div v-show="isNewFlow && step === 1" class="onboarding-card card-absolute" :class="dragClass">
       <div class="onboarding-header">
-        <h2 class="title">{{ currentTitle }}</h2>
-        <p class="subtitle" v-if="currentSubtitle">{{ currentSubtitle }}</p>
+        <h2 class="title">Добро пожаловать в Dream Analyzer</h2>
+        <p class="subtitle">Как это работает и с чего начать</p>
       </div>
-
-      <div class="onboarding-media">
-        <StickerPlayer :src="currentSticker" :width="220" :height="220" />
-      </div>
-
+      <div class="onboarding-media"><StickerPlayer src="wizard-happy.tgs" :width="220" :height="220" /></div>
       <div class="onboarding-body">
-        <p class="text" v-for="(p, i) in currentParagraphs" :key="i">{{ p }}</p>
+        <p class="text">Приложение помогает осмыслять сны и находить в них повторяющиеся символы.</p>
+        <p class="text">Отправьте свой первый сон — получите быстрый анализ ИИ.</p>
       </div>
+    </div>
 
-      <div class="onboarding-actions">
-        <button v-if="secondaryAction" class="btn-secondary" @click="secondaryAction.handler">{{ secondaryAction.label }}</button>
-        <button v-if="primaryAction" class="btn-primary" @click="primaryAction.handler">{{ primaryAction.label }}</button>
+    <!-- Stack 2: second card (Onboarding_new_2) with CTA to subscribe -->
+    <div v-show="isNewFlow && step === 2" class="onboarding-card card-absolute">
+      <div class="onboarding-header">
+        <h2 class="title">Получите стартовый токен</h2>
+        <p class="subtitle">Подпишитесь на канал — и мы начислим 1 токен</p>
+      </div>
+      <div class="onboarding-media"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-body">
+        <p class="text">После подписки нажмите «Проверить подписку» — сразу начислим токен.</p>
+      </div>
+    </div>
+
+    <!-- Free flow single card -->
+    <div v-show="isFreeFlow" class="onboarding-card card-absolute">
+      <div class="onboarding-header">
+        <h2 class="title">Отлично! Первый анализ готов</h2>
+        <p class="subtitle">Теперь доступен весь функционал мини‑приложения</p>
+      </div>
+      <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-body">
+        <p class="text">Продолжайте отправлять сны — так AI лучше поймёт ваш контекст.</p>
+        <p class="text">Открывайте историю и изучайте теги‑символы.</p>
       </div>
     </div>
   </div>
@@ -40,6 +58,8 @@ const step = ref<number>(1)
 
 // Derived visibility
 const visible = computed(() => flow.value !== 'none')
+const isNewFlow = computed(() => flow.value === 'new')
+const isFreeFlow = computed(() => flow.value === 'free')
 
 const hasNewFlowEligibility = computed(() => {
   if (!userStore?.profile) return false
@@ -108,14 +128,11 @@ onMounted(() => {
       clearMainButton()
       return
     }
-    // Configure per step
-    if (flow.value === 'new') {
-      if (step.value === 1) {
-        setMainButton('Перейти и подписаться', goSubscribe)
-      } else if (step.value === 2) {
-        setMainButton('Проверить подписку', verifySubscription)
-      }
-    } else if (flow.value === 'free') {
+    // Show MainButton only on last frame per spec
+    if (isNewFlow.value) {
+      if (step.value === 2) setMainButton('Проверить подписку', verifySubscription)
+      else clearMainButton()
+    } else if (isFreeFlow.value) {
       setMainButton('Продолжить', completeFree)
     }
   })
@@ -126,12 +143,28 @@ onBeforeUnmount(() => {
 })
 
 // Actions
-const goSubscribe = () => {
-  const url = 'https://t.me/thedreamshub'
-  if (tg?.openTelegramLink) tg.openTelegramLink(url)
-  else window.open(url, '_blank')
-  // Move to step 2 to let user verify
-  step.value = 2
+// Swipe handling: drag up on step 1 reveals step 2
+const touchStartY = ref<number | null>(null)
+const dragOffset = ref(0)
+const dragClass = computed(() => ({ dragging: dragOffset.value !== 0 }))
+const onTouchStart = (e: TouchEvent) => {
+  if (!isNewFlow.value || step.value !== 1) return
+  touchStartY.value = e.touches[0].clientY
+  dragOffset.value = 0
+}
+const onTouchMove = (e: TouchEvent) => {
+  if (touchStartY.value == null || !isNewFlow.value || step.value !== 1) return
+  const delta = touchStartY.value - e.touches[0].clientY
+  dragOffset.value = Math.max(0, delta)
+}
+const onTouchEnd = () => {
+  if (!isNewFlow.value || step.value !== 1) { touchStartY.value = null; dragOffset.value = 0; return }
+  // Threshold to switch: 80px
+  if (dragOffset.value > 80) {
+    step.value = 2
+  }
+  touchStartY.value = null
+  dragOffset.value = 0
 }
 
 const verifySubscription = async () => {
@@ -207,8 +240,8 @@ const currentSticker = computed(() => {
 
 const primaryAction = computed(() => {
   if (flow.value === 'new') {
-    if (step.value === 1) return { label: 'Перейти и подписаться', handler: goSubscribe }
-    return { label: 'Проверить подписку', handler: verifySubscription }
+    if (step.value === 2) return { label: 'Проверить подписку', handler: verifySubscription }
+    return null as any
   }
   if (flow.value === 'free') {
     return { label: 'Продолжить', handler: completeFree }
@@ -217,9 +250,7 @@ const primaryAction = computed(() => {
 })
 
 const secondaryAction = computed(() => {
-  if (flow.value === 'new' && step.value === 2) {
-    return { label: 'Назад', handler: () => { step.value = 1 } }
-  }
+  // No secondary actions in new flow per Figma; swipes control step
   return null as any
 })
 
@@ -251,6 +282,8 @@ watch(() => userStore.profile?.channel_reward_claimed, (val) => {
   padding: 20px 16px 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.35);
 }
+.card-absolute { position: absolute; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); }
+.dragging { transition: none; }
 .onboarding-header .title {
   margin: 0 0 4px 0;
   font-size: 20px;

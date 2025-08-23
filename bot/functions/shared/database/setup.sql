@@ -33,6 +33,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Onboarding stage tracking: add column if not exists
+ALTER TABLE IF EXISTS users
+  ADD COLUMN IF NOT EXISTS onboarding_stage TEXT;
+
 -- Функция для атомарного увеличения кредитов глубокого анализа
 -- Заменяет fetch+update операции атомарной операцией
 CREATE OR REPLACE FUNCTION increment_deep_analysis_credits(user_tg_id BIGINT)

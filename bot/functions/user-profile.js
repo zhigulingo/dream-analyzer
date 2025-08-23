@@ -193,7 +193,8 @@ exports.handler = async (event) => {
                 channel_reward_claimed: false,
                 deep_analysis_credits: 0,
                 total_dreams_count: 0,
-                deep_analyses_count: 0
+                deep_analyses_count: 0,
+                onboarding_stage: null
             };
         } else {
             responseBody = {
@@ -203,7 +204,8 @@ exports.handler = async (event) => {
                 channel_reward_claimed: userData.channel_reward_claimed || false,
                 deep_analysis_credits: userData.deep_analysis_credits || 0,
                 total_dreams_count: userData.total_dreams_count || 0,
-                deep_analyses_count: userData.deep_analyses_count || 0
+                deep_analyses_count: userData.deep_analyses_count || 0,
+                onboarding_stage: userData.onboarding_stage || null
             };
         }
 
