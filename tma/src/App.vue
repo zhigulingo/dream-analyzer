@@ -5,7 +5,7 @@
     <PersonalAccount v-if="!onboardingVisible && appReady" />
     <NotificationSystem />
     <Onboarding @visible-change="onboardingVisible = $event" />
-    <LoadingOverlay :visible="isLoadingGlobal" />
+    <LoadingOverlay :visible="isLoadingGlobal" :message="loadingMessage" />
   </div>
 </template>
 
@@ -24,6 +24,12 @@ const onboardingVisible = ref(false)
 const userStore = useUserStore()
 const isLoadingGlobal = computed(() => userStore.isLoadingProfile || userStore.isLoadingHistory || !appReady.value)
 const appReady = computed(() => !userStore.isLoadingProfile && !userStore.isLoadingHistory && !!userStore.profile && Array.isArray(userStore.history))
+const loadingMessage = computed(() => {
+  if (userStore.isLoadingProfile) return 'Загрузка профиля…'
+  if (userStore.isLoadingHistory) return 'Загрузка истории…'
+  if (!appReady.value) return 'Загрузка…'
+  return ''
+})
 </script>
 
 <style>
