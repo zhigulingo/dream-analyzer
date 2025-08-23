@@ -88,6 +88,10 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
+    initServices() {
+      if (!this.notificationStore) this.notificationStore = useNotificationStore();
+      if (!this.offlineDetection) this.offlineDetection = useOfflineDetection();
+    },
     async loadPricing() {
       try {
         const baseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -156,10 +160,8 @@ export const useUserStore = defineStore('user', {
       
       // Используем offline-aware операцию
       // Берем свежие данные профиля, чтобы сразу видеть изменения кредитов/токенов
-      const response = await this.offlineDetection.executeOnlineOperation(
-        () => api.getUserProfileFresh(),
-        'Загрузка профиля (fresh)'
-      );
+      this.notificationStore?.info('Загрузка профиля…');
+      const response = await this.offlineDetection.executeOnlineOperation(() => api.getUserProfileFresh(), 'Загрузка профиля (fresh)');
       
       this.profile = { ...this.profile, ...response.data };
       this.rewardAlreadyClaimed = this.profile?.channel_reward_claimed ?? false;
@@ -209,10 +211,8 @@ export const useUserStore = defineStore('user', {
       
       // Используем offline-aware операцию
       // Загружаем историю обычным способом (без нестандартных заголовков для совместимости CORS)
-      const response = await this.offlineDetection.executeOnlineOperation(
-        () => api.getAnalysesHistory(),
-        'Загрузка истории'
-      );
+      this.notificationStore?.info('Загрузка истории…');
+      const response = await this.offlineDetection.executeOnlineOperation(() => api.getAnalysesHistory(), 'Загрузка истории');
       
       this.history = response.data;
       console.log("[UserStore] History loaded, count:", this.history.length);

@@ -2,20 +2,26 @@
 <template>
   <div class="tma-app-container">
     <DebugInfo />
-    <PersonalAccount />
+    <PersonalAccount v-if="!onboardingVisible" />
     <NotificationSystem />
-    <Onboarding />
+    <Onboarding @visible-change="onboardingVisible = $event" />
+    <LoadingOverlay :visible="isLoadingGlobal" />
   </div>
 </template>
 
 <script setup>
-import { defineAsyncComponent } from 'vue'
+import { defineAsyncComponent, ref } from 'vue'
 
 // Lazy-loaded компоненты для уменьшения начального bundle
 const PersonalAccount = defineAsyncComponent(() => import('./views/PersonalAccount.vue'))
 const NotificationSystem = defineAsyncComponent(() => import('./components/NotificationSystem.vue'))
 const DebugInfo = defineAsyncComponent(() => import('./components/DebugInfo.vue'))
 const Onboarding = defineAsyncComponent(() => import('./components/Onboarding.vue'))
+const LoadingOverlay = defineAsyncComponent(() => import('./components/LoadingOverlay.vue'))
+
+const onboardingVisible = ref(false)
+// Global loading flag: can be connected to stores later; default false
+const isLoadingGlobal = ref(false)
 </script>
 
 <style>

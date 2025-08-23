@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="onboarding-overlay" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
+  <div v-if="visible" class="onboarding-overlay opaque" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
     <!-- Stack 1: first card (Onboarding_new_1) -->
     <div v-show="isNewFlow && step === 1" class="onboarding-card card-absolute" :class="dragClass">
       <div class="onboarding-header">
@@ -47,6 +47,7 @@ import api from '@/services/api'
 import StickerPlayer from '@/components/StickerPlayer.vue'
 
 const tg: any = (window as any).Telegram?.WebApp
+const emit = defineEmits<{ (e: 'visible-change', value: boolean): void }>()
 const userStore = useUserStore()
 
 // Local one-time flags
@@ -177,6 +178,7 @@ const verifySubscription = async () => {
   // Success: persist stage2 in DB
   try { await api.setOnboardingStage('stage2'); userStore.profile.onboarding_stage = 'stage2'; userStore.profile.subscription_type = 'onboarding2' } catch (_) {}
   flow.value = 'none'
+  emit('visible-change', false)
 }
 
 const completeFree = async () => {
@@ -188,6 +190,7 @@ const completeFree = async () => {
     }
   } catch (_) {}
   flow.value = 'none'
+  emit('visible-change', false)
 }
 
 // Content per flow/step
@@ -266,6 +269,7 @@ watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscriptio
   const isDone = stage === 'stage3' || (sub && !String(sub).toLowerCase().startsWith('onboarding'))
   if (isDone) {
     flow.value = 'none'
+    emit('visible-change', false)
   }
 })
 </script>
