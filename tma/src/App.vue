@@ -4,6 +4,7 @@
     <DebugInfo />
     <PersonalAccount />
     <NotificationSystem />
+    <Onboarding />
   </div>
 </template>
 
@@ -14,6 +15,7 @@ import { defineAsyncComponent } from 'vue'
 const PersonalAccount = defineAsyncComponent(() => import('./views/PersonalAccount.vue'))
 const NotificationSystem = defineAsyncComponent(() => import('./components/NotificationSystem.vue'))
 const DebugInfo = defineAsyncComponent(() => import('./components/DebugInfo.vue'))
+const Onboarding = defineAsyncComponent(() => import('./components/Onboarding.vue'))
 </script>
 
 <style>

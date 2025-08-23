@@ -153,6 +153,14 @@ exports.handler = async (event) => {
 
         const newTotalTokens = updatedUser.tokens;
         console.log(`[claim-channel-token] Token granted successfully for user ${verifiedUserId}. New token balance: ${newTotalTokens}`);
+
+        // Notify user in bot chat about successful subscription and next step
+        try {
+            await api.sendMessage(verifiedUserId, '✅ Подписка засчитана! Вам начислен 1 токен. Можете отправить свой первый сон прямо сюда в чат.')
+        } catch (notifyErr) {
+            console.warn('[claim-channel-token] Failed to send confirmation message to user:', notifyErr?.description || notifyErr?.message)
+        }
+
         return {
             statusCode: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
