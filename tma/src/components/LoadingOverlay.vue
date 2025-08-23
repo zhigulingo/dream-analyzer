@@ -28,8 +28,7 @@ const props = defineProps<{ visible: boolean }>()
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(255,255,255,0.06);
-  backdrop-filter: blur(4px);
+  background: var(--tg-theme-bg-color, #121a12);
   z-index: 2000;
   display: flex;
   flex-direction: column;
@@ -53,8 +52,5 @@ const props = defineProps<{ visible: boolean }>()
 }
 @keyframes shimmer { 0% { background-position: 0% 0; } 100% { background-position: -200% 0; } }
 
-:host, .overlay {
-  /* adapt to Telegram theme */
-  background-color: rgba(12, 17, 12, 0.92);
-}
+:host, .overlay { background-color: var(--tg-theme-bg-color, #121a12); }
 </style>

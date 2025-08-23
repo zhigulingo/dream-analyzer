@@ -2,7 +2,7 @@
 <template>
   <div class="tma-app-container">
     <DebugInfo />
-    <PersonalAccount v-if="!onboardingVisible" />
+    <PersonalAccount v-if="!onboardingVisible && appReady" />
     <NotificationSystem />
     <Onboarding @visible-change="onboardingVisible = $event" />
     <LoadingOverlay :visible="isLoadingGlobal" />
@@ -22,7 +22,8 @@ const LoadingOverlay = defineAsyncComponent(() => import('./components/LoadingOv
 
 const onboardingVisible = ref(false)
 const userStore = useUserStore()
-const isLoadingGlobal = computed(() => userStore.isLoadingProfile || userStore.isLoadingHistory)
+const isLoadingGlobal = computed(() => userStore.isLoadingProfile || userStore.isLoadingHistory || !appReady.value)
+const appReady = computed(() => !userStore.isLoadingProfile && !userStore.isLoadingHistory && !!userStore.profile && Array.isArray(userStore.history))
 </script>
 
 <style>
