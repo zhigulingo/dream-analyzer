@@ -10,7 +10,8 @@
 </template>
 
 <script setup>
-import { defineAsyncComponent, ref } from 'vue'
+import { defineAsyncComponent, ref, computed } from 'vue'
+import { useUserStore } from '@/stores/user.js'
 
 // Lazy-loaded компоненты для уменьшения начального bundle
 const PersonalAccount = defineAsyncComponent(() => import('./views/PersonalAccount.vue'))
@@ -20,8 +21,8 @@ const Onboarding = defineAsyncComponent(() => import('./components/Onboarding.vu
 const LoadingOverlay = defineAsyncComponent(() => import('./components/LoadingOverlay.vue'))
 
 const onboardingVisible = ref(false)
-// Global loading flag: can be connected to stores later; default false
-const isLoadingGlobal = ref(false)
+const userStore = useUserStore()
+const isLoadingGlobal = computed(() => userStore.isLoadingProfile || userStore.isLoadingHistory)
 </script>
 
 <style>

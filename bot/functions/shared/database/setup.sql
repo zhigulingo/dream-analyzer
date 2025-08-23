@@ -37,6 +37,17 @@ $$ LANGUAGE plpgsql;
 ALTER TABLE IF EXISTS users
   ADD COLUMN IF NOT EXISTS onboarding_stage TEXT;
 
+-- Helper RPC to run ad-hoc SQL (admin-only; for migration function)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'execute' AND pg_get_functiondef(oid) LIKE '%TEXT%') THEN
+    CREATE OR REPLACE FUNCTION execute(query TEXT)
+    RETURNS VOID AS $$
+    BEGIN
+      EXECUTE query;
+    END; $$ LANGUAGE plpgsql SECURITY DEFINER;
+  END IF;
+END $$;
+
 -- Функция для атомарного увеличения кредитов глубокого анализа
 -- Заменяет fetch+update операции атомарной операцией
 CREATE OR REPLACE FUNCTION increment_deep_analysis_credits(user_tg_id BIGINT)

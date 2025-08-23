@@ -215,6 +215,15 @@ class DatabaseQueries {
             return data;
         }
 
+        // Normalize missing or legacy fields
+        if (!data.onboarding_stage) {
+            // Infer stage from subscription_type or channel_reward_claimed
+            const sub = (data.subscription_type || '').toLowerCase();
+            if (sub === 'onboarding1') data.onboarding_stage = 'stage1';
+            else if (sub === 'onboarding2') data.onboarding_stage = 'stage2';
+            else data.onboarding_stage = 'stage3';
+        }
+
         // Добавляем агрегированные счётчики: всего анализов и глубоких анализов
         try {
             const userDbId = data.id;

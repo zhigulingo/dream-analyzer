@@ -160,7 +160,7 @@ export const useUserStore = defineStore('user', {
       
       // Используем offline-aware операцию
       // Берем свежие данные профиля, чтобы сразу видеть изменения кредитов/токенов
-      this.notificationStore?.info('Загрузка профиля…');
+      // route to overlay via isLoadingProfile; avoid noisy snackbars
       const response = await this.offlineDetection.executeOnlineOperation(() => api.getUserProfileFresh(), 'Загрузка профиля (fresh)');
       
       this.profile = { ...this.profile, ...response.data };
@@ -211,7 +211,7 @@ export const useUserStore = defineStore('user', {
       
       // Используем offline-aware операцию
       // Загружаем историю обычным способом (без нестандартных заголовков для совместимости CORS)
-      this.notificationStore?.info('Загрузка истории…');
+      // route to overlay via isLoadingHistory; avoid noisy snackbars
       const response = await this.offlineDetection.executeOnlineOperation(() => api.getAnalysesHistory(), 'Загрузка истории');
       
       this.history = response.data;
