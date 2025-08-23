@@ -195,12 +195,14 @@ const currentParagraphs = computed(() => {
 
 const currentSticker = computed(() => {
   if (flow.value === 'new') {
-    return step.value === 1 ? 'Wizard.json' : 'TelegramStar.json'
+    // Onboarding_new_1, Onboarding_new_2
+    return step.value === 1 ? 'wizard-happy.tgs' : 'telegram-star.tgs'
   }
   if (flow.value === 'free') {
-    return 'Chat.json'
+    // Onboarding_free_1
+    return 'chat.tgs'
   }
-  return 'Wizard2.json'
+  return 'thinking.tgs'
 })
 
 const primaryAction = computed(() => {
