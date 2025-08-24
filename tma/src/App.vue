@@ -5,12 +5,12 @@
     <PersonalAccount v-if="!onboardingVisible && appReady" />
     <NotificationSystem />
     <Onboarding @visible-change="onboardingVisible = $event" />
-    <LoadingOverlay :visible="isLoadingGlobal" />
+    <LoadingOverlay :visible="isLoadingGlobal && !onboardingVisible" />
   </div>
 </template>
 
 <script setup>
-import { defineAsyncComponent, ref, computed } from 'vue'
+import { defineAsyncComponent, ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user.js'
 
 // Lazy-loaded компоненты для уменьшения начального bundle
@@ -24,6 +24,18 @@ const onboardingVisible = ref(false)
 const userStore = useUserStore()
 const appReady = computed(() => !userStore.isLoadingProfile && !userStore.isLoadingHistory && !!userStore.profile && Array.isArray(userStore.history))
 const isLoadingGlobal = computed(() => userStore.isLoadingProfile || userStore.isLoadingHistory || !appReady.value)
+onMounted(async () => {
+  // Глобальная загрузка данных, чтобы оверлей корректно скрывался даже при активном онбординге
+  try {
+    userStore.initServices()
+    await Promise.all([
+      userStore.fetchProfile(),
+      userStore.fetchHistory()
+    ])
+  } catch (e) {
+    // Ошибки уже обработаются в errorService внутри стора
+  }
+})
 // no message on overlay per spec
 </script>
 
