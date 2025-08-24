@@ -10,6 +10,8 @@ exports.handler = async () => {
   }
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
   try {
+    // 0) Ensure schema: add column if missing
+    await supabase.rpc('execute', { query: `ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS onboarding_stage TEXT` });
     // 1) Users with null stage and free → onboarding1
     await supabase.rpc('execute', { query: `UPDATE users SET onboarding_stage='stage1', subscription_type='onboarding1' WHERE (onboarding_stage IS NULL OR onboarding_stage='') AND (LOWER(COALESCE(subscription_type,'free'))='free')` });
     // 2) Users who claimed channel but no stage → onboarding2
