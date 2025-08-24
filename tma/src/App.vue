@@ -22,8 +22,8 @@ const LoadingOverlay = defineAsyncComponent(() => import('./components/LoadingOv
 
 const onboardingVisible = ref(false)
 const userStore = useUserStore()
-const isLoadingGlobal = computed(() => userStore.isLoadingProfile || userStore.isLoadingHistory || !appReady.value)
 const appReady = computed(() => !userStore.isLoadingProfile && !userStore.isLoadingHistory && !!userStore.profile && Array.isArray(userStore.history))
+const isLoadingGlobal = computed(() => userStore.isLoadingProfile || userStore.isLoadingHistory || !appReady.value)
 // no message on overlay per spec
 </script>
 
