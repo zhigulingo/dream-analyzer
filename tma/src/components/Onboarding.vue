@@ -54,9 +54,9 @@ const userStore = useUserStore()
 const NEW_DONE_KEY = 'onboarding_new_done'
 const FREE_DONE_KEY = 'onboarding_free_done'
 
-// Which flow and step
+// Which flow and step (4 screens per flow per spec)
 const flow = ref<'none' | 'new' | 'free'>('none')
-const step = ref<number>(1)
+const step = ref<number>(1) // 1..4
 
 // Derived visibility
 const visible = computed(() => flow.value !== 'none')
@@ -130,12 +130,14 @@ onMounted(() => {
       clearMainButton()
       return
     }
-    // Show MainButton only on last frame per spec
+    // Show MainButton only on final screen of each flow
     if (isNewFlow.value) {
-      if (step.value === 2) setMainButton('Проверить подписку', verifySubscription)
+      if (step.value === 1) setMainButton('Перейти и подписаться', goToCommunity)
+      else if (step.value === 4) setMainButton('Проверить подписку', verifySubscription)
       else clearMainButton()
     } else if (isFreeFlow.value) {
-      setMainButton('Продолжить', completeFree)
+      if (step.value === 4) setMainButton('Продолжить', completeFree)
+      else clearMainButton()
     }
   })
 })
@@ -145,28 +147,34 @@ onBeforeUnmount(() => {
 })
 
 // Actions
-// Swipe handling: drag up on step 1 reveals step 2
+// Swipe handling: drag up advances to next step (1→2→3→4)
 const touchStartY = ref<number | null>(null)
 const dragOffset = ref(0)
 const dragClass = computed(() => ({ dragging: dragOffset.value !== 0 }))
 const onTouchStart = (e: TouchEvent) => {
-  if (!isNewFlow.value || step.value !== 1) return
+  if (!visible.value) return
   touchStartY.value = e.touches[0].clientY
   dragOffset.value = 0
 }
 const onTouchMove = (e: TouchEvent) => {
-  if (touchStartY.value == null || !isNewFlow.value || step.value !== 1) return
+  if (touchStartY.value == null || !visible.value) return
   const delta = touchStartY.value - e.touches[0].clientY
   dragOffset.value = Math.max(0, delta)
 }
 const onTouchEnd = () => {
-  if (!isNewFlow.value || step.value !== 1) { touchStartY.value = null; dragOffset.value = 0; return }
+  if (!visible.value) { touchStartY.value = null; dragOffset.value = 0; return }
   // Threshold to switch: 80px
   if (dragOffset.value > 80) {
-    step.value = 2
+    step.value = Math.min(4, step.value + 1)
   }
   touchStartY.value = null
   dragOffset.value = 0
+}
+
+const goToCommunity = () => {
+  const url = 'https://t.me/thedreamshub'
+  if (tg?.openTelegramLink) tg.openTelegramLink(url)
+  else window.open(url, '_blank')
 }
 
 const verifySubscription = async () => {
@@ -250,11 +258,13 @@ const currentSticker = computed(() => {
 
 const primaryAction = computed(() => {
   if (flow.value === 'new') {
-    if (step.value === 2) return { label: 'Проверить подписку', handler: verifySubscription }
+    if (step.value === 1) return { label: 'Перейти и подписаться', handler: goToCommunity }
+    if (step.value === 4) return { label: 'Проверить подписку', handler: verifySubscription }
     return null as any
   }
   if (flow.value === 'free') {
-    return { label: 'Продолжить', handler: completeFree }
+    if (step.value === 4) return { label: 'Продолжить', handler: completeFree }
+    return null as any
   }
   return null as any
 })

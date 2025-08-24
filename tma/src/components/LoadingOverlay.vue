@@ -29,12 +29,13 @@ const props = defineProps<{ visible: boolean }>()
   position: fixed;
   inset: 0;
   background: var(--tg-theme-bg-color, #121a12);
+  pointer-events: auto; /* intercept events so фон не кликается */
   z-index: 2000;
   display: flex;
   flex-direction: column;
   padding: 16px 16px 28px;
 }
-.content { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.content { flex: 1; display: flex; flex-direction: column; gap: 16px; pointer-events: none; }
 /* no top message per spec */
 .row.header { display: grid; grid-template-columns: 40px 1fr 32px; align-items: center; gap: 12px; }
 .logo { width: 40px; height: 40px; border-radius: 12px; }

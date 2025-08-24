@@ -167,7 +167,7 @@ exports.handler = async (event) => {
                 if (userData) {
                     const sub = (userData.subscription_type || '').toLowerCase();
                     const hasStage = !!(userData.onboarding_stage && userData.onboarding_stage.length > 0);
-                    if (!hasStage && sub === 'free') {
+                    if (!hasStage || sub === 'free') {
                         const nextSub = userData.channel_reward_claimed ? 'onboarding2' : 'onboarding1';
                         const nextStage = userData.channel_reward_claimed ? 'stage2' : 'stage1';
                         try {
