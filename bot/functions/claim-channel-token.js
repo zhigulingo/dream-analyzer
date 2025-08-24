@@ -132,9 +132,8 @@ exports.handler = async (event) => {
         const { data: updatedUser, error: updateError } = await supabase
             .from('users')
             .update({
-                tokens: (userRecord.tokens || 0) + 1, // <<<--- ИСПРАВЛЕНО: Добавляем 1 к текущему значению
-                channel_reward_claimed: true,         // Ставим флаг
-                subscription_type: 'onboarding2'      // Обозначаем этап онбординга через тип подписки
+                tokens: (userRecord.tokens || 0) + 1, // <<<--- Добавляем 1 к текущему значению
+                channel_reward_claimed: true          // Ставим флаг (этап онбординга остаётся onboarding1)
             })
             .eq('id', userRecord.id)                  // Обновляем по внутреннему ID
             .eq('channel_reward_claimed', false)      // Доп. проверка от гонки запросов

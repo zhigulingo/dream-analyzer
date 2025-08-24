@@ -12,14 +12,20 @@ exports.handler = async () => {
   try {
     // Выполняем безопасные апдейты без ALTER (колонку предполагаем созданной вручную)
     const updates = []
-    updates.push(supabase.from('users')
-      .update({ onboarding_stage: 'stage2', subscription_type: 'onboarding2' })
-      .eq('channel_reward_claimed', true)
-      .or('onboarding_stage.is.null, onboarding_stage.eq.""'))
-    updates.push(supabase.from('users')
-      .update({ onboarding_stage: 'stage1', subscription_type: 'onboarding1' })
-      .eq('channel_reward_claimed', false)
-      .or('onboarding_stage.is.null, onboarding_stage.eq.""'))
+    // Пользователи с claimed=true, у которых сейчас free → onboarding2
+    updates.push(
+      supabase.from('users')
+        .update({ subscription_type: 'onboarding2' })
+        .eq('channel_reward_claimed', true)
+        .or('subscription_type.is.null, lower(subscription_type).eq.free')
+    )
+    // Остальные с free → onboarding1
+    updates.push(
+      supabase.from('users')
+        .update({ subscription_type: 'onboarding1' })
+        .eq('channel_reward_claimed', false)
+        .or('subscription_type.is.null, lower(subscription_type).eq.free')
+    )
     const results = await Promise.allSettled(updates)
     return { statusCode: 200, headers, body: JSON.stringify({ success: true, results }) };
   } catch (e) {

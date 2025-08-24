@@ -130,10 +130,11 @@ const hasNewFlowEligibility = computed(() => {
   return s === 'onboarding1'
 })
 
+// Второй онбординг показываем, когда у пользователя уже есть первый проанализированный сон
 const hasFreeFlowEligibility = computed(() => {
   const s = (userStore.profile?.subscription_type || '').toLowerCase()
   const count = Array.isArray(userStore.history) ? userStore.history.length : 0
-  return (s === 'onboarding2') && count === 1
+  return (s === 'onboarding1') && count >= 1
 })
 
 // Initialize flow when profile/history are available
@@ -375,11 +376,9 @@ watchEffect(async () => {
     try {
       await userStore.claimChannelReward()
       if (!userStore.claimRewardError) {
-        // Успешно начислили — сохраняем стадию и закрываем онбординг
-        try { await api.setOnboardingStage('stage2'); userStore.profile.onboarding_stage = 'stage2'; userStore.profile.subscription_type = 'onboarding2' } catch (_) {}
+        // Успешно начислили — остаёмся в первом онбординге, показываем подсказку отправить сон в чат
         userStore.notificationStore?.success('Подписка подтверждена! Вам начислен токен. Отправьте свой сон в чате с ботом.')
-        flow.value = 'none'
-        emit('visible-change', false)
+        // Не закрываем онбординг; пользователь увидит последний экран и сможет вернуться в чат
         return
       }
       // Если пришла ошибка — считаем, что не подписан (или не удалось проверить)
