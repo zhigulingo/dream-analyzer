@@ -250,11 +250,11 @@ const verifySubscription = async () => {
 }
 
 // На шаге 4 в первом онбординге: если уже подписан — "Получить токен", иначе — "Перейти и подписаться"
-const isAlreadySubscribed = computed(() => !!userStore.profile?.channel_reward_claimed)
-const newFlowButtonLabel = computed(() => (isAlreadySubscribed.value ? 'Получить токен' : 'Перейти и подписаться'))
+const subscriptionChecked = ref(false)
+const subscribedByCheck = ref(false)
+const newFlowButtonLabel = computed(() => (subscriptionChecked.value && subscribedByCheck.value ? 'Получить токен' : 'Перейти и подписаться'))
 const handleNewFlowMainButton = async () => {
-  if (isAlreadySubscribed.value) {
-    // Пользователь уже подписан: просто запросить награду
+  if (subscriptionChecked.value && subscribedByCheck.value) {
     await verifySubscription()
   } else {
     goToCommunity()
@@ -364,6 +364,31 @@ watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscriptio
   if (isDone) {
     flow.value = 'none'
     emit('visible-change', false)
+  }
+})
+
+// Авто-проверка/начисление на шаге 4 первого онбординга
+const attemptedAutoClaim = ref(false)
+watchEffect(async () => {
+  if (isNewFlow.value && step.value === 4 && !attemptedAutoClaim.value) {
+    attemptedAutoClaim.value = true
+    try {
+      await userStore.claimChannelReward()
+      if (!userStore.claimRewardError) {
+        // Успешно начислили — сохраняем стадию и закрываем онбординг
+        try { await api.setOnboardingStage('stage2'); userStore.profile.onboarding_stage = 'stage2'; userStore.profile.subscription_type = 'onboarding2' } catch (_) {}
+        userStore.notificationStore?.success('Подписка подтверждена! Вам начислен токен. Отправьте свой сон в чате с ботом.')
+        flow.value = 'none'
+        emit('visible-change', false)
+        return
+      }
+      // Если пришла ошибка — считаем, что не подписан (или не удалось проверить)
+      subscriptionChecked.value = true
+      subscribedByCheck.value = false
+    } catch (_) {
+      subscriptionChecked.value = true
+      subscribedByCheck.value = false
+    }
   }
 })
 </script>
