@@ -10,13 +10,18 @@ exports.handler = async () => {
   }
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
   try {
-    // 0) Ensure schema: add column if missing
-    await supabase.rpc('execute', { query: `ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS onboarding_stage TEXT` });
-    // 1) Users with null stage and free → onboarding1
-    await supabase.rpc('execute', { query: `UPDATE users SET onboarding_stage='stage1', subscription_type='onboarding1' WHERE (onboarding_stage IS NULL OR onboarding_stage='') AND (LOWER(COALESCE(subscription_type,'free'))='free')` });
-    // 2) Users who claimed channel but no stage → onboarding2
-    await supabase.rpc('execute', { query: `UPDATE users SET onboarding_stage='stage2', subscription_type='onboarding2' WHERE (onboarding_stage IS NULL OR onboarding_stage='') AND channel_reward_claimed = true` });
-    return { statusCode: 200, headers, body: JSON.stringify({ success: true }) };
+    // Выполняем безопасные апдейты без ALTER (колонку предполагаем созданной вручную)
+    const updates = []
+    updates.push(supabase.from('users')
+      .update({ onboarding_stage: 'stage2', subscription_type: 'onboarding2' })
+      .eq('channel_reward_claimed', true)
+      .or('onboarding_stage.is.null, onboarding_stage.eq.""'))
+    updates.push(supabase.from('users')
+      .update({ onboarding_stage: 'stage1', subscription_type: 'onboarding1' })
+      .eq('channel_reward_claimed', false)
+      .or('onboarding_stage.is.null, onboarding_stage.eq.""'))
+    const results = await Promise.allSettled(updates)
+    return { statusCode: 200, headers, body: JSON.stringify({ success: true, results }) };
   } catch (e) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: e?.message || 'Migration failed' }) };
   }
