@@ -12,19 +12,33 @@ exports.handler = async () => {
   try {
     // Выполняем безопасные апдейты без ALTER (колонку предполагаем созданной вручную)
     const updates = []
-    // Пользователи с claimed=true, у которых сейчас free → onboarding2
+    // claimed=true and subscription_type is null → onboarding2
     updates.push(
       supabase.from('users')
         .update({ subscription_type: 'onboarding2' })
         .eq('channel_reward_claimed', true)
-        .or('subscription_type.is.null, lower(subscription_type).eq.free')
+        .is('subscription_type', null)
     )
-    // Остальные с free → onboarding1
+    // claimed=true and subscription_type='free' → onboarding2
+    updates.push(
+      supabase.from('users')
+        .update({ subscription_type: 'onboarding2' })
+        .eq('channel_reward_claimed', true)
+        .eq('subscription_type', 'free')
+    )
+    // claimed=false/null and subscription_type is null → onboarding1
     updates.push(
       supabase.from('users')
         .update({ subscription_type: 'onboarding1' })
-        .eq('channel_reward_claimed', false)
-        .or('subscription_type.is.null, lower(subscription_type).eq.free')
+        .or('channel_reward_claimed.is.null,channel_reward_claimed.eq.false')
+        .is('subscription_type', null)
+    )
+    // claimed=false/null and subscription_type='free' → onboarding1
+    updates.push(
+      supabase.from('users')
+        .update({ subscription_type: 'onboarding1' })
+        .or('channel_reward_claimed.is.null,channel_reward_claimed.eq.false')
+        .eq('subscription_type', 'free')
     )
     const results = await Promise.allSettled(updates)
     return { statusCode: 200, headers, body: JSON.stringify({ success: true, results }) };

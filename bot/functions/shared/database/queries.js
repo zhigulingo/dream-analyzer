@@ -195,8 +195,7 @@ class DatabaseQueries {
                 subscription_type,
                 subscription_end,
                 channel_reward_claimed,
-                deep_analysis_credits,
-                onboarding_stage
+                deep_analysis_credits
             `)
             .eq('tg_id', tgUserId)
             .single();
@@ -215,14 +214,7 @@ class DatabaseQueries {
             return data;
         }
 
-        // Normalize missing or legacy fields
-        if (!data.onboarding_stage) {
-            // Infer stage from subscription_type or channel_reward_claimed
-            const sub = (data.subscription_type || '').toLowerCase();
-            if (sub === 'onboarding1') data.onboarding_stage = 'stage1';
-            else if (sub === 'onboarding2') data.onboarding_stage = 'stage2';
-            else data.onboarding_stage = 'stage3';
-        }
+        // No onboarding_stage in schema anymore; state encoded via subscription_type only
 
         // Добавляем агрегированные счётчики: всего анализов и глубоких анализов
         try {
