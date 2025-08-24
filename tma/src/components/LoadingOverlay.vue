@@ -1,9 +1,5 @@
 <template>
   <div v-if="visible" class="overlay">
-    <div class="message" v-if="message">
-      <div class="spinner" aria-hidden="true"></div>
-      <div class="msg-text">{{ message }}</div>
-    </div>
     <div class="content">
       <div class="row header">
         <div class="logo shimmer"></div>
@@ -25,7 +21,7 @@
 <script setup lang="ts">
 import { defineProps } from 'vue'
 
-const props = defineProps<{ visible: boolean, message?: string }>()
+const props = defineProps<{ visible: boolean }>()
 </script>
 
 <style scoped>
@@ -39,9 +35,7 @@ const props = defineProps<{ visible: boolean, message?: string }>()
   padding: 16px 16px 28px;
 }
 .content { flex: 1; display: flex; flex-direction: column; gap: 16px; }
-.message { position: absolute; top: 12px; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: 12px; color: rgba(255,255,255,0.9); font-weight: 600; font-size: 18px; text-shadow: 0 2px 8px rgba(0,0,0,0.35); }
-.spinner { width: 22px; height: 22px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.25); border-top-color: rgba(255,255,255,0.9); animation: spin 0.9s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* no top message per spec */
 .row.header { display: grid; grid-template-columns: 40px 1fr 32px; align-items: center; gap: 12px; }
 .logo { width: 40px; height: 40px; border-radius: 12px; }
 .chips { display: flex; gap: 12px; }

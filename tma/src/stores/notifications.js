@@ -2,7 +2,8 @@ import { defineStore } from 'pinia'
 
 export const useNotificationStore = defineStore('notifications', {
   state: () => ({
-    notifications: []
+    notifications: [],
+    lastShownAt: {}, // key: `${type}:${message}` → timestamp
   }),
 
   actions: {
@@ -16,8 +17,21 @@ export const useNotificationStore = defineStore('notifications', {
         dismissible: notification.dismissible !== false, // manual dismiss allowed
         ...notification
       }
+      // Deduplicate bursts: skip if same type+message was shown < 5s ago
+      const key = `${newNotification.type}:${newNotification.message}`
+      const now = Date.now()
+      const lastAt = this.lastShownAt[key] || 0
+      if (now - lastAt < 5000) {
+        return id
+      }
+      this.lastShownAt[key] = now
 
       this.notifications.push(newNotification)
+
+      // Cap maximum visible notifications to 3
+      if (this.notifications.length > 3) {
+        this.notifications.splice(0, this.notifications.length - 3)
+      }
 
       // Auto-dismiss after specified duration
       if (newNotification.duration > 0) {
