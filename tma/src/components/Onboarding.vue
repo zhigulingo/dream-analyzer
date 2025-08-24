@@ -156,6 +156,9 @@ watch(
   { immediate: true }
 )
 
+// Синхронизируем видимость онбординга с верхним уровнем (App.vue)
+watch(visible, (v) => emit('visible-change', v), { immediate: true })
+
 // MainButton management
 const clearMainButton = () => {
   try {
