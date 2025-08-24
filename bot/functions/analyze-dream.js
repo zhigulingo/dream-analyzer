@@ -190,13 +190,13 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
         try {
             const { data: u } = await supabase
                 .from('users')
-                .select('id, onboarding_stage, subscription_type')
+                .select('id, subscription_type')
                 .eq('id', userDbId)
                 .single();
-            if (u && (u.onboarding_stage === 'stage2' || String(u.subscription_type).toLowerCase() === 'onboarding2')) {
+            if (u && String(u.subscription_type).toLowerCase() === 'onboarding2') {
                 await supabase
                     .from('users')
-                    .update({ onboarding_stage: 'stage3', subscription_type: 'free' })
+                    .update({ subscription_type: 'free' })
                     .eq('id', userDbId);
             }
         } catch (_) {}

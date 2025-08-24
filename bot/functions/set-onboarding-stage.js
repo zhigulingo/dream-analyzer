@@ -34,7 +34,7 @@ exports.handler = async (event) => {
     if (stage === 'stage1') nextSubscription = 'onboarding1';
     if (stage === 'stage2') nextSubscription = 'onboarding2';
     if (stage === 'stage3' && (nextSubscription === 'onboarding1' || nextSubscription === 'onboarding2')) nextSubscription = 'free';
-    await supabase.from('users').update({ onboarding_stage: stage, subscription_type: nextSubscription }).eq('id', user.id);
+    await supabase.from('users').update({ subscription_type: nextSubscription }).eq('id', user.id);
     return { statusCode: 200, headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: true, stage }) };
   } catch (e) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Internal Server Error' }) };

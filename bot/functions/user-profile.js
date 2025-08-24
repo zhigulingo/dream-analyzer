@@ -166,14 +166,12 @@ exports.handler = async (event) => {
                 // Auto-migrate legacy: if stage missing and subscription_type is 'free', map to onboarding1/2 based on claim flag
                 if (userData) {
                     const sub = (userData.subscription_type || '').toLowerCase();
-                    const hasStage = !!(userData.onboarding_stage && userData.onboarding_stage.length > 0);
-                    if (!hasStage || sub === 'free') {
+                    // Авто-миграция: если стоит free — переводим в onboarding1 либо onboarding2 по флагу канал‑награды
+                    if (sub === 'free') {
                         const nextSub = userData.channel_reward_claimed ? 'onboarding2' : 'onboarding1';
-                        const nextStage = userData.channel_reward_claimed ? 'stage2' : 'stage1';
                         try {
-                            await supabase.from('users').update({ subscription_type: nextSub, onboarding_stage: nextStage }).eq('id', userData.id);
+                            await supabase.from('users').update({ subscription_type: nextSub }).eq('id', userData.id);
                             userData.subscription_type = nextSub;
-                            userData.onboarding_stage = nextStage;
                         } catch (_) {}
                     }
                 }
@@ -219,7 +217,7 @@ exports.handler = async (event) => {
                 deep_analysis_credits: userData.deep_analysis_credits || 0,
                 total_dreams_count: userData.total_dreams_count || 0,
                 deep_analyses_count: userData.deep_analyses_count || 0,
-                onboarding_stage: userData.onboarding_stage || null
+                onboarding_stage: null
             };
         }
 
