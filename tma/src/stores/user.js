@@ -88,10 +88,6 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
-    initServices() {
-      if (!this.notificationStore) this.notificationStore = useNotificationStore();
-      if (!this.offlineDetection) this.offlineDetection = useOfflineDetection();
-    },
     async loadPricing() {
       try {
         const baseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -120,7 +116,7 @@ export const useUserStore = defineStore('user', {
       }
     },
 
-    // Initialize all services
+    // Initialize all services (single definition)
     initServices() {
       this.initNotifications();
       this.initOfflineDetection();

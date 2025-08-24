@@ -1,6 +1,6 @@
 <template>
   <div v-if="visible" class="onboarding-overlay opaque" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
-    <!-- Stack 1: first card (Onboarding_new_1) -->
+    <!-- Stack 1: Onboarding_new_1 -->
     <div v-show="isNewFlow && step === 1" class="onboarding-card card-absolute" :class="dragClass">
       <div class="onboarding-header">
         <h2 class="title">Добро пожаловать в Dream Analyzer</h2>
@@ -13,7 +13,7 @@
       </div>
     </div>
 
-    <!-- Stack 2: second card (Onboarding_new_2) with CTA to subscribe -->
+    <!-- Stack 2: Onboarding_new_2 (CTA subscribe) -->
     <div v-show="isNewFlow && step === 2" class="onboarding-card card-absolute">
       <div class="onboarding-header">
         <h2 class="title">Получите стартовый токен</h2>
@@ -25,8 +25,33 @@
       </div>
     </div>
 
-    <!-- Free flow single card -->
-    <div v-show="isFreeFlow" class="onboarding-card card-absolute">
+    <!-- Stack 3: Onboarding_new_3 (tips) -->
+    <div v-show="isNewFlow && step === 3" class="onboarding-card card-absolute">
+      <div class="onboarding-header">
+        <h2 class="title">Как использовать токен</h2>
+        <p class="subtitle">Отправьте свой сон боту — получите анализ</p>
+      </div>
+      <div class="onboarding-media"><StickerPlayer src="thinking.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-body">
+        <p class="text">Опишите сон своими словами. Чем детальнее — тем точнее анализ.</p>
+        <p class="text">Мы выделим символы и дадим интерпретацию.</p>
+      </div>
+    </div>
+
+    <!-- Stack 4: Onboarding_new_4 (verify) -->
+    <div v-show="isNewFlow && step === 4" class="onboarding-card card-absolute">
+      <div class="onboarding-header">
+        <h2 class="title">Завершите шаг</h2>
+        <p class="subtitle">Нажмите «Проверить подписку», чтобы получить токен</p>
+      </div>
+      <div class="onboarding-media"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-body">
+        <p class="text">После подтверждения вы сможете отправить первый сон прямо в чат.</p>
+      </div>
+    </div>
+
+    <!-- Free flow: Onboarding_free_1 -->
+    <div v-show="isFreeFlow && step === 1" class="onboarding-card card-absolute">
       <div class="onboarding-header">
         <h2 class="title">Отлично! Первый анализ готов</h2>
         <p class="subtitle">Теперь доступен весь функционал мини‑приложения</p>
@@ -35,6 +60,42 @@
       <div class="onboarding-body">
         <p class="text">Продолжайте отправлять сны — так AI лучше поймёт ваш контекст.</p>
         <p class="text">Открывайте историю и изучайте теги‑символы.</p>
+      </div>
+    </div>
+
+    <!-- Free flow: Onboarding_free_2 (history hint) -->
+    <div v-show="isFreeFlow && step === 2" class="onboarding-card card-absolute">
+      <div class="onboarding-header">
+        <h2 class="title">История снов</h2>
+        <p class="subtitle">Возвращайтесь к предыдущим анализам</p>
+      </div>
+      <div class="onboarding-media"><StickerPlayer src="wizard-happy.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-body">
+        <p class="text">Мы сохраняем все ваши сны и выводим ключевые символы.</p>
+      </div>
+    </div>
+
+    <!-- Free flow: Onboarding_free_3 (tags) -->
+    <div v-show="isFreeFlow && step === 3" class="onboarding-card card-absolute">
+      <div class="onboarding-header">
+        <h2 class="title">Теги‑символы</h2>
+        <p class="subtitle">Отслеживайте повторяющиеся темы ваших снов</p>
+      </div>
+      <div class="onboarding-media"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-body">
+        <p class="text">Мы выделяем символы, чтобы замечать паттерны и инсайты.</p>
+      </div>
+    </div>
+
+    <!-- Free flow: Onboarding_free_4 (continue) -->
+    <div v-show="isFreeFlow && step === 4" class="onboarding-card card-absolute">
+      <div class="onboarding-header">
+        <h2 class="title">Готово!</h2>
+        <p class="subtitle">Нажмите «Продолжить», чтобы открыть интерфейс</p>
+      </div>
+      <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-body">
+        <p class="text">Доступна история, профиль и глубокие анализы.</p>
       </div>
     </div>
   </div>

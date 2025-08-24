@@ -186,6 +186,20 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
         if (insertError) {
             throw createApiError(`Error saving analysis: ${insertError.message}`, 500);
         }
+        // Transition onboarding: if user is in onboarding2/stage2, mark as completed (stage3/free)
+        try {
+            const { data: u } = await supabase
+                .from('users')
+                .select('id, onboarding_stage, subscription_type')
+                .eq('id', userDbId)
+                .single();
+            if (u && (u.onboarding_stage === 'stage2' || String(u.subscription_type).toLowerCase() === 'onboarding2')) {
+                await supabase
+                    .from('users')
+                    .update({ onboarding_stage: 'stage3', subscription_type: 'free' })
+                    .eq('id', userDbId);
+            }
+        } catch (_) {}
         // После успешного сохранения обычного анализа пытаемся выдать бесплатный кредит глубокого анализа,
         // если пользователь впервые достиг 5 снов
         try {
