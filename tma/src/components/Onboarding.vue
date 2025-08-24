@@ -193,11 +193,10 @@ onMounted(() => {
     }
     // Show MainButton only on final screen of each flow
     if (isNewFlow.value) {
-      if (step.value === 1) setMainButton('Перейти и подписаться', goToCommunity)
-      else if (step.value === 4) setMainButton('Проверить подписку', verifySubscription)
+      if (step.value === 4) setMainButton(newFlowButtonLabel.value, handleNewFlowMainButton)
       else clearMainButton()
     } else if (isFreeFlow.value) {
-      if (step.value === 4) setMainButton('Продолжить', completeFree)
+      if (step.value === 4) setMainButton('Открыть историю', openHistory)
       else clearMainButton()
     }
   })
@@ -241,13 +240,25 @@ const goToCommunity = () => {
 const verifySubscription = async () => {
   await userStore.claimChannelReward()
   if (userStore.claimRewardError) {
-    // stay on step 2, show notification through notification store
     return
   }
-  // Success: persist stage2 in DB
   try { await api.setOnboardingStage('stage2'); userStore.profile.onboarding_stage = 'stage2'; userStore.profile.subscription_type = 'onboarding2' } catch (_) {}
+  // Показать сообщение "Теперь отправьте сон в чате"
+  userStore.notificationStore?.success('Подписка подтверждена! Теперь отправьте свой сон в чате с ботом.')
   flow.value = 'none'
   emit('visible-change', false)
+}
+
+// На шаге 4 в первом онбординге: если уже подписан — "Получить токен", иначе — "Перейти и подписаться"
+const isAlreadySubscribed = computed(() => !!userStore.profile?.channel_reward_claimed)
+const newFlowButtonLabel = computed(() => (isAlreadySubscribed.value ? 'Получить токен' : 'Перейти и подписаться'))
+const handleNewFlowMainButton = async () => {
+  if (isAlreadySubscribed.value) {
+    // Пользователь уже подписан: просто запросить награду
+    await verifySubscription()
+  } else {
+    goToCommunity()
+  }
 }
 
 const completeFree = async () => {
@@ -262,10 +273,19 @@ const completeFree = async () => {
   emit('visible-change', false)
 }
 
+// Кнопка шага 4 второго онбординга — открыть историю
+const openHistory = async () => {
+  await completeFree()
+  // В этом приложении история — основной экран; просто закрываем онбординг.
+}
+
 // Content per flow/step
 const currentTitle = computed(() => {
   if (flow.value === 'new') {
-    return step.value === 1 ? 'Добро пожаловать в Dream Analyzer' : 'Получите стартовый токен'
+    if (step.value === 1) return 'Добро пожаловать в Dream Analyzer'
+    if (step.value === 2) return 'Получите стартовый токен'
+    if (step.value === 3) return 'Как использовать токен'
+    return 'Завершите шаг'
   }
   if (flow.value === 'free') {
     return 'Отлично! Первый анализ готов'
@@ -275,7 +295,10 @@ const currentTitle = computed(() => {
 
 const currentSubtitle = computed(() => {
   if (flow.value === 'new') {
-    return step.value === 1 ? 'Как это работает и с чего начать' : 'Подпишитесь на канал — и мы начислим 1 токен'
+    if (step.value === 1) return 'Как это работает и с чего начать'
+    if (step.value === 2) return 'Подпишитесь на канал — и мы начислим 1 токен'
+    if (step.value === 3) return 'Отправьте сон боту — получите анализ'
+    return 'Нажмите — чтобы завершить шаг'
   }
   if (flow.value === 'free') {
     return 'Теперь доступен весь функционал мини‑приложения'
