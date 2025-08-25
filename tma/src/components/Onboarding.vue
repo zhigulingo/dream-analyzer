@@ -262,11 +262,12 @@ const verifySubscription = async () => {
 
 const completeFree = async () => {
   try {
+    // 1) Просим сервер перевести в stage3/free
     await api.setOnboardingStage('stage3');
+    // 2) Ждем обновления профиля с сервера, чтобы не переоткрывать онбординг из-за устаревшего значения
+    try { await userStore.fetchProfile() } catch (_) {}
+    // 3) Локально отмечаем стадию как завершенную (без надежды на локальный override subscription_type)
     userStore.profile.onboarding_stage = 'stage3';
-    if ((userStore.profile.subscription_type || '').toLowerCase().startsWith('onboarding')) {
-      userStore.profile.subscription_type = 'free';
-    }
   } catch (_) {}
   flow.value = 'none'
   emit('visible-change', false)
