@@ -17,7 +17,7 @@
       @slideChange="onSlideChangeNew"
       class="w-full h-full"
     >
-      <SwiperSlide class="onboarding-card">
+      <SwiperSlide class="onboarding-card slidePeek">
         <div class="onboarding-header">
           <h2 class="title">Добро пожаловать в Dream Analyzer</h2>
           <p class="subtitle">Как это работает и с чего начать</p>
@@ -28,7 +28,7 @@
           <p class="text">Отправьте свой первый сон — получите быстрый анализ ИИ.</p>
         </div>
       </SwiperSlide>
-      <SwiperSlide class="onboarding-card">
+      <SwiperSlide class="onboarding-card slidePeek">
         <div class="onboarding-header">
           <h2 class="title">Получите стартовый токен</h2>
           <p class="subtitle">Подпишитесь на канал — и мы начислим 1 токен</p>
@@ -38,7 +38,7 @@
           <p class="text">После подписки нажмите «Проверить подписку» — сразу начислим токен.</p>
         </div>
       </SwiperSlide>
-      <SwiperSlide class="onboarding-card">
+      <SwiperSlide class="onboarding-card slidePeek">
         <div class="onboarding-header">
           <h2 class="title">Как использовать токен</h2>
           <p class="subtitle">Отправьте свой сон боту — получите анализ</p>
@@ -49,7 +49,7 @@
           <p class="text">Мы выделим символы и дадим интерпретацию.</p>
         </div>
       </SwiperSlide>
-      <SwiperSlide class="onboarding-card">
+      <SwiperSlide class="onboarding-card slidePeek">
         <div class="onboarding-header">
           <h2 class="title">Завершите шаг</h2>
           <p class="subtitle">Нажмите «Подписаться / Получить токен»</p>
@@ -78,7 +78,7 @@
       @slideChange="onSlideChangeFree"
       class="w-full h-full"
     >
-      <SwiperSlide class="onboarding-card">
+      <SwiperSlide class="onboarding-card slidePeek">
         <div class="onboarding-header">
           <h2 class="title">Ура!</h2>
           <p class="subtitle">Твой первый сон проанализирован</p>
@@ -89,7 +89,7 @@
           <p class="text">Давай покажу его!</p>
         </div>
       </SwiperSlide>
-      <SwiperSlide class="onboarding-card">
+      <SwiperSlide class="onboarding-card slidePeek">
         <div class="onboarding-header">
           <h2 class="title">Удобный доступ</h2>
           <p class="subtitle"></p>
@@ -97,7 +97,7 @@
         <div class="onboarding-media"><img :src="frame1" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
         <div class="onboarding-body"></div>
       </SwiperSlide>
-      <SwiperSlide class="onboarding-card">
+      <SwiperSlide class="onboarding-card slidePeek">
         <div class="onboarding-header">
           <h2 class="title">Полезные факты</h2>
           <p class="subtitle"></p>
@@ -107,7 +107,7 @@
           <p class="text">Сюжеты снов часто отражают эмоции, а не реальные события.</p>
         </div>
       </SwiperSlide>
-      <SwiperSlide class="onboarding-card">
+      <SwiperSlide class="onboarding-card slidePeek">
         <div class="onboarding-header">
           <h2 class="title">История снов</h2>
           <p class="subtitle">и анализ</p>
@@ -180,7 +180,7 @@ const initFlow = () => {
 }
 
 watch(
-  () => [userStore.profile?.channel_reward_claimed, userStore.history?.length],
+  () => [userStore.profile?.channel_reward_claimed, userStore.history?.length, userStore.profile?.subscription_type],
   () => initFlow(),
   { immediate: true }
 )
@@ -230,8 +230,9 @@ onBeforeUnmount(() => {
 
 const goToCommunity = () => {
   const url = 'https://t.me/thedreamshub'
-  if (tg?.openTelegramLink) tg.openTelegramLink(url)
-  else window.open(url, '_blank')
+  try { if (tg?.openLink) { tg.openLink(url); return } } catch(_) {}
+  try { if (tg?.openTelegramLink) { tg.openTelegramLink(url); return } } catch(_) {}
+  window.open(url, '_blank')
 }
 
 //
@@ -269,19 +270,25 @@ const openHistory = async () => {
 }
 
 // Swiper callbacks: управление MainButton и синхронизацией шага
-const onSlideChangeNew = (swiper: any) => {
+const onSlideChangeNew = async (swiper: any) => {
   step.value = (swiper?.activeIndex || 0) + 1
   if (step.value === 4) {
     const already = !!userStore.profile?.channel_reward_claimed
     const label = already ? 'Получить токен' : 'Перейти и подписаться'
-    const handler = already ? verifySubscription : goToCommunity
+    const handler = already ? async () => {
+      await verifySubscription();
+      try { await userStore.fetchProfile() } catch (_) {}
+    } : goToCommunity
     setMainButton(label, handler)
   }
   else clearMainButton()
 }
-const onSlideChangeFree = (swiper: any) => {
+const onSlideChangeFree = async (swiper: any) => {
   step.value = (swiper?.activeIndex || 0) + 1
-  if (step.value === 4) setMainButton('Открыть историю', openHistory)
+  if (step.value === 4) setMainButton('Открыть историю', async () => {
+    await openHistory();
+    try { await userStore.fetchProfile() } catch (_) {}
+  })
   else clearMainButton()
 }
 
@@ -390,7 +397,7 @@ watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscriptio
 .onboarding-card {
   width: 100%;
   max-width: 560px;
-  background: var(--tg-theme-secondary-bg-color, #0c110c);
+  background: color-mix(in oklab, var(--tg-theme-secondary-bg-color, #0c110c) 94%, white 6%);
   border-radius: 16px;
   padding: 24px 18px 18px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.35);
