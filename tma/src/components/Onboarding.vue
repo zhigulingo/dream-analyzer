@@ -206,6 +206,18 @@ const handleMainButtonClick = () => {
   try { mainButtonHandler.value?.() } catch (e) { console.error(e) }
 }
 
+// Автоперелистывание
+const autoTimer = ref<number | null>(null)
+const scheduleAutoAdvance = () => {
+  if (!visible.value) return
+  // На последнем шаге таймер не нужен
+  const isLast = step.value >= 4
+  if (autoTimer.value) { clearTimeout(autoTimer.value) as any; autoTimer.value = null }
+  if (!isLast) {
+    autoTimer.value = setTimeout(() => { step.value = Math.min(4, step.value + 1) }, 5000) as any
+  }
+}
+
 onMounted(() => {
   // When shown, set up the button
   watchEffect(() => {
@@ -221,6 +233,7 @@ onMounted(() => {
       if (step.value === 4) setMainButton('Открыть историю', openHistory)
       else clearMainButton()
     }
+    scheduleAutoAdvance()
   })
 })
 
@@ -238,6 +251,7 @@ const onTouchStart = (e: TouchEvent) => {
   if (!visible.value) return
   touchStartY.value = e.touches[0].clientY
   dragOffset.value = 0
+  if (autoTimer.value) { clearTimeout(autoTimer.value) as any; autoTimer.value = null }
 }
 const onTouchMove = (e: TouchEvent) => {
   if (touchStartY.value == null || !visible.value) return
@@ -282,6 +296,7 @@ const onMouseDown = (e: MouseEvent) => {
   if (!visible.value) return
   mouseStartY.value = e.clientY
   dragOffset.value = 0
+  if (autoTimer.value) { clearTimeout(autoTimer.value) as any; autoTimer.value = null }
 }
 const onMouseMove = (e: MouseEvent) => {
   if (mouseStartY.value == null || !visible.value) return
@@ -426,10 +441,10 @@ watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscriptio
   padding: 24px 18px 18px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.35);
 }
-.card-absolute { position: absolute; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); }
-.card-absolute::before, .card-absolute::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 40%; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08); }
-.card-absolute::before { top: -12px; }
-.card-absolute::after { bottom: -12px; }
+.card-absolute { position: absolute; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); transition: transform .25s ease; }
+.card-absolute::before, .card-absolute::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 42%; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.10); }
+.card-absolute::before { top: -14px; }
+.card-absolute::after { bottom: -14px; }
 .dragging { transition: none; }
 .onboarding-header .title {
   margin: 0 0 4px 0;
