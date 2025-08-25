@@ -129,36 +129,27 @@ const NEW_DONE_KEY = 'onboarding_new_done'
 const FREE_DONE_KEY = 'onboarding_free_done'
 
 // Which flow and step (4 screens per flow per spec)
-const flow = ref<'none' | 'new' | 'post' | 'free'>('none')
+const flow = ref<'none' | 'new' | 'free'>('none')
 const step = ref<number>(1) // 1..4
 
 // Derived visibility
 const visible = computed(() => flow.value !== 'none')
 const isNewFlow = computed(() => flow.value === 'new')
-const isPostTokenFlow = computed(() => flow.value === 'post')
 const isFreeFlow = computed(() => flow.value === 'free')
 
 const hasNewFlowEligibility = computed(() => {
   if (!userStore?.profile) return false
   const s = (userStore.profile.subscription_type || '').toLowerCase()
-  return s === 'onboarding1' && !userStore.profile?.channel_reward_claimed
+  return s === 'onboarding1'
 })
 
 // Второй онбординг показываем, когда у пользователя уже есть первый проанализированный сон
 const hasFreeFlowEligibility = computed(() => {
   const s = (userStore.profile?.subscription_type || '').toLowerCase()
-  const count = Array.isArray(userStore.history) ? userStore.history.length : 0
-  // Показываем второй онбординг, если есть хотя бы один анализ,
-  // независимо от того, остался ли тип onboarding1 или уже free
-  return (s === 'onboarding1' || s === 'free') && count >= 1
+  return s === 'onboarding2'
 })
 
-// Промежуточный экран: токен уже есть, анализов ещё нет
-const hasPostTokenEligibility = computed(() => {
-  const s = (userStore.profile?.subscription_type || '').toLowerCase()
-  const count = Array.isArray(userStore.history) ? userStore.history.length : 0
-  return s === 'onboarding1' && !!userStore.profile?.channel_reward_claimed && count === 0
-})
+// Промежуточный экран больше не используется — логика этапов строго по subscription_type
 
 // Initialize flow when profile/history are available
 const initFlow = () => {
@@ -167,9 +158,6 @@ const initFlow = () => {
     step.value = 1
   } else if (hasNewFlowEligibility.value) {
     flow.value = 'new'
-    step.value = 1
-  } else if (hasPostTokenEligibility.value) {
-    flow.value = 'post'
     step.value = 1
   } else {
     flow.value = 'none'
@@ -225,8 +213,6 @@ onMounted(() => {
     if (isNewFlow.value) {
       if (step.value === 4) setMainButton('Подписаться / Получить токен', verifySubscription)
       else clearMainButton()
-    } else if (isPostTokenFlow.value) {
-      setMainButton('Перейти в чат', goToChatAndClose)
     } else if (isFreeFlow.value) {
       if (step.value === 4) setMainButton('Открыть историю', openHistory)
       else clearMainButton()
@@ -269,16 +255,14 @@ const goToCommunity = () => {
   else window.open(url, '_blank')
 }
 
-const goToChatAndClose = () => {
-  try { tg?.close?.() } catch (_) {}
-}
+//
 
 const verifySubscription = async () => {
   await userStore.claimChannelReward()
   if (userStore.claimRewardError) {
     return
   }
-  try { /* stage остаётся onboarding1 до появления анализа */ } catch (_) {}
+  try { /* stage остаётся onboarding1; переход в onboarding2 выполнит бэкенд после первого анализа */ } catch (_) {}
   // Показать сообщение "Теперь отправьте сон в чате"
   userStore.notificationStore?.success('Подписка подтверждена! Теперь отправьте свой сон в чате с ботом.')
   flow.value = 'none'

@@ -193,10 +193,10 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
                 .select('id, subscription_type')
                 .eq('id', userDbId)
                 .single();
-            if (u && String(u.subscription_type).toLowerCase() === 'onboarding2') {
+            if (u && String(u.subscription_type).toLowerCase() === 'onboarding1') {
                 await supabase
                     .from('users')
-                    .update({ subscription_type: 'free' })
+                    .update({ subscription_type: 'onboarding2' })
                     .eq('id', userDbId);
             }
         } catch (_) {}
