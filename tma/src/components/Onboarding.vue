@@ -5,8 +5,9 @@
       v-if="isNewFlow"
       :modules="modules"
       direction="vertical"
-      :spaceBetween="16"
-      slides-per-view="1"
+      :spaceBetween="12"
+      slides-per-view="auto"
+      :centeredSlides="true"
       :autoplay="autoplay"
       :keyboard="{ enabled: true }"
       :a11y="{ enabled: true }"
@@ -65,8 +66,9 @@
       v-if="isFreeFlow"
       :modules="modules"
       direction="vertical"
-      :spaceBetween="16"
-      slides-per-view="1"
+      :spaceBetween="12"
+      slides-per-view="auto"
+      :centeredSlides="true"
       :autoplay="autoplay"
       :keyboard="{ enabled: true }"
       :a11y="{ enabled: true }"
@@ -131,7 +133,7 @@ const frame2 = new URL('../../stickers/Onboarding Frame-2.png', import.meta.url)
 const frame3 = new URL('../../stickers/Onboarding Frame-3.png', import.meta.url).href
 
 const modules = [Autoplay, A11y, Keyboard]
-const autoplay = { delay: 5000, disableOnInteraction: false }
+const autoplay = { delay: 8000, disableOnInteraction: false, stopOnLastSlide: true }
 const tg: any = (window as any).Telegram?.WebApp
 const emit = defineEmits<{ (e: 'visible-change', value: boolean): void }>()
 const userStore = useUserStore()
@@ -216,17 +218,7 @@ const handleMainButtonClick = () => {
   try { mainButtonHandler.value?.() } catch (e) { console.error(e) }
 }
 
-// Автоперелистывание
-const autoTimer = ref<number | null>(null)
-const scheduleAutoAdvance = () => {
-  if (!visible.value) return
-  // На последнем шаге таймер не нужен
-  const isLast = step.value >= 4
-  if (autoTimer.value) { clearTimeout(autoTimer.value) as any; autoTimer.value = null }
-  if (!isLast) {
-    autoTimer.value = setTimeout(() => { step.value = Math.min(4, step.value + 1) }, 5000) as any
-  }
-}
+// Автоперелистывание управляет Swiper Autoplay; ручной таймер не нужен
 
 onMounted(() => {})
 
