@@ -31,9 +31,13 @@ exports.handler = async (event) => {
     const { data: user } = await supabase.from('users').select('id, subscription_type').eq('tg_id', validation.data.id).single();
     if (!user) return { statusCode: 404, headers, body: JSON.stringify({ error: 'User not found' }) };
     let nextSubscription = user.subscription_type || 'free';
+    const currentLower = String(nextSubscription || '').toLowerCase();
     if (stage === 'stage1') nextSubscription = 'onboarding1';
     if (stage === 'stage2') nextSubscription = 'onboarding2';
-    if (stage === 'stage3' && (nextSubscription === 'onboarding1' || nextSubscription === 'onboarding2')) nextSubscription = 'free';
+    // Исправлено: переводим в free для любых вариантов onboarding* (без учёта регистра)
+    if (stage === 'stage3' && currentLower.startsWith('onboarding')) {
+      nextSubscription = 'free';
+    }
     await supabase.from('users').update({ subscription_type: nextSubscription }).eq('id', user.id);
     return { statusCode: 200, headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: true, stage, subscription_type: nextSubscription }) };
   } catch (e) {
