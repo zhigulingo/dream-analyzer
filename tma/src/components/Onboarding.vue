@@ -239,11 +239,20 @@ const goToCommunity = () => {
 
 const verifySubscription = async () => {
   await userStore.claimChannelReward()
+  // Если награда уже была получена ранее — просто сообщаем и закрываем онбординг
+  if (userStore.rewardAlreadyClaimed) {
+    userStore.notificationStore?.info('Награда уже получена. Отправьте свой сон в чате с ботом.')
+    flow.value = 'none'
+    emit('visible-change', false)
+    return
+  }
+  // Если возникла ошибка (часто это отсутствие подписки) — оставляем возможность перейти в канал
   if (userStore.claimRewardError) {
+    userStore.notificationStore?.warning(userStore.claimRewardError || 'Не удалось подтвердить подписку.')
     return
   }
   try { /* stage остаётся onboarding1; переход в onboarding2 выполнит бэкенд после первого анализа */ } catch (_) {}
-  // Показать сообщение "Теперь отправьте сон в чате"
+  // Успех: сообщаем и закрываем онбординг
   userStore.notificationStore?.success('Подписка подтверждена! Теперь отправьте свой сон в чате с ботом.')
   flow.value = 'none'
   emit('visible-change', false)
@@ -273,13 +282,21 @@ const openHistory = async () => {
 const onSlideChangeNew = async (swiper: any) => {
   step.value = (swiper?.activeIndex || 0) + 1
   if (step.value === 4) {
-    const already = !!userStore.profile?.channel_reward_claimed
-    const label = already ? 'Получить токен' : 'Перейти и подписаться'
-    const handler = already ? async () => {
-      await verifySubscription();
-      try { await userStore.fetchProfile() } catch (_) {}
-    } : goToCommunity
-    setMainButton(label, handler)
+    // Автоматически пробуем подтвердить подписку/начислить токен
+    clearMainButton()
+    // Если уже получено ранее — сразу сообщаем и закрываем
+    if (userStore.profile?.channel_reward_claimed) {
+      userStore.notificationStore?.success('Подписка подтверждена! Теперь отправьте свой сон в чате с ботом.')
+      flow.value = 'none'
+      emit('visible-change', false)
+      return
+    }
+    await verifySubscription()
+    try { await userStore.fetchProfile() } catch (_) {}
+    // Если после попытки всё ещё ошибка (например, нет подписки) — показываем кнопку перехода в канал
+    if (userStore.claimRewardError && flow.value !== 'none') {
+      setMainButton('Перейти и подписаться', goToCommunity)
+    }
   }
   else clearMainButton()
 }
