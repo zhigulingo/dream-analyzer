@@ -264,13 +264,13 @@ const completeFree = async () => {
   try {
     // 1) Просим сервер перевести в stage3/free
     await api.setOnboardingStage('stage3');
-    // 2) Ждем обновления профиля с сервера, чтобы не переоткрывать онбординг из-за устаревшего значения
+    // 2) Сразу закрываем онбординг, чтобы не блокировать UI
+    flow.value = 'none'
+    emit('visible-change', false)
+    // 3) Обновляем профиль в фоне (без блокировки интерфейса)
     try { await userStore.fetchProfile() } catch (_) {}
-    // 3) Локально отмечаем стадию как завершенную (без надежды на локальный override subscription_type)
     userStore.profile.onboarding_stage = 'stage3';
   } catch (_) {}
-  flow.value = 'none'
-  emit('visible-change', false)
 }
 
 // Кнопка шага 4 второго онбординга — открыть историю
