@@ -83,11 +83,8 @@ const handleRetry = async () => {
   }
 };
 
-onMounted(async () => {
-  userStore.initServices()
-  await userStore.fetchProfile()
-  await userStore.fetchHistory()
-})
+// Загрузка профиля/истории выполняется на уровне App.vue. Здесь не дублируем вызовы,
+// чтобы избежать повторных запросов и мигания прелоадера.
 </script>
 
 <style scoped>
