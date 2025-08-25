@@ -198,6 +198,7 @@ const setMainButton = (text: string, handler: () => void) => {
   tg.MainButton.offClick(handleMainButtonClick)
   tg.MainButton.onClick(handleMainButtonClick)
   mainButtonHandler.value = handler
+  try { tg.MainButton.show() } catch (_) {}
 }
 
 const mainButtonHandler = ref<() => void>(() => {})
@@ -231,6 +232,7 @@ onBeforeUnmount(() => {
 // Swipe handling: drag up advances to next step (1→2→3→4)
 const touchStartY = ref<number | null>(null)
 const dragOffset = ref(0)
+const touchDelta = ref(0)
 const dragClass = computed(() => ({ dragging: dragOffset.value !== 0 }))
 const onTouchStart = (e: TouchEvent) => {
   if (!visible.value) return
@@ -240,16 +242,17 @@ const onTouchStart = (e: TouchEvent) => {
 const onTouchMove = (e: TouchEvent) => {
   if (touchStartY.value == null || !visible.value) return
   const delta = touchStartY.value - e.touches[0].clientY
+  touchDelta.value = delta
   dragOffset.value = Math.max(0, delta)
 }
 const onTouchEnd = () => {
   if (!visible.value) { touchStartY.value = null; dragOffset.value = 0; return }
   // Threshold to switch: 80px
-  if (dragOffset.value > 80) {
-    step.value = Math.min(4, step.value + 1)
-  }
+  if (touchDelta.value > 80) step.value = Math.min(4, step.value + 1)
+  else if (touchDelta.value < -80) step.value = Math.max(1, step.value - 1)
   touchStartY.value = null
   dragOffset.value = 0
+  touchDelta.value = 0
 }
 
 const goToCommunity = () => {
@@ -274,6 +277,7 @@ const verifySubscription = async () => {
 
 // Управление мышью как в карусели: drag для смены шага
 const mouseStartY = ref<number | null>(null)
+const mouseDelta = ref(0)
 const onMouseDown = (e: MouseEvent) => {
   if (!visible.value) return
   mouseStartY.value = e.clientY
@@ -282,15 +286,16 @@ const onMouseDown = (e: MouseEvent) => {
 const onMouseMove = (e: MouseEvent) => {
   if (mouseStartY.value == null || !visible.value) return
   const delta = mouseStartY.value - e.clientY
+  mouseDelta.value = delta
   dragOffset.value = Math.max(0, delta)
 }
 const onMouseUp = () => {
   if (!visible.value) { mouseStartY.value = null; dragOffset.value = 0; return }
-  if (dragOffset.value > 80) {
-    step.value = Math.min(4, step.value + 1)
-  }
+  if (mouseDelta.value > 80) step.value = Math.min(4, step.value + 1)
+  else if (mouseDelta.value < -80) step.value = Math.max(1, step.value - 1)
   mouseStartY.value = null
   dragOffset.value = 0
+  mouseDelta.value = 0
 }
 
 const completeFree = async () => {
@@ -418,18 +423,23 @@ watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscriptio
   max-width: 560px;
   background: var(--tg-theme-secondary-bg-color, #0c110c);
   border-radius: 16px;
-  padding: 20px 16px 16px;
+  padding: 24px 18px 18px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.35);
 }
 .card-absolute { position: absolute; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); }
+.card-absolute::before, .card-absolute::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 40%; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08); }
+.card-absolute::before { top: -12px; }
+.card-absolute::after { bottom: -12px; }
 .dragging { transition: none; }
 .onboarding-header .title {
   margin: 0 0 4px 0;
-  font-size: 20px;
+  font-size: 22px;
+  line-height: 1.25;
 }
 .onboarding-header .subtitle {
   margin: 0;
   opacity: 0.8;
+  font-size: 16px;
 }
 .onboarding-media {
   display: flex;
@@ -438,7 +448,7 @@ watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscriptio
 }
 .onboarding-body .text {
   margin: 8px 0 0 0;
-  font-size: 14px;
+  font-size: 16px;
   opacity: 0.95;
 }
 .onboarding-actions {
