@@ -63,50 +63,50 @@
       </div>
     </div>
 
-    <!-- Free flow: step 1 (Ура!) -->
+    <!-- Free flow: step 1 (Ура! / wizard-thinking) -->
     <div v-show="isFreeFlow && step === 1" class="onboarding-card card-absolute">
       <div class="onboarding-header">
         <h2 class="title">Ура!</h2>
         <p class="subtitle">Твой первый сон проанализирован</p>
       </div>
-      <div class="onboarding-media"><img :src="frame1" alt="onboarding-1" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
+      <div class="onboarding-media"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
       <div class="onboarding-body">
         <p class="text">Все твои сны в одном месте — личный кабинет.</p>
         <p class="text">Давай покажу его!</p>
       </div>
     </div>
 
-    <!-- Free flow: step 2 (Удобный доступ) -->
+    <!-- Free flow: step 2 (Удобный доступ / Frame-1) -->
     <div v-show="isFreeFlow && step === 2" class="onboarding-card card-absolute">
       <div class="onboarding-header">
         <h2 class="title">Удобный доступ</h2>
         <p class="subtitle"></p>
       </div>
-      <div class="onboarding-media"><img :src="frame2" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
+      <div class="onboarding-media"><img :src="frame1" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
       <div class="onboarding-body">
         <p class="text"></p>
       </div>
     </div>
 
-    <!-- Free flow: step 3 (Полезные факты) -->
+    <!-- Free flow: step 3 (Полезные факты / Frame-2) -->
     <div v-show="isFreeFlow && step === 3" class="onboarding-card card-absolute">
       <div class="onboarding-header">
         <h2 class="title">Полезные факты</h2>
         <p class="subtitle"></p>
       </div>
-      <div class="onboarding-media"><img :src="frame3" alt="onboarding-3" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
+      <div class="onboarding-media"><img :src="frame2" alt="onboarding-3" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
       <div class="onboarding-body">
         <p class="text">Сюжеты снов часто отражают эмоции, а не реальные события.</p>
       </div>
     </div>
 
-    <!-- Free flow: step 4 (История снов и анализ + CTA) -->
+    <!-- Free flow: step 4 (История снов и анализ / Frame-3 + CTA) -->
     <div v-show="isFreeFlow && step === 4" class="onboarding-card card-absolute">
       <div class="onboarding-header">
         <h2 class="title">История снов</h2>
         <p class="subtitle">и анализ</p>
       </div>
-      <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-media"><img :src="frame3" alt="onboarding-4" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
       <div class="onboarding-body">
         <p class="text"></p>
       </div>
