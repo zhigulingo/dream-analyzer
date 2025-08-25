@@ -163,18 +163,7 @@ exports.handler = async (event) => {
             try {
                 userData = await dbQueries.getUserProfile(verifiedUserId);
                 console.log(`[user-profile] ✅ getUserProfile returned:`, !!userData);
-                // Auto-migrate legacy: if stage missing and subscription_type is 'free', map to onboarding1/2 based on claim flag
-                if (userData) {
-                    const sub = (userData.subscription_type || '').toLowerCase();
-                    // Авто-миграция: если стоит free — переводим в onboarding1 либо onboarding2 по флагу канал‑награды
-                    if (sub === 'free') {
-                        const nextSub = userData.channel_reward_claimed ? 'onboarding2' : 'onboarding1';
-                        try {
-                            await supabase.from('users').update({ subscription_type: nextSub }).eq('id', userData.id);
-                            userData.subscription_type = nextSub;
-                        } catch (_) {}
-                    }
-                }
+                // Удалена авто-миграция из 'free' в 'onboarding*', чтобы не переоткрывать второй онбординг
             } catch (dbError) {
                 console.error(`[user-profile] ❌ Database query failed:`, dbError.message);
                 throw new Error(`Database query failed: ${dbError.message}`);
