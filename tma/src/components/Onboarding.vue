@@ -14,7 +14,7 @@
       :observe-parents="true"
       :watch-overflow="true"
       @slideChange="onSlideChangeNew"
-      class="w-full"
+      class="w-full h-full"
     >
       <SwiperSlide class="onboarding-card card-absolute">
         <div class="onboarding-header">
@@ -74,7 +74,7 @@
       :observe-parents="true"
       :watch-overflow="true"
       @slideChange="onSlideChangeFree"
-      class="w-full"
+      class="w-full h-full"
     >
       <SwiperSlide class="onboarding-card card-absolute">
         <div class="onboarding-header">
@@ -385,7 +385,7 @@ watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscriptio
   inset: 0;
   background: rgba(0,0,0,0.55);
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   z-index: 1000;
   padding: 16px;
