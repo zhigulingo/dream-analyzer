@@ -1,6 +1,6 @@
 <template>
-  <div v-if="visible" class="onboarding-overlay opaque" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
-    <!-- Stack 1: Onboarding_new_1 -->
+  <div v-if="visible" class="onboarding-overlay opaque" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd" @wheel.passive="onWheel">
+    <!-- Stack 1: Onboarding_new_1 (первый экран первого онбординга) -->
     <div v-show="isNewFlow && step === 1" class="onboarding-card card-absolute" :class="dragClass">
       <div class="onboarding-header">
         <h2 class="title">Добро пожаловать в Dream Analyzer</h2>
@@ -13,40 +13,52 @@
       </div>
     </div>
 
-    <!-- Stack 2: Onboarding_new_2 (CTA subscribe) -->
+    <!-- Stack 2: Onboarding_new_2 (второй экран первого онбординга) -->
     <div v-show="isNewFlow && step === 2" class="onboarding-card card-absolute">
       <div class="onboarding-header">
         <h2 class="title">Получите стартовый токен</h2>
         <p class="subtitle">Подпишитесь на канал — и мы начислим 1 токен</p>
       </div>
-      <div class="onboarding-media"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-media"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
       <div class="onboarding-body">
         <p class="text">После подписки нажмите «Проверить подписку» — сразу начислим токен.</p>
       </div>
     </div>
 
-    <!-- Stack 3: Onboarding_new_3 (tips) -->
+    <!-- Stack 3: Onboarding_new_3 (третий экран первого онбординга) -->
     <div v-show="isNewFlow && step === 3" class="onboarding-card card-absolute">
       <div class="onboarding-header">
         <h2 class="title">Как использовать токен</h2>
         <p class="subtitle">Отправьте свой сон боту — получите анализ</p>
       </div>
-      <div class="onboarding-media"><StickerPlayer src="thinking.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
       <div class="onboarding-body">
         <p class="text">Опишите сон своими словами. Чем детальнее — тем точнее анализ.</p>
         <p class="text">Мы выделим символы и дадим интерпретацию.</p>
       </div>
     </div>
 
-    <!-- Stack 4: Onboarding_new_4 (verify) -->
+    <!-- Stack 4: Onboarding_new_4 (четвертый экран первого онбординга) -->
     <div v-show="isNewFlow && step === 4" class="onboarding-card card-absolute">
       <div class="onboarding-header">
         <h2 class="title">Завершите шаг</h2>
-        <p class="subtitle">Нажмите «Проверить подписку», чтобы получить токен</p>
+        <p class="subtitle">Нажмите «Подписаться / Получить токен»</p>
       </div>
       <div class="onboarding-media"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
       <div class="onboarding-body">
         <p class="text">После подтверждения вы сможете отправить первый сон прямо в чат.</p>
+      </div>
+    </div>
+
+    <!-- Post-token, no-analysis yet: отдельный экран с CTA вернуться в чат -->
+    <div v-show="isPostTokenFlow" class="onboarding-card card-absolute">
+      <div class="onboarding-header">
+        <h2 class="title">Токен получен</h2>
+        <p class="subtitle">Отправьте свой сон в чат с ботом</p>
+      </div>
+      <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-body">
+        <p class="text">Опишите сон своими словами — вы получите первую интерпретацию.</p>
       </div>
     </div>
 
@@ -102,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useUserStore } from '@/stores/user.js'
 import api from '@/services/api'
 import StickerPlayer from '@/components/StickerPlayer.vue'
@@ -116,18 +128,19 @@ const NEW_DONE_KEY = 'onboarding_new_done'
 const FREE_DONE_KEY = 'onboarding_free_done'
 
 // Which flow and step (4 screens per flow per spec)
-const flow = ref<'none' | 'new' | 'free'>('none')
+const flow = ref<'none' | 'new' | 'post' | 'free'>('none')
 const step = ref<number>(1) // 1..4
 
 // Derived visibility
 const visible = computed(() => flow.value !== 'none')
 const isNewFlow = computed(() => flow.value === 'new')
+const isPostTokenFlow = computed(() => flow.value === 'post')
 const isFreeFlow = computed(() => flow.value === 'free')
 
 const hasNewFlowEligibility = computed(() => {
   if (!userStore?.profile) return false
   const s = (userStore.profile.subscription_type || '').toLowerCase()
-  return s === 'onboarding1'
+  return s === 'onboarding1' && !userStore.profile?.channel_reward_claimed
 })
 
 // Второй онбординг показываем, когда у пользователя уже есть первый проанализированный сон
@@ -137,10 +150,20 @@ const hasFreeFlowEligibility = computed(() => {
   return (s === 'onboarding1') && count >= 1
 })
 
+// Промежуточный экран: токен уже есть, анализов ещё нет
+const hasPostTokenEligibility = computed(() => {
+  const s = (userStore.profile?.subscription_type || '').toLowerCase()
+  const count = Array.isArray(userStore.history) ? userStore.history.length : 0
+  return s === 'onboarding1' && !!userStore.profile?.channel_reward_claimed && count === 0
+})
+
 // Initialize flow when profile/history are available
 const initFlow = () => {
   if (hasNewFlowEligibility.value) {
     flow.value = 'new'
+    step.value = 1
+  } else if (hasPostTokenEligibility.value) {
+    flow.value = 'post'
     step.value = 1
   } else if (hasFreeFlowEligibility.value) {
     flow.value = 'free'
@@ -197,8 +220,10 @@ onMounted(() => {
     }
     // Show MainButton only on final screen of each flow
     if (isNewFlow.value) {
-      if (step.value === 4) setMainButton(newFlowButtonLabel.value, handleNewFlowMainButton)
+      if (step.value === 4) setMainButton('Подписаться / Получить токен', verifySubscription)
       else clearMainButton()
+    } else if (isPostTokenFlow.value) {
+      setMainButton('Перейти в чат', goToChatAndClose)
     } else if (isFreeFlow.value) {
       if (step.value === 4) setMainButton('Открыть историю', openHistory)
       else clearMainButton()
@@ -241,27 +266,29 @@ const goToCommunity = () => {
   else window.open(url, '_blank')
 }
 
+const goToChatAndClose = () => {
+  try { tg?.close?.() } catch (_) {}
+}
+
 const verifySubscription = async () => {
   await userStore.claimChannelReward()
   if (userStore.claimRewardError) {
     return
   }
-  try { await api.setOnboardingStage('stage2'); userStore.profile.onboarding_stage = 'stage2'; userStore.profile.subscription_type = 'onboarding2' } catch (_) {}
+  try { /* stage остаётся onboarding1 до появления анализа */ } catch (_) {}
   // Показать сообщение "Теперь отправьте сон в чате"
   userStore.notificationStore?.success('Подписка подтверждена! Теперь отправьте свой сон в чате с ботом.')
   flow.value = 'none'
   emit('visible-change', false)
 }
 
-// На шаге 4 в первом онбординге: если уже подписан — "Получить токен", иначе — "Перейти и подписаться"
-const subscriptionChecked = ref(false)
-const subscribedByCheck = ref(false)
-const newFlowButtonLabel = computed(() => (subscriptionChecked.value && subscribedByCheck.value ? 'Получить токен' : 'Перейти и подписаться'))
-const handleNewFlowMainButton = async () => {
-  if (subscriptionChecked.value && subscribedByCheck.value) {
-    await verifySubscription()
-  } else {
-    goToCommunity()
+// Управление колёсиком мыши (Web): прокрутка вниз/вверх меняет шаг
+const onWheel = (e: WheelEvent) => {
+  if (!visible.value) return
+  const delta = e.deltaY
+  if (isNewFlow.value || isFreeFlow.value) {
+    if (delta > 40) step.value = Math.min(4, step.value + 1)
+    else if (delta < -40) step.value = Math.max(1, step.value - 1)
   }
 }
 
@@ -371,28 +398,7 @@ watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscriptio
   }
 })
 
-// Авто-проверка/начисление на шаге 4 первого онбординга
-const attemptedAutoClaim = ref(false)
-watchEffect(async () => {
-  if (isNewFlow.value && step.value === 4 && !attemptedAutoClaim.value) {
-    attemptedAutoClaim.value = true
-    try {
-      await userStore.claimChannelReward()
-      if (!userStore.claimRewardError) {
-        // Успешно начислили — остаёмся в первом онбординге, показываем подсказку отправить сон в чат
-        userStore.notificationStore?.success('Подписка подтверждена! Вам начислен токен. Отправьте свой сон в чате с ботом.')
-        // Не закрываем онбординг; пользователь увидит последний экран и сможет вернуться в чат
-        return
-      }
-      // Если пришла ошибка — считаем, что не подписан (или не удалось проверить)
-      subscriptionChecked.value = true
-      subscribedByCheck.value = false
-    } catch (_) {
-      subscriptionChecked.value = true
-      subscribedByCheck.value = false
-    }
-  }
-})
+// Автодействий на шаге 4 нет — всё по нажатию кнопки
 </script>
 
 <style scoped>
