@@ -63,52 +63,28 @@
       </div>
     </div>
 
-    <!-- Free flow: step 1 (Ура! / wizard-thinking) -->
-    <div v-show="isFreeFlow && step === 1" class="onboarding-card card-absolute">
-      <div class="onboarding-header">
-        <h2 class="title">Ура!</h2>
-        <p class="subtitle">Твой первый сон проанализирован</p>
-      </div>
-      <div class="onboarding-media"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
-      <div class="onboarding-body">
-        <p class="text">Все твои сны в одном месте — личный кабинет.</p>
-        <p class="text">Давай покажу его!</p>
-      </div>
-    </div>
-
-    <!-- Free flow: step 2 (Удобный доступ / Frame-1) -->
-    <div v-show="isFreeFlow && step === 2" class="onboarding-card card-absolute">
-      <div class="onboarding-header">
-        <h2 class="title">Удобный доступ</h2>
-        <p class="subtitle"></p>
-      </div>
-      <div class="onboarding-media"><img :src="frame1" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
-      <div class="onboarding-body">
-        <p class="text"></p>
-      </div>
-    </div>
-
-    <!-- Free flow: step 3 (Полезные факты / Frame-2) -->
-    <div v-show="isFreeFlow && step === 3" class="onboarding-card card-absolute">
-      <div class="onboarding-header">
-        <h2 class="title">Полезные факты</h2>
-        <p class="subtitle"></p>
-      </div>
-      <div class="onboarding-media"><img :src="frame2" alt="onboarding-3" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
-      <div class="onboarding-body">
-        <p class="text">Сюжеты снов часто отражают эмоции, а не реальные события.</p>
-      </div>
-    </div>
-
-    <!-- Free flow: step 4 (История снов и анализ / Frame-3 + CTA) -->
-    <div v-show="isFreeFlow && step === 4" class="onboarding-card card-absolute">
-      <div class="onboarding-header">
-        <h2 class="title">История снов</h2>
-        <p class="subtitle">и анализ</p>
-      </div>
-      <div class="onboarding-media"><img :src="frame3" alt="onboarding-4" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
-      <div class="onboarding-body">
-        <p class="text"></p>
+    <!-- Free flow: vertical carousel -->
+    <div v-if="isFreeFlow" class="carousel">
+      <div v-for="i in 4" :key="'free-slide-'+i" class="onboarding-card card-absolute" :class="freeSlideClass(i)">
+        <div class="onboarding-header">
+          <h2 class="title">
+            {{ i===1 ? 'Ура!' : i===2 ? 'Удобный доступ' : i===3 ? 'Полезные факты' : 'История снов' }}
+          </h2>
+          <p class="subtitle">
+            {{ i===1 ? 'Твой первый сон проанализирован' : i===4 ? 'и анализ' : '' }}
+          </p>
+        </div>
+        <div class="onboarding-media">
+          <StickerPlayer v-if="i===1" src="wizard-thining.tgs" :width="220" :height="220" />
+          <img v-else-if="i===2" :src="frame1" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" />
+          <img v-else-if="i===3" :src="frame2" alt="onboarding-3" style="max-width: 320px; width: 100%; border-radius: 12px;" />
+          <img v-else :src="frame3" alt="onboarding-4" style="max-width: 320px; width: 100%; border-radius: 12px;" />
+        </div>
+        <div class="onboarding-body">
+          <p class="text" v-if="i===1">Все твои сны в одном месте — личный кабинет.</p>
+          <p class="text" v-if="i===1">Давай покажу его!</p>
+          <p class="text" v-if="i===3">Сюжеты снов часто отражают эмоции, а не реальные события.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -139,6 +115,10 @@ const step = ref<number>(1) // 1..4
 const visible = computed(() => flow.value !== 'none')
 const isNewFlow = computed(() => flow.value === 'new')
 const isFreeFlow = computed(() => flow.value === 'free')
+const freeSlideClass = (i: number) => {
+  const offset = (i - step.value) * 16
+  return { [`translate-y-[${offset}px]`]: true }
+}
 
 const hasNewFlowEligibility = computed(() => {
   if (!userStore?.profile) return false
