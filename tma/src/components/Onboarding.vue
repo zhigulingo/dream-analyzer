@@ -1,5 +1,6 @@
 <template>
-  <div v-if="visible" class="onboarding-overlay opaque" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd" @wheel.passive="onWheel">
+  <div v-if="visible" class="onboarding-overlay opaque" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd"
+       @mousedown="onMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp">
     <!-- Stack 1: Onboarding_new_1 (первый экран первого онбординга) -->
     <div v-show="isNewFlow && step === 1" class="onboarding-card card-absolute" :class="dragClass">
       <div class="onboarding-header">
@@ -19,7 +20,7 @@
         <h2 class="title">Получите стартовый токен</h2>
         <p class="subtitle">Подпишитесь на канал — и мы начислим 1 токен</p>
       </div>
-      <div class="onboarding-media"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-media"><StickerPlayer src="thinking.tgs" :width="220" :height="220" /></div>
       <div class="onboarding-body">
         <p class="text">После подписки нажмите «Проверить подписку» — сразу начислим токен.</p>
       </div>
@@ -147,7 +148,9 @@ const hasNewFlowEligibility = computed(() => {
 const hasFreeFlowEligibility = computed(() => {
   const s = (userStore.profile?.subscription_type || '').toLowerCase()
   const count = Array.isArray(userStore.history) ? userStore.history.length : 0
-  return (s === 'onboarding1') && count >= 1
+  // Показываем второй онбординг, если есть хотя бы один анализ,
+  // независимо от того, остался ли тип onboarding1 или уже free
+  return (s === 'onboarding1' || s === 'free') && count >= 1
 })
 
 // Промежуточный экран: токен уже есть, анализов ещё нет
@@ -159,14 +162,14 @@ const hasPostTokenEligibility = computed(() => {
 
 // Initialize flow when profile/history are available
 const initFlow = () => {
-  if (hasNewFlowEligibility.value) {
+  if (hasFreeFlowEligibility.value) {
+    flow.value = 'free'
+    step.value = 1
+  } else if (hasNewFlowEligibility.value) {
     flow.value = 'new'
     step.value = 1
   } else if (hasPostTokenEligibility.value) {
     flow.value = 'post'
-    step.value = 1
-  } else if (hasFreeFlowEligibility.value) {
-    flow.value = 'free'
     step.value = 1
   } else {
     flow.value = 'none'
@@ -282,14 +285,25 @@ const verifySubscription = async () => {
   emit('visible-change', false)
 }
 
-// Управление колёсиком мыши (Web): прокрутка вниз/вверх меняет шаг
-const onWheel = (e: WheelEvent) => {
+// Управление мышью как в карусели: drag для смены шага
+const mouseStartY = ref<number | null>(null)
+const onMouseDown = (e: MouseEvent) => {
   if (!visible.value) return
-  const delta = e.deltaY
-  if (isNewFlow.value || isFreeFlow.value) {
-    if (delta > 40) step.value = Math.min(4, step.value + 1)
-    else if (delta < -40) step.value = Math.max(1, step.value - 1)
+  mouseStartY.value = e.clientY
+  dragOffset.value = 0
+}
+const onMouseMove = (e: MouseEvent) => {
+  if (mouseStartY.value == null || !visible.value) return
+  const delta = mouseStartY.value - e.clientY
+  dragOffset.value = Math.max(0, delta)
+}
+const onMouseUp = () => {
+  if (!visible.value) { mouseStartY.value = null; dragOffset.value = 0; return }
+  if (dragOffset.value > 80) {
+    step.value = Math.min(4, step.value + 1)
   }
+  mouseStartY.value = null
+  dragOffset.value = 0
 }
 
 const completeFree = async () => {
