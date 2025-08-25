@@ -16,7 +16,7 @@
       @slideChange="onSlideChangeNew"
       class="w-full h-full"
     >
-      <SwiperSlide class="onboarding-card card-absolute">
+      <SwiperSlide class="onboarding-card">
         <div class="onboarding-header">
           <h2 class="title">Добро пожаловать в Dream Analyzer</h2>
           <p class="subtitle">Как это работает и с чего начать</p>
@@ -27,7 +27,7 @@
           <p class="text">Отправьте свой первый сон — получите быстрый анализ ИИ.</p>
         </div>
       </SwiperSlide>
-      <SwiperSlide class="onboarding-card card-absolute">
+      <SwiperSlide class="onboarding-card">
         <div class="onboarding-header">
           <h2 class="title">Получите стартовый токен</h2>
           <p class="subtitle">Подпишитесь на канал — и мы начислим 1 токен</p>
@@ -37,7 +37,7 @@
           <p class="text">После подписки нажмите «Проверить подписку» — сразу начислим токен.</p>
         </div>
       </SwiperSlide>
-      <SwiperSlide class="onboarding-card card-absolute">
+      <SwiperSlide class="onboarding-card">
         <div class="onboarding-header">
           <h2 class="title">Как использовать токен</h2>
           <p class="subtitle">Отправьте свой сон боту — получите анализ</p>
@@ -48,7 +48,7 @@
           <p class="text">Мы выделим символы и дадим интерпретацию.</p>
         </div>
       </SwiperSlide>
-      <SwiperSlide class="onboarding-card card-absolute">
+      <SwiperSlide class="onboarding-card">
         <div class="onboarding-header">
           <h2 class="title">Завершите шаг</h2>
           <p class="subtitle">Нажмите «Подписаться / Получить токен»</p>
@@ -76,7 +76,7 @@
       @slideChange="onSlideChangeFree"
       class="w-full h-full"
     >
-      <SwiperSlide class="onboarding-card card-absolute">
+      <SwiperSlide class="onboarding-card">
         <div class="onboarding-header">
           <h2 class="title">Ура!</h2>
           <p class="subtitle">Твой первый сон проанализирован</p>
@@ -87,7 +87,7 @@
           <p class="text">Давай покажу его!</p>
         </div>
       </SwiperSlide>
-      <SwiperSlide class="onboarding-card card-absolute">
+      <SwiperSlide class="onboarding-card">
         <div class="onboarding-header">
           <h2 class="title">Удобный доступ</h2>
           <p class="subtitle"></p>
@@ -95,7 +95,7 @@
         <div class="onboarding-media"><img :src="frame1" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
         <div class="onboarding-body"></div>
       </SwiperSlide>
-      <SwiperSlide class="onboarding-card card-absolute">
+      <SwiperSlide class="onboarding-card">
         <div class="onboarding-header">
           <h2 class="title">Полезные факты</h2>
           <p class="subtitle"></p>
@@ -105,7 +105,7 @@
           <p class="text">Сюжеты снов часто отражают эмоции, а не реальные события.</p>
         </div>
       </SwiperSlide>
-      <SwiperSlide class="onboarding-card card-absolute">
+      <SwiperSlide class="onboarding-card">
         <div class="onboarding-header">
           <h2 class="title">История снов</h2>
           <p class="subtitle">и анализ</p>
@@ -279,7 +279,12 @@ const openHistory = async () => {
 // Swiper callbacks: управление MainButton и синхронизацией шага
 const onSlideChangeNew = (swiper: any) => {
   step.value = (swiper?.activeIndex || 0) + 1
-  if (step.value === 4) setMainButton('Подписаться / Получить токен', verifySubscription)
+  if (step.value === 4) {
+    const already = !!userStore.profile?.channel_reward_claimed
+    const label = already ? 'Получить токен' : 'Перейти и подписаться'
+    const handler = already ? verifySubscription : goToCommunity
+    setMainButton(label, handler)
+  }
   else clearMainButton()
 }
 const onSlideChangeFree = (swiper: any) => {
