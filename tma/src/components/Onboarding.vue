@@ -63,38 +63,37 @@
       </div>
     </div>
 
-    <!-- Free flow: Onboarding_free_1 -->
+    <!-- Free flow: step 1 -->
     <div v-show="isFreeFlow && step === 1" class="onboarding-card card-absolute">
       <div class="onboarding-header">
-        <h2 class="title">Отлично! Первый анализ готов</h2>
-        <p class="subtitle">Теперь доступен весь функционал мини‑приложения</p>
+        <h2 class="title">Готово!</h2>
+        <p class="subtitle">Нажмите «Продолжить», чтобы открыть интерфейс</p>
       </div>
-      <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-media"><img :src="frame1" alt="onboarding-1" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
       <div class="onboarding-body">
-        <p class="text">Продолжайте отправлять сны — так AI лучше поймёт ваш контекст.</p>
-        <p class="text">Открывайте историю и изучайте теги‑символы.</p>
+        <p class="text">Доступна история, профиль и глубокие анализы.</p>
       </div>
     </div>
 
-    <!-- Free flow: Onboarding_free_2 (history hint) -->
+    <!-- Free flow: step 2 (history) -->
     <div v-show="isFreeFlow && step === 2" class="onboarding-card card-absolute">
       <div class="onboarding-header">
         <h2 class="title">История снов</h2>
         <p class="subtitle">Возвращайтесь к предыдущим анализам</p>
       </div>
-      <div class="onboarding-media"><StickerPlayer src="wizard-happy.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-media"><img :src="frame2" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
       <div class="onboarding-body">
         <p class="text">Мы сохраняем все ваши сны и выводим ключевые символы.</p>
       </div>
     </div>
 
-    <!-- Free flow: Onboarding_free_3 (tags) -->
+    <!-- Free flow: step 3 (tags) -->
     <div v-show="isFreeFlow && step === 3" class="onboarding-card card-absolute">
       <div class="onboarding-header">
         <h2 class="title">Теги‑символы</h2>
         <p class="subtitle">Отслеживайте повторяющиеся темы ваших снов</p>
       </div>
-      <div class="onboarding-media"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
+      <div class="onboarding-media"><img :src="frame3" alt="onboarding-3" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
       <div class="onboarding-body">
         <p class="text">Мы выделяем символы, чтобы замечать паттерны и инсайты.</p>
       </div>
@@ -119,6 +118,9 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useUserStore } from '@/stores/user.js'
 import api from '@/services/api'
 import StickerPlayer from '@/components/StickerPlayer.vue'
+const frame1 = new URL('../../stickers/Onboarding Frame-1.png', import.meta.url).href
+const frame2 = new URL('../../stickers/Onboarding Frame-2.png', import.meta.url).href
+const frame3 = new URL('../../stickers/Onboarding Frame-3.png', import.meta.url).href
 
 const tg: any = (window as any).Telegram?.WebApp
 const emit = defineEmits<{ (e: 'visible-change', value: boolean): void }>()
