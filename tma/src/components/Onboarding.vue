@@ -186,7 +186,13 @@ watch(
 )
 
 // Синхронизируем видимость онбординга с верхним уровнем (App.vue)
-watch(visible, (v) => emit('visible-change', v), { immediate: true })
+watch(visible, (v) => {
+  emit('visible-change', v)
+  if (!v) {
+    // При скрытии онбординга гарантированно прячем MainButton Telegram
+    clearMainButton()
+  }
+}, { immediate: true })
 
 // MainButton management
 const clearMainButton = () => {
@@ -267,6 +273,7 @@ const completeFree = async () => {
     // 2) Сразу закрываем онбординг, чтобы не блокировать UI
     flow.value = 'none'
     emit('visible-change', false)
+    clearMainButton()
     // 3) Обновляем профиль в фоне (без блокировки интерфейса)
     try { await userStore.fetchProfile() } catch (_) {}
     userStore.profile.onboarding_stage = 'stage3';
@@ -395,10 +402,19 @@ watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscriptio
   if (isDone) {
     flow.value = 'none'
     emit('visible-change', false)
+    clearMainButton()
   }
 })
 
-// Автодействий на шаге 4 нет — всё по нажатию кнопки
+// Автопереход в onboarding2: если уже есть хотя бы один анализ, а статус ещё onboarding1 — переводим на сервере
+watch(() => [userStore.history?.length, userStore.profile?.subscription_type], async ([len, sub]) => {
+  try {
+    if ((Number(len) || 0) > 0 && String(sub || '').toLowerCase() === 'onboarding1') {
+      await api.setOnboardingStage('stage2')
+      try { await userStore.fetchProfile() } catch (_) {}
+    }
+  } catch (_) {}
+})
 </script>
 
 <style scoped>
