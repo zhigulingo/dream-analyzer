@@ -1,97 +1,128 @@
 <template>
-  <div v-if="visible" class="onboarding-overlay opaque" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd"
-       @mousedown="onMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp">
-    <!-- Stack 1: Onboarding_new_1 (первый экран первого онбординга) -->
-    <div v-show="isNewFlow && step === 1" class="onboarding-card card-absolute" :class="dragClass">
-      <div class="onboarding-header">
-        <h2 class="title">Добро пожаловать в Dream Analyzer</h2>
-        <p class="subtitle">Как это работает и с чего начать</p>
-      </div>
-      <div class="onboarding-media"><StickerPlayer src="wizard-happy.tgs" :width="220" :height="220" /></div>
-      <div class="onboarding-body">
-        <p class="text">Приложение помогает осмыслять сны и находить в них повторяющиеся символы.</p>
-        <p class="text">Отправьте свой первый сон — получите быстрый анализ ИИ.</p>
-      </div>
-    </div>
-
-    <!-- Stack 2: Onboarding_new_2 (второй экран первого онбординга) -->
-    <div v-show="isNewFlow && step === 2" class="onboarding-card card-absolute">
-      <div class="onboarding-header">
-        <h2 class="title">Получите стартовый токен</h2>
-        <p class="subtitle">Подпишитесь на канал — и мы начислим 1 токен</p>
-      </div>
-      <div class="onboarding-media"><StickerPlayer src="thinking.tgs" :width="220" :height="220" /></div>
-      <div class="onboarding-body">
-        <p class="text">После подписки нажмите «Проверить подписку» — сразу начислим токен.</p>
-      </div>
-    </div>
-
-    <!-- Stack 3: Onboarding_new_3 (третий экран первого онбординга) -->
-    <div v-show="isNewFlow && step === 3" class="onboarding-card card-absolute">
-      <div class="onboarding-header">
-        <h2 class="title">Как использовать токен</h2>
-        <p class="subtitle">Отправьте свой сон боту — получите анализ</p>
-      </div>
-      <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
-      <div class="onboarding-body">
-        <p class="text">Опишите сон своими словами. Чем детальнее — тем точнее анализ.</p>
-        <p class="text">Мы выделим символы и дадим интерпретацию.</p>
-      </div>
-    </div>
-
-    <!-- Stack 4: Onboarding_new_4 (четвертый экран первого онбординга) -->
-    <div v-show="isNewFlow && step === 4" class="onboarding-card card-absolute">
-      <div class="onboarding-header">
-        <h2 class="title">Завершите шаг</h2>
-        <p class="subtitle">Нажмите «Подписаться / Получить токен»</p>
-      </div>
-      <div class="onboarding-media"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
-      <div class="onboarding-body">
-        <p class="text">После подтверждения вы сможете отправить первый сон прямо в чат.</p>
-      </div>
-    </div>
-
-    <!-- Post-token, no-analysis yet: отдельный экран с CTA вернуться в чат -->
-    <div v-show="isPostTokenFlow" class="onboarding-card card-absolute">
-      <div class="onboarding-header">
-        <h2 class="title">Токен получен</h2>
-        <p class="subtitle">Отправьте свой сон в чат с ботом</p>
-      </div>
-      <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
-      <div class="onboarding-body">
-        <p class="text">Опишите сон своими словами — вы получите первую интерпретацию.</p>
-      </div>
-    </div>
-
-    <!-- Free flow: vertical carousel -->
-    <div v-if="isFreeFlow" class="carousel">
-      <div v-for="i in 4" :key="'free-slide-'+i" class="onboarding-card card-absolute" :class="freeSlideClass(i)">
+  <div v-if="visible" class="onboarding-overlay opaque">
+    <!-- Первый онбординг: вертикальный Swiper -->
+    <Swiper
+      v-if="isNewFlow"
+      :modules="modules"
+      direction="vertical"
+      :spaceBetween="16"
+      slides-per-view="1"
+      :autoplay="autoplay"
+      :keyboard="{ enabled: true }"
+      :a11y="{ enabled: true }"
+      :observer="true"
+      :observe-parents="true"
+      :watch-overflow="true"
+      @slideChange="onSlideChangeNew"
+      class="w-full"
+    >
+      <SwiperSlide class="onboarding-card card-absolute">
         <div class="onboarding-header">
-          <h2 class="title">
-            {{ i===1 ? 'Ура!' : i===2 ? 'Удобный доступ' : i===3 ? 'Полезные факты' : 'История снов' }}
-          </h2>
-          <p class="subtitle">
-            {{ i===1 ? 'Твой первый сон проанализирован' : i===4 ? 'и анализ' : '' }}
-          </p>
+          <h2 class="title">Добро пожаловать в Dream Analyzer</h2>
+          <p class="subtitle">Как это работает и с чего начать</p>
         </div>
-        <div class="onboarding-media">
-          <StickerPlayer v-if="i===1" src="wizard-thining.tgs" :width="220" :height="220" />
-          <img v-else-if="i===2" :src="frame1" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" />
-          <img v-else-if="i===3" :src="frame2" alt="onboarding-3" style="max-width: 320px; width: 100%; border-radius: 12px;" />
-          <img v-else :src="frame3" alt="onboarding-4" style="max-width: 320px; width: 100%; border-radius: 12px;" />
-        </div>
+        <div class="onboarding-media"><StickerPlayer src="wizard-happy.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <p class="text" v-if="i===1">Все твои сны в одном месте — личный кабинет.</p>
-          <p class="text" v-if="i===1">Давай покажу его!</p>
-          <p class="text" v-if="i===3">Сюжеты снов часто отражают эмоции, а не реальные события.</p>
+          <p class="text">Приложение помогает осмыслять сны и находить в них повторяющиеся символы.</p>
+          <p class="text">Отправьте свой первый сон — получите быстрый анализ ИИ.</p>
         </div>
-      </div>
-    </div>
+      </SwiperSlide>
+      <SwiperSlide class="onboarding-card card-absolute">
+        <div class="onboarding-header">
+          <h2 class="title">Получите стартовый токен</h2>
+          <p class="subtitle">Подпишитесь на канал — и мы начислим 1 токен</p>
+        </div>
+        <div class="onboarding-media"><StickerPlayer src="thinking.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-body">
+          <p class="text">После подписки нажмите «Проверить подписку» — сразу начислим токен.</p>
+        </div>
+      </SwiperSlide>
+      <SwiperSlide class="onboarding-card card-absolute">
+        <div class="onboarding-header">
+          <h2 class="title">Как использовать токен</h2>
+          <p class="subtitle">Отправьте свой сон боту — получите анализ</p>
+        </div>
+        <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-body">
+          <p class="text">Опишите сон своими словами. Чем детальнее — тем точнее анализ.</p>
+          <p class="text">Мы выделим символы и дадим интерпретацию.</p>
+        </div>
+      </SwiperSlide>
+      <SwiperSlide class="onboarding-card card-absolute">
+        <div class="onboarding-header">
+          <h2 class="title">Завершите шаг</h2>
+          <p class="subtitle">Нажмите «Подписаться / Получить токен»</p>
+        </div>
+        <div class="onboarding-media"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-body">
+          <p class="text">После подтверждения вы сможете отправить первый сон прямо в чат.</p>
+        </div>
+      </SwiperSlide>
+    </Swiper>
+
+    <!-- Второй онбординг: вертикальный Swiper -->
+    <Swiper
+      v-if="isFreeFlow"
+      :modules="modules"
+      direction="vertical"
+      :spaceBetween="16"
+      slides-per-view="1"
+      :autoplay="autoplay"
+      :keyboard="{ enabled: true }"
+      :a11y="{ enabled: true }"
+      :observer="true"
+      :observe-parents="true"
+      :watch-overflow="true"
+      @slideChange="onSlideChangeFree"
+      class="w-full"
+    >
+      <SwiperSlide class="onboarding-card card-absolute">
+        <div class="onboarding-header">
+          <h2 class="title">Ура!</h2>
+          <p class="subtitle">Твой первый сон проанализирован</p>
+        </div>
+        <div class="onboarding-media"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-body">
+          <p class="text">Все твои сны в одном месте — личный кабинет.</p>
+          <p class="text">Давай покажу его!</p>
+        </div>
+      </SwiperSlide>
+      <SwiperSlide class="onboarding-card card-absolute">
+        <div class="onboarding-header">
+          <h2 class="title">Удобный доступ</h2>
+          <p class="subtitle"></p>
+        </div>
+        <div class="onboarding-media"><img :src="frame1" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
+        <div class="onboarding-body"></div>
+      </SwiperSlide>
+      <SwiperSlide class="onboarding-card card-absolute">
+        <div class="onboarding-header">
+          <h2 class="title">Полезные факты</h2>
+          <p class="subtitle"></p>
+        </div>
+        <div class="onboarding-media"><img :src="frame2" alt="onboarding-3" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
+        <div class="onboarding-body">
+          <p class="text">Сюжеты снов часто отражают эмоции, а не реальные события.</p>
+        </div>
+      </SwiperSlide>
+      <SwiperSlide class="onboarding-card card-absolute">
+        <div class="onboarding-header">
+          <h2 class="title">История снов</h2>
+          <p class="subtitle">и анализ</p>
+        </div>
+        <div class="onboarding-media"><img :src="frame3" alt="onboarding-4" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
+        <div class="onboarding-body"></div>
+      </SwiperSlide>
+    </Swiper>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { Swiper, SwiperSlide } from 'swiper/vue'
+import { Autoplay, A11y, Keyboard } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/autoplay'
 import { useUserStore } from '@/stores/user.js'
 import api from '@/services/api'
 import StickerPlayer from '@/components/StickerPlayer.vue'
@@ -99,6 +130,8 @@ const frame1 = new URL('../../stickers/Onboarding Frame-1.png', import.meta.url)
 const frame2 = new URL('../../stickers/Onboarding Frame-2.png', import.meta.url).href
 const frame3 = new URL('../../stickers/Onboarding Frame-3.png', import.meta.url).href
 
+const modules = [Autoplay, A11y, Keyboard]
+const autoplay = { delay: 5000, disableOnInteraction: false }
 const tg: any = (window as any).Telegram?.WebApp
 const emit = defineEmits<{ (e: 'visible-change', value: boolean): void }>()
 const userStore = useUserStore()
@@ -115,10 +148,7 @@ const step = ref<number>(1) // 1..4
 const visible = computed(() => flow.value !== 'none')
 const isNewFlow = computed(() => flow.value === 'new')
 const isFreeFlow = computed(() => flow.value === 'free')
-const freeSlideClass = (i: number) => {
-  const offset = (i - step.value) * 16
-  return { [`translate-y-[${offset}px]`]: true }
-}
+// классы смещения больше не используются (Swiper управляет)
 
 const hasNewFlowEligibility = computed(() => {
   if (!userStore?.profile) return false
@@ -198,56 +228,13 @@ const scheduleAutoAdvance = () => {
   }
 }
 
-onMounted(() => {
-  // When shown, set up the button
-  watchEffect(() => {
-    if (!visible.value) {
-      clearMainButton()
-      return
-    }
-    // Show MainButton only on final screen of each flow
-    if (isNewFlow.value) {
-      if (step.value === 4) setMainButton('Подписаться / Получить токен', verifySubscription)
-      else clearMainButton()
-    } else if (isFreeFlow.value) {
-      if (step.value === 4) setMainButton('Открыть историю', openHistory)
-      else clearMainButton()
-    }
-    scheduleAutoAdvance()
-  })
-})
+onMounted(() => {})
 
 onBeforeUnmount(() => {
   clearMainButton()
 })
 
-// Actions
-// Swipe handling: drag up advances to next step (1→2→3→4)
-const touchStartY = ref<number | null>(null)
-const dragOffset = ref(0)
-const touchDelta = ref(0)
-const dragClass = computed(() => ({ dragging: dragOffset.value !== 0 }))
-const onTouchStart = (e: TouchEvent) => {
-  if (!visible.value) return
-  touchStartY.value = e.touches[0].clientY
-  dragOffset.value = 0
-  if (autoTimer.value) { clearTimeout(autoTimer.value) as any; autoTimer.value = null }
-}
-const onTouchMove = (e: TouchEvent) => {
-  if (touchStartY.value == null || !visible.value) return
-  const delta = touchStartY.value - e.touches[0].clientY
-  touchDelta.value = delta
-  dragOffset.value = Math.max(0, delta)
-}
-const onTouchEnd = () => {
-  if (!visible.value) { touchStartY.value = null; dragOffset.value = 0; return }
-  // Threshold to switch: 80px
-  if (touchDelta.value > 80) step.value = Math.min(4, step.value + 1)
-  else if (touchDelta.value < -80) step.value = Math.max(1, step.value - 1)
-  touchStartY.value = null
-  dragOffset.value = 0
-  touchDelta.value = 0
-}
+// drag-логика упразднена — ею управляет Swiper
 
 const goToCommunity = () => {
   const url = 'https://t.me/thedreamshub'
@@ -269,29 +256,7 @@ const verifySubscription = async () => {
   emit('visible-change', false)
 }
 
-// Управление мышью как в карусели: drag для смены шага
-const mouseStartY = ref<number | null>(null)
-const mouseDelta = ref(0)
-const onMouseDown = (e: MouseEvent) => {
-  if (!visible.value) return
-  mouseStartY.value = e.clientY
-  dragOffset.value = 0
-  if (autoTimer.value) { clearTimeout(autoTimer.value) as any; autoTimer.value = null }
-}
-const onMouseMove = (e: MouseEvent) => {
-  if (mouseStartY.value == null || !visible.value) return
-  const delta = mouseStartY.value - e.clientY
-  mouseDelta.value = delta
-  dragOffset.value = Math.max(0, delta)
-}
-const onMouseUp = () => {
-  if (!visible.value) { mouseStartY.value = null; dragOffset.value = 0; return }
-  if (mouseDelta.value > 80) step.value = Math.min(4, step.value + 1)
-  else if (mouseDelta.value < -80) step.value = Math.max(1, step.value - 1)
-  mouseStartY.value = null
-  dragOffset.value = 0
-  mouseDelta.value = 0
-}
+// drag-логика упразднена — ею управляет Swiper
 
 const completeFree = async () => {
   try {
@@ -309,6 +274,18 @@ const completeFree = async () => {
 const openHistory = async () => {
   await completeFree()
   // В этом приложении история — основной экран; просто закрываем онбординг.
+}
+
+// Swiper callbacks: управление MainButton и синхронизацией шага
+const onSlideChangeNew = (swiper: any) => {
+  step.value = (swiper?.activeIndex || 0) + 1
+  if (step.value === 4) setMainButton('Подписаться / Получить токен', verifySubscription)
+  else clearMainButton()
+}
+const onSlideChangeFree = (swiper: any) => {
+  step.value = (swiper?.activeIndex || 0) + 1
+  if (step.value === 4) setMainButton('Открыть историю', openHistory)
+  else clearMainButton()
 }
 
 // Content per flow/step
