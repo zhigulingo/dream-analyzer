@@ -63,51 +63,52 @@
       </div>
     </div>
 
-    <!-- Free flow: step 1 -->
+    <!-- Free flow: step 1 (Ура!) -->
     <div v-show="isFreeFlow && step === 1" class="onboarding-card card-absolute">
       <div class="onboarding-header">
-        <h2 class="title">Готово!</h2>
-        <p class="subtitle">Нажмите «Продолжить», чтобы открыть интерфейс</p>
+        <h2 class="title">Ура!</h2>
+        <p class="subtitle">Твой первый сон проанализирован</p>
       </div>
       <div class="onboarding-media"><img :src="frame1" alt="onboarding-1" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
       <div class="onboarding-body">
-        <p class="text">Доступна история, профиль и глубокие анализы.</p>
+        <p class="text">Все твои сны в одном месте — личный кабинет.</p>
+        <p class="text">Давай покажу его!</p>
       </div>
     </div>
 
-    <!-- Free flow: step 2 (history) -->
+    <!-- Free flow: step 2 (Удобный доступ) -->
     <div v-show="isFreeFlow && step === 2" class="onboarding-card card-absolute">
       <div class="onboarding-header">
-        <h2 class="title">История снов</h2>
-        <p class="subtitle">Возвращайтесь к предыдущим анализам</p>
+        <h2 class="title">Удобный доступ</h2>
+        <p class="subtitle"></p>
       </div>
       <div class="onboarding-media"><img :src="frame2" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
       <div class="onboarding-body">
-        <p class="text">Мы сохраняем все ваши сны и выводим ключевые символы.</p>
+        <p class="text"></p>
       </div>
     </div>
 
-    <!-- Free flow: step 3 (tags) -->
+    <!-- Free flow: step 3 (Полезные факты) -->
     <div v-show="isFreeFlow && step === 3" class="onboarding-card card-absolute">
       <div class="onboarding-header">
-        <h2 class="title">Теги‑символы</h2>
-        <p class="subtitle">Отслеживайте повторяющиеся темы ваших снов</p>
+        <h2 class="title">Полезные факты</h2>
+        <p class="subtitle"></p>
       </div>
       <div class="onboarding-media"><img :src="frame3" alt="onboarding-3" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
       <div class="onboarding-body">
-        <p class="text">Мы выделяем символы, чтобы замечать паттерны и инсайты.</p>
+        <p class="text">Сюжеты снов часто отражают эмоции, а не реальные события.</p>
       </div>
     </div>
 
-    <!-- Free flow: Onboarding_free_4 (continue) -->
+    <!-- Free flow: step 4 (История снов и анализ + CTA) -->
     <div v-show="isFreeFlow && step === 4" class="onboarding-card card-absolute">
       <div class="onboarding-header">
-        <h2 class="title">Готово!</h2>
-        <p class="subtitle">Нажмите «Продолжить», чтобы открыть интерфейс</p>
+        <h2 class="title">История снов</h2>
+        <p class="subtitle">и анализ</p>
       </div>
       <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
       <div class="onboarding-body">
-        <p class="text">Доступна история, профиль и глубокие анализы.</p>
+        <p class="text"></p>
       </div>
     </div>
   </div>
