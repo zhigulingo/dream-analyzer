@@ -61,6 +61,35 @@
       </SwiperSlide>
     </Swiper>
 
+    <!-- Промежуточный экран: токен получен, анализа ещё нет (после первого онбординга) -->
+    <Swiper
+      v-if="isPostClaimFlow"
+      :modules="modules"
+      direction="vertical"
+      :spaceBetween="12"
+      slides-per-view="auto"
+      :centeredSlides="true"
+      :keyboard="{ enabled: true }"
+      :a11y="{ enabled: true }"
+      :observer="true"
+      :observe-parents="true"
+      :watch-overflow="true"
+      @slideChange="onSlideChangePostClaim"
+      class="w-full h-full"
+    >
+      <SwiperSlide class="onboarding-card slidePeek">
+        <div class="onboarding-header">
+          <h2 class="title">Отлично, токен у тебя!</h2>
+          <p class="subtitle">Теперь напиши свой первый сон в чате</p>
+        </div>
+        <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-body">
+          <p class="text">Опиши сон своими словами. Чем детальнее — тем точнее анализ.</p>
+          <p class="text">После анализа мы покажем тебе следующий шаг.</p>
+        </div>
+      </SwiperSlide>
+    </Swiper>
+
     <!-- Второй онбординг: вертикальный Swiper -->
     <Swiper
       v-if="isFreeFlow"
@@ -143,13 +172,14 @@ const NEW_DONE_KEY = 'onboarding_new_done'
 const FREE_DONE_KEY = 'onboarding_free_done'
 
 // Which flow and step (4 screens per flow per spec)
-const flow = ref<'none' | 'new' | 'free'>('none')
+const flow = ref<'none' | 'new' | 'post_claim' | 'free'>('none')
 const step = ref<number>(1) // 1..4
 
 // Derived visibility
 const visible = computed(() => flow.value !== 'none')
 const isNewFlow = computed(() => flow.value === 'new')
 const isFreeFlow = computed(() => flow.value === 'free')
+const isPostClaimFlow = computed(() => flow.value === 'post_claim')
 // классы смещения больше не используются (Swiper управляет)
 
 const hasNewFlowEligibility = computed(() => {
@@ -172,6 +202,14 @@ const initFlow = () => {
     flow.value = 'free'
     step.value = 1
   } else if (hasNewFlowEligibility.value) {
+    // Если пользователь уже получил токен, но ещё не сделал анализ → показываем промежуточный экран
+    const claimed = !!userStore.profile?.channel_reward_claimed
+    const hasAnalyses = (userStore.profile?.total_dreams_count || userStore.history?.length || 0) > 0
+    if (claimed && !hasAnalyses) {
+      flow.value = 'post_claim'
+      step.value = 1
+      return
+    }
     flow.value = 'new'
     step.value = 1
   } else {
@@ -315,6 +353,18 @@ const onSlideChangeFree = async (swiper: any) => {
     try { await userStore.fetchProfile() } catch (_) {}
   })
   else clearMainButton()
+}
+
+const onSlideChangePostClaim = async (swiper: any) => {
+  step.value = (swiper?.activeIndex || 0) + 1
+  if (step.value === 1) {
+    setMainButton('Написать сон', () => {
+      try { tg?.close(); } catch (_) {}
+      clearMainButton()
+    })
+  } else {
+    clearMainButton()
+  }
 }
 
 // Content per flow/step
