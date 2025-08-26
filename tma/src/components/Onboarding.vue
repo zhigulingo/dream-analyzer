@@ -18,45 +18,27 @@
       class="w-full h-full"
     >
       <SwiperSlide class="onboarding-card slidePeek">
-        <div class="onboarding-header">
-          <h2 class="title">Добро пожаловать в Dream Analyzer</h2>
-          <p class="subtitle">Как это работает и с чего начать</p>
-        </div>
-        <div class="onboarding-media"><StickerPlayer src="wizard-happy.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <p class="text">Приложение помогает осмыслять сны и находить в них повторяющиеся символы.</p>
-          <p class="text">Отправьте свой первый сон — получите быстрый анализ ИИ.</p>
+          <h2 class="headline centered">Сюжеты снов часто отражают эмоции,<br/>а не реальные события.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek">
-        <div class="onboarding-header">
-          <h2 class="title">Получите стартовый токен</h2>
-          <p class="subtitle">Подпишитесь на канал — и мы начислим 1 токен</p>
-        </div>
         <div class="onboarding-media"><StickerPlayer src="thinking.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <p class="text">После подписки нажмите «Проверить подписку» — сразу начислим токен.</p>
+          <h2 class="headline centered">DreamsTalk поможет сохранить<br/>и исследовать сны, чтобы лучше<br/>понимать себя и свои эмоции.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek">
-        <div class="onboarding-header">
-          <h2 class="title">Как использовать токен</h2>
-          <p class="subtitle">Отправьте свой сон боту — получите анализ</p>
-        </div>
         <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <p class="text">Опишите сон своими словами. Чем детальнее — тем точнее анализ.</p>
-          <p class="text">Мы выделим символы и дадим интерпретацию.</p>
+          <h2 class="headline centered">Чтобы описать сон — просто отправь его<br/>в чат.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek">
-        <div class="onboarding-header">
-          <h2 class="title">Завершите шаг</h2>
-          <p class="subtitle">Нажмите «Подписаться / Получить токен»</p>
-        </div>
         <div class="onboarding-media"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <p class="text">После подтверждения вы сможете отправить первый сон прямо в чат.</p>
+          <h2 class="headline centered">Получи первый токен для анализа сна<br/>за подписку на канал @TheDreamsHub</h2>
         </div>
       </SwiperSlide>
     </Swiper>
@@ -335,18 +317,10 @@ const onSlideChangeNew = async (swiper: any) => {
     // Автоматически пробуем подтвердить подписку/начислить токен
     clearMainButton()
     api.trackOnboarding('onboarding1_step4_enter')
-    // Если уже получено ранее — сразу сообщаем и закрываем
+    // На этом шаге всегда есть активная кнопка: если уже получил — «Открыть чат», иначе — «Перейти и подписаться»
     if (userStore.profile?.channel_reward_claimed) {
-      userStore.notificationStore?.success('Подписка подтверждена! Теперь отправьте свой сон в чате с ботом.')
-      flow.value = 'none'
-      emit('visible-change', false)
-      return
-    }
-    await verifySubscription()
-    try { await userStore.fetchProfile() } catch (_) {}
-    // Если после попытки всё ещё ошибка (например, нет подписки) — показываем кнопку перехода в канал
-    if (userStore.claimRewardError && flow.value !== 'none') {
-      api.trackOnboarding('onboarding1_step4_need_subscribe')
+      setMainButton('Открыть чат', () => { try { tg?.close() } catch (_) {} })
+    } else {
       setMainButton('Перейти и подписаться', goToCommunity)
     }
   }
@@ -491,7 +465,8 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 .onboarding-card {
   width: 100%;
   max-width: 560px;
-  background: color-mix(in oklab, var(--tg-theme-secondary-bg-color, #0c110c) 94%, white 6%);
+  /* Градиент как у карточек фактов */
+  background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%);
   border-radius: 16px;
   padding: 24px 18px 18px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.35);
@@ -521,6 +496,8 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   font-size: 16px;
   opacity: 0.95;
 }
+.headline { font-size: 20px; line-height: 1.3; margin: 6px 0 0 0; color: #fff; }
+.centered { text-align: center; }
 .onboarding-actions {
   margin-top: 16px;
   display: flex;
