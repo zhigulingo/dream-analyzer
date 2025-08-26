@@ -538,8 +538,16 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   padding: 20px 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.35);
 }
-.center-card { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
-.slidePeek { height: calc(100vh - 120px); display: flex; }
+.center-card { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+/* Карточка чуть меньше экрана для peeking; контент вертикально выстроен */
+.slidePeek {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 76vh;
+  max-height: 84vh;
+}
 .card-absolute { position: absolute; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); transition: transform .25s ease; }
 .card-absolute::before, .card-absolute::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 42%; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.10); }
 .card-absolute::before { top: -14px; }
@@ -555,16 +563,13 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   opacity: 0.8;
   font-size: 16px;
 }
-.onboarding-media {
-  display: flex;
-  justify-content: center;
-  margin: 8px 0;
-}
+.onboarding-media { display: flex; justify-content: center; margin: 8px 0; width: 100%; }
 .onboarding-body .text {
   margin: 8px 0 0 0;
   font-size: 16px;
   opacity: 0.95;
 }
+.onboarding-body { width: 100%; display: flex; justify-content: center; }
 .headline { font-size: 20px; line-height: 1.3; margin: 6px 0 0 0; color: #fff; }
 .centered { text-align: center; }
 .onboarding-actions {
