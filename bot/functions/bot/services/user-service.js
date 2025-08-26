@@ -46,7 +46,8 @@ class UserService {
                     .from('users')
                     .insert({
                         tg_id: userId,
-                        subscription_type: 'free',
+                        subscription_type: 'onboarding1',
+                        onboarding_stage: 'stage1',
                         tokens: 0,
                         channel_reward_claimed: false
                     })
