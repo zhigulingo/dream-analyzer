@@ -5,9 +5,9 @@
       v-if="isNewFlow"
       :modules="modules"
       direction="vertical"
-      :spaceBetween="12"
-      :slidesOffsetBefore="28"
-      :slidesOffsetAfter="28"
+      :spaceBetween="16"
+      :slidesOffsetBefore="36"
+      :slidesOffsetAfter="36"
       slides-per-view="auto"
       :centeredSlides="true"
       :autoplay="autoplay"
@@ -35,7 +35,7 @@
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">Чтобы описать сон — просто отправь его<br/>в чат.</h2>
+          <h2 class="headline centered">Чтобы описать сон — просто отправь его в чат.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
@@ -51,9 +51,9 @@
       v-if="isPostClaimFlow"
       :modules="modules"
       direction="vertical"
-      :spaceBetween="12"
-      :slidesOffsetBefore="28"
-      :slidesOffsetAfter="28"
+      :spaceBetween="16"
+      :slidesOffsetBefore="36"
+      :slidesOffsetAfter="36"
       slides-per-view="auto"
       :centeredSlides="true"
       :keyboard="{ enabled: true }"
@@ -83,9 +83,9 @@
       v-if="isFreeFlow"
       :modules="modules"
       direction="vertical"
-      :spaceBetween="12"
-      :slidesOffsetBefore="28"
-      :slidesOffsetAfter="28"
+      :spaceBetween="16"
+      :slidesOffsetBefore="36"
+      :slidesOffsetAfter="36"
       slides-per-view="auto"
       :centeredSlides="true"
       :autoplay="autoplay"
@@ -266,6 +266,19 @@ const initScale = (swiper: any) => {
 const onInitNew = (swiper:any) => initScale(swiper)
 const onInitFree = (swiper:any) => initScale(swiper)
 const onInitPostClaim = (swiper:any) => initScale(swiper)
+
+// Гарантируем кнопку на первом кадре post_claim сразу после init
+watch(isPostClaimFlow, (v) => {
+  if (v) {
+    try {
+      setMainButton('Написать сон', () => {
+        api.trackOnboarding('post_claim_open_chat_click')
+        try { tg?.close(); } catch (_) {}
+        clearMainButton()
+      })
+    } catch (_) {}
+  }
+})
 
 // Автоперелистывание управляет Swiper Autoplay; ручной таймер не нужен
 
