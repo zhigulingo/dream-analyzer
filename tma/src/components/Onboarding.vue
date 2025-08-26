@@ -5,9 +5,9 @@
       v-if="isNewFlow"
       :modules="modules"
       direction="vertical"
-      :spaceBetween="16"
-      :slidesOffsetBefore="36"
-      :slidesOffsetAfter="36"
+      :spaceBetween="18"
+      :slidesOffsetBefore="48"
+      :slidesOffsetAfter="48"
       slides-per-view="auto"
       :centeredSlides="true"
       :autoplay="autoplay"
@@ -51,9 +51,9 @@
       v-if="isPostClaimFlow"
       :modules="modules"
       direction="vertical"
-      :spaceBetween="16"
-      :slidesOffsetBefore="36"
-      :slidesOffsetAfter="36"
+      :spaceBetween="18"
+      :slidesOffsetBefore="48"
+      :slidesOffsetAfter="48"
       slides-per-view="auto"
       :centeredSlides="true"
       :keyboard="{ enabled: true }"
@@ -83,9 +83,9 @@
       v-if="isFreeFlow"
       :modules="modules"
       direction="vertical"
-      :spaceBetween="16"
-      :slidesOffsetBefore="36"
-      :slidesOffsetAfter="36"
+      :spaceBetween="18"
+      :slidesOffsetBefore="48"
+      :slidesOffsetAfter="48"
       slides-per-view="auto"
       :centeredSlides="true"
       :autoplay="autoplay"
@@ -558,8 +558,8 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 76vh;
-  max-height: 84vh;
+  min-height: 70vh;
+  max-height: 72vh;
 }
 .card-absolute { position: absolute; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); transition: transform .25s ease; }
 .card-absolute::before, .card-absolute::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 42%; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.10); }
