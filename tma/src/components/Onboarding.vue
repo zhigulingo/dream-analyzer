@@ -6,6 +6,8 @@
       :modules="modules"
       direction="vertical"
       :spaceBetween="12"
+      :slidesOffsetBefore="28"
+      :slidesOffsetAfter="28"
       slides-per-view="auto"
       :centeredSlides="true"
       :autoplay="autoplay"
@@ -14,6 +16,7 @@
       :observer="true"
       :observe-parents="true"
       :watch-overflow="true"
+      @init="onInitNew"
       @slideChange="onSlideChangeNew"
       class="w-full h-full"
     >
@@ -49,6 +52,8 @@
       :modules="modules"
       direction="vertical"
       :spaceBetween="12"
+      :slidesOffsetBefore="28"
+      :slidesOffsetAfter="28"
       slides-per-view="auto"
       :centeredSlides="true"
       :keyboard="{ enabled: true }"
@@ -56,6 +61,7 @@
       :observer="true"
       :observe-parents="true"
       :watch-overflow="true"
+      @init="onInitPostClaim"
       @slideChange="onSlideChangePostClaim"
       class="w-full h-full"
     >
@@ -78,6 +84,8 @@
       :modules="modules"
       direction="vertical"
       :spaceBetween="12"
+      :slidesOffsetBefore="28"
+      :slidesOffsetAfter="28"
       slides-per-view="auto"
       :centeredSlides="true"
       :autoplay="autoplay"
@@ -86,6 +94,7 @@
       :observer="true"
       :observe-parents="true"
       :watch-overflow="true"
+      @init="onInitFree"
       @slideChange="onSlideChangeFree"
       class="w-full h-full"
     >
@@ -243,6 +252,20 @@ const mainButtonHandler = ref<() => void>(() => {})
 const handleMainButtonClick = () => {
   try { mainButtonHandler.value?.() } catch (e) { console.error(e) }
 }
+// Инициализация peeking масштаба при загрузке свипера
+const initScale = (swiper: any) => {
+  try {
+    const slides = swiper?.slides || []
+    slides.forEach((el: HTMLElement, idx: number) => {
+      const isActive = idx === (swiper?.activeIndex || 0)
+      el.style.transform = isActive ? 'scale(1.0)' : 'scale(0.92)'
+      el.style.transition = 'transform .25s ease'
+    })
+  } catch (_) {}
+}
+const onInitNew = (swiper:any) => initScale(swiper)
+const onInitFree = (swiper:any) => initScale(swiper)
+const onInitPostClaim = (swiper:any) => initScale(swiper)
 
 // Автоперелистывание управляет Swiper Autoplay; ручной таймер не нужен
 
@@ -313,14 +336,28 @@ const openHistory = async () => {
 // Swiper callbacks: управление MainButton и синхронизацией шага
 const onSlideChangeNew = async (swiper: any) => {
   step.value = (swiper?.activeIndex || 0) + 1
+  try {
+    const slides = swiper?.slides || []
+    slides.forEach((el: HTMLElement, idx: number) => {
+      const isActive = idx === swiper.activeIndex
+      el.style.transform = isActive ? 'scale(1.0)' : 'scale(0.92)'
+      el.style.transition = 'transform .25s ease'
+    })
+  } catch (_) {}
   if (step.value === 4) {
     // Автоматически пробуем подтвердить подписку/начислить токен
     clearMainButton()
     api.trackOnboarding('onboarding1_step4_enter')
-    // На этом шаге всегда есть активная кнопка: если уже получил — «Открыть чат», иначе — «Перейти и подписаться»
+    // Пытаемся автоматически подтвердить подписку и начислить токен
+    try {
+      await verifySubscription()
+      try { await userStore.fetchProfile() } catch (_) {}
+    } catch (_) {}
+    // После попытки показываем релевантную кнопку
     if (userStore.profile?.channel_reward_claimed) {
       setMainButton('Открыть чат', () => { try { tg?.close() } catch (_) {} })
     } else {
+      api.trackOnboarding('onboarding1_step4_need_subscribe')
       setMainButton('Перейти и подписаться', goToCommunity)
     }
   }
@@ -328,6 +365,14 @@ const onSlideChangeNew = async (swiper: any) => {
 }
 const onSlideChangeFree = async (swiper: any) => {
   step.value = (swiper?.activeIndex || 0) + 1
+  try {
+    const slides = swiper?.slides || []
+    slides.forEach((el: HTMLElement, idx: number) => {
+      const isActive = idx === swiper.activeIndex
+      el.style.transform = isActive ? 'scale(1.0)' : 'scale(0.92)'
+      el.style.transition = 'transform .25s ease'
+    })
+  } catch (_) {}
   if (step.value === 4) setMainButton('Открыть историю', async () => {
     api.trackOnboarding('onboarding2_step4_open_history_click')
     await openHistory();
@@ -338,6 +383,14 @@ const onSlideChangeFree = async (swiper: any) => {
 
 const onSlideChangePostClaim = async (swiper: any) => {
   step.value = (swiper?.activeIndex || 0) + 1
+  try {
+    const slides = swiper?.slides || []
+    slides.forEach((el: HTMLElement, idx: number) => {
+      const isActive = idx === swiper.activeIndex
+      el.style.transform = isActive ? 'scale(1.0)' : 'scale(0.92)'
+      el.style.transition = 'transform .25s ease'
+    })
+  } catch (_) {}
   if (step.value === 1) {
     setMainButton('Написать сон', () => {
       api.trackOnboarding('post_claim_open_chat_click')
