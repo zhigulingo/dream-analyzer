@@ -98,15 +98,10 @@
       @slideChange="onSlideChangeFree"
       class="w-full h-full"
     >
-      <SwiperSlide class="onboarding-card slidePeek">
-        <div class="onboarding-header">
-          <h2 class="title">Ура!</h2>
-          <p class="subtitle">Твой первый сон проанализирован</p>
-        </div>
+      <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <p class="text">Все твои сны в одном месте — личный кабинет.</p>
-          <p class="text">Давай покажу его!</p>
+          <h2 class="headline centered">Ура! Твой первый сон проанализирован</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek">
@@ -437,9 +432,7 @@ const currentTitle = computed(() => {
     if (step.value === 3) return 'Как использовать токен'
     return 'Завершите шаг'
   }
-  if (flow.value === 'free') {
-    return 'Отлично! Первый анализ готов'
-  }
+  if (flow.value === 'free') return ''
   return ''
 })
 
@@ -450,9 +443,7 @@ const currentSubtitle = computed(() => {
     if (step.value === 3) return 'Отправьте сон боту — получите анализ'
     return 'Нажмите — чтобы завершить шаг'
   }
-  if (flow.value === 'free') {
-    return 'Теперь доступен весь функционал мини‑приложения'
-  }
+  if (flow.value === 'free') return ''
   return ''
 })
 
@@ -558,7 +549,7 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 70vh;
+  min-height: 72vh;
   max-height: 72vh;
 }
 .card-absolute { position: absolute; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); transition: transform .25s ease; }
@@ -583,7 +574,7 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   opacity: 0.95;
 }
 .onboarding-body { width: 100%; display: flex; justify-content: center; }
-.headline { font-size: 20px; line-height: 1.3; margin: 6px 0 0 0; color: #fff; }
+.headline { font-size: 22px; line-height: 1.28; margin: 12px 0 0 0; color: #fff; text-align: center; }
 .centered { text-align: center; }
 .onboarding-actions {
   margin-top: 16px;
