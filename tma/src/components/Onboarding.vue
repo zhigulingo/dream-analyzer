@@ -282,10 +282,12 @@ const goToCommunity = () => {
 //
 
 const verifySubscription = async () => {
+  api.trackOnboarding('onboarding1_step4_verify_click')
   await userStore.claimChannelReward()
   // Если награда уже была получена ранее — просто сообщаем и закрываем онбординг
   if (userStore.rewardAlreadyClaimed) {
     userStore.notificationStore?.info('Награда уже получена. Отправьте свой сон в чате с ботом.')
+    api.trackOnboarding('onboarding1_reward_already')
     flow.value = 'none'
     emit('visible-change', false)
     return
@@ -293,11 +295,13 @@ const verifySubscription = async () => {
   // Если возникла ошибка (часто это отсутствие подписки) — оставляем возможность перейти в канал
   if (userStore.claimRewardError) {
     userStore.notificationStore?.warning(userStore.claimRewardError || 'Не удалось подтвердить подписку.')
+    api.trackOnboarding('onboarding1_verify_failed', { reason: userStore.claimRewardError })
     return
   }
   try { /* stage остаётся onboarding1; переход в onboarding2 выполнит бэкенд после первого анализа */ } catch (_) {}
   // Успех: сообщаем и закрываем онбординг
   userStore.notificationStore?.success('Подписка подтверждена! Теперь отправьте свой сон в чате с ботом.')
+  api.trackOnboarding('onboarding1_reward_granted')
   flow.value = 'none'
   emit('visible-change', false)
 }
@@ -330,6 +334,7 @@ const onSlideChangeNew = async (swiper: any) => {
   if (step.value === 4) {
     // Автоматически пробуем подтвердить подписку/начислить токен
     clearMainButton()
+    api.trackOnboarding('onboarding1_step4_enter')
     // Если уже получено ранее — сразу сообщаем и закрываем
     if (userStore.profile?.channel_reward_claimed) {
       userStore.notificationStore?.success('Подписка подтверждена! Теперь отправьте свой сон в чате с ботом.')
@@ -341,6 +346,7 @@ const onSlideChangeNew = async (swiper: any) => {
     try { await userStore.fetchProfile() } catch (_) {}
     // Если после попытки всё ещё ошибка (например, нет подписки) — показываем кнопку перехода в канал
     if (userStore.claimRewardError && flow.value !== 'none') {
+      api.trackOnboarding('onboarding1_step4_need_subscribe')
       setMainButton('Перейти и подписаться', goToCommunity)
     }
   }
@@ -349,6 +355,7 @@ const onSlideChangeNew = async (swiper: any) => {
 const onSlideChangeFree = async (swiper: any) => {
   step.value = (swiper?.activeIndex || 0) + 1
   if (step.value === 4) setMainButton('Открыть историю', async () => {
+    api.trackOnboarding('onboarding2_step4_open_history_click')
     await openHistory();
     try { await userStore.fetchProfile() } catch (_) {}
   })
@@ -359,6 +366,7 @@ const onSlideChangePostClaim = async (swiper: any) => {
   step.value = (swiper?.activeIndex || 0) + 1
   if (step.value === 1) {
     setMainButton('Написать сон', () => {
+      api.trackOnboarding('post_claim_open_chat_click')
       try { tg?.close(); } catch (_) {}
       clearMainButton()
     })
@@ -453,6 +461,7 @@ watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscriptio
     flow.value = 'none'
     emit('visible-change', false)
     clearMainButton()
+    api.trackOnboarding('onboarding_closed', { subscription: sub, stage })
   }
 })
 
@@ -460,6 +469,7 @@ watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscriptio
 watch(() => [userStore.history?.length, userStore.profile?.subscription_type], async ([len, sub]) => {
   try {
     if ((Number(len) || 0) > 0 && String(sub || '').toLowerCase() === 'onboarding1') {
+      api.trackOnboarding('auto_transition_to_onboarding2')
       await api.setOnboardingStage('stage2')
       try { await userStore.fetchProfile() } catch (_) {}
     }

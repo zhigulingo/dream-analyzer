@@ -180,6 +180,22 @@ const apiMethods = {
   deleteAnalysis(analysisId) {
     console.log('[api.js] Calling DELETE /analysis');
     return apiClient.delete('/analysis', { data: { analysisId } });
+  },
+
+  // Трекинг онбординга через существующий endpoint performance-metrics (bot_event)
+  trackOnboarding(eventName, extra = {}) {
+    try {
+      const tg = window.Telegram?.WebApp;
+      const userId = tg?.initDataUnsafe?.user?.id || null;
+      const payload = { type: 'bot_event', eventType: String(eventName), userId, ...extra };
+      console.log('[api.js] Tracking onboarding event:', payload);
+      return apiClient.post('/performance-metrics', payload).catch((e) => {
+        console.warn('[api.js] trackOnboarding failed (non-blocking):', e?.message || e);
+      });
+    } catch (e) {
+      console.warn('[api.js] trackOnboarding error (non-blocking):', e?.message || e);
+      return Promise.resolve();
+    }
   }
 };
 
