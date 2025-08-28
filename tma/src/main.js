@@ -16,8 +16,16 @@ app.use(createPinia()) // Подключаем Pinia
 
 app.mount('#app') // Монтируем приложение в <div id="app"> из index.html
 
-// Инициализация Telegram WebApp API (не обязательно здесь, но удобно)
-if (window.Telegram?.WebApp) {
+// Инициализация Telegram WebApp API (ожидаем загрузку SDK на мобильных)
+const initTelegram = () => {
+  if (!window.Telegram?.WebApp) return false;
+  const tg = window.Telegram.WebApp;
+  try { tg.ready(); } catch (_) {}
+  try { tg.expand(); } catch (_) {}
+  return true;
+};
+
+if (initTelegram()) {
     const tg = window.Telegram.WebApp;
     
     tg.ready();
@@ -114,8 +122,25 @@ if (window.Telegram?.WebApp) {
     };
     
 } else {
-    console.warn("Telegram WebApp script not loaded or executed.");
-    
-    // Fallback для тестирования вне Telegram
-    window.triggerHaptic = () => {};
+    // Подождем загрузки SDK, что бывает в мобильном Telegram
+    console.warn("Telegram WebApp not available yet, waiting for SDK...");
+    let attempts = 0;
+    const maxAttempts = 20; // ~2s
+    const timer = setInterval(() => {
+      attempts++;
+      if (initTelegram()) {
+        clearInterval(timer);
+        const tg = window.Telegram.WebApp;
+        setTimeout(() => {
+          tg?.expand?.();
+        }, 50);
+        return;
+      }
+      if (attempts >= maxAttempts) {
+        clearInterval(timer);
+        console.warn("Telegram WebApp script not loaded. Running in fallback mode.");
+        // Fallback для тестирования вне Telegram
+        window.triggerHaptic = () => {};
+      }
+    }, 100);
 }
