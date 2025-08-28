@@ -141,7 +141,7 @@ import { Autoplay, A11y, Keyboard } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/autoplay'
 import { useUserStore } from '@/stores/user.js'
-import api from '@/services/api'
+import api from '@/services/api.js'
 import StickerPlayer from '@/components/StickerPlayer.vue'
 const frame1 = new URL('../../stickers/Onboarding Frame-1.png', import.meta.url).href
 const frame2 = new URL('../../stickers/Onboarding Frame-2.png', import.meta.url).href
@@ -149,7 +149,7 @@ const frame3 = new URL('../../stickers/Onboarding Frame-3.png', import.meta.url)
 
 const modules = [Autoplay, A11y, Keyboard]
 const autoplay = { delay: 8000, disableOnInteraction: false, stopOnLastSlide: true }
-const tg: any = (window as any).Telegram?.WebApp
+const tg = computed(() => (typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null))
 const emit = defineEmits<{ (e: 'visible-change', value: boolean): void }>()
 const userStore = useUserStore()
 
@@ -221,26 +221,28 @@ watch(visible, (v) => {
 // MainButton management
 const clearMainButton = () => {
   try {
-    if (tg?.MainButton) {
-      tg.MainButton.hide()
-      tg.MainButton.offClick(handleMainButtonClick)
+    const t = tg.value
+    if (t?.MainButton) {
+      t.MainButton.hide()
+      t.MainButton.offClick(handleMainButtonClick)
     }
   } catch (_) {}
 }
 
 const setMainButton = (text: string, handler: () => void) => {
-  if (!tg?.MainButton) return
-  tg.MainButton.setParams({
+  const t = tg.value
+  if (!t?.MainButton) return
+  t.MainButton.setParams({
     text,
-    color: tg.themeParams?.button_color || '#2481CC',
-    text_color: tg.themeParams?.button_text_color || '#ffffff',
+    color: t.themeParams?.button_color || '#2481CC',
+    text_color: t.themeParams?.button_text_color || '#ffffff',
     is_active: true,
     is_visible: true,
   })
-  tg.MainButton.offClick(handleMainButtonClick)
-  tg.MainButton.onClick(handleMainButtonClick)
+  t.MainButton.offClick(handleMainButtonClick)
+  t.MainButton.onClick(handleMainButtonClick)
   mainButtonHandler.value = handler
-  try { tg.MainButton.show() } catch (_) {}
+  try { t.MainButton.show() } catch (_) {}
 }
 
 const mainButtonHandler = ref<() => void>(() => {})
@@ -268,7 +270,7 @@ watch(isPostClaimFlow, (v) => {
     try {
       setMainButton('Написать сон', () => {
         api.trackOnboarding('post_claim_open_chat_click')
-        try { tg?.close(); } catch (_) {}
+        try { tg.value?.close(); } catch (_) {}
         clearMainButton()
       })
     } catch (_) {}
@@ -288,8 +290,8 @@ onBeforeUnmount(() => {
 const goToCommunity = () => {
   const url = 'https://t.me/thedreamshub'
   try { localStorage.setItem('visited_channel', '1') } catch (_) {}
-  try { if (tg?.openLink) { tg.openLink(url); return } } catch(_) {}
-  try { if (tg?.openTelegramLink) { tg.openTelegramLink(url); return } } catch(_) {}
+  try { if (tg.value?.openLink) { tg.value.openLink(url); return } } catch(_) {}
+  try { if (tg.value?.openTelegramLink) { tg.value.openTelegramLink(url); return } } catch(_) {}
   window.open(url, '_blank')
 }
 
@@ -304,7 +306,7 @@ const verifySubscription = async () => {
     api.trackOnboarding('onboarding1_reward_already')
     flow.value = 'none'
     emit('visible-change', false)
-    try { tg?.close() } catch (_) {}
+    try { tg.value?.close() } catch (_) {}
     return
   }
   // Если возникла ошибка (часто это отсутствие подписки) — оставляем возможность перейти в канал
@@ -319,7 +321,7 @@ const verifySubscription = async () => {
   api.trackOnboarding('onboarding1_reward_granted')
   flow.value = 'none'
   emit('visible-change', false)
-  try { tg?.close() } catch (_) {}
+  try { tg.value?.close() } catch (_) {}
 }
 
 // drag-логика упразднена — ею управляет Swiper
@@ -366,7 +368,7 @@ const onSlideChangeNew = async (swiper: any) => {
     } catch (_) {}
     // После попытки показываем релевантную кнопку
     if (userStore.profile?.channel_reward_claimed) {
-      setMainButton('Открыть чат', () => { try { tg?.close() } catch (_) {} })
+      setMainButton('Открыть чат', () => { try { tg.value?.close?.() } catch (_) {} })
     } else {
       const visited = (()=>{ try { return localStorage.getItem('visited_channel') === '1' } catch(_) { return false } })()
       if (visited) {
@@ -374,7 +376,7 @@ const onSlideChangeNew = async (swiper: any) => {
           await verifySubscription();
           try { await userStore.fetchProfile() } catch (_) {}
           if (userStore.profile?.channel_reward_claimed) {
-            try { tg?.close() } catch (_) {}
+            try { tg.value?.close?.() } catch (_) {}
           }
         })
       } else {
@@ -416,7 +418,7 @@ const onSlideChangePostClaim = async (swiper: any) => {
   if (step.value === 1) {
     setMainButton('Написать сон', () => {
       api.trackOnboarding('post_claim_open_chat_click')
-      try { tg?.close(); } catch (_) {}
+      try { tg.value?.close?.(); } catch (_) {}
       clearMainButton()
     })
   } else {
