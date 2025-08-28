@@ -67,7 +67,9 @@ try {
     });
 
     // Resolve TMA app URL (fallback to allowed origin if TMA_URL is not set)
-    const TMA_APP_URL = TMA_URL || ALLOWED_TMA_ORIGIN || 'https://tourmaline-eclair-9d40ea.netlify.app';
+    // Updated fallback to current production TMA domain
+    const TMA_APP_URL = TMA_URL || ALLOWED_TMA_ORIGIN || 'https://dream-analyzer.netlify.app';
+    logger.info("Resolved TMA app URL", { TMA_APP_URL, hasExplicitTmaUrl: !!TMA_URL, allowedOrigin: ALLOWED_TMA_ORIGIN });
 
     // Initialize services
     userService = new UserService(supabaseAdmin);
