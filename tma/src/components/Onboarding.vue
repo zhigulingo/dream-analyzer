@@ -104,7 +104,7 @@
           <h2 class="title">Удобный доступ</h2>
           <p class="subtitle"></p>
         </div>
-        <div class="onboarding-media"><img :src="frame1" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
+        <div class="onboarding-media flex-1 flex items-center justify-center"><img :src="frame1" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
         <div class="onboarding-body"></div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
@@ -112,18 +112,18 @@
           <h2 class="title">Полезные факты</h2>
           <p class="subtitle"></p>
         </div>
-        <div class="onboarding-media">
+        <div class="onboarding-media flex-1 flex items-center justify-center">
           <img :src="frame2" alt="onboarding-3" style="max-width: 320px; width: 100%; border-radius: 12px;" />
         </div>
         <div class="onboarding-body"></div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media media-overlay">
+        <div class="onboarding-header">
+          <h2 class="title">История снов</h2>
+          <p class="subtitle">и анализ</p>
+        </div>
+        <div class="onboarding-media flex-1 flex items-center justify-center">
           <img :src="frame3" alt="onboarding-4" style="max-width: 320px; width: 100%; border-radius: 12px;" />
-          <div class="overlay-stack">
-            <div class="overlay-title">История снов</div>
-            <div class="overlay-subtitle">и анализ</div>
-          </div>
         </div>
         <div class="onboarding-body"></div>
       </SwiperSlide>
@@ -540,8 +540,20 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   border-radius: 16px;
   padding: 20px 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 400px;
 }
-.center-card { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.center-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  padding: 20px 0;
+}
 /* Карточка чуть меньше экрана для peeking; контент вертикально выстроен */
 .slidePeek {
   display: flex;

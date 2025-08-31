@@ -5,42 +5,42 @@
     @click="handleToggle"
   >
     <div class="flex justify-between items-center py-2 min-h-[2.5rem]">
-      <h3 class="truncate">{{ displayTitle }}</h3>
-      <span class="bg-white/10 rounded-full px-2 py-1 text-sm min-w-[3rem] text-center whitespace-nowrap">
+      <h2 class="truncate text-lg font-semibold">{{ displayTitle }}</h2>
+      <span class="bg-white/10 rounded-full px-2 py-1 text-lg font-semibold min-w-[3rem] text-center whitespace-nowrap">
         {{ relativeDate }}
       </span>
     </div>
-    <div v-if="active" class="mt-4 space-y-4 text-sm fade-seq is-open">
+    <div v-if="active" class="mt-4 space-y-4 text-lg fade-seq is-open flex-1 flex flex-col">
       <div v-if="displayTags.length" class="flex flex-wrap gap-2">
-        <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">
+        <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-2 py-1 rounded-full text-lg font-medium bg-white/15 text-white">
           {{ tag }}
         </span>
       </div>
-      <div>
-        <h4 class="font-semibold mb-1">Сон:</h4>
-        <p class="leading-snug opacity-90">{{ dream.dream_text }}</p>
+      <div class="flex-1">
+        <h2 class="font-semibold mb-2">Сон:</h2>
+        <p class="leading-relaxed">{{ dream.dream_text }}</p>
       </div>
-      <div>
-        <h4 class="font-semibold mb-1">Анализ:</h4>
-        <p class="leading-snug opacity-90">{{ dream.analysis }}</p>
+      <div class="flex-1">
+        <h2 class="font-semibold mb-2">Анализ:</h2>
+        <p class="leading-relaxed">{{ dream.analysis }}</p>
       </div>
-      <div class="mt-6 flex gap-2">
-        <button 
-          class="flex-1 rounded-xl py-2 text-sm font-medium transition-colors"
+      <div class="mt-auto flex gap-2">
+        <button
+          class="flex-1 rounded-xl py-3 text-lg font-medium transition-colors"
           :class="localFeedback === 1 ? 'bg-green-500/30 text-white ring-2 ring-green-400/60' : 'bg-white/20 hover:bg-white/30 text-white'"
           @click.stop="handleLike"
         >
           👍 Нравится
         </button>
-        <button 
-          class="flex-1 rounded-xl py-2 text-sm font-medium transition-colors"
+        <button
+          class="flex-1 rounded-xl py-3 text-lg font-medium transition-colors"
           :class="localFeedback === 2 ? 'bg-red-500/30 text-white ring-2 ring-red-400/60' : 'bg-white/20 hover:bg-white/30 text-white'"
           @click.stop="handleDislike"
         >
           👎 Не нравится
         </button>
-        <button 
-          class="flex-1 bg-red-500/20 hover:bg-red-500/30 text-white rounded-xl py-2 text-sm font-medium transition-colors"
+        <button
+          class="flex-1 bg-red-500/20 hover:bg-red-500/30 text-white rounded-xl py-3 text-lg font-medium transition-colors"
           @click.stop="handleDelete"
         >
           🗑️ Удалить
