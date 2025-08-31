@@ -66,14 +66,9 @@
       class="w-full h-full"
     >
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-header">
-          <h2 class="title">Отлично, токен у тебя!</h2>
-          <p class="subtitle">Теперь напиши свой первый сон в чате</p>
-        </div>
         <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <p class="text">Опиши сон своими словами. Чем детальнее — тем точнее анализ.</p>
-          <p class="text">После анализа мы покажем тебе следующий шаг.</p>
+          <h2 class="headline centered">Чтобы описать сон — просто отправь его в чат.</h2>
         </div>
       </SwiperSlide>
     </Swiper>
@@ -117,11 +112,8 @@
           <h2 class="title">Полезные факты</h2>
           <p class="subtitle"></p>
         </div>
-        <div class="onboarding-media media-overlay">
+        <div class="onboarding-media">
           <img :src="frame2" alt="onboarding-3" style="max-width: 320px; width: 100%; border-radius: 12px;" />
-          <div class="overlay-center">
-            <div class="overlay-bubble">Сюжеты снов часто отражают эмоции, а не реальные события.</div>
-          </div>
         </div>
         <div class="onboarding-body"></div>
       </SwiperSlide>
