@@ -72,8 +72,10 @@
         </div>
         <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <p class="text">Опиши сон своими словами. Чем детальнее — тем точнее анализ.</p>
-          <p class="text">После анализа мы покажем тебе следующий шаг.</p>
+          <div class="text-columns">
+            <p class="text">Опиши сон своими словами. Чем детальнее — тем точнее анализ.</p>
+            <p class="text">После анализа мы покажем тебе следующий шаг.</p>
+          </div>
         </div>
       </SwiperSlide>
     </Swiper>
@@ -123,11 +125,13 @@
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek">
-        <div class="onboarding-header">
-          <h2 class="title">История снов</h2>
-          <p class="subtitle">и анализ</p>
+        <div class="onboarding-media media-overlay">
+          <img :src="frame3" alt="onboarding-4" style="max-width: 320px; width: 100%; border-radius: 12px;" />
+          <div class="overlay-stack">
+            <div class="overlay-title">История снов</div>
+            <div class="overlay-subtitle">и анализ</div>
+          </div>
         </div>
-        <div class="onboarding-media"><img :src="frame3" alt="onboarding-4" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
         <div class="onboarding-body"></div>
       </SwiperSlide>
     </Swiper>
@@ -576,8 +580,16 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   opacity: 0.95;
 }
 .onboarding-body { width: 100%; display: flex; justify-content: center; }
+.text-columns { display: grid; grid-template-columns: 1fr; gap: 8px; align-items: start; width: 100%; max-width: 520px; }
+@media (min-width: 420px) {
+  .text-columns { grid-template-columns: 1fr 1fr; gap: 16px; }
+}
 .headline { font-size: 22px; line-height: 1.28; margin: 12px 0 0 0; color: #fff; text-align: center; }
 .centered { text-align: center; }
+.media-overlay { position: relative; display: inline-block; }
+.overlay-stack { position: absolute; left: 24px; top: 18px; right: 24px; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.55); }
+.overlay-title { font-size: 26px; font-weight: 700; line-height: 1.12; }
+.overlay-subtitle { font-size: 18px; line-height: 1.12; margin-top: 6px; opacity: 0.95; }
 .onboarding-actions {
   margin-top: 16px;
   display: flex;
