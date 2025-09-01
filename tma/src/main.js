@@ -25,66 +25,82 @@ const initTelegram = () => {
   return true;
 };
 
+// Функция для настройки полноэкранного режима
+const setupFullscreen = () => {
+  const tg = window.Telegram?.WebApp;
+  if (!tg) return;
+
+  // Расширяем приложение
+  tg.expand();
+
+  // Устанавливаем фоновый цвет для status bar
+  document.body.style.backgroundColor = '#121a12';
+
+  // Настраиваем viewport
+  const viewport = tg.viewportHeight;
+  if (viewport) {
+    document.documentElement.style.height = viewport + 'px';
+    document.body.style.height = viewport + 'px';
+    document.body.style.minHeight = viewport + 'px';
+  }
+
+  // Убираем скролл за пределы приложения
+  document.body.style.overscrollBehavior = 'none';
+  document.documentElement.style.overscrollBehavior = 'none';
+
+  // Предотвращаем зум
+  document.addEventListener('gesturestart', (e) => {
+    e.preventDefault();
+  });
+
+  // Предотвращаем двойной тап зум
+  document.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+  });
+
+  // Обработка изменения размера viewport
+  tg.onEvent('viewportChanged', () => {
+    const newViewport = tg.viewportHeight;
+    if (newViewport) {
+      document.documentElement.style.height = newViewport + 'px';
+      document.body.style.height = newViewport + 'px';
+      document.body.style.minHeight = newViewport + 'px';
+    }
+  });
+
+  console.log('Fullscreen setup completed');
+};
+
 if (initTelegram()) {
     const tg = window.Telegram.WebApp;
-    
+
     tg.ready();
-    
-    // Включаем полноэкранный режим
-    tg.expand();
-    
-    // Запрашиваем полноэкранный режим браузера
-    const requestFullscreen = () => {
-        if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen().catch(err => {
-                console.log('Fullscreen request failed:', err);
-            });
-        } else if (document.documentElement.webkitRequestFullscreen) {
-            document.documentElement.webkitRequestFullscreen();
-        } else if (document.documentElement.mozRequestFullScreen) {
-            document.documentElement.mozRequestFullScreen();
-        } else if (document.documentElement.msRequestFullscreen) {
-            document.documentElement.msRequestFullscreen();
-        }
-    };
-    
-    // Дополнительные настройки для полного экрана
+
+    // Настраиваем полноэкранный режим
+    setupFullscreen();
+
+    // Дополнительные настройки с задержкой
     setTimeout(() => {
         tg.expand();
-        
-        // Пытаемся войти в полноэкранный режим на мобильных устройствах
-        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-            requestFullscreen();
-        }
-        
-        // Устанавливаем размеры viewport
-        if (tg.viewportHeight) {
-            document.documentElement.style.height = tg.viewportHeight + 'px';
-            document.body.style.height = tg.viewportHeight + 'px';
-        }
-        
-        // Убираем возможность скролла за пределы приложения
-        document.body.style.overscrollBehavior = 'none';
-        document.documentElement.style.overscrollBehavior = 'none';
-        
-        // Принудительно устанавливаем полноэкранный режим
+
+        // Скрываем MainButton если он есть
         if (tg.MainButton) {
             tg.MainButton.hide();
         }
-        
+
         console.log('Viewport height:', tg.viewportHeight);
         console.log('Is expanded:', tg.isExpanded);
     }, 100);
-    
+
     // Добавляем подтверждение закрытия приложения
     const handleBeforeUnload = (e) => {
         e.preventDefault();
         e.returnValue = 'Вы уверены, что хотите закрыть приложение?';
         return 'Вы уверены, что хотите закрыть приложение?';
     };
-    
+
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
     // Также обрабатываем событие закрытия Telegram WebApp
     if (tg.onEvent) {
         tg.onEvent('viewportChanged', () => {
@@ -96,17 +112,17 @@ if (initTelegram()) {
             }
         });
     }
-    
+
     console.log("Telegram WebApp is ready.");
-    
+
     // Создаем глобальную функцию для хаптиков
     window.triggerHaptic = (type = 'light') => {
         if (tg?.HapticFeedback) {
             tg.HapticFeedback.impactOccurred(type);
         }
     };
-    
-    // Глобальная функция для входа в полноэкранный режим
+
+    // Глобальная функция для входа в полноэкранный режим браузера (дополнительно)
     window.enterFullscreen = () => {
         if (document.documentElement.requestFullscreen) {
             document.documentElement.requestFullscreen().catch(err => {
@@ -120,7 +136,7 @@ if (initTelegram()) {
             document.documentElement.msRequestFullscreen();
         }
     };
-    
+
 } else {
     // Подождем загрузки SDK, что бывает в мобильном Telegram
     console.warn("Telegram WebApp not available yet, waiting for SDK...");
@@ -132,6 +148,7 @@ if (initTelegram()) {
         clearInterval(timer);
         const tg = window.Telegram.WebApp;
         setTimeout(() => {
+          setupFullscreen();
           tg?.expand?.();
         }, 50);
         return;
@@ -141,6 +158,12 @@ if (initTelegram()) {
         console.warn("Telegram WebApp script not loaded. Running in fallback mode.");
         // Fallback для тестирования вне Telegram
         window.triggerHaptic = () => {};
+
+        // Настраиваем базовые стили для полноэкранного режима даже без Telegram SDK
+        document.body.style.overscrollBehavior = 'none';
+        document.documentElement.style.overscrollBehavior = 'none';
+        document.body.style.minHeight = '100vh';
+        document.documentElement.style.minHeight = '100vh';
       }
     }, 100);
 }

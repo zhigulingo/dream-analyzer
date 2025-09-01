@@ -3,8 +3,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Добавляем viewport для мобильных устройств -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- Настройки viewport для полноэкранного режима в Telegram Mini App -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Dream Analyzer - Личный Кабинет</title>
     <!-- Подключаем скрипт Telegram WebApp без defer, чтобы он был доступен до инициализации -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>

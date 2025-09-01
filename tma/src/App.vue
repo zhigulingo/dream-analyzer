@@ -62,14 +62,24 @@ body {
   color: var(--tg-theme-text-color);
   background-color: var(--tg-theme-bg-color);
   min-height: 100vh;
+  min-height: 100dvh; /* Для современных браузеров */
   display: flex;
   flex-direction: column;
+  overscroll-behavior: none;
+  position: fixed; /* Фиксируем позицию для предотвращения скролла */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 #app {
   flex: 1;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  height: 100dvh; /* Для современных браузеров */
+  overflow: hidden; /* Предотвращаем скролл */
 }
 
 .tma-app-container {
@@ -81,5 +91,9 @@ body {
   margin: 0 auto;
   padding: 0;
   box-sizing: border-box;
+  height: 100%;
+  overflow-y: auto; /* Разрешаем вертикальный скролл внутри контейнера */
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
 }
 </style>

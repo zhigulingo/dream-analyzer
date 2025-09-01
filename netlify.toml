@@ -5,12 +5,11 @@
   directory = "bot/functions/"
   node_bundler = "esbuild"
 
-# Build settings for root deployment (functions only)
+# Build settings for TMA frontend deployment
 [build]
-  # No build needed for root, just functions
-  command = "echo 'Root deployment - functions only'"
-  # No publish directory for root
-  publish = ""
+  # Build the TMA frontend
+  command = "cd tma && npm ci && npm run build"
+  publish = "tma/dist"
 
 # Environment variables needed for build
 [build.environment]
@@ -54,6 +53,12 @@
 [[redirects]]
   from = "/bot"
   to = "/.netlify/functions/bot"
+  status = 200
+
+# API redirects (functions)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
   status = 200
 
 # SPA fallback - все неизвестные роуты перенаправляем на index.html для Vue роутера
