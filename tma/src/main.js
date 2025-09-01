@@ -546,16 +546,27 @@ const setupDesktopMode = (tg) => {
   // НЕ блокируем свайпы (не актуально для десктопа)
 };
 
-// ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: перехватываем любые изменения размера
-window.addEventListener('resize', function() {
-  if (!window.isMobileDevice && window.innerHeight > 650) {
-    console.log('🚨 [RESIZE] Detected height increase on desktop, blocking...');
-    enforceDesktopSizeLimit();
-  }
-});
+// ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: перехватываем любые изменения размера ТОЛЬКО НА ДЕСКТОПЕ
+if (!window.isMobileDevice) {
+  window.addEventListener('resize', function() {
+    if (window.innerHeight > 650) {
+      console.log('🚨 [RESIZE] Detected height increase on desktop, blocking...');
+      enforceDesktopSizeLimit();
+    }
+  });
+  console.log('🚨 [RESIZE] Resize listener active for desktop');
+} else {
+  console.log('📱 [MOBILE] Skipping desktop resize listener');
+}
 
 // ФУНКЦИЯ ПРИНУДИТЕЛЬНОГО ОГРАНИЧЕНИЯ РАЗМЕРА ДЕСКТОПА
 function enforceDesktopSizeLimit() {
+  // ПРОВЕРКА: только для десктопа
+  if (window.isMobileDevice) {
+    console.log('📱 [ENFORCE] Skipping enforcement on mobile device');
+    return;
+  }
+
   console.log('🔒 [ENFORCE] Enforcing desktop size limit');
 
   // Устанавливаем жесткие ограничения
@@ -604,7 +615,7 @@ function enforceDesktopSizeLimit() {
   console.log('🔒 [ENFORCE] Desktop size limit enforced');
 }
 
-// ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: MutationObserver для отслеживания изменений
+// ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: MutationObserver для отслеживания изменений ТОЛЬКО НА ДЕСКТОПЕ
 if (!window.isMobileDevice) {
   console.log('👁️ [OBSERVER] Setting up mutation observer for desktop protection');
 
@@ -657,9 +668,11 @@ if (!window.isMobileDevice) {
   });
 
   console.log('👁️ [OBSERVER] Mutation observer active');
+} else {
+  console.log('📱 [MOBILE] Skipping mutation observer for desktop protection');
 }
 
-// ПЕРИОДИЧЕСКАЯ ПРОВЕРКА РАЗМЕРА
+// ПЕРИОДИЧЕСКАЯ ПРОВЕРКА РАЗМЕРА ТОЛЬКО ДЛЯ ДЕСКТОПА
 if (!window.isMobileDevice) {
   setInterval(function() {
     if (window.innerHeight > 650) {
@@ -669,6 +682,8 @@ if (!window.isMobileDevice) {
   }, 1000);
 
   console.log('⏰ [PERIODIC] Periodic size check active');
+} else {
+  console.log('📱 [MOBILE] Skipping periodic desktop size checks');
 }
 
 // Определяем тип устройства

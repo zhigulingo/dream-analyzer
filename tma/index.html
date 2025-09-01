@@ -35,29 +35,39 @@
                 }
               });
 
-              // УСТАНАВЛИВАЕМ МИНИМАЛЬНЫЙ РАЗМЕР НЕМЕДЛЕННО
-              setTimeout(() => {
-                document.documentElement.style.height = '600px';
-                document.documentElement.style.maxHeight = '600px';
-                document.body.style.height = '600px';
-                document.body.style.maxHeight = '600px';
-                console.log('🛡️ [ULTRA] Size limited to 600px');
-              }, 10);
+              // УСТАНАВЛИВАЕМ МИНИМАЛЬНЫЙ РАЗМЕР НЕМЕДЛЕННО ТОЛЬКО ДЛЯ ДЕСКТОПА
+              const isCurrentDesktop = window.innerWidth > 1024 && window.innerHeight > 768 &&
+                                      !/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(navigator.userAgent);
+
+              if (isCurrentDesktop) {
+                setTimeout(() => {
+                  document.documentElement.style.height = '600px';
+                  document.documentElement.style.maxHeight = '600px';
+                  document.body.style.height = '600px';
+                  document.body.style.maxHeight = '600px';
+                  console.log('🛡️ [ULTRA] Size limited to 600px for desktop');
+                }, 10);
+              } else {
+                console.log('🛡️ [ULTRA] Mobile device detected, skipping size limits');
+              }
             }
             return value;
           },
           configurable: true
         });
 
-        // ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: перехватываем все попытки изменения размера
+        // ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: перехватываем все попытки изменения размера ТОЛЬКО НА ДЕСКТОПЕ
         const originalSetTimeout = window.setTimeout;
         window.setTimeout = function(callback, delay) {
           if (typeof callback === 'function') {
             const wrappedCallback = function() {
               try {
-                // Проверяем размер перед каждым setTimeout
-                if (window.innerHeight > 650 && window.innerWidth > 1024) {
-                  console.log('🛡️ [ULTRA] Large viewport detected in setTimeout, blocking');
+                // Проверяем размер перед каждым setTimeout ТОЛЬКО ДЛЯ ДЕСКТОПА
+                const isCurrentDesktop = window.innerWidth > 1024 && window.innerHeight > 768 &&
+                                        !/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(navigator.userAgent);
+
+                if (isCurrentDesktop && window.innerHeight > 650) {
+                  console.log('🛡️ [ULTRA] Large viewport detected in setTimeout, blocking for desktop');
                   document.documentElement.style.height = '600px';
                   document.documentElement.style.maxHeight = '600px';
                   document.body.style.height = '600px';
@@ -189,7 +199,7 @@
           }
         }
 
-        // ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: применяем ограничения размера сразу
+        // ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: применяем ограничения размера сразу ТОЛЬКО ДЛЯ ДЕСКТОПА
         function applyImmediateSizeLimit() {
           const isDesktop = window.innerWidth > 1024 && window.innerHeight > 768 &&
                            !/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(navigator.userAgent);

@@ -150,6 +150,16 @@ const tg = computed(() => (typeof window !== 'undefined' ? (window as any).Teleg
 const emit = defineEmits<{ (e: 'visible-change', value: boolean): void }>()
 const userStore = useUserStore()
 
+// Инициализация переменных для предотвращения ошибок
+if (!userStore) {
+  console.error('❌ [ONBOARDING] userStore is not available')
+}
+
+// Проверка API
+if (!api) {
+  console.error('❌ [ONBOARDING] api is not available')
+}
+
 // Local one-time flags
 const NEW_DONE_KEY = 'onboarding_new_done'
 const FREE_DONE_KEY = 'onboarding_free_done'
@@ -166,36 +176,51 @@ const isPostClaimFlow = computed(() => flow.value === 'post_claim')
 // классы смещения больше не используются (Swiper управляет)
 
 const hasNewFlowEligibility = computed(() => {
-  if (!userStore?.profile) return false
-  const s = (userStore.profile.subscription_type || '').toLowerCase()
-  return s === 'onboarding1'
+  try {
+    if (!userStore?.profile) return false
+    const s = (userStore.profile.subscription_type || '').toLowerCase()
+    return s === 'onboarding1'
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in hasNewFlowEligibility:', error)
+    return false
+  }
 })
 
 // Второй онбординг показываем, когда у пользователя уже есть первый проанализированный сон
 const hasFreeFlowEligibility = computed(() => {
-  const s = (userStore.profile?.subscription_type || '').toLowerCase()
-  return s === 'onboarding2'
+  try {
+    const s = (userStore.profile?.subscription_type || '').toLowerCase()
+    return s === 'onboarding2'
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in hasFreeFlowEligibility:', error)
+    return false
+  }
 })
 
 // Промежуточный экран больше не используется — логика этапов строго по subscription_type
 
 // Initialize flow when profile/history are available
 const initFlow = () => {
-  if (hasFreeFlowEligibility.value) {
-    flow.value = 'free'
-    step.value = 1
-  } else if (hasNewFlowEligibility.value) {
-    // Если пользователь уже получил токен, но ещё не сделал анализ → показываем промежуточный экран
-    const claimed = !!userStore.profile?.channel_reward_claimed
-    const hasAnalyses = (userStore.profile?.total_dreams_count || userStore.history?.length || 0) > 0
-    if (claimed && !hasAnalyses) {
-      flow.value = 'post_claim'
+  try {
+    if (hasFreeFlowEligibility.value) {
+      flow.value = 'free'
       step.value = 1
-      return
+    } else if (hasNewFlowEligibility.value) {
+      // Если пользователь уже получил токен, но ещё не сделал анализ → показываем промежуточный экран
+      const claimed = !!userStore.profile?.channel_reward_claimed
+      const hasAnalyses = (userStore.profile?.total_dreams_count || userStore.history?.length || 0) > 0
+      if (claimed && !hasAnalyses) {
+        flow.value = 'post_claim'
+        step.value = 1
+        return
+      }
+      flow.value = 'new'
+      step.value = 1
+    } else {
+      flow.value = 'none'
     }
-    flow.value = 'new'
-    step.value = 1
-  } else {
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in initFlow:', error)
     flow.value = 'none'
   }
 }
