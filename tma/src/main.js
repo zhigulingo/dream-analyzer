@@ -550,12 +550,126 @@ const setupDesktopMode = (tg) => {
 window.addEventListener('resize', function() {
   if (!window.isMobileDevice && window.innerHeight > 650) {
     console.log('🚨 [RESIZE] Detected height increase on desktop, blocking...');
-    document.documentElement.style.height = '600px';
-    document.documentElement.style.maxHeight = '600px';
-    document.body.style.height = '600px';
-    document.body.style.maxHeight = '600px';
+    enforceDesktopSizeLimit();
   }
 });
+
+// ФУНКЦИЯ ПРИНУДИТЕЛЬНОГО ОГРАНИЧЕНИЯ РАЗМЕРА ДЕСКТОПА
+function enforceDesktopSizeLimit() {
+  console.log('🔒 [ENFORCE] Enforcing desktop size limit');
+
+  // Устанавливаем жесткие ограничения
+  const style = document.createElement('style');
+  style.id = 'desktop-size-limiter';
+  style.textContent = `
+    html, body, #app {
+      max-height: 600px !important;
+      height: 600px !important;
+      overflow: hidden !important;
+      resize: none !important;
+    }
+
+    /* Блокируем любые трансформации */
+    html, body, #app {
+      transform: none !important;
+      -webkit-transform: none !important;
+      transition: none !important;
+    }
+  `;
+
+  // Удаляем старый стиль если существует
+  const oldStyle = document.getElementById('desktop-size-limiter');
+  if (oldStyle) {
+    oldStyle.remove();
+  }
+
+  document.head.appendChild(style);
+
+  // Применяем стили напрямую
+  document.documentElement.style.height = '600px';
+  document.documentElement.style.maxHeight = '600px';
+  document.documentElement.style.overflow = 'hidden';
+
+  document.body.style.height = '600px';
+  document.body.style.maxHeight = '600px';
+  document.body.style.overflow = 'hidden';
+
+  const app = document.getElementById('app');
+  if (app) {
+    app.style.height = '600px';
+    app.style.maxHeight = '600px';
+    app.style.overflow = 'hidden';
+  }
+
+  console.log('🔒 [ENFORCE] Desktop size limit enforced');
+}
+
+// ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: MutationObserver для отслеживания изменений
+if (!window.isMobileDevice) {
+  console.log('👁️ [OBSERVER] Setting up mutation observer for desktop protection');
+
+  const observer = new MutationObserver(function(mutations) {
+    let shouldEnforce = false;
+
+    mutations.forEach(function(mutation) {
+      // Проверяем изменения стилей
+      if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+        const target = mutation.target;
+        const height = target.offsetHeight || target.clientHeight;
+
+        if (height > 650) {
+          console.log('👁️ [OBSERVER] Detected style change with large height:', height);
+          shouldEnforce = true;
+        }
+      }
+
+      // Проверяем добавление новых элементов
+      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+        mutation.addedNodes.forEach(function(node) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const height = node.offsetHeight || node.clientHeight;
+            if (height > 650) {
+              console.log('👁️ [OBSERVER] New element with large height detected:', height);
+              shouldEnforce = true;
+            }
+          }
+        });
+      }
+    });
+
+    if (shouldEnforce) {
+      enforceDesktopSizeLimit();
+    }
+  });
+
+  // Начинаем наблюдение
+  observer.observe(document.body, {
+    attributes: true,
+    attributeFilter: ['style'],
+    childList: true,
+    subtree: true
+  });
+
+  // Также наблюдаем за изменениями в documentElement
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['style']
+  });
+
+  console.log('👁️ [OBSERVER] Mutation observer active');
+}
+
+// ПЕРИОДИЧЕСКАЯ ПРОВЕРКА РАЗМЕРА
+if (!window.isMobileDevice) {
+  setInterval(function() {
+    if (window.innerHeight > 650) {
+      console.log('⏰ [PERIODIC] Periodic check detected large height:', window.innerHeight);
+      enforceDesktopSizeLimit();
+    }
+  }, 1000);
+
+  console.log('⏰ [PERIODIC] Periodic size check active');
+}
 
 // Определяем тип устройства
 console.log('🎯 [INIT] Starting Telegram WebApp initialization...');
@@ -569,6 +683,16 @@ console.log('🎯 [INIT] Starting device-specific initialization...');
 
 // Устанавливаем глобальный флаг устройства
 window.isMobileDevice = deviceInfo.isMobile;
+
+// ЭКСТРЕННОЕ ПРИМЕНЕНИЕ ОГРАНИЧЕНИЙ ДЛЯ ДЕСКТОПА
+if (!deviceInfo.isMobile) {
+  console.log('💻 [INIT] Desktop detected - applying immediate size restrictions');
+  enforceDesktopSizeLimit();
+
+  // Повторяем через короткое время для гарантии
+  setTimeout(enforceDesktopSizeLimit, 100);
+  setTimeout(enforceDesktopSizeLimit, 500);
+}
 
 if (deviceInfo.isMobile) {
   console.log('📱 [INIT] Mobile device detected - initializing mobile mode');

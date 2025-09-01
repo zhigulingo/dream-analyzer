@@ -3,6 +3,80 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- УЛЬТРА ЭКСТРЕННАЯ ЗАЩИТА - ДО ЗАГРУЗКИ TELEGRAM WEBAPP -->
+    <script>
+      (function() {
+        // МАКСИМАЛЬНО РАННЯЯ ЗАЩИТА
+        console.log('🛡️ [ULTRA] Ultra emergency protection - BEFORE Telegram WebApp loads');
+
+        // ПЕРЕОПРЕДЕЛЯЕМ window.Telegram ДО загрузки скрипта
+        const originalTelegram = window.Telegram;
+
+        Object.defineProperty(window, 'Telegram', {
+          get: function() {
+            console.log('🛡️ [ULTRA] Telegram property accessed');
+            return originalTelegram;
+          },
+          set: function(value) {
+            console.log('🛡️ [ULTRA] Telegram property set');
+            if (value && value.WebApp) {
+              console.log('🛡️ [ULTRA] Telegram WebApp detected, applying protection');
+
+              // БЛОКИРУЕМ МЕТОДЫ НЕМЕДЛЕННО
+              const methodsToBlock = ['expand', 'requestFullscreen', 'openPopup', 'showPopup'];
+              methodsToBlock.forEach(method => {
+                if (value.WebApp[method]) {
+                  const originalMethod = value.WebApp[method];
+                  value.WebApp[method] = function(...args) {
+                    console.log('🛡️ [ULTRA] BLOCKED method:', method);
+                    return false;
+                  };
+                }
+              });
+
+              // УСТАНАВЛИВАЕМ МИНИМАЛЬНЫЙ РАЗМЕР НЕМЕДЛЕННО
+              setTimeout(() => {
+                document.documentElement.style.height = '600px';
+                document.documentElement.style.maxHeight = '600px';
+                document.body.style.height = '600px';
+                document.body.style.maxHeight = '600px';
+                console.log('🛡️ [ULTRA] Size limited to 600px');
+              }, 10);
+            }
+            return value;
+          },
+          configurable: true
+        });
+
+        // ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: перехватываем все попытки изменения размера
+        const originalSetTimeout = window.setTimeout;
+        window.setTimeout = function(callback, delay) {
+          if (typeof callback === 'function') {
+            const wrappedCallback = function() {
+              try {
+                // Проверяем размер перед каждым setTimeout
+                if (window.innerHeight > 650 && window.innerWidth > 1024) {
+                  console.log('🛡️ [ULTRA] Large viewport detected in setTimeout, blocking');
+                  document.documentElement.style.height = '600px';
+                  document.documentElement.style.maxHeight = '600px';
+                  document.body.style.height = '600px';
+                  document.body.style.maxHeight = '600px';
+                }
+                callback.apply(this, arguments);
+              } catch (e) {
+                console.error('🛡️ [ULTRA] Error in wrapped setTimeout:', e);
+                callback.apply(this, arguments);
+              }
+            };
+            return originalSetTimeout(wrappedCallback, delay);
+          }
+          return originalSetTimeout(callback, delay);
+        };
+
+        console.log('🛡️ [ULTRA] Ultra protection initialized');
+      })();
+    </script>
     <!-- Расширенные настройки viewport для мобильного fullscreen -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
 
@@ -115,16 +189,65 @@
           }
         }
 
+        // ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: применяем ограничения размера сразу
+        function applyImmediateSizeLimit() {
+          const isDesktop = window.innerWidth > 1024 && window.innerHeight > 768 &&
+                           !/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(navigator.userAgent);
+
+          if (isDesktop) {
+            console.log('🛡️ [IMMEDIATE] Applying immediate size limit for desktop');
+
+            // Применяем ограничения сразу
+            document.documentElement.style.height = '600px';
+            document.documentElement.style.maxHeight = '600px';
+            document.documentElement.style.overflow = 'hidden';
+
+            document.body.style.height = '600px';
+            document.body.style.maxHeight = '600px';
+            document.body.style.overflow = 'hidden';
+
+            // Добавляем CSS стиль
+            const immediateStyle = document.createElement('style');
+            immediateStyle.id = 'immediate-desktop-limit';
+            immediateStyle.textContent = `
+              html, body {
+                max-height: 600px !important;
+                height: 600px !important;
+                overflow: hidden !important;
+              }
+              #app {
+                max-height: 600px !important;
+                height: 600px !important;
+                overflow: hidden !important;
+              }
+            `;
+            document.head.appendChild(immediateStyle);
+
+            console.log('🛡️ [IMMEDIATE] Immediate size limit applied');
+          }
+        }
+
         // ЗАПУСКАЕМ СРАЗУ
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', emergencyDesktopProtection);
+          document.addEventListener('DOMContentLoaded', function() {
+            emergencyDesktopProtection();
+            applyImmediateSizeLimit();
+          });
         } else {
           emergencyDesktopProtection();
+          applyImmediateSizeLimit();
         }
 
         // ЗАПУСКАЕМ ЧЕРЕЗ НЕБОЛЬШУЮ ЗАДЕРЖКУ
-        setTimeout(emergencyDesktopProtection, 50);
-        setTimeout(emergencyDesktopProtection, 200);
+        setTimeout(function() {
+          emergencyDesktopProtection();
+          applyImmediateSizeLimit();
+        }, 50);
+
+        setTimeout(function() {
+          emergencyDesktopProtection();
+          applyImmediateSizeLimit();
+        }, 200);
       })();
     </script>
 
