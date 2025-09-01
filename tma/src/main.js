@@ -85,11 +85,9 @@ const initTelegramMobile = () => {
   try {
     tg.ready();
 
-    // ОСНОВНОЙ МЕТОД: расширяем приложение через Telegram API
-    tg.expand();
-    console.log('Mobile Telegram: expanded using tg.expand()');
-
-    // НЕ используем requestFullscreen() - он конфликтует с tg.expand()
+    // НЕ используем tg.expand() - он конфликтует с requestFullscreen()
+    // tg.expand(); // УБРАНО!
+    console.log('Mobile Telegram: using requestFullscreen only');
 
   } catch (error) {
     console.error('Error initializing Telegram mobile:', error);
@@ -163,18 +161,14 @@ const setupMobileFullscreen = (tg) => {
 
   console.log('Setting up mobile fullscreen mode');
 
-  // ПОСЛЕДОВАТЕЛЬНОСТЬ ДЕЙСТВИЙ ДЛЯ ПОЛНОГО ЭКРАНА:
-  // 1. tg.expand() уже вызван в initTelegramMobile()
-  // 2. Теперь добавляем requestFullscreen() для полного экрана устройства
+  // ИСПОЛЬЗУЕМ ТОЛЬКО requestFullscreen() - tg.expand() убран из-за конфликта
 
-  // Ждем небольшую задержку после expand(), затем применяем requestFullscreen
-  setTimeout(() => {
-    enterBrowserFullscreen().then(() => {
-      console.log('✅ Browser fullscreen enabled after tg.expand()');
-    }).catch(err => {
-      console.log('Browser fullscreen failed (may be expected in Telegram):', err);
-    });
-  }, 200);
+  // Применяем requestFullscreen сразу
+  enterBrowserFullscreen().then(() => {
+    console.log('✅ Browser fullscreen enabled');
+  }).catch(err => {
+    console.log('Browser fullscreen failed:', err);
+  });
 
   // Устанавливаем фоновый цвет для status bar
   document.body.style.backgroundColor = '#121a12';
@@ -294,12 +288,12 @@ if (deviceInfo.isMobile) {
     console.log('Mobile fallback: Telegram not available, using browser fullscreen');
     telegramInitialized = true;
 
-    // Пытаемся применить браузерный fullscreen для мобильных
-    setTimeout(() => {
-      enterBrowserFullscreen().catch(err => {
-        console.log('Mobile fallback fullscreen failed:', err);
-      });
-    }, 200);
+    // Применяем браузерный fullscreen сразу для мобильных без Telegram
+    enterBrowserFullscreen().then(() => {
+      console.log('✅ Mobile fallback fullscreen enabled');
+    }).catch(err => {
+      console.log('Mobile fallback fullscreen failed:', err);
+    });
 
     // Настраиваем базовые стили для мобильных
     document.body.style.backgroundColor = '#121a12';
