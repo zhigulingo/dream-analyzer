@@ -85,14 +85,11 @@ const initTelegramMobile = () => {
   try {
     tg.ready();
 
-    // Для мобильных устройств в Telegram используем tg.expand()
+    // ОСНОВНОЙ МЕТОД: расширяем приложение через Telegram API
     tg.expand();
-    console.log('Mobile Telegram: expanded app');
+    console.log('Mobile Telegram: expanded using tg.expand()');
 
-    // Дополнительно пробуем браузерный fullscreen
-    enterBrowserFullscreen().catch(err => {
-      console.log('Browser fullscreen failed (expected in Telegram):', err);
-    });
+    // НЕ используем requestFullscreen() - он конфликтует с tg.expand()
 
   } catch (error) {
     console.error('Error initializing Telegram mobile:', error);
@@ -110,13 +107,10 @@ const initTelegramDesktop = () => {
     tg.ready();
 
     // Для десктопа НЕ расширяем приложение
-    // Оставляем обычное окно браузера
+    // tg.expand() НЕ ВЫЗЫВАЕМ - оставляем обычное окно браузера
     console.log('Desktop Telegram: keeping regular window size');
 
-    // Пробуем браузерный fullscreen для десктопа
-    enterBrowserFullscreen().catch(err => {
-      console.log('Browser fullscreen failed on desktop:', err);
-    });
+    // НЕ используем requestFullscreen() для десктопа
 
   } catch (error) {
     console.error('Error initializing Telegram desktop:', error);
@@ -158,8 +152,8 @@ const setupMobileFullscreen = (tg) => {
 
   console.log('Setting up mobile fullscreen mode');
 
-  // Расширяем приложение через Telegram API
-  tg.expand();
+  // ОСНОВНОЙ МЕТОД: tg.expand() уже вызван в initTelegramMobile()
+  // НЕ ДУБЛИРУЕМ вызов здесь
 
   // Устанавливаем фоновый цвет для status bar
   document.body.style.backgroundColor = '#121a12';
@@ -176,7 +170,7 @@ const setupMobileFullscreen = (tg) => {
   document.body.style.overscrollBehavior = 'none';
   document.documentElement.style.overscrollBehavior = 'none';
 
-  // Защита от свайпов через Telegram API
+  // ЗАЩИТА ОТ СВАЙПОВ - ОСНОВНЫЕ МЕТОДЫ
   if (typeof tg.disableVerticalSwipes === 'function') {
     tg.disableVerticalSwipes();
     console.log('✅ Vertical swipes disabled');
@@ -187,16 +181,16 @@ const setupMobileFullscreen = (tg) => {
     console.log('✅ Closing confirmation enabled');
   }
 
-  // CSS защита от свайпов
+  // ДОПОЛНИТЕЛЬНАЯ CSS ЗАЩИТА
   document.body.style.touchAction = 'none';
   document.documentElement.style.touchAction = 'none';
 
-  // Добавляем обработчики touch событий
+  // Обработчики touch событий для дополнительной защиты
   document.addEventListener('touchstart', preventSwipeClose, { passive: false });
   document.addEventListener('touchmove', preventSwipeClose, { passive: false });
   document.addEventListener('touchend', preventSwipeClose, { passive: false });
 
-  // Периодическая повторная блокировка свайпов
+  // Периодическая повторная блокировка (на случай сброса Telegram)
   setInterval(reapplySwipeProtection, 5000);
 
   // Обработка изменения размера viewport
@@ -213,7 +207,7 @@ const setupMobileFullscreen = (tg) => {
     }, 100);
   });
 
-  // Предотвращаем зум
+  // Предотвращаем зум жесты
   document.addEventListener('gesturestart', (e) => {
     e.preventDefault();
   });
@@ -232,15 +226,13 @@ const setupDesktopMode = (tg) => {
 
   console.log('Setting up desktop mode (regular window)');
 
-  // Для десктопа НЕ расширяем приложение
-  // tg.expand() НЕ вызывается
-
-  // Устанавливаем базовые стили без fullscreen
+  // Для десктопа устанавливаем только базовые стили
   document.body.style.backgroundColor = '#121a12';
-
-  // Убираем только нежелательный скролл, но оставляем обычное поведение
   document.body.style.overscrollBehavior = 'none';
   document.documentElement.style.overscrollBehavior = 'none';
+
+  // НЕ применяем никаких fullscreen функций
+  // НЕ блокируем свайпы (они не актуальны для десктопа)
 
   console.log('Desktop mode setup completed');
 };
@@ -366,10 +358,7 @@ if (!telegramInitialized) {
   }, 100);
 }
 
-// Глобальные функции для работы с полноэкранным режимом
-window.enterFullscreen = enterBrowserFullscreen;
-window.exitFullscreen = exitBrowserFullscreen;
-
+// Глобальные функции для работы с Telegram Mini Apps
 // Глобальная функция для хаптиков
 window.triggerHaptic = (type = 'light') => {
   const tg = window.Telegram?.WebApp;
@@ -377,3 +366,7 @@ window.triggerHaptic = (type = 'light') => {
     tg.HapticFeedback.impactOccurred(type);
   }
 };
+
+// Глобальные функции для ручного управления (опционально)
+// window.enterBrowserFullscreen = enterBrowserFullscreen;
+// window.exitBrowserFullscreen = exitBrowserFullscreen;
