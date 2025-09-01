@@ -55,6 +55,7 @@ onMounted(async () => {
   --tg-theme-secondary-bg-color: var(--color-card, #0c110c);
 }
 
+/* Базовые стили для всех устройств */
 body {
   margin: 0;
   padding: 0;
@@ -62,26 +63,49 @@ body {
   color: var(--tg-theme-text-color);
   background-color: var(--tg-theme-bg-color);
   min-height: 100vh;
-  min-height: 100dvh; /* Для современных браузеров */
   display: flex;
   flex-direction: column;
   overscroll-behavior: none;
-  position: fixed; /* Фиксируем позицию для предотвращения скролла */
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
 }
 
+/* Полноэкранные стили ТОЛЬКО для мобильных устройств */
+@media (max-width: 768px), (max-height: 1024px) and (orientation: portrait) {
+  body {
+    min-height: 100dvh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    overscroll-behavior-y: none;
+    overscroll-behavior-x: none;
+    -webkit-overflow-scrolling: auto;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Базовые стили для #app */
 #app {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  height: 100dvh; /* Для современных браузеров */
-  overflow: hidden; /* Предотвращаем скролл */
 }
 
+/* Полноэкранные стили для #app ТОЛЬКО на мобильных */
+@media (max-width: 768px), (max-height: 1024px) and (orientation: portrait) {
+  #app {
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+  }
+}
+
+/* Базовые стили для контейнера */
 .tma-app-container {
   flex: 1;
   display: flex;
@@ -91,9 +115,15 @@ body {
   margin: 0 auto;
   padding: 0;
   box-sizing: border-box;
-  height: 100%;
-  overflow-y: auto; /* Разрешаем вертикальный скролл внутри контейнера */
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
+}
+
+/* Полноэкранные стили для контейнера ТОЛЬКО на мобильных */
+@media (max-width: 768px), (max-height: 1024px) and (orientation: portrait) {
+  .tma-app-container {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 </style>
