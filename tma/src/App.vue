@@ -2,10 +2,13 @@
 <template>
   <div class="tma-app-container">
     <DebugInfo />
-    <PersonalAccount v-if="!onboardingVisible && appReady" />
+    <!-- ОСНОВНОЙ ИНТЕРФЕЙС ВСЕГДА ДОСТУПЕН -->
+    <PersonalAccount v-if="appReady" />
     <NotificationSystem />
+    <LoadingOverlay :visible="isLoadingGlobal" />
+
+    <!-- ОНБОРДИНГ ОВЕРЛЕЙ ПОВЕРХ ОСНОВНОГО ИНТЕРФЕЙСА -->
     <Onboarding :visible="onboardingVisible" @visible-change="onboardingVisible = $event" />
-    <LoadingOverlay :visible="isLoadingGlobal && !onboardingVisible" />
   </div>
 </template>
 
@@ -211,14 +214,15 @@ body {
   box-sizing: border-box;
 }
 
-/* СТИЛИ ДЛЯ ОНБОРДИНГА */
-.onboarding-overlay {
+/* СТИЛИ ДЛЯ ОНБОРДИНГА - ПОЛНОЭКРАННЫЙ ОВЕРЛЕЙ */
+.onboarding-overlay-fullscreen {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.9);
+  background-color: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(10px);
   z-index: 10000;
   display: flex;
   align-items: center;
@@ -226,8 +230,27 @@ body {
   padding: 20px;
 }
 
-.opaque {
-  backdrop-filter: blur(8px);
+.onboarding-content {
+  width: 100%;
+  max-width: 400px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.debug-info {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: white;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 8px 12px;
+  border-radius: 6px;
+  z-index: 10001;
+  font-family: monospace;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .onboarding-card {
@@ -280,16 +303,15 @@ body {
   opacity: 1;
 }
 
-/* Swiper стили для онбординга */
-.swiper {
+/* SWIPER СТИЛИ ДЛЯ ОНБОРДИНГА */
+.onboarding-swiper {
   width: 100%;
   height: 100%;
   max-width: 400px;
-  margin: 0 auto;
   overflow: visible !important;
 }
 
-.swiper-wrapper {
+.onboarding-swiper .swiper-wrapper {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -297,120 +319,88 @@ body {
   justify-content: center;
 }
 
-.swiper-slide {
+.onboarding-swiper .swiper-slide {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   width: 100% !important;
   height: auto !important;
-  min-height: 250px !important;
+  min-height: 200px !important;
   opacity: 1 !important;
   visibility: visible !important;
   transform: none !important;
 }
 
-.swiper-slide-active {
+.onboarding-swiper .swiper-slide-active {
   opacity: 1 !important;
   visibility: visible !important;
   transform: scale(1) !important;
 }
 
-.swiper-slide-prev,
-.swiper-slide-next {
-  opacity: 0.7 !important;
-  transform: scale(0.92) !important;
+.onboarding-swiper .swiper-slide-prev,
+.onboarding-swiper .swiper-slide-next {
+  opacity: 0.8 !important;
+  transform: scale(0.95) !important;
 }
 
-/* Важные стили для предотвращения скрытия */
-.onboarding-card {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  transform: none !important;
-  position: relative !important;
-  z-index: 1 !important;
+/* ПРОСТЫЕ КАРТОЧКИ ОНБОРДИНГА */
+.onboarding-slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
 }
 
-/* Стили для текста в карточках */
-.onboarding-body {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  gap: 16px !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+.onboarding-card-simple {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 40px 30px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 320px;
+  width: 100%;
 }
 
-.headline {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  color: #ffffff !important;
-  font-size: 24px !important;
-  font-weight: 700 !important;
-  margin: 0 !important;
-  line-height: 1.2 !important;
-  text-align: center !important;
+.onboarding-title {
+  color: #1a1a1a;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  line-height: 1.2;
 }
 
-/* Адаптивность для мобильных */
+.onboarding-text {
+  color: #666;
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* АДАПТИВНОСТЬ ДЛЯ ОНБОРДИНГА */
 @media (max-width: 768px) {
-  .swiper {
+  .onboarding-overlay-fullscreen {
+    padding: 15px;
+  }
+
+  .onboarding-content {
     max-width: 90vw;
   }
 
-  .onboarding-card {
-    padding: 24px;
-    min-height: 180px;
+  .onboarding-card-simple {
+    padding: 30px 20px;
+    max-width: 280px;
   }
 
-  .headline {
+  .onboarding-title {
     font-size: 20px;
   }
-}
 
-/* Дополнительные стили для текста */
-.onboarding-card p {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  color: rgba(255, 255, 255, 0.8) !important;
-  font-size: 16px !important;
-  line-height: 1.5 !important;
-  text-align: center !important;
-  margin: 0 !important;
-  max-width: 300px !important;
+  .onboarding-text {
+    font-size: 14px;
+  }
 }
-
-/* Стили для overlay */
-.onboarding-overlay {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background-color: rgba(0, 0, 0, 0.9) !important;
-  z-index: 10000 !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  padding: 20px !important;
-}
-
-/* DEBUG СТИЛИ - УБРАТЬ ПОСЛЕ ТЕСТИРОВАНИЯ */
-/*
-.onboarding-card {
-  border: 2px solid red !important;
-}
-
-.swiper-slide {
-  border: 1px solid blue !important;
-}
-
-.onboarding-body {
-  border: 1px solid green !important;
-}
-*/
 
 /* Полноэкранные стили для контейнера ТОЛЬКО на мобильных */
 @media (max-width: 768px), (max-height: 1024px) and (orientation: portrait) {

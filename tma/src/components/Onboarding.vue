@@ -1,45 +1,47 @@
 <template>
-  <div v-if="props.visible" class="onboarding-overlay opaque">
+  <!-- ОНБОРДИНГ ОВЕРЛЕЙ - ПОЛНОЭКРАННЫЙ С ПЕРЕКРЫТИЕМ ОСНОВНОГО ИНТЕРФЕЙСА -->
+  <div v-if="props.visible" class="onboarding-overlay-fullscreen">
     <!-- Debug info -->
-    <div style="position: absolute; top: 10px; left: 10px; color: white; font-size: 12px; background: rgba(0,0,0,0.7); padding: 5px; border-radius: 4px; z-index: 10001;">
+    <div class="debug-info">
       DEBUG: visible={{ props.visible }}, isFreeFlow={{ isFreeFlow }}, flow={{ flow }}
     </div>
 
-    <!-- Простой онбординг -->
-    <Swiper
-      v-if="isFreeFlow"
-      :modules="modules"
-      direction="vertical"
-      :spaceBetween="18"
-      :slidesOffsetBefore="48"
-      :slidesOffsetAfter="48"
-      slides-per-view="auto"
-      :centeredSlides="true"
-      :autoplay="autoplay"
-      class="w-full h-full"
-      @swiper="onSwiperInit"
-      @slideChange="onSlideChange"
-    >
-      <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-body">
-          <h2 class="headline centered">Добро пожаловать в Dream Analyzer!</h2>
-          <p class="text-center mt-4 text-white/80">Мы поможем вам понять и интерпретировать ваши сны</p>
-        </div>
-      </SwiperSlide>
-      <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-body">
-          <h2 class="headline centered">Как это работает</h2>
-          <p class="text-center mt-4 text-white/80">Просто опишите свой сон в чате и получите подробный анализ</p>
-        </div>
-      </SwiperSlide>
-      <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-body">
-          <h2 class="headline centered">Начнем!</h2>
-          <p class="text-center mt-4 text-white/80">Отправьте описание вашего сна в чат</p>
-        </div>
-      </SwiperSlide>
-      @slideChange="onSlideChange"
-    </Swiper>
+    <!-- КОНТЕНТ ОНБОРДИНГА -->
+    <div class="onboarding-content">
+      <Swiper
+        v-if="isFreeFlow"
+        :modules="modules"
+        direction="vertical"
+        :spaceBetween="20"
+        :slidesOffsetBefore="60"
+        :slidesOffsetAfter="60"
+        slides-per-view="auto"
+        :centeredSlides="true"
+        :autoplay="autoplay"
+        class="onboarding-swiper"
+        @swiper="onSwiperInit"
+        @slideChange="onSlideChange"
+      >
+        <SwiperSlide class="onboarding-slide">
+          <div class="onboarding-card-simple">
+            <h2 class="onboarding-title">Добро пожаловать в Dream Analyzer!</h2>
+            <p class="onboarding-text">Мы поможем вам понять и интерпретировать ваши сны</p>
+          </div>
+        </SwiperSlide>
+        <SwiperSlide class="onboarding-slide">
+          <div class="onboarding-card-simple">
+            <h2 class="onboarding-title">Как это работает</h2>
+            <p class="onboarding-text">Просто опишите свой сон в чате и получите подробный анализ</p>
+          </div>
+        </SwiperSlide>
+        <SwiperSlide class="onboarding-slide">
+          <div class="onboarding-card-simple">
+            <h2 class="onboarding-title">Начнем!</h2>
+            <p class="onboarding-text">Отправьте описание вашего сна в чат</p>
+          </div>
+        </SwiperSlide>
+      </Swiper>
+    </div>
   </div>
 </template>
 
