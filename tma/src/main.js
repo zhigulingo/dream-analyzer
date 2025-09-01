@@ -546,6 +546,17 @@ const setupDesktopMode = (tg) => {
   // НЕ блокируем свайпы (не актуально для десктопа)
 };
 
+// ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: перехватываем любые изменения размера
+window.addEventListener('resize', function() {
+  if (!window.isMobileDevice && window.innerHeight > 650) {
+    console.log('🚨 [RESIZE] Detected height increase on desktop, blocking...');
+    document.documentElement.style.height = '600px';
+    document.documentElement.style.maxHeight = '600px';
+    document.body.style.height = '600px';
+    document.body.style.maxHeight = '600px';
+  }
+});
+
 // Определяем тип устройства
 console.log('🎯 [INIT] Starting Telegram WebApp initialization...');
 const deviceInfo = detectDevice();

@@ -20,6 +20,114 @@
     <!-- Подключаем скрипт Telegram WebApp без defer, чтобы он был доступен до инициализации -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
+    <!-- ЭКСТРЕННЫЕ CSS СТИЛИ ДЛЯ ЗАЩИТЫ ОТ FULLSCREEN -->
+    <style>
+      /* ЭКСТРЕННАЯ ЗАЩИТА: ограничиваем размер на десктопе сразу */
+      @media (min-width: 1025px) {
+        html, body {
+          max-height: 600px !important;
+          height: 600px !important;
+          overflow: hidden !important;
+        }
+
+        #app {
+          max-height: 600px !important;
+          height: 600px !important;
+        }
+
+        /* Предотвращаем любые трансформации */
+        html, body, #app {
+          transform: none !important;
+          -webkit-transform: none !important;
+        }
+      }
+
+      /* Мобильные устройства - разрешаем fullscreen */
+      @media (max-width: 1024px) {
+        html, body, #app {
+          min-height: 100vh;
+          height: 100vh;
+        }
+      }
+    </style>
+
+    <!-- ЭКСТРЕННАЯ ЗАЩИТА ОТ FULLSCREEN НА ДЕСКТОПЕ -->
+    <script>
+      (function() {
+        console.log('🚨 [EMERGENCY] Emergency desktop protection activated');
+
+        // БЛОКИРУЕМ FULLSCREEN НЕЗАВИСИМО ОТ ВСЕГО
+        function emergencyDesktopProtection() {
+          try {
+            // Определяем устройство экстренно
+            const isDesktop = window.innerWidth > 1024 && window.innerHeight > 768 &&
+                             !/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(navigator.userAgent);
+
+            if (isDesktop) {
+              console.log('🚨 [EMERGENCY] Desktop detected - EMERGENCY PROTECTION ACTIVATED');
+
+              // БЛОКИРУЕМ ВСЕ МЕТОДЫ TELEGRAM WEBAPP
+              if (window.Telegram?.WebApp) {
+                const tg = window.Telegram.WebApp;
+
+                // Переопределяем все методы, связанные с размером
+                const methodsToBlock = ['expand', 'requestFullscreen', 'openPopup', 'showPopup'];
+                methodsToBlock.forEach(method => {
+                  if (tg[method]) {
+                    const originalMethod = tg[method];
+                    tg[method] = function(...args) {
+                      console.log('🚨 [EMERGENCY] BLOCKED:', method, 'on desktop');
+                      return false;
+                    };
+                  }
+                });
+
+                // УСТАНАВЛИВАЕМ МИНИМАЛЬНЫЙ РАЗМЕР СРАЗУ
+                setTimeout(() => {
+                  document.documentElement.style.height = '600px';
+                  document.documentElement.style.maxHeight = '600px';
+                  document.body.style.height = '600px';
+                  document.body.style.maxHeight = '600px';
+                  console.log('🚨 [EMERGENCY] Desktop size limited to 600px');
+                }, 100);
+
+                // ДОБАВЛЯЕМ CSS СТИЛИ СРАЗУ
+                const emergencyCSS = document.createElement('style');
+                emergencyCSS.textContent = `
+                  html, body {
+                    max-height: 600px !important;
+                    height: 600px !important;
+                    overflow: hidden !important;
+                  }
+                  #app {
+                    max-height: 600px !important;
+                    height: 600px !important;
+                  }
+                `;
+                document.head.appendChild(emergencyCSS);
+                console.log('🚨 [EMERGENCY] Emergency CSS applied');
+              }
+            } else {
+              console.log('🚨 [EMERGENCY] Mobile device detected - no emergency protection needed');
+            }
+          } catch (error) {
+            console.error('🚨 [EMERGENCY] Error in emergency protection:', error);
+          }
+        }
+
+        // ЗАПУСКАЕМ СРАЗУ
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', emergencyDesktopProtection);
+        } else {
+          emergencyDesktopProtection();
+        }
+
+        // ЗАПУСКАЕМ ЧЕРЕЗ НЕБОЛЬШУЮ ЗАДЕРЖКУ
+        setTimeout(emergencyDesktopProtection, 50);
+        setTimeout(emergencyDesktopProtection, 200);
+      })();
+    </script>
+
     <!-- Ранняя инициализация fullscreen для мобильных устройств -->
     <script>
       (function() {

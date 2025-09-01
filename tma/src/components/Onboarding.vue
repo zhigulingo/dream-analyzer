@@ -618,18 +618,78 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   font-size: 16px;
   opacity: 0.95;
 }
-.onboarding-body { width: 100%; display: flex; justify-content: center; }
-.headline { font-size: 22px; line-height: 1.28; margin: 12px 0 0 0; color: #fff; text-align: center; }
-.centered { text-align: center; }
+.onboarding-body {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.headline {
+  font-size: 22px;
+  line-height: 1.28;
+  margin: 12px 0 0 0;
+  color: #fff;
+  text-align: center;
+  width: 100%;
+  display: block;
+}
+
+.centered {
+  text-align: center;
+  width: 100%;
+  display: block;
+}
 .media-overlay { position: relative; display: inline-block; }
 .overlay-stack { position: absolute; left: 24px; top: 18px; right: 24px; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.55); }
 .overlay-title { font-size: 26px; font-weight: 700; line-height: 1.12; }
 .overlay-subtitle { font-size: 18px; line-height: 1.12; margin-top: 6px; opacity: 0.95; }
 /* Центрирование контента карточек и контроль переполнения текста */
-.onboarding-card { display: flex; flex-direction: column; align-items: center; }
-.onboarding-header, .onboarding-body, .onboarding-media { max-width: 560px; width: 100%; }
-.onboarding-body { padding: 0 8px; }
-.onboarding-body .text { word-wrap: break-word; overflow-wrap: anywhere; text-align: center; }
+.onboarding-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboarding-header, .onboarding-body, .onboarding-media {
+  max-width: 560px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboarding-body {
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboarding-body .text {
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  text-align: center;
+  width: 100%;
+  display: block;
+}
+
+/* ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ ЦЕНТРИРОВАНИЯ */
+@media (max-width: 768px) {
+  .onboarding-card {
+    justify-content: space-around;
+    min-height: 350px;
+  }
+
+  .onboarding-body .headline {
+    font-size: 20px;
+    line-height: 1.3;
+  }
+}
 /* Пузырь текста по центру поверх изображения (вторая карточка) */
 .overlay-center { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; justify-content: center; padding: 0 16px; }
 .overlay-bubble { background: rgba(30,30,60,0.85); color: #fff; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.25; box-shadow: 0 8px 24px rgba(0,0,0,0.35); max-width: 260px; text-align: left; }
