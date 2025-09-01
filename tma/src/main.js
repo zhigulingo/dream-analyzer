@@ -672,18 +672,27 @@ if (!window.isMobileDevice) {
   console.log('📱 [MOBILE] Skipping mutation observer for desktop protection');
 }
 
-// ПЕРИОДИЧЕСКАЯ ПРОВЕРКА РАЗМЕРА ТОЛЬКО ДЛЯ ДЕСКТОПА
-if (!window.isMobileDevice) {
-  setInterval(function() {
-    if (window.innerHeight > 650) {
-      console.log('⏰ [PERIODIC] Periodic check detected large height:', window.innerHeight);
-      enforceDesktopSizeLimit();
-    }
-  }, 1000);
+// ПЕРИОДИЧЕСКАЯ ПРОВЕРКА РАЗМЕРА ТОЛЬКО ДЛЯ ДЕСКТОПА - С ДОПОЛНИТЕЛЬНОЙ ЗАЩИТОЙ
+if (typeof window !== 'undefined' && window.isMobileDevice === false) {
+  console.log('💻 [PERIODIC] Starting periodic desktop size checks');
 
-  console.log('⏰ [PERIODIC] Periodic size check active');
+  const periodicCheck = () => {
+    try {
+      if (typeof window !== 'undefined' && window.innerHeight > 650) {
+        console.log('⏰ [PERIODIC] Periodic check detected large height:', window.innerHeight);
+        if (typeof enforceDesktopSizeLimit === 'function') {
+          enforceDesktopSizeLimit();
+        }
+      }
+    } catch (error) {
+      console.error('⏰ [PERIODIC] Error in periodic check:', error);
+    }
+  };
+
+  setInterval(periodicCheck, 2000); // Увеличили интервал до 2 секунд
+  console.log('⏰ [PERIODIC] Periodic size check active for desktop');
 } else {
-  console.log('📱 [MOBILE] Skipping periodic desktop size checks');
+  console.log('📱 [MOBILE] Skipping periodic desktop size checks (mobile device or window undefined)');
 }
 
 // СНАЧАЛА определяем тип устройства и устанавливаем глобальный флаг

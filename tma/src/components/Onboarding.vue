@@ -137,9 +137,51 @@ import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Autoplay, A11y, Keyboard } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/autoplay'
-import { useUserStore } from '@/stores/user.js'
-import api from '@/services/api.js'
-import StickerPlayer from '@/components/StickerPlayer.vue'
+
+// СТАНДАРТНЫЕ ИМПОРТЫ С ПОЗДНЕЙ ИНИЦИАЛИЗАЦИЕЙ
+let useUserStore: any = null
+let api: any = null
+let StickerPlayer: any = null
+
+// ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ С ЗАЩИТОЙ
+onMounted(async () => {
+  try {
+    const userStoreModule = await import('@/stores/user.js')
+    useUserStore = userStoreModule.useUserStore
+    console.log('✅ [ONBOARDING] useUserStore loaded successfully')
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Failed to load useUserStore:', error)
+    useUserStore = () => ({
+      profile: { subscription_type: '', channel_reward_claimed: false, total_dreams_count: 0 },
+      history: [],
+      claimChannelReward: () => Promise.resolve(),
+      rewardAlreadyClaimed: false,
+      claimRewardError: null,
+      notificationStore: { info: () => {}, warning: () => {}, success: () => {} }
+    })
+  }
+
+  try {
+    const apiModule = await import('@/services/api.js')
+    api = apiModule.default
+    console.log('✅ [ONBOARDING] api loaded successfully')
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Failed to load api:', error)
+    api = { trackOnboarding: () => {} }
+  }
+
+  try {
+    const stickerModule = await import('@/components/StickerPlayer.vue')
+    StickerPlayer = stickerModule.default
+    console.log('✅ [ONBOARDING] StickerPlayer loaded successfully')
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Failed to load StickerPlayer:', error)
+    StickerPlayer = {
+      name: 'ErrorStickerPlayer',
+      template: '<div class="text-center text-white">Ошибка загрузки стикера</div>'
+    }
+  }
+})
 const frame1 = new URL('../../stickers/Onboarding Frame-1.png', import.meta.url).href
 const frame2 = new URL('../../stickers/Onboarding Frame-2.png', import.meta.url).href
 const frame3 = new URL('../../stickers/Onboarding Frame-3.png', import.meta.url).href
@@ -148,26 +190,33 @@ const modules = [Autoplay, A11y, Keyboard]
 const autoplay = { delay: 8000, disableOnInteraction: false, stopOnLastSlide: true }
 const tg = computed(() => (typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null))
 const emit = defineEmits<{ (e: 'visible-change', value: boolean): void }>()
-const userStore = useUserStore()
 
-// Инициализация переменных для предотвращения ошибок
-if (!userStore) {
-  console.error('❌ [ONBOARDING] userStore is not available')
-}
-
-// Проверка API
-if (!api) {
-  console.error('❌ [ONBOARDING] api is not available')
-}
-
-// ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: создаем безопасные версии функций
-const safeApiTrack = (event: string) => {
-  try {
-    if (api?.trackOnboarding) {
-      api.trackOnboarding(event)
-    } else {
-      console.warn('⚠️ [ONBOARDING] api.trackOnboarding not available')
+// БЕЗОПАСНОЕ ПОЛУЧЕНИЕ userStore
+const getUserStore = () => {
+  if (!useUserStore) {
+    console.warn('⚠️ [ONBOARDING] useUserStore not loaded yet, using fallback')
+    return {
+      profile: { subscription_type: '', channel_reward_claimed: false, total_dreams_count: 0 },
+      history: [],
+      claimChannelReward: () => Promise.resolve(),
+      rewardAlreadyClaimed: false,
+      claimRewardError: null,
+      notificationStore: { info: () => {}, warning: () => {}, success: () => {} }
     }
+  }
+  return useUserStore()
+}
+
+const userStore = getUserStore()
+
+// БЕЗОПАСНЫЕ ФУНКЦИИ API И TELEGRAM
+const safeApiTrack = (event: string) => {
+  if (!api || typeof api.trackOnboarding !== 'function') {
+    console.warn('⚠️ [ONBOARDING] api.trackOnboarding not available')
+    return
+  }
+  try {
+    api.trackOnboarding(event)
   } catch (error) {
     console.error('❌ [ONBOARDING] Error in api.trackOnboarding:', error)
   }
@@ -232,15 +281,20 @@ const initFlow = () => {
       step.value = 1
     } else if (hasNewFlowEligibility.value) {
       // Если пользователь уже получил токен, но ещё не сделал анализ → показываем промежуточный экран
-      const claimed = !!userStore.profile?.channel_reward_claimed
-      const hasAnalyses = (userStore.profile?.total_dreams_count || userStore.history?.length || 0) > 0
-      if (claimed && !hasAnalyses) {
-        flow.value = 'post_claim'
+      try {
+        const claimed = !!userStore?.profile?.channel_reward_claimed
+        const hasAnalyses = (userStore?.profile?.total_dreams_count || userStore?.history?.length || 0) > 0
+        if (claimed && !hasAnalyses) {
+          flow.value = 'post_claim'
+          step.value = 1
+          return
+        }
+        flow.value = 'new'
         step.value = 1
-        return
+      } catch (error) {
+        console.error('❌ [ONBOARDING] Error accessing userStore properties:', error)
+        flow.value = 'none'
       }
-      flow.value = 'new'
-      step.value = 1
     } else {
       flow.value = 'none'
     }
