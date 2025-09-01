@@ -21,25 +21,33 @@
       class="w-full h-full"
     >
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media">
+          <component :is="StickerPlayer" src="wizard-thining.tgs" :width="220" :height="220" />
+        </div>
         <div class="onboarding-body">
           <h2 class="headline centered">Сюжеты снов часто отражают эмоции,<br/>а не реальные события.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media"><StickerPlayer src="thinking.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media">
+          <component :is="StickerPlayer" src="thinking.tgs" :width="220" :height="220" />
+        </div>
         <div class="onboarding-body">
           <h2 class="headline centered">DreamsTalk поможет сохранить<br/>и исследовать сны, чтобы лучше<br/>понимать себя и свои эмоции.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media">
+          <component :is="StickerPlayer" src="chat.tgs" :width="220" :height="220" />
+        </div>
         <div class="onboarding-body">
           <h2 class="headline centered">Чтобы описать сон — просто отправь его в чат.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media">
+          <component :is="StickerPlayer" src="telegram-star.tgs" :width="220" :height="220" />
+        </div>
         <div class="onboarding-body">
           <h2 class="headline centered">Получи первый токен для анализа сна<br/>за подписку на канал @TheDreamsHub</h2>
         </div>
@@ -66,7 +74,9 @@
       class="w-full h-full"
     >
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media">
+          <component :is="StickerPlayer" src="chat.tgs" :width="220" :height="220" />
+        </div>
         <div class="onboarding-body">
           <h2 class="headline centered">Чтобы описать сон — просто отправь его в чат.</h2>
         </div>
@@ -94,7 +104,9 @@
       class="w-full h-full"
     >
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media">
+          <component :is="StickerPlayer" src="wizard-thining.tgs" :width="220" :height="220" />
+        </div>
         <div class="onboarding-body">
           <h2 class="headline centered">Ура! Твой первый сон проанализирован</h2>
         </div>
@@ -139,9 +151,29 @@ import 'swiper/css'
 import 'swiper/css/autoplay'
 
 // СТАНДАРТНЫЕ ИМПОРТЫ С ПОЗДНЕЙ ИНИЦИАЛИЗАЦИЕЙ
-let useUserStore: any = null
-let api: any = null
-let StickerPlayer: any = null
+let useUserStore: any = () => ({
+  profile: {},
+  history: [],
+  notificationStore: {
+    info: () => {},
+    success: () => {},
+    warning: () => {},
+    error: () => {}
+  },
+  claimChannelReward: () => Promise.resolve(),
+  fetchProfile: () => Promise.resolve(),
+  fetchHistory: () => Promise.resolve()
+})
+// Инициализируем переменные с безопасными значениями
+let api: any = {
+  trackOnboarding: () => {},
+  setOnboardingStage: () => Promise.resolve()
+}
+let StickerPlayer: any = {
+  name: 'LoadingStickerPlayer',
+  props: ['src', 'width', 'height'],
+  template: '<div class="sticker-placeholder" style="width: 220px; height: 220px; background: #f0f0f0; border-radius: 10px;"></div>'
+}
 
 // ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ С ЗАЩИТОЙ
 onMounted(async () => {
@@ -193,18 +225,44 @@ const emit = defineEmits<{ (e: 'visible-change', value: boolean): void }>()
 
 // БЕЗОПАСНОЕ ПОЛУЧЕНИЕ userStore
 const getUserStore = () => {
-  if (!useUserStore) {
-    console.warn('⚠️ [ONBOARDING] useUserStore not loaded yet, using fallback')
+  try {
+    if (!useUserStore) {
+      console.warn('⚠️ [ONBOARDING] useUserStore not loaded yet, using fallback')
+      return {
+        profile: { subscription_type: '', channel_reward_claimed: false, total_dreams_count: 0 },
+        history: [],
+        claimChannelReward: () => Promise.resolve(),
+        rewardAlreadyClaimed: false,
+        claimRewardError: null,
+        notificationStore: { info: () => {}, warning: () => {}, success: () => {} },
+        fetchProfile: () => Promise.resolve(),
+        fetchHistory: () => Promise.resolve()
+      }
+    }
+    const store = useUserStore()
+    return store || {
+      profile: { subscription_type: '', channel_reward_claimed: false, total_dreams_count: 0 },
+      history: [],
+      claimChannelReward: () => Promise.resolve(),
+      rewardAlreadyClaimed: false,
+      claimRewardError: null,
+      notificationStore: { info: () => {}, warning: () => {}, success: () => {} },
+      fetchProfile: () => Promise.resolve(),
+      fetchHistory: () => Promise.resolve()
+    }
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in getUserStore:', error)
     return {
       profile: { subscription_type: '', channel_reward_claimed: false, total_dreams_count: 0 },
       history: [],
       claimChannelReward: () => Promise.resolve(),
       rewardAlreadyClaimed: false,
       claimRewardError: null,
-      notificationStore: { info: () => {}, warning: () => {}, success: () => {} }
+      notificationStore: { info: () => {}, warning: () => {}, success: () => {} },
+      fetchProfile: () => Promise.resolve(),
+      fetchHistory: () => Promise.resolve()
     }
   }
-  return useUserStore()
 }
 
 const userStore = getUserStore()
