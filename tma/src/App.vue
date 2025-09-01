@@ -125,6 +125,26 @@ body {
   }
 }
 
+/* СТИЛИ ДЛЯ ОГРАНИЧЕНИЯ РАЗМЕРА НА ДЕСКТОПЕ */
+@media (min-width: 1025px) {
+  html, body {
+    max-height: 600px !important;
+    height: 600px !important;
+    overflow: hidden !important;
+  }
+
+  #app {
+    max-height: 600px !important;
+    height: 600px !important;
+  }
+
+  /* Предотвращаем любые попытки изменения размера */
+  html, body, #app {
+    resize: none !important;
+    -webkit-resize: none !important;
+  }
+}
+
 /* Базовые стили для #app */
 #app {
   flex: 1;

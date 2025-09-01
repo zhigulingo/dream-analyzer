@@ -290,9 +290,27 @@ const preventSwipeClose = (e) => {
 
 // Функция повторного применения защиты от свайпов
 const reapplySwipeProtection = () => {
+  // ПРОВЕРКА: только для мобильных устройств
+  if (!window.isMobileDevice) {
+    return;
+  }
+
+  // ПРОВЕРКА: не чаще чем раз в 2 секунды
+  const now = Date.now();
+  if (window.lastSwipeProtectionTime && now - window.lastSwipeProtectionTime < 2000) {
+    return;
+  }
+  window.lastSwipeProtectionTime = now;
+
   const tg = window.Telegram?.WebApp;
-  if (tg?.disableVerticalSwipes) tg.disableVerticalSwipes();
-  if (tg?.enableClosingConfirmation) tg.enableClosingConfirmation();
+  if (tg?.disableVerticalSwipes) {
+    tg.disableVerticalSwipes();
+    console.log('🔒 Swipe protection reapplied');
+  }
+  if (tg?.enableClosingConfirmation) {
+    tg.enableClosingConfirmation();
+    console.log('🔒 Closing confirmation reapplied');
+  }
 };
 
 // Функция настройки полноэкранного режима для мобильных устройств
@@ -302,6 +320,13 @@ const setupMobileFullscreen = (tg) => {
   console.log('🚀 Setting up mobile fullscreen mode');
   console.log('📱 Telegram WebApp available:', !!tg);
   console.log('📱 Telegram WebApp requestFullscreen:', !!tg.requestFullscreen);
+
+  // ПРОВЕРКА: если уже инициализировано, выходим
+  if (window.mobileFullscreenInitialized) {
+    console.log('📱 Mobile fullscreen already initialized, skipping');
+    return;
+  }
+  window.mobileFullscreenInitialized = true;
 
   // АГРЕССИВНЫЙ ПОДХОД ДЛЯ TELEGRAM MINI APP
 
@@ -423,8 +448,11 @@ const setupMobileFullscreen = (tg) => {
   document.addEventListener('touchmove', preventSwipeClose, { passive: false });
   document.addEventListener('touchend', preventSwipeClose, { passive: false });
 
-  // Периодическая повторная блокировка (на случай сброса Telegram)
-  setInterval(reapplySwipeProtection, 5000);
+  // Периодическая повторная блокировка ТОЛЬКО ДЛЯ МОБИЛЬНЫХ (на случай сброса Telegram)
+  if (window.isMobileDevice) {
+    setInterval(reapplySwipeProtection, 10000); // Увеличили интервал до 10 секунд
+    console.log('📱 Mobile: periodic swipe protection enabled (10s interval)');
+  }
 
   // Обработка изменения размера viewport
   tg.onEvent('viewportChanged', () => {
@@ -455,23 +483,63 @@ const setupMobileFullscreen = (tg) => {
 
 // Функция настройки режима для десктопа
 const setupDesktopMode = (tg) => {
-  console.log('Setting up desktop mode');
+  console.log('💻 Setting up desktop mode');
 
   // Для десктопа работаем без Telegram API (fallback mode)
   document.body.style.backgroundColor = '#121a12';
   document.body.style.overscrollBehavior = 'none';
   document.documentElement.style.overscrollBehavior = 'none';
 
-  // Если есть Telegram API, инициализируем его
+  // АГРЕССИВНОЕ СВОРАЧИВАНИЕ ДЕСКТОПА
   if (tg) {
     try {
       tg.ready();
-      console.log('Desktop Telegram: basic setup completed');
+      console.log('💻 Desktop Telegram: basic setup completed');
+
+      // ПРИНУДИТЕЛЬНО СВОРАЧИВАЕМ ДЕСКТОП
+      setTimeout(() => {
+        console.log('💻 Desktop: attempting to collapse window');
+
+        // Проверяем текущее состояние viewport
+        console.log('💻 Desktop viewport state:', {
+          height: tg.viewportHeight,
+          isExpanded: tg.isExpanded,
+          isStateStable: tg.isStateStable
+        });
+
+        // Если приложение развернуто, пытаемся свернуть
+        if (tg.viewportHeight && tg.viewportHeight > 600) {
+          console.log('💻 Desktop: detected expanded state, attempting to minimize');
+
+          // Устанавливаем минимальную высоту viewport
+          document.documentElement.style.height = '600px';
+          document.body.style.height = '600px';
+          document.body.style.maxHeight = '600px';
+
+          // Добавляем CSS для ограничения размера
+          const style = document.createElement('style');
+          style.textContent = `
+            html, body {
+              max-height: 600px !important;
+              height: 600px !important;
+              overflow: hidden !important;
+            }
+            #app {
+              max-height: 600px !important;
+              height: 600px !important;
+            }
+          `;
+          document.head.appendChild(style);
+
+          console.log('💻 Desktop: collapse styles applied');
+        }
+      }, 1000);
+
     } catch (error) {
-      console.warn('Desktop Telegram setup failed:', error);
+      console.warn('💻 Desktop Telegram setup failed:', error);
     }
   } else {
-    console.log('Desktop mode: standalone (no Telegram API)');
+    console.log('💻 Desktop mode: standalone (no Telegram API)');
   }
 
   // НЕ применяем fullscreen функции
@@ -487,6 +555,9 @@ console.log('📊 [INIT] Device detection completed:', deviceInfo);
 let telegramInitialized = false;
 
 console.log('🎯 [INIT] Starting device-specific initialization...');
+
+// Устанавливаем глобальный флаг устройства
+window.isMobileDevice = deviceInfo.isMobile;
 
 if (deviceInfo.isMobile) {
   console.log('📱 [INIT] Mobile device detected - initializing mobile mode');

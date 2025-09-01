@@ -54,9 +54,30 @@
                 return;
               }
 
-              // Для десктопа - НЕ применяем fullscreen
+              // Для десктопа - АГРЕССИВНО ПРЕДОТВРАЩАЕМ РАЗВЕРТЫВАНИЕ
               if (!isMobile) {
-                console.log('💻 [HTML] Desktop detected - skipping early fullscreen');
+                console.log('💻 [HTML] Desktop detected - preventing expansion');
+
+                // Переопределяем методы Telegram WebApp для десктопа
+                if (window.Telegram?.WebApp) {
+                  const originalExpand = window.Telegram.WebApp.expand;
+                  const originalRequestFullscreen = window.Telegram.WebApp.requestFullscreen;
+
+                  // Блокируем expand
+                  window.Telegram.WebApp.expand = function() {
+                    console.log('💻 [HTML] Desktop expand blocked');
+                    return false;
+                  };
+
+                  // Блокируем requestFullscreen
+                  window.Telegram.WebApp.requestFullscreen = function() {
+                    console.log('💻 [HTML] Desktop requestFullscreen blocked');
+                    return false;
+                  };
+
+                  console.log('💻 [HTML] Desktop expansion methods blocked');
+                }
+
                 return;
               }
 
