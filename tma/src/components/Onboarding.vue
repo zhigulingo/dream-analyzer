@@ -6,8 +6,8 @@
       :modules="modules"
       direction="vertical"
       :spaceBetween="18"
-      :slidesOffsetBefore="0"
-      :slidesOffsetAfter="0"
+      :slidesOffsetBefore="48"
+      :slidesOffsetAfter="48"
       slides-per-view="auto"
       :centeredSlides="true"
       :autoplay="autoplay"
@@ -52,8 +52,8 @@
       :modules="modules"
       direction="vertical"
       :spaceBetween="18"
-      :slidesOffsetBefore="0"
-      :slidesOffsetAfter="0"
+      :slidesOffsetBefore="48"
+      :slidesOffsetAfter="48"
       slides-per-view="auto"
       :centeredSlides="true"
       :keyboard="{ enabled: true }"
@@ -79,8 +79,8 @@
       :modules="modules"
       direction="vertical"
       :spaceBetween="18"
-      :slidesOffsetBefore="0"
-      :slidesOffsetAfter="0"
+      :slidesOffsetBefore="48"
+      :slidesOffsetAfter="48"
       slides-per-view="auto"
       :centeredSlides="true"
       :autoplay="autoplay"
@@ -94,9 +94,9 @@
       class="w-full h-full"
     >
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media media-top"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media media-top"><StickerPlayer src="wizard-happy.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">Ура! Твой первый сон проанализирован</h2>
+          <h2 class="headline centered">Ура!<br/>Твой первый сон проанализирован.<br/><br/>Все сны твои сны<br/>в одном месте – личный кабинет.<br/><br/>Давай покажу его!</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
