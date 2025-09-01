@@ -286,23 +286,71 @@ body {
   height: 100%;
   max-width: 400px;
   margin: 0 auto;
+  overflow: visible !important;
 }
 
 .swiper-wrapper {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .swiper-slide {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
   height: auto !important;
+  min-height: 250px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
 }
 
-.swiper-slide-active.center-card {
-  transform: scale(1) !important;
+.swiper-slide-active {
   opacity: 1 !important;
+  visibility: visible !important;
+  transform: scale(1) !important;
+}
+
+.swiper-slide-prev,
+.swiper-slide-next {
+  opacity: 0.7 !important;
+  transform: scale(0.92) !important;
+}
+
+/* Важные стили для предотвращения скрытия */
+.onboarding-card {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: none !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Стили для текста в карточках */
+.onboarding-body {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 16px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.headline {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: #ffffff !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
 }
 
 /* Адаптивность для мобильных */
@@ -320,6 +368,49 @@ body {
     font-size: 20px;
   }
 }
+
+/* Дополнительные стили для текста */
+.onboarding-card p {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+  margin: 0 !important;
+  max-width: 300px !important;
+}
+
+/* Стили для overlay */
+.onboarding-overlay {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  z-index: 10000 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  padding: 20px !important;
+}
+
+/* DEBUG СТИЛИ - УБРАТЬ ПОСЛЕ ТЕСТИРОВАНИЯ */
+/*
+.onboarding-card {
+  border: 2px solid red !important;
+}
+
+.swiper-slide {
+  border: 1px solid blue !important;
+}
+
+.onboarding-body {
+  border: 1px solid green !important;
+}
+*/
 
 /* Полноэкранные стили для контейнера ТОЛЬКО на мобильных */
 @media (max-width: 768px), (max-height: 1024px) and (orientation: portrait) {

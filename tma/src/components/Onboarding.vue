@@ -17,6 +17,8 @@
       :centeredSlides="true"
       :autoplay="autoplay"
       class="w-full h-full"
+      @swiper="onSwiperInit"
+      @slideChange="onSlideChange"
     >
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-body">
@@ -69,9 +71,16 @@ const closeOnboarding = () => {
   emit('visible-change', false)
 }
 
+const onSwiperInit = (swiper: any) => {
+  console.log('🎯 [ONBOARDING] Swiper initialized:', swiper)
+  console.log('🎯 [ONBOARDING] Swiper params:', swiper.params)
+  console.log('🎯 [ONBOARDING] Swiper slides:', swiper.slides)
+  console.log('🎯 [ONBOARDING] Swiper wrapper:', swiper.wrapperEl)
+}
+
 const onSlideChange = (swiper: any) => {
   step.value = (swiper?.activeIndex || 0) + 1
-  console.log('🎯 [ONBOARDING] Slide changed to:', step.value)
+  console.log('🎯 [ONBOARDING] Slide changed to:', step.value, 'swiper:', swiper)
 
   if (step.value === 3) {
     console.log('🎯 [ONBOARDING] Last slide reached, auto-closing in 2 seconds')
