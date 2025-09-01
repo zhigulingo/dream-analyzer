@@ -100,7 +100,18 @@ const initTelegramMobile = () => {
 
 // Инициализация Telegram WebApp API для десктопа
 const initTelegramDesktop = () => {
-  if (!window.Telegram?.WebApp) return false;
+  // Проверяем наличие Telegram API
+  if (!window.Telegram?.WebApp) {
+    console.log('Desktop mode: Telegram WebApp not available, using standalone mode');
+    return false;
+  }
+
+  // Проверяем, что это действительно Telegram среда, а не ошибка с window.TelegramGameProxy
+  if (!window.Telegram.WebApp.ready || typeof window.Telegram.WebApp.ready !== 'function') {
+    console.log('Desktop mode: Telegram WebApp not properly initialized, using standalone mode');
+    return false;
+  }
+
   const tg = window.Telegram.WebApp;
 
   try {
@@ -110,13 +121,13 @@ const initTelegramDesktop = () => {
     // tg.expand() НЕ ВЫЗЫВАЕМ - оставляем обычное окно браузера
     console.log('Desktop Telegram: keeping regular window size');
 
-    // НЕ используем requestFullscreen() для десктопа
+    return true;
 
   } catch (error) {
     console.error('Error initializing Telegram desktop:', error);
+    // В случае ошибки возвращаем false, чтобы использовать fallback
+    return false;
   }
-
-  return true;
 };
 
 // Общая инициализация (fallback)
@@ -152,8 +163,18 @@ const setupMobileFullscreen = (tg) => {
 
   console.log('Setting up mobile fullscreen mode');
 
-  // ОСНОВНОЙ МЕТОД: tg.expand() уже вызван в initTelegramMobile()
-  // НЕ ДУБЛИРУЕМ вызов здесь
+  // ПОСЛЕДОВАТЕЛЬНОСТЬ ДЕЙСТВИЙ ДЛЯ ПОЛНОГО ЭКРАНА:
+  // 1. tg.expand() уже вызван в initTelegramMobile()
+  // 2. Теперь добавляем requestFullscreen() для полного экрана устройства
+
+  // Ждем небольшую задержку после expand(), затем применяем requestFullscreen
+  setTimeout(() => {
+    enterBrowserFullscreen().then(() => {
+      console.log('✅ Browser fullscreen enabled after tg.expand()');
+    }).catch(err => {
+      console.log('Browser fullscreen failed (may be expected in Telegram):', err);
+    });
+  }, 200);
 
   // Устанавливаем фоновый цвет для status bar
   document.body.style.backgroundColor = '#121a12';
@@ -222,19 +243,27 @@ const setupMobileFullscreen = (tg) => {
 
 // Функция настройки режима для десктопа
 const setupDesktopMode = (tg) => {
-  if (!tg) return;
+  console.log('Setting up desktop mode');
 
-  console.log('Setting up desktop mode (regular window)');
-
-  // Для десктопа устанавливаем только базовые стили
+  // Для десктопа работаем без Telegram API (fallback mode)
   document.body.style.backgroundColor = '#121a12';
   document.body.style.overscrollBehavior = 'none';
   document.documentElement.style.overscrollBehavior = 'none';
 
-  // НЕ применяем никаких fullscreen функций
-  // НЕ блокируем свайпы (они не актуальны для десктопа)
+  // Если есть Telegram API, инициализируем его
+  if (tg) {
+    try {
+      tg.ready();
+      console.log('Desktop Telegram: basic setup completed');
+    } catch (error) {
+      console.warn('Desktop Telegram setup failed:', error);
+    }
+  } else {
+    console.log('Desktop mode: standalone (no Telegram API)');
+  }
 
-  console.log('Desktop mode setup completed');
+  // НЕ применяем fullscreen функции
+  // НЕ блокируем свайпы (не актуально для десктопа)
 };
 
 // Определяем тип устройства
@@ -260,6 +289,22 @@ if (deviceInfo.isMobile) {
       }
       console.log('Mobile viewport height:', tg.viewportHeight);
     }, 100);
+  } else {
+    // Fallback для мобильных без Telegram API
+    console.log('Mobile fallback: Telegram not available, using browser fullscreen');
+    telegramInitialized = true;
+
+    // Пытаемся применить браузерный fullscreen для мобильных
+    setTimeout(() => {
+      enterBrowserFullscreen().catch(err => {
+        console.log('Mobile fallback fullscreen failed:', err);
+      });
+    }, 200);
+
+    // Настраиваем базовые стили для мобильных
+    document.body.style.backgroundColor = '#121a12';
+    document.body.style.overscrollBehavior = 'none';
+    document.documentElement.style.overscrollBehavior = 'none';
   }
 } else if (deviceInfo.isDesktop) {
   // Инициализация для десктопа
@@ -277,6 +322,16 @@ if (deviceInfo.isMobile) {
       }
       console.log('Desktop mode: regular window');
     }, 100);
+  } else {
+    // Fallback для десктопа без Telegram API
+    console.log('Desktop fallback: Telegram not available, using standalone mode');
+    telegramInitialized = true;
+
+    // Настраиваем обычный режим для десктопа
+    setupDesktopMode(null);
+
+    // Для десктопа НЕ применяем fullscreen
+    console.log('Desktop standalone: regular browser window');
   }
 }
 
@@ -367,6 +422,6 @@ window.triggerHaptic = (type = 'light') => {
   }
 };
 
-// Глобальные функции для ручного управления (опционально)
-// window.enterBrowserFullscreen = enterBrowserFullscreen;
-// window.exitBrowserFullscreen = exitBrowserFullscreen;
+// Глобальные функции для браузерного fullscreen
+window.enterBrowserFullscreen = enterBrowserFullscreen;
+window.exitBrowserFullscreen = exitBrowserFullscreen;
