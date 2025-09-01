@@ -9,6 +9,65 @@ import App from './App.vue' // Ваш корневой компонент Vue
 import "./index.css"
 // import './assets/main.css'
 
+// БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ TELEGRAM API
+const initTelegramSafely = () => {
+  try {
+    // Проверяем наличие window
+    if (typeof window === 'undefined') {
+      console.log('🚫 [MAIN] Window not available, skipping Telegram initialization');
+      return false;
+    }
+
+    // Создаем безопасную заглушку для Telegram API
+    if (!window.Telegram) {
+      console.log('🚫 [MAIN] Telegram not available, creating safe stub');
+      window.Telegram = {
+        WebApp: {
+          ready: () => {},
+          requestFullscreen: () => {},
+          exitFullscreen: () => {},
+          expand: () => {},
+          disableVerticalSwipes: () => {},
+          enableClosingConfirmation: () => {},
+          MainButton: {
+            hide: () => {},
+            show: () => {},
+            setParams: () => {},
+            offClick: () => {},
+            onClick: () => {}
+          },
+          viewportHeight: window.innerHeight,
+          viewportChanged: () => {},
+          onEvent: () => {},
+          HapticFeedback: {
+            impactOccurred: () => {}
+          }
+        }
+      };
+    }
+
+    // Создаем безопасную заглушку для TelegramGameProxy
+    if (!window.TelegramGameProxy) {
+      console.log('🚫 [MAIN] TelegramGameProxy not available, creating safe stub');
+      window.TelegramGameProxy = {
+        receiveEvent: () => {},
+        initParams: {},
+        sendData: () => {}
+      };
+    }
+
+    console.log('✅ [MAIN] Telegram API safely initialized');
+    return true;
+
+  } catch (error) {
+    console.error('❌ [MAIN] Error initializing Telegram API:', error);
+    return false;
+  }
+};
+
+// Инициализируем Telegram API безопасно
+initTelegramSafely();
+
 console.log('🚀 [MAIN] Starting Vue app initialization...');
 console.log('🚀 [MAIN] Current URL:', window.location.href);
 console.log('🚀 [MAIN] Telegram WebApp available:', typeof window !== 'undefined' && window.Telegram?.WebApp);
@@ -219,7 +278,10 @@ const exitBrowserFullscreen = () => {
 
 // Инициализация Telegram WebApp API для мобильных устройств
 const initTelegramMobile = () => {
-  if (!window.Telegram?.WebApp) return false;
+  if (!window.Telegram?.WebApp) {
+    console.log('📱 [MOBILE] Telegram WebApp not available');
+    return false;
+  }
   const tg = window.Telegram.WebApp;
 
   try {
@@ -240,7 +302,7 @@ const initTelegramMobile = () => {
 const initTelegramDesktop = () => {
   // Проверяем наличие Telegram API
   if (!window.Telegram?.WebApp) {
-    console.log('Desktop mode: Telegram WebApp not available, using standalone mode');
+    console.log('💻 [DESKTOP] Telegram WebApp not available, using standalone mode');
     return false;
   }
 
@@ -295,6 +357,12 @@ const reapplySwipeProtection = () => {
     return;
   }
 
+  // ПРОВЕРКА: наличие Telegram API
+  if (!window.Telegram?.WebApp) {
+    console.log('🔒 [SWIPE] Telegram WebApp not available, skipping swipe protection');
+    return;
+  }
+
   // ПРОВЕРКА: не чаще чем раз в 2 секунды
   const now = Date.now();
   if (window.lastSwipeProtectionTime && now - window.lastSwipeProtectionTime < 2000) {
@@ -315,7 +383,10 @@ const reapplySwipeProtection = () => {
 
 // Функция настройки полноэкранного режима для мобильных устройств
 const setupMobileFullscreen = (tg) => {
-  if (!tg) return;
+  if (!tg) {
+    console.log('📱 [MOBILE] No Telegram WebApp provided');
+    return;
+  }
 
   console.log('🚀 Setting up mobile fullscreen mode');
   console.log('📱 Telegram WebApp available:', !!tg);
@@ -484,6 +555,7 @@ const setupMobileFullscreen = (tg) => {
 // Функция настройки режима для десктопа
 const setupDesktopMode = (tg) => {
   console.log('💻 Setting up desktop mode');
+  console.log('💻 Telegram WebApp provided:', !!tg);
 
   // Для десктопа работаем без Telegram API (fallback mode)
   document.body.style.backgroundColor = '#121a12';
@@ -864,9 +936,15 @@ if (!telegramInitialized) {
 // Глобальные функции для работы с Telegram Mini Apps
 // Глобальная функция для хаптиков
 window.triggerHaptic = (type = 'light') => {
-  const tg = window.Telegram?.WebApp;
-  if (tg?.HapticFeedback) {
-    tg.HapticFeedback.impactOccurred(type);
+  try {
+    const tg = window.Telegram?.WebApp;
+    if (tg?.HapticFeedback) {
+      tg.HapticFeedback.impactOccurred(type);
+    } else {
+      console.log('🔊 [HAPTIC] Haptic feedback not available');
+    }
+  } catch (error) {
+    console.error('❌ [HAPTIC] Error triggering haptic feedback:', error);
   }
 };
 
