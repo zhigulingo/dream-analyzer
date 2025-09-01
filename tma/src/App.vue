@@ -33,11 +33,21 @@ const shouldShowOnboarding = computed(() => {
   const subType = userStore.profile.subscription_type
   const onboardingStage = userStore.profile.onboarding_stage
 
+  console.log('🎯 [ONBOARDING] Checking shouldShowOnboarding:', {
+    subType,
+    onboardingStage,
+    profile: userStore.profile
+  })
+
   // Показываем онбординг ТОЛЬКО если:
   // 1. Тип подписки = 'onboarding1' (не onboarding2!)
   // 2. И onboarding_stage не завершен (не stage3)
-  return subType === 'onboarding1' &&
-         (!onboardingStage || onboardingStage !== 'stage3')
+  const result = subType === 'onboarding1' &&
+                 (!onboardingStage || onboardingStage !== 'stage3')
+
+  console.log('🎯 [ONBOARDING] shouldShowOnboarding result:', result)
+
+  return result
 })
 
 onMounted(async () => {
@@ -49,8 +59,16 @@ onMounted(async () => {
     userStore.fetchHistory().catch(() => {})
 
     // Проверяем нужно ли показывать онбординг ПОСЛЕ загрузки профиля
+    console.log('🎯 [ONBOARDING] Checking after profile load:', {
+      shouldShow: shouldShowOnboarding.value,
+      profile: userStore.profile
+    })
+
     if (shouldShowOnboarding.value) {
+      console.log('🎯 [ONBOARDING] Setting onboardingVisible = true')
       onboardingVisible.value = true
+    } else {
+      console.log('🎯 [ONBOARDING] Not showing onboarding')
     }
   } catch (e) {
     // Ошибки уже обработаются в errorService внутри стора

@@ -1,5 +1,10 @@
 <template>
   <div v-if="props.visible" class="onboarding-overlay opaque">
+    <!-- Debug info -->
+    <div style="position: absolute; top: 10px; left: 10px; color: white; font-size: 12px; background: rgba(0,0,0,0.7); padding: 5px; border-radius: 4px; z-index: 10001;">
+      DEBUG: visible={{ props.visible }}, isFreeFlow={{ isFreeFlow }}, flow={{ flow }}
+    </div>
+
     <!-- Простой онбординг -->
     <Swiper
       v-if="isFreeFlow"
@@ -41,30 +46,45 @@ import { ref, computed, watch } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Autoplay } from 'swiper/modules'
 import 'swiper/css'
+import 'swiper/css/autoplay'
+
+console.log('🎯 [ONBOARDING] Imports loaded successfully')
 // ПРОСТЫЕ ПЕРЕМЕННЫЕ
 const flow = ref<'none' | 'free'>('none')
 const step = ref<number>(1)
 const emit = defineEmits<{ (e: 'visible-change', value: boolean): void }>()
 
 // ПРОСТАЯ КОНФИГУРАЦИЯ
+console.log('🎯 [ONBOARDING] Setting up Swiper modules')
 const modules = [Autoplay]
 const autoplay = { delay: 3000, disableOnInteraction: true }
 
+console.log('🎯 [ONBOARDING] Swiper modules:', modules)
+console.log('🎯 [ONBOARDING] Autoplay config:', autoplay)
+
 // ПРОСТЫЕ ФУНКЦИИ
 const closeOnboarding = () => {
+  console.log('🎯 [ONBOARDING] Closing onboarding')
   flow.value = 'none'
   emit('visible-change', false)
 }
 
 const onSlideChange = (swiper: any) => {
   step.value = (swiper?.activeIndex || 0) + 1
+  console.log('🎯 [ONBOARDING] Slide changed to:', step.value)
+
   if (step.value === 3) {
+    console.log('🎯 [ONBOARDING] Last slide reached, auto-closing in 2 seconds')
     setTimeout(closeOnboarding, 2000) // Автозакрытие через 2 секунды на последнем слайде
   }
 }
 
 // ПРОСТЫЕ COMPUTED СВОЙСТВА
-const isFreeFlow = computed(() => flow.value === 'free')
+const isFreeFlow = computed(() => {
+  const result = flow.value === 'free'
+  console.log('🎯 [ONBOARDING] isFreeFlow:', result, 'flow:', flow.value)
+  return result
+})
 
 // ПРОПСЫ КОМПОНЕНТА
 const props = defineProps<{
@@ -73,9 +93,13 @@ const props = defineProps<{
 
 // СИНХРОНИЗАЦИЯ ПРОПСА С ВНУТРЕННИМ СОСТОЯНИЕМ
 watch(() => props.visible, (newVisible) => {
+  console.log('🎯 [ONBOARDING] visible prop changed:', newVisible, 'current flow:', flow.value)
+
   if (newVisible && flow.value === 'none') {
+    console.log('🎯 [ONBOARDING] Setting flow to free')
     flow.value = 'free' // Показываем простой онбординг
   } else if (!newVisible) {
+    console.log('🎯 [ONBOARDING] Setting flow to none')
     flow.value = 'none'
   }
 }, { immediate: true })
