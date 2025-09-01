@@ -21,25 +21,25 @@
       class="w-full h-full"
     >
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media media-top"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
           <h2 class="headline centered">Сюжеты снов часто отражают эмоции,<br/>а не реальные события.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media"><StickerPlayer src="thinking.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media media-top"><StickerPlayer src="thinking.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
           <h2 class="headline centered">DreamsTalk поможет сохранить<br/>и исследовать сны, чтобы лучше<br/>понимать себя и свои эмоции.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media media-top"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
           <h2 class="headline centered">Чтобы описать сон — просто отправь его в чат.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media media-top"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
           <h2 class="headline centered">Получи первый токен для анализа сна<br/>за подписку на канал @TheDreamsHub</h2>
         </div>
@@ -66,7 +66,7 @@
       class="w-full h-full"
     >
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media media-top"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
           <h2 class="headline centered">Чтобы описать сон — просто отправь его в чат.</h2>
         </div>
@@ -94,38 +94,32 @@
       class="w-full h-full"
     >
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
+        <div class="onboarding-media media-top"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
           <h2 class="headline centered">Ура! Твой первый сон проанализирован</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-header">
-          <h2 class="title">Удобный доступ</h2>
-          <p class="subtitle"></p>
+        <div class="onboarding-body">
+          <h2 class="headline centered">Удобный доступ</h2>
         </div>
-        <div class="onboarding-media"><img :src="frame1" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
-        <div class="onboarding-body"></div>
+        <div class="onboarding-media media-bottom"><img :src="frame1" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-header">
-          <h2 class="title">Полезные факты</h2>
-          <p class="subtitle"></p>
+        <div class="onboarding-body">
+          <h2 class="headline centered">Полезные факты</h2>
         </div>
-        <div class="onboarding-media">
+        <div class="onboarding-media media-bottom">
           <img :src="frame2" alt="onboarding-3" style="max-width: 320px; width: 100%; border-radius: 12px;" />
         </div>
-        <div class="onboarding-body"></div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
-        <div class="onboarding-media media-overlay">
-          <img :src="frame3" alt="onboarding-4" style="max-width: 320px; width: 100%; border-radius: 12px;" />
-          <div class="overlay-stack">
-            <div class="overlay-title">История снов</div>
-            <div class="overlay-subtitle">и анализ</div>
-          </div>
+        <div class="onboarding-body">
+          <h2 class="headline centered">История снов и анализ</h2>
         </div>
-        <div class="onboarding-body"></div>
+        <div class="onboarding-media media-bottom">
+          <img :src="frame3" alt="onboarding-4" style="max-width: 320px; width: 100%; border-radius: 12px;" />
+        </div>
       </SwiperSlide>
     </Swiper>
   </div>
@@ -532,53 +526,36 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   z-index: 1000;
   padding: 16px;
 }
-.onboarding-card {
-  width: 100%;
-  max-width: 560px;
-  /* Градиент как у карточек фактов */
-  background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%);
-  border-radius: 16px;
-  padding: 20px 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-}
+.onboarding-card { width: 100%; max-width: 560px; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); border-radius: 16px; padding: 20px 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; flex-direction: column; justify-content: space-between; align-items: center; min-height: 72vh; max-height: 72vh; }
 .center-card { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
 /* Карточка чуть меньше экрана для peeking; контент вертикально выстроен */
-.slidePeek {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 72vh;
-  max-height: 72vh;
-}
+.slidePeek { display: flex; flex-direction: column; justify-content: center; align-items: center; }
 .card-absolute { position: absolute; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); transition: transform .25s ease; }
 .card-absolute::before, .card-absolute::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 42%; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.10); }
 .card-absolute::before { top: -14px; }
 .card-absolute::after { bottom: -14px; }
 .dragging { transition: none; }
-.onboarding-header .title {
-  margin: 0 0 4px 0;
-  font-size: 22px;
-  line-height: 1.25;
-}
+.onboarding-header .title { margin: 0 0 4px 0; font-size: 22px; line-height: 1.25; }
 .onboarding-header .subtitle {
   margin: 0;
   opacity: 0.8;
   font-size: 16px;
 }
 .onboarding-media { display: flex; justify-content: center; margin: 8px 0; width: 100%; }
+.media-top { margin-top: 8px; }
+.media-bottom { margin-top: auto; margin-bottom: 0; align-self: center; }
 .onboarding-body .text {
   margin: 8px 0 0 0;
   font-size: 16px;
   opacity: 0.95;
 }
-.onboarding-body { width: 100%; display: flex; justify-content: center; }
-.headline { font-size: 22px; line-height: 1.28; margin: 12px 0 0 0; color: #fff; text-align: center; }
+.onboarding-body { width: 100%; display: flex; justify-content: center; align-items: center; }
+.headline { font-size: 24px; line-height: 1.25; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 700; }
 .centered { text-align: center; }
 .media-overlay { position: relative; display: inline-block; }
 .overlay-stack { position: absolute; left: 24px; top: 18px; right: 24px; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.55); }
-.overlay-title { font-size: 26px; font-weight: 700; line-height: 1.12; }
-.overlay-subtitle { font-size: 18px; line-height: 1.12; margin-top: 6px; opacity: 0.95; }
+.overlay-title { font-size: 24px; font-weight: 700; line-height: 1.12; }
+.overlay-subtitle { font-size: 24px; line-height: 1.12; margin-top: 6px; opacity: 0.95; }
 /* Центрирование контента карточек и контроль переполнения текста */
 .onboarding-card { display: flex; flex-direction: column; align-items: center; }
 .onboarding-header, .onboarding-body, .onboarding-media { max-width: 560px; width: 100%; }
