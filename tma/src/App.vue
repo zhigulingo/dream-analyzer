@@ -41,12 +41,17 @@ onMounted(async () => {
     const tg = window?.Telegram?.WebApp
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
     if (tg && isMobile) {
+      // Отключаем вертикальные свайпы внутри Telegram WebApp на мобильных
+      try { tg.disableVerticalSwipes?.() } catch (_) {}
+
       // Подписываемся на изменение фуллскрина, чтобы при выходе пробовать снова
       const onFsChanged = () => {
         // Если вышли из полноэкрана, попробуем включить снова (мягко)
         if (!tg.isFullscreen) {
           try { tg.requestFullscreen?.() } catch (_) {}
         }
+        // Повторно отключаем вертикальные свайпы на случай, если клиент их вернул
+        try { tg.disableVerticalSwipes?.() } catch (_) {}
       }
       tg.onEvent?.('fullscreenChanged', onFsChanged)
       // Сохраним, чтобы отписаться при размонтировании
@@ -68,6 +73,8 @@ onBeforeUnmount(() => {
       tg.offEvent?.('fullscreenChanged', handler)
       window.__tma_onFsChanged = null
     }
+    // Возвращаем поведение свайпов по умолчанию
+    try { tg?.enableVerticalSwipes?.() } catch (_) {}
   } catch (_) {}
 })
 </script>
