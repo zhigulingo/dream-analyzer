@@ -4,7 +4,7 @@
     <DebugInfo />
     <PersonalAccount v-if="!onboardingVisible && appReady" />
     <NotificationSystem />
-    <Onboarding @visible-change="onboardingVisible = $event" />
+    <Onboarding :visible="onboardingVisible" @visible-change="onboardingVisible = $event" />
     <LoadingOverlay :visible="isLoadingGlobal && !onboardingVisible" />
   </div>
 </template>
@@ -25,6 +25,21 @@ const userStore = useUserStore()
 // Готовность считаем по факту загрузки профиля (историю можно догрузить чуть позже, чтобы не зависать)
 const appReady = computed(() => !userStore.isLoadingProfile && !!userStore.profile)
 const isLoadingGlobal = computed(() => userStore.isLoadingProfile)
+
+// ЛОГИКА ПОКАЗА ОНБОРДИНГА
+const shouldShowOnboarding = computed(() => {
+  if (!userStore.profile) return false
+
+  const subType = userStore.profile.subscription_type
+  const onboardingStage = userStore.profile.onboarding_stage
+
+  // Показываем онбординг если:
+  // 1. Тип подписки содержит "onboarding" ИЛИ
+  // 2. onboarding_stage не завершен (не stage3)
+  return (subType && subType.includes('onboarding')) ||
+         (onboardingStage && onboardingStage !== 'stage3')
+})
+
 onMounted(async () => {
   // Глобальная загрузка данных, чтобы оверлей корректно скрывался даже при активном онбординге
   try {
@@ -32,6 +47,11 @@ onMounted(async () => {
     await userStore.fetchProfile()
     // Историю грузим в фоне, чтобы не держать прелоадер
     userStore.fetchHistory().catch(() => {})
+
+    // Проверяем нужно ли показывать онбординг ПОСЛЕ загрузки профиля
+    if (shouldShowOnboarding.value) {
+      onboardingVisible.value = true
+    }
   } catch (e) {
     // Ошибки уже обработаются в errorService внутри стора
   }
