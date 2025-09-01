@@ -10,7 +10,7 @@
 </template>
 
 <script setup>
-import { defineAsyncComponent, ref, computed, onMounted } from 'vue'
+import { defineAsyncComponent, ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useUserStore } from '@/stores/user.js'
 
 // Lazy-loaded компоненты для уменьшения начального bundle
@@ -35,8 +35,41 @@ onMounted(async () => {
   } catch (e) {
     // Ошибки уже обработаются в errorService внутри стора
   }
+  
+  // Включаем Full-screen Mode только на мобильных устройствах, внутри Telegram
+  try {
+    const tg = window?.Telegram?.WebApp
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    if (tg && isMobile) {
+      // Подписываемся на изменение фуллскрина, чтобы при выходе пробовать снова
+      const onFsChanged = () => {
+        // Если вышли из полноэкрана, попробуем включить снова (мягко)
+        if (!tg.isFullscreen) {
+          try { tg.requestFullscreen?.() } catch (_) {}
+        }
+      }
+      tg.onEvent?.('fullscreenChanged', onFsChanged)
+      // Сохраним, чтобы отписаться при размонтировании
+      window.__tma_onFsChanged = onFsChanged
+
+      // Первичная попытка включить полноэкранный режим
+      try { tg.requestFullscreen?.() } catch (_) {}
+    }
+  } catch (_) {}
 })
 // no message on overlay per spec
+
+onBeforeUnmount(() => {
+  // Снимаем обработчик события полноэкрана, если назначали
+  try {
+    const tg = window?.Telegram?.WebApp
+    const handler = window.__tma_onFsChanged
+    if (tg && handler) {
+      tg.offEvent?.('fullscreenChanged', handler)
+      window.__tma_onFsChanged = null
+    }
+  } catch (_) {}
+})
 </script>
 
 <style>
