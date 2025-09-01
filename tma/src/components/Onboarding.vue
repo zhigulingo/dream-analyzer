@@ -211,12 +211,13 @@ const userStore = getUserStore()
 
 // БЕЗОПАСНЫЕ ФУНКЦИИ API И TELEGRAM
 const safeApiTrack = (event: string) => {
-  if (!api || typeof api.trackOnboarding !== 'function') {
-    console.warn('⚠️ [ONBOARDING] api.trackOnboarding not available')
-    return
-  }
   try {
-    api.trackOnboarding(event)
+    // Проверяем глобальную переменную api
+    if (typeof api !== 'undefined' && api && typeof api.trackOnboarding === 'function') {
+      api.trackOnboarding(event)
+    } else {
+      console.warn('⚠️ [ONBOARDING] api.trackOnboarding not available')
+    }
   } catch (error) {
     console.error('❌ [ONBOARDING] Error in api.trackOnboarding:', error)
   }
@@ -224,7 +225,8 @@ const safeApiTrack = (event: string) => {
 
 const safeTgClose = () => {
   try {
-    if (tg.value?.close) {
+    // Проверяем глобальную переменную tg
+    if (typeof tg !== 'undefined' && tg?.value?.close) {
       tg.value.close()
     } else {
       console.warn('⚠️ [ONBOARDING] tg.close not available')
@@ -332,29 +334,35 @@ watch(visible, (v) => {
 // MainButton management
 const clearMainButton = () => {
   try {
-    const t = tg.value
-    if (t?.MainButton) {
-      t.MainButton.hide()
-      t.MainButton.offClick(handleMainButtonClick)
+    // Проверяем глобальную переменную tg
+    if (typeof tg !== 'undefined' && tg?.value?.MainButton) {
+      tg.value.MainButton.hide()
+      tg.value.MainButton.offClick(handleMainButtonClick)
     }
-  } catch (_) {}
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in clearMainButton:', error)
+  }
 }
 
 const setMainButton = (text: string, handler: () => void) => {
-  const t = tg.value
-  if (!t?.MainButton) return
-  t.MainButton.setParams({
-    text,
-    color: t.themeParams?.button_color || '#2481CC',
-    text_color: t.themeParams?.button_text_color || '#ffffff',
-    is_active: true,
-    is_visible: true,
-  })
-  t.MainButton.offClick(handleMainButtonClick)
-  t.MainButton.onClick(handleMainButtonClick)
-  mainButtonHandler.value = handler
-  try { t.MainButton.show() } catch (_) {}
-}
+  try {
+    // Проверяем глобальную переменную tg
+    if (typeof tg !== 'undefined' && tg?.value?.MainButton) {
+      tg.value.MainButton.setParams({
+        text,
+        color: tg.value.themeParams?.button_color || '#2481CC',
+        text_color: tg.value.themeParams?.button_text_color || '#ffffff',
+        is_active: true,
+        is_visible: true,
+      })
+      tg.value.MainButton.offClick(handleMainButtonClick)
+      tg.value.MainButton.onClick(handleMainButtonClick)
+      mainButtonHandler.value = handler
+      try { tg.value.MainButton.show() } catch (_) {}
+    }
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in setMainButton:', error)
+  }
 
 const mainButtonHandler = ref<() => void>(() => {})
 const handleMainButtonClick = () => {
@@ -399,11 +407,34 @@ onBeforeUnmount(() => {
 // drag-логика упразднена — ею управляет Swiper
 
 const goToCommunity = () => {
-  const url = 'https://t.me/thedreamshub'
-  try { localStorage.setItem('visited_channel', '1') } catch (_) {}
-  try { if (tg.value?.openLink) { tg.value.openLink(url); return } } catch(_) {}
-  try { if (tg.value?.openTelegramLink) { tg.value.openTelegramLink(url); return } } catch(_) {}
-  window.open(url, '_blank')
+  try {
+    const url = 'https://t.me/thedreamshub'
+    try { localStorage.setItem('visited_channel', '1') } catch (_) {}
+
+    // Проверяем глобальную переменную tg
+    if (typeof tg !== 'undefined' && tg?.value) {
+      try {
+        if (tg.value.openLink) {
+          tg.value.openLink(url);
+          return;
+        }
+      } catch(_) {}
+
+      try {
+        if (tg.value.openTelegramLink) {
+          tg.value.openTelegramLink(url);
+          return;
+        }
+      } catch(_) {}
+    }
+
+    // Fallback to window.open
+    window.open(url, '_blank')
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in goToCommunity:', error)
+    // Emergency fallback
+    try { window.open('https://t.me/thedreamshub', '_blank') } catch (_) {}
+  }
 }
 
 //
