@@ -33,11 +33,11 @@ const shouldShowOnboarding = computed(() => {
   const subType = userStore.profile.subscription_type
   const onboardingStage = userStore.profile.onboarding_stage
 
-  // Показываем онбординг если:
-  // 1. Тип подписки содержит "onboarding" ИЛИ
-  // 2. onboarding_stage не завершен (не stage3)
-  return (subType && subType.includes('onboarding')) ||
-         (onboardingStage && onboardingStage !== 'stage3')
+  // Показываем онбординг ТОЛЬКО если:
+  // 1. Тип подписки = 'onboarding1' (не onboarding2!)
+  // 2. И onboarding_stage не завершен (не stage3)
+  return subType === 'onboarding1' &&
+         (!onboardingStage || onboardingStage !== 'stage3')
 })
 
 onMounted(async () => {
@@ -191,6 +191,116 @@ body {
   margin: 0 auto;
   padding: 0;
   box-sizing: border-box;
+}
+
+/* СТИЛИ ДЛЯ ОНБОРДИНГА */
+.onboarding-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.opaque {
+  backdrop-filter: blur(8px);
+}
+
+.onboarding-card {
+  background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%);
+  border-radius: 16px;
+  padding: 32px;
+  margin: 8px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(106, 77, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.onboarding-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.headline {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.centered {
+  text-align: center;
+}
+
+.slidePeek {
+  transform: scale(0.92);
+  opacity: 0.7;
+}
+
+.center-card {
+  transform: scale(1);
+  opacity: 1;
+  transition: all 0.25s ease;
+}
+
+.onboarding-card.center-card {
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* Swiper стили для онбординга */
+.swiper {
+  width: 100%;
+  height: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.swiper-wrapper {
+  height: 100%;
+}
+
+.swiper-slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: auto !important;
+}
+
+.swiper-slide-active.center-card {
+  transform: scale(1) !important;
+  opacity: 1 !important;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+  .swiper {
+    max-width: 90vw;
+  }
+
+  .onboarding-card {
+    padding: 24px;
+    min-height: 180px;
+  }
+
+  .headline {
+    font-size: 20px;
+  }
 }
 
 /* Полноэкранные стили для контейнера ТОЛЬКО на мобильных */
