@@ -1,7 +1,6 @@
 // tma/src/App.vue
 <template>
   <div class="tma-app-container">
-    <DebugInfo />
     <PersonalAccount v-if="!onboardingVisible && appReady" />
     <NotificationSystem />
     <Onboarding @visible-change="onboardingVisible = $event" />
@@ -16,7 +15,6 @@ import { useUserStore } from '@/stores/user.js'
 // Lazy-loaded компоненты для уменьшения начального bundle
 const PersonalAccount = defineAsyncComponent(() => import('./views/PersonalAccount.vue'))
 const NotificationSystem = defineAsyncComponent(() => import('./components/NotificationSystem.vue'))
-const DebugInfo = defineAsyncComponent(() => import('./components/DebugInfo.vue'))
 const Onboarding = defineAsyncComponent(() => import('./components/Onboarding.vue'))
 const LoadingOverlay = defineAsyncComponent(() => import('./components/LoadingOverlay.vue'))
 
@@ -41,6 +39,14 @@ onMounted(async () => {
     const tg = window?.Telegram?.WebApp
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
     if (tg && isMobile) {
+      // Установим безопасный верхний отступ для основного контейнера
+      try {
+        const topInset = Number(tg?.contentSafeAreaInset?.top ?? tg?.safeAreaInset?.top ?? 0)
+        const headerOffsetPx = 56 // высота области с Close/заголовком
+        const safeTop = Math.max(0, topInset) + headerOffsetPx
+        document.documentElement.style.setProperty('--tma-safe-top', `${safeTop}px`)
+      } catch (_) {}
+
       // Отключаем вертикальные свайпы внутри Telegram WebApp на мобильных
       try { tg.disableVerticalSwipes?.() } catch (_) {}
 
@@ -120,6 +126,7 @@ body {
   max-width: 100%;
   margin: 0 auto;
   padding: 0;
+  padding-top: var(--tma-safe-top, 56px);
   box-sizing: border-box;
 }
 </style>
