@@ -517,7 +517,7 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 
 <style scoped>
 .onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: stretch; justify-content: center; z-index: 1000; padding: 16px; }
-.onboarding-card { width: 100%; max-width: 560px; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); border-radius: 16px; padding: 20px 16px 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; flex-direction: column; justify-content: space-between; align-items: center; min-height: 72vh; max-height: 72vh; margin: calc((100dvh - 72vh) / 2) auto; }
+.onboarding-card { width: 100%; max-width: 560px; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); border-radius: 16px; padding: 20px 16px 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; flex-direction: column; justify-content: space-between; align-items: center; min-height: 72vh; max-height: 72vh; margin: 0 auto; }
 .center-card { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
 /* Карточка чуть меньше экрана для peeking; контент вертикально выстроен */
 .slidePeek { display: flex; flex-direction: column; justify-content: center; align-items: center; }
