@@ -39,13 +39,19 @@ onMounted(async () => {
     const tg = window?.Telegram?.WebApp
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
     if (tg && isMobile) {
-      // Установим безопасный верхний отступ для основного контейнера
-      try {
-        const topInset = Number(tg?.contentSafeAreaInset?.top ?? tg?.safeAreaInset?.top ?? 0)
-        const headerOffsetPx = 56 // высота области с Close/заголовком
-        const safeTop = Math.max(0, topInset) + headerOffsetPx
-        document.documentElement.style.setProperty('--tma-safe-top', `${safeTop}px`)
-      } catch (_) {}
+      // Установим безопасный верхний отступ для основного контейнера и обновляем при изменениях safe area
+      const updateSafeTop = () => {
+        try {
+          const topInset = Number(tg?.contentSafeAreaInset?.top ?? tg?.safeAreaInset?.top ?? 0)
+          const headerOffsetPx = 88 // увеличенный буфер под Close/заголовок и отступы
+          const safeTop = Math.max(0, topInset) + headerOffsetPx
+          document.documentElement.style.setProperty('--tma-safe-top', `${safeTop}px`)
+        } catch (_) {}
+      }
+      updateSafeTop()
+      tg.onEvent?.('safeAreaChanged', updateSafeTop)
+      tg.onEvent?.('contentSafeAreaChanged', updateSafeTop)
+      window.__tma_onSafeAreaChanged = updateSafeTop
 
       // Отключаем вертикальные свайпы внутри Telegram WebApp на мобильных
       try { tg.disableVerticalSwipes?.() } catch (_) {}
@@ -78,6 +84,12 @@ onBeforeUnmount(() => {
     if (tg && handler) {
       tg.offEvent?.('fullscreenChanged', handler)
       window.__tma_onFsChanged = null
+    }
+    const safeHandler = window.__tma_onSafeAreaChanged
+    if (tg && safeHandler) {
+      tg.offEvent?.('safeAreaChanged', safeHandler)
+      tg.offEvent?.('contentSafeAreaChanged', safeHandler)
+      window.__tma_onSafeAreaChanged = null
     }
     // Возвращаем поведение свайпов по умолчанию
     try { tg?.enableVerticalSwipes?.() } catch (_) {}
