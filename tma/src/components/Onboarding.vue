@@ -251,8 +251,9 @@ const isPostClaimFlow = computed(() => flow.value === 'post_claim')
 
 const hasNewFlowEligibility = computed(() => {
   try {
-    if (!userStore?.profile) return false
-    const s = (userStore.profile.subscription_type || '').toLowerCase()
+    const currentUserStore = getUserStore()
+    if (!currentUserStore?.profile) return false
+    const s = (currentUserStore.profile.subscription_type || '').toLowerCase()
     return s === 'onboarding1'
   } catch (error) {
     console.error('❌ [ONBOARDING] Error in hasNewFlowEligibility:', error)
@@ -263,7 +264,8 @@ const hasNewFlowEligibility = computed(() => {
 // Второй онбординг показываем, когда у пользователя уже есть первый проанализированный сон
 const hasFreeFlowEligibility = computed(() => {
   try {
-    const s = (userStore.profile?.subscription_type || '').toLowerCase()
+    const currentUserStore = getUserStore()
+    const s = (currentUserStore?.profile?.subscription_type || '').toLowerCase()
     return s === 'onboarding2'
   } catch (error) {
     console.error('❌ [ONBOARDING] Error in hasFreeFlowEligibility:', error)
@@ -282,8 +284,9 @@ const initFlow = () => {
     } else if (hasNewFlowEligibility.value) {
       // Если пользователь уже получил токен, но ещё не сделал анализ → показываем промежуточный экран
       try {
-        const claimed = !!userStore?.profile?.channel_reward_claimed
-        const hasAnalyses = (userStore?.profile?.total_dreams_count || userStore?.history?.length || 0) > 0
+        const currentUserStore = getUserStore()
+        const claimed = !!currentUserStore?.profile?.channel_reward_claimed
+        const hasAnalyses = (currentUserStore?.profile?.total_dreams_count || currentUserStore?.history?.length || 0) > 0
         if (claimed && !hasAnalyses) {
           flow.value = 'post_claim'
           step.value = 1

@@ -547,7 +547,7 @@ const setupDesktopMode = (tg) => {
 };
 
 // ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: перехватываем любые изменения размера ТОЛЬКО НА ДЕСКТОПЕ
-if (!window.isMobileDevice) {
+if (typeof window !== 'undefined' && window.isMobileDevice === false) {
   window.addEventListener('resize', function() {
     if (window.innerHeight > 650) {
       console.log('🚨 [RESIZE] Detected height increase on desktop, blocking...');
@@ -561,9 +561,9 @@ if (!window.isMobileDevice) {
 
 // ФУНКЦИЯ ПРИНУДИТЕЛЬНОГО ОГРАНИЧЕНИЯ РАЗМЕРА ДЕСКТОПА
 function enforceDesktopSizeLimit() {
-  // ПРОВЕРКА: только для десктопа
-  if (window.isMobileDevice) {
-    console.log('📱 [ENFORCE] Skipping enforcement on mobile device');
+  // ПРОВЕРКА: только для десктопа и только если window определен
+  if (typeof window === 'undefined' || window.isMobileDevice === true) {
+    console.log('📱 [ENFORCE] Skipping enforcement on mobile device or undefined window');
     return;
   }
 
@@ -616,7 +616,7 @@ function enforceDesktopSizeLimit() {
 }
 
 // ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: MutationObserver для отслеживания изменений ТОЛЬКО НА ДЕСКТОПЕ
-if (!window.isMobileDevice) {
+if (typeof window !== 'undefined' && window.isMobileDevice === false) {
   console.log('👁️ [OBSERVER] Setting up mutation observer for desktop protection');
 
   const observer = new MutationObserver(function(mutations) {
@@ -678,7 +678,7 @@ if (typeof window !== 'undefined' && window.isMobileDevice === false) {
 
   const periodicCheck = () => {
     try {
-      if (typeof window !== 'undefined' && window.innerHeight > 650) {
+      if (typeof window !== 'undefined' && window.innerHeight > 650 && window.isMobileDevice === false) {
         console.log('⏰ [PERIODIC] Periodic check detected large height:', window.innerHeight);
         if (typeof enforceDesktopSizeLimit === 'function') {
           enforceDesktopSizeLimit();
@@ -689,7 +689,7 @@ if (typeof window !== 'undefined' && window.isMobileDevice === false) {
     }
   };
 
-  setInterval(periodicCheck, 2000); // Увеличили интервал до 2 секунд
+  setInterval(periodicCheck, 5000); // Увеличил интервал до 5 секунд для меньшего спама
   console.log('⏰ [PERIODIC] Periodic size check active for desktop');
 } else {
   console.log('📱 [MOBILE] Skipping periodic desktop size checks (mobile device or window undefined)');
