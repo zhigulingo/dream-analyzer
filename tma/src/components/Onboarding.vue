@@ -160,6 +160,31 @@ if (!api) {
   console.error('❌ [ONBOARDING] api is not available')
 }
 
+// ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА: создаем безопасные версии функций
+const safeApiTrack = (event: string) => {
+  try {
+    if (api?.trackOnboarding) {
+      api.trackOnboarding(event)
+    } else {
+      console.warn('⚠️ [ONBOARDING] api.trackOnboarding not available')
+    }
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in api.trackOnboarding:', error)
+  }
+}
+
+const safeTgClose = () => {
+  try {
+    if (tg.value?.close) {
+      tg.value.close()
+    } else {
+      console.warn('⚠️ [ONBOARDING] tg.close not available')
+    }
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in tg.close:', error)
+  }
+}
+
 // Local one-time flags
 const NEW_DONE_KEY = 'onboarding_new_done'
 const FREE_DONE_KEY = 'onboarding_free_done'
@@ -291,8 +316,8 @@ watch(isPostClaimFlow, (v) => {
   if (v) {
     try {
       setMainButton('Написать сон', () => {
-        api.trackOnboarding('post_claim_open_chat_click')
-        try { tg.value?.close(); } catch (_) {}
+        safeApiTrack('post_claim_open_chat_click')
+        safeTgClose()
         clearMainButton()
       })
     } catch (_) {}
@@ -320,30 +345,30 @@ const goToCommunity = () => {
 //
 
 const verifySubscription = async () => {
-  api.trackOnboarding('onboarding1_step4_verify_click')
+  safeApiTrack('onboarding1_step4_verify_click')
   await userStore.claimChannelReward()
   // Если награда уже была получена ранее — просто сообщаем и закрываем онбординг
   if (userStore.rewardAlreadyClaimed) {
     userStore.notificationStore?.info('Награда уже получена. Отправьте свой сон в чате с ботом.')
-    api.trackOnboarding('onboarding1_reward_already')
+    safeApiTrack('onboarding1_reward_already')
     flow.value = 'none'
     emit('visible-change', false)
-    try { tg.value?.close() } catch (_) {}
+    safeTgClose()
     return
   }
   // Если возникла ошибка (часто это отсутствие подписки) — оставляем возможность перейти в канал
   if (userStore.claimRewardError) {
     userStore.notificationStore?.warning(userStore.claimRewardError || 'Не удалось подтвердить подписку.')
-    api.trackOnboarding('onboarding1_verify_failed', { reason: userStore.claimRewardError })
+    safeApiTrack('onboarding1_verify_failed')
     return
   }
   try { /* stage остаётся onboarding1; переход в onboarding2 выполнит бэкенд после первого анализа */ } catch (_) {}
   // Успех: сообщаем и закрываем онбординг
   userStore.notificationStore?.success('Подписка подтверждена! Теперь отправьте свой сон в чате с ботом.')
-  api.trackOnboarding('onboarding1_reward_granted')
+  safeApiTrack('onboarding1_reward_granted')
   flow.value = 'none'
   emit('visible-change', false)
-  try { tg.value?.close() } catch (_) {}
+  safeTgClose()
 }
 
 // drag-логика упразднена — ею управляет Swiper

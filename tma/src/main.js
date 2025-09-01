@@ -686,18 +686,19 @@ if (!window.isMobileDevice) {
   console.log('📱 [MOBILE] Skipping periodic desktop size checks');
 }
 
-// Определяем тип устройства
+// СНАЧАЛА определяем тип устройства и устанавливаем глобальный флаг
 console.log('🎯 [INIT] Starting Telegram WebApp initialization...');
 const deviceInfo = detectDevice();
 console.log('📊 [INIT] Device detection completed:', deviceInfo);
+
+// Устанавливаем глобальный флаг устройства СРАЗУ
+window.isMobileDevice = deviceInfo.isMobile;
+console.log('🚩 [INIT] Global mobile flag set:', window.isMobileDevice);
 
 // Инициализируем Telegram в зависимости от типа устройства
 let telegramInitialized = false;
 
 console.log('🎯 [INIT] Starting device-specific initialization...');
-
-// Устанавливаем глобальный флаг устройства
-window.isMobileDevice = deviceInfo.isMobile;
 
 // ЭКСТРЕННОЕ ПРИМЕНЕНИЕ ОГРАНИЧЕНИЙ ДЛЯ ДЕСКТОПА
 if (!deviceInfo.isMobile) {
