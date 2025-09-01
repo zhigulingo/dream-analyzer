@@ -549,10 +549,11 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   width: 100%;
   height: 100%;
   padding: 20px 0;
+  gap: 16px;
 }
 /* Карточка чуть меньше экрана для peeking; контент вертикально выстроен */
 .slidePeek {
@@ -560,8 +561,41 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 72vh;
-  max-height: 72vh;
+  min-height: 70vh;
+  max-height: 70vh;
+  padding: 20px 0;
+}
+
+/* Медиа-запросы для мобильных устройств */
+@media (max-width: 768px) {
+  .slidePeek {
+    min-height: 75vh;
+    max-height: 75vh;
+    padding: 15px 0;
+  }
+
+  .onboarding-card {
+    min-height: 350px;
+    padding: 16px 12px;
+  }
+
+  .center-card {
+    gap: 12px;
+    padding: 15px 0;
+  }
+}
+
+@media (max-height: 600px) {
+  .slidePeek {
+    min-height: 80vh;
+    max-height: 80vh;
+    padding: 10px 0;
+  }
+
+  .onboarding-card {
+    min-height: 300px;
+    padding: 12px 8px;
+  }
 }
 .card-absolute { position: absolute; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); transition: transform .25s ease; }
 .card-absolute::before, .card-absolute::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 42%; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.10); }

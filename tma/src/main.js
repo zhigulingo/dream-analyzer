@@ -9,6 +9,10 @@ import App from './App.vue' // Ваш корневой компонент Vue
 import "./index.css"
 // import './assets/main.css'
 
+console.log('🚀 [MAIN] Starting Vue app initialization...');
+console.log('🚀 [MAIN] Current URL:', window.location.href);
+console.log('🚀 [MAIN] Telegram WebApp available:', typeof window !== 'undefined' && window.Telegram?.WebApp);
+
 const app = createApp(App)
 
 app.use(createPinia()) // Подключаем Pinia
@@ -16,34 +20,76 @@ app.use(createPinia()) // Подключаем Pinia
 
 app.mount('#app') // Монтируем приложение в <div id="app"> из index.html
 
-// Функция детекции типа устройства
+console.log('✅ [MAIN] Vue app mounted successfully');
+
+// Функция детекции типа устройства с расширенным логированием
 const detectDevice = () => {
+  console.log('🔍 [DETECT] Starting device detection...');
+
   const userAgent = navigator.userAgent.toLowerCase();
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
+  const platform = navigator.platform;
 
-  const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(userAgent) ||
-                   (screenWidth <= 768 && screenHeight <= 1024) ||
-                   ('ontouchstart' in window) ||
-                   (screenWidth <= screenHeight && screenWidth < 768);
+  console.log('🔍 [DETECT] UserAgent:', userAgent);
+  console.log('🔍 [DETECT] Screen size:', screenWidth + 'x' + screenHeight);
+  console.log('🔍 [DETECT] Platform:', platform);
 
-  const isDesktop = /windows|macintosh|linux/i.test(userAgent) &&
-                    !/mobile|tablet|android|iphone|ipad|ipod/i.test(userAgent) &&
-                    screenWidth > 1024 &&
-                    screenHeight > 768;
+  // ПРОВЕРКА: это Telegram WebApp?
+  const isTelegramWebApp = typeof window !== 'undefined' && window.Telegram?.WebApp;
+  console.log('🔍 [DETECT] Is Telegram WebApp:', isTelegramWebApp);
+
+  // УЛУЧШЕННАЯ ДЕТЕКЦИЯ МОБИЛЬНЫХ
+  const isMobileByUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(userAgent);
+  const isMobileByScreen = (screenWidth <= 768 && screenHeight <= 1024);
+  const hasTouch = ('ontouchstart' in window);
+  const isPortrait = screenWidth <= screenHeight && screenWidth < 768;
+
+  console.log('🔍 [DETECT] Mobile by UA:', isMobileByUA);
+  console.log('🔍 [DETECT] Mobile by screen:', isMobileByScreen);
+  console.log('🔍 [DETECT] Has touch:', hasTouch);
+  console.log('🔍 [DETECT] Is portrait:', isPortrait);
+
+  // ОСНОВНАЯ ЛОГИКА: мобильное устройство ТОЛЬКО если маленький экран ИЛИ touch
+  const isMobile = isMobileByUA || isMobileByScreen || hasTouch || isPortrait;
+
+  // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: большие экраны не считаем мобильными
+  const isLargeScreen = screenWidth > 1024 && screenHeight > 768;
+  const finalIsMobile = isMobile && !isLargeScreen;
+
+  console.log('🔍 [DETECT] Initial mobile result:', isMobile);
+  console.log('🔍 [DETECT] Is large screen:', isLargeScreen);
+  console.log('🔍 [DETECT] FINAL MOBILE DECISION:', finalIsMobile);
 
   const isIOS = /iphone|ipad|ipod/i.test(userAgent);
   const isAndroid = /android/i.test(userAgent);
 
-  return {
-    isMobile,
+  // ДОПОЛНИТЕЛЬНЫЕ ПРОВЕРКИ ДЛЯ ДЕСКТОПА
+  const isDesktopByUA = /windows|macintosh|linux/i.test(userAgent) &&
+                       !/mobile|tablet|android|iphone|ipad|ipod/i.test(userAgent);
+  const isDesktopByScreen = screenWidth > 1024 && screenHeight > 768;
+  const isDesktop = isDesktopByUA && isDesktopByScreen && !finalIsMobile;
+
+  console.log('🔍 [DETECT] Desktop by UA:', isDesktopByUA);
+  console.log('🔍 [DETECT] Desktop by screen:', isDesktopByScreen);
+  console.log('🔍 [DETECT] FINAL DESKTOP DECISION:', isDesktop);
+
+  const result = {
+    isMobile: finalIsMobile,
     isDesktop,
     isIOS,
     isAndroid,
     screenWidth,
     screenHeight,
-    userAgent
+    userAgent,
+    platform,
+    isTelegramWebApp,
+    hasTouch,
+    isLargeScreen
   };
+
+  console.log('🔍 [DETECT] Final device info:', result);
+  return result;
 };
 
 // Функция для браузерного полноэкранного режима с улучшенной поддержкой мобильных
@@ -433,13 +479,17 @@ const setupDesktopMode = (tg) => {
 };
 
 // Определяем тип устройства
+console.log('🎯 [INIT] Starting Telegram WebApp initialization...');
 const deviceInfo = detectDevice();
-console.log('Device detection:', deviceInfo);
+console.log('📊 [INIT] Device detection completed:', deviceInfo);
 
 // Инициализируем Telegram в зависимости от типа устройства
 let telegramInitialized = false;
 
+console.log('🎯 [INIT] Starting device-specific initialization...');
+
 if (deviceInfo.isMobile) {
+  console.log('📱 [INIT] Mobile device detected - initializing mobile mode');
   // Инициализация для мобильных устройств
   if (initTelegramMobile()) {
     telegramInitialized = true;
@@ -457,7 +507,7 @@ if (deviceInfo.isMobile) {
     }, 100);
   } else {
     // Fallback для мобильных без Telegram API
-    console.log('Mobile fallback: Telegram not available, using browser fullscreen');
+    console.log('📱 [INIT] Mobile fallback: Telegram not available, using browser fullscreen');
     telegramInitialized = true;
 
     // Применяем браузерный fullscreen сразу для мобильных без Telegram
@@ -473,6 +523,7 @@ if (deviceInfo.isMobile) {
     document.documentElement.style.overscrollBehavior = 'none';
   }
 } else if (deviceInfo.isDesktop) {
+  console.log('💻 [INIT] Desktop device detected - initializing desktop mode');
   // Инициализация для десктопа
   if (initTelegramDesktop()) {
     telegramInitialized = true;

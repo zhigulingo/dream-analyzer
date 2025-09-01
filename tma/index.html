@@ -34,13 +34,29 @@
           // Функция раннего fullscreen с Telegram API
           const earlyFullscreenSetup = function() {
             try {
-              console.log('🚀 Early fullscreen setup starting...');
+              console.log('🚀 [HTML] Early fullscreen setup starting...');
+              console.log('🚀 [HTML] Telegram available:', !!window.Telegram);
+              console.log('🚀 [HTML] Telegram WebApp:', !!window.Telegram?.WebApp);
+              console.log('🚀 [HTML] Telegram requestFullscreen:', !!window.Telegram?.WebApp?.requestFullscreen);
 
-              // Сначала пробуем Telegram WebApp fullscreen
-              if (window.Telegram?.WebApp?.requestFullscreen) {
-                console.log('🎯 Trying early Telegram fullscreen...');
+              // Определяем устройство
+              const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(navigator.userAgent) ||
+                             (window.innerWidth <= 768 && window.innerHeight <= 1024) ||
+                             ('ontouchstart' in window);
+
+              console.log('🚀 [HTML] Early device detection - Mobile:', isMobile);
+
+              // Для мобильных - пробуем Telegram WebApp fullscreen
+              if (isMobile && window.Telegram?.WebApp?.requestFullscreen) {
+                console.log('🎯 [HTML] Trying early Telegram fullscreen for mobile...');
                 window.Telegram.WebApp.requestFullscreen();
-                console.log('✅ Early Telegram fullscreen called');
+                console.log('✅ [HTML] Early Telegram fullscreen called');
+                return;
+              }
+
+              // Для десктопа - НЕ применяем fullscreen
+              if (!isMobile) {
+                console.log('💻 [HTML] Desktop detected - skipping early fullscreen');
                 return;
               }
 
