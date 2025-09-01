@@ -8,13 +8,14 @@
     <LoadingOverlay :visible="isLoadingGlobal" />
 
     <!-- ОНБОРДИНГ ОВЕРЛЕЙ ПОВЕРХ ОСНОВНОГО ИНТЕРФЕЙСА -->
-    <Onboarding @visible-change="onboardingVisible = $event" />
+    <Onboarding :visible="onboardingVisible" @visible-change="onboardingVisible = $event" />
   </div>
 </template>
 
 <script setup>
-import { defineAsyncComponent, ref, computed, onMounted } from 'vue'
+import { defineAsyncComponent, ref, computed, onMounted, watch } from 'vue'
 import { useUserStore } from '@/stores/user.js'
+import api from '@/services/api'
 
 // Lazy-loaded компоненты для уменьшения начального bundle
 const PersonalAccount = defineAsyncComponent(() => import('./views/PersonalAccount.vue'))
@@ -28,6 +29,12 @@ const userStore = useUserStore()
 // Готовность считаем по факту загрузки профиля (историю можно догрузить чуть позже, чтобы не зависать)
 const appReady = computed(() => !userStore.isLoadingProfile && !!userStore.profile)
 const isLoadingGlobal = computed(() => userStore.isLoadingProfile)
+
+// Показ онбординга: если профиль загружен и онбординг ещё не завершён
+const shouldShowOnboarding = computed(() => {
+  const stage = userStore.profile?.onboarding_stage
+  return !userStore.isLoadingProfile && !!userStore.profile && stage !== 'completed'
+})
 
 
 onMounted(async () => {
@@ -55,6 +62,17 @@ onMounted(async () => {
   }
 })
 // no message on overlay per spec
+
+// При закрытии онбординга помечаем стадию как завершённую (не блокирует UI)
+watch(onboardingVisible, async (visible) => {
+  if (!visible) {
+    try {
+      await api.setOnboardingStage('completed')
+    } catch (e) {
+      console.warn('[ONBOARDING] Failed to set stage completed:', e?.message || e)
+    }
+  }
+})
 </script>
 
 <style>
