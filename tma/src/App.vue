@@ -8,7 +8,7 @@
     <LoadingOverlay :visible="isLoadingGlobal" />
 
     <!-- ОНБОРДИНГ ОВЕРЛЕЙ ПОВЕРХ ОСНОВНОГО ИНТЕРФЕЙСА -->
-    <Onboarding :visible="onboardingVisible" @visible-change="onboardingVisible = $event" />
+    <Onboarding @visible-change="onboardingVisible = $event" />
   </div>
 </template>
 
@@ -29,29 +29,6 @@ const userStore = useUserStore()
 const appReady = computed(() => !userStore.isLoadingProfile && !!userStore.profile)
 const isLoadingGlobal = computed(() => userStore.isLoadingProfile)
 
-// ЛОГИКА ПОКАЗА ОНБОРДИНГА
-const shouldShowOnboarding = computed(() => {
-  if (!userStore.profile) return false
-
-  const subType = userStore.profile.subscription_type
-  const onboardingStage = userStore.profile.onboarding_stage
-
-  console.log('🎯 [ONBOARDING] Checking shouldShowOnboarding:', {
-    subType,
-    onboardingStage,
-    profile: userStore.profile
-  })
-
-  // Показываем онбординг ТОЛЬКО если:
-  // 1. Тип подписки = 'onboarding1' (не onboarding2!)
-  // 2. И onboarding_stage не завершен (не stage3)
-  const result = subType === 'onboarding1' &&
-                 (!onboardingStage || onboardingStage !== 'stage3')
-
-  console.log('🎯 [ONBOARDING] shouldShowOnboarding result:', result)
-
-  return result
-})
 
 onMounted(async () => {
   // Глобальная загрузка данных, чтобы оверлей корректно скрывался даже при активном онбординге
