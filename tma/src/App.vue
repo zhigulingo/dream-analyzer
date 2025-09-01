@@ -89,6 +89,42 @@ body {
   }
 }
 
+/* Стили для имитированного fullscreen режима */
+.simulated-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  z-index: 999999 !important;
+}
+
+/* Дополнительные стили для мобильного fullscreen */
+@media (max-width: 768px) {
+  .simulated-fullscreen {
+    -webkit-transform: none !important;
+    transform: none !important;
+    -webkit-transition: none !important;
+    transition: none !important;
+  }
+
+  /* Скрываем scrollbars в fullscreen режиме */
+  .simulated-fullscreen::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .simulated-fullscreen {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+}
+
 /* Базовые стили для #app */
 #app {
   flex: 1;

@@ -3,15 +3,91 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Настройки viewport для полноэкранного режима в Telegram Mini App -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- Расширенные настройки viewport для мобильного fullscreen -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
 
+    <!-- Мобильные web app настройки -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-touch-fullscreen" content="yes" />
+
+    <!-- Дополнительные fullscreen настройки -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="theme-color" content="#121a12" />
     <title>Dream Analyzer - Личный Кабинет</title>
     <!-- Подключаем скрипт Telegram WebApp без defer, чтобы он был доступен до инициализации -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Ранняя инициализация fullscreen для мобильных устройств -->
+    <script>
+      (function() {
+        // Определяем мобильное устройство
+        const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i.test(navigator.userAgent) ||
+                        (window.innerWidth <= 768 && window.innerHeight <= 1024) ||
+                        ('ontouchstart' in window);
+
+        if (isMobile) {
+          console.log('📱 Mobile device detected, preparing early fullscreen setup');
+
+          // Функция раннего fullscreen
+          const earlyFullscreenSetup = function() {
+            try {
+              // Пытаемся активировать fullscreen как можно раньше
+              const doc = document.documentElement;
+
+              if (doc.requestFullscreen) {
+                doc.requestFullscreen().then(function() {
+                  console.log('🎯 Early fullscreen activated via requestFullscreen');
+                }).catch(function(err) {
+                  console.log('Early fullscreen failed, will retry later:', err);
+                });
+              } else if (doc.webkitRequestFullscreen) {
+                doc.webkitRequestFullscreen();
+                console.log('🎯 Early fullscreen activated via webkitRequestFullscreen');
+              }
+
+              // Добавляем обработчики для повторных попыток
+              const retryFullscreen = function() {
+                if (document.fullscreenElement || document.webkitFullscreenElement) {
+                  console.log('✅ Fullscreen already active');
+                  return;
+                }
+
+                if (doc.requestFullscreen) {
+                  doc.requestFullscreen().catch(function() {
+                    // Игнорируем ошибки при повторных попытках
+                  });
+                } else if (doc.webkitRequestFullscreen) {
+                  doc.webkitRequestFullscreen();
+                }
+              };
+
+              // Повторные попытки при различных событиях
+              document.addEventListener('touchstart', retryFullscreen, { once: true });
+              document.addEventListener('click', retryFullscreen, { once: true });
+              document.addEventListener('DOMContentLoaded', retryFullscreen);
+
+            } catch (error) {
+              console.log('Early fullscreen setup failed:', error);
+            }
+          };
+
+          // Запускаем раннюю настройку
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', earlyFullscreenSetup);
+          } else {
+            earlyFullscreenSetup();
+          }
+
+          // Также запускаем через небольшую задержку
+          setTimeout(earlyFullscreenSetup, 100);
+        } else {
+          console.log('💻 Desktop device, skipping early fullscreen setup');
+        }
+      })();
+    </script>
   </head>
   <body>
     <!-- Корневой элемент, куда будет монтироваться Vue приложение -->

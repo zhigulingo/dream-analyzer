@@ -46,22 +46,116 @@ const detectDevice = () => {
   };
 };
 
-// Функция для браузерного полноэкранного режима
+// Функция для браузерного полноэкранного режима с улучшенной поддержкой мобильных
 const enterBrowserFullscreen = () => {
   const doc = document.documentElement;
+  const body = document.body;
 
+  // Сначала пробуем стандартный API
   if (doc.requestFullscreen) {
     return doc.requestFullscreen();
-  } else if (doc.webkitRequestFullscreen) {
-    return doc.webkitRequestFullscreen();
-  } else if (doc.mozRequestFullScreen) {
-    return doc.mozRequestFullScreen();
-  } else if (doc.msRequestFullscreen) {
-    return doc.msRequestFullscreen();
-  } else {
-    console.warn('Fullscreen API not supported');
-    return Promise.reject(new Error('Fullscreen not supported'));
   }
+
+  // WebKit префикс (iOS Safari, старые Chrome)
+  if (doc.webkitRequestFullscreen) {
+    return doc.webkitRequestFullscreen();
+  }
+
+  // Firefox префикс
+  if (doc.mozRequestFullScreen) {
+    return doc.mozRequestFullScreen();
+  }
+
+  // IE/Edge префикс
+  if (doc.msRequestFullscreen) {
+    return doc.msRequestFullscreen();
+  }
+
+  // Если fullscreen API не поддерживается, имитируем через CSS
+  console.warn('Fullscreen API not supported, using CSS simulation');
+  return simulateMobileFullscreen();
+};
+
+// Функция имитации полноэкранного режима через CSS (для мобильных устройств)
+const simulateMobileFullscreen = () => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Применяем CSS для имитации fullscreen
+      const html = document.documentElement;
+      const body = document.body;
+
+      // Сохраняем оригинальные стили
+      const originalHtmlStyles = {
+        position: html.style.position,
+        top: html.style.top,
+        left: html.style.left,
+        right: html.style.right,
+        bottom: html.style.bottom,
+        width: html.style.width,
+        height: html.style.height
+      };
+
+      const originalBodyStyles = {
+        position: body.style.position,
+        top: body.style.top,
+        left: body.style.left,
+        right: body.style.right,
+        bottom: body.style.bottom,
+        width: body.style.width,
+        height: body.style.height,
+        margin: body.style.margin,
+        padding: body.style.padding
+      };
+
+      // Применяем fullscreen стили
+      Object.assign(html.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        right: '0',
+        bottom: '0',
+        width: '100vw',
+        height: '100vh'
+      });
+
+      Object.assign(body.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        right: '0',
+        bottom: '0',
+        width: '100vw',
+        height: '100vh',
+        margin: '0',
+        padding: '0'
+      });
+
+      // Добавляем класс для CSS управления
+      document.documentElement.classList.add('simulated-fullscreen');
+      document.body.classList.add('simulated-fullscreen');
+
+      // Функция для выхода из имитированного fullscreen
+      const exitSimulatedFullscreen = () => {
+        // Восстанавливаем оригинальные стили
+        Object.assign(html.style, originalHtmlStyles);
+        Object.assign(body.style, originalBodyStyles);
+
+        // Убираем классы
+        document.documentElement.classList.remove('simulated-fullscreen');
+        document.body.classList.remove('simulated-fullscreen');
+      };
+
+      // Сохраняем функцию выхода в глобальной области
+      window.exitSimulatedFullscreen = exitSimulatedFullscreen;
+
+      console.log('✅ Simulated fullscreen enabled via CSS');
+      resolve();
+
+    } catch (error) {
+      console.error('❌ Simulated fullscreen failed:', error);
+      reject(error);
+    }
+  });
 };
 
 // Функция для выхода из браузерного полноэкранного режима
@@ -161,13 +255,41 @@ const setupMobileFullscreen = (tg) => {
 
   console.log('Setting up mobile fullscreen mode');
 
-  // ИСПОЛЬЗУЕМ ТОЛЬКО requestFullscreen() - tg.expand() убран из-за конфликта
+  // МНОЖЕСТВЕННЫЕ ПОПЫТКИ ДОСТИЧЬ ПОЛНОЭКРАННОГО РЕЖИМА
 
-  // Применяем requestFullscreen сразу
-  enterBrowserFullscreen().then(() => {
-    console.log('✅ Browser fullscreen enabled');
-  }).catch(err => {
-    console.log('Browser fullscreen failed:', err);
+  // Попытка 1: Браузерный fullscreen API
+  const tryBrowserFullscreen = () => {
+    return enterBrowserFullscreen().then(() => {
+      console.log('✅ Browser fullscreen API succeeded');
+    }).catch(err => {
+      console.log('Browser fullscreen API failed, trying simulation:', err);
+      // Попытка 2: CSS имитация fullscreen
+      return simulateMobileFullscreen();
+    });
+  };
+
+  // Попытка 3: Принудительная активация через события
+  const forceFullscreenActivation = () => {
+    // Имитируем пользовательское взаимодействие
+    const events = ['touchstart', 'touchend', 'click'];
+
+    events.forEach(eventType => {
+      const event = new Event(eventType, { bubbles: true });
+      document.dispatchEvent(event);
+    });
+
+    // Повторная попытка fullscreen после имитации взаимодействия
+    setTimeout(() => {
+      tryBrowserFullscreen().catch(err => {
+        console.log('All fullscreen attempts failed:', err);
+      });
+    }, 100);
+  };
+
+  // Начинаем с браузерного fullscreen
+  tryBrowserFullscreen().catch(() => {
+    console.log('Initial fullscreen attempt failed, trying with user interaction simulation');
+    forceFullscreenActivation();
   });
 
   // Устанавливаем фоновый цвет для status bar
