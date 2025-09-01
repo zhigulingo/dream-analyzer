@@ -68,8 +68,9 @@ const initTelegramSafely = () => {
 // Инициализируем Telegram API безопасно
 initTelegramSafely();
 
-console.log('🚀 [MAIN] Starting Vue app initialization...');
+console.log('🚀 [MAIN] Starting Vue app initialization... v1.2.1');
 console.log('🚀 [MAIN] Current URL:', window.location.href);
+console.log('🚀 [MAIN] Timestamp:', new Date().toISOString());
 console.log('🚀 [MAIN] Telegram WebApp available:', typeof window !== 'undefined' && window.Telegram?.WebApp);
 
 const app = createApp(App)
