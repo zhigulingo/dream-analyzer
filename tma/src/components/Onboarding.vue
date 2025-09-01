@@ -516,17 +516,12 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 </script>
 
 <style scoped>
-.onboarding-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  z-index: 1000;
-  padding: 16px;
-}
-.onboarding-card { width: 100%; max-width: 560px; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); border-radius: 16px; padding: 20px 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; flex-direction: column; justify-content: space-between; align-items: center; min-height: 72vh; max-height: 72vh; }
+.onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+/* Центрирование содержимого Swiper по вертикали/горизонтали */
+:deep(.swiper) { height: 100%; display: flex; align-items: center; }
+:deep(.swiper-wrapper) { height: 100%; display: flex; align-items: center; justify-content: center; }
+:deep(.swiper-slide) { display: flex; align-items: center; justify-content: center; }
+.onboarding-card { width: 100%; max-width: 560px; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); border-radius: 16px; padding: 20px 16px 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; flex-direction: column; justify-content: space-between; align-items: center; min-height: 72vh; max-height: 72vh; }
 .center-card { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
 /* Карточка чуть меньше экрана для peeking; контент вертикально выстроен */
 .slidePeek { display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -543,7 +538,8 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 }
 .onboarding-media { display: flex; justify-content: center; margin: 8px 0; width: 100%; }
 .media-top { margin-top: 8px; }
-.media-bottom { margin-top: auto; margin-bottom: 0; align-self: center; }
+.media-bottom { margin-top: auto; margin-bottom: 0; align-self: center; width: 100%; }
+.media-bottom img { display: block; width: 100%; border-radius: 12px; }
 .onboarding-body .text {
   margin: 8px 0 0 0;
   font-size: 16px;
