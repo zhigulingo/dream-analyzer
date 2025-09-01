@@ -308,7 +308,14 @@ const initFlow = () => {
 }
 
 watch(
-  () => [userStore.profile?.channel_reward_claimed, userStore.history?.length, userStore.profile?.subscription_type],
+  () => {
+    const currentUserStore = getUserStore()
+    return [
+      currentUserStore?.profile?.channel_reward_claimed,
+      currentUserStore?.history?.length,
+      currentUserStore?.profile?.subscription_type
+    ]
+  },
   () => initFlow(),
   { immediate: true }
 )
@@ -402,30 +409,46 @@ const goToCommunity = () => {
 //
 
 const verifySubscription = async () => {
-  safeApiTrack('onboarding1_step4_verify_click')
-  await userStore.claimChannelReward()
-  // Если награда уже была получена ранее — просто сообщаем и закрываем онбординг
-  if (userStore.rewardAlreadyClaimed) {
-    userStore.notificationStore?.info('Награда уже получена. Отправьте свой сон в чате с ботом.')
-    safeApiTrack('onboarding1_reward_already')
+  try {
+    safeApiTrack('onboarding1_step4_verify_click')
+
+    const currentUserStore = getUserStore()
+    if (currentUserStore?.claimChannelReward) {
+      await currentUserStore.claimChannelReward()
+    }
+
+    // Если награда уже была получена ранее — просто сообщаем и закрываем онбординг
+    if (currentUserStore?.rewardAlreadyClaimed) {
+      if (currentUserStore?.notificationStore?.info) {
+        currentUserStore.notificationStore.info('Награда уже получена. Отправьте свой сон в чате с ботом.')
+      }
+      safeApiTrack('onboarding1_reward_already')
+      flow.value = 'none'
+      emit('visible-change', false)
+      safeTgClose()
+      return
+    }
+
+    // Если возникла ошибка (часто это отсутствие подписки) — оставляем возможность перейти в канал
+    if (currentUserStore?.claimRewardError) {
+      if (currentUserStore?.notificationStore?.warning) {
+        currentUserStore.notificationStore.warning(currentUserStore.claimRewardError || 'Не удалось подтвердить подписку.')
+      }
+      safeApiTrack('onboarding1_verify_failed')
+      return
+    }
+
+    // Успех: сообщаем и закрываем онбординг
+    if (currentUserStore?.notificationStore?.success) {
+      currentUserStore.notificationStore.success('Подписка подтверждена! Теперь отправьте свой сон в чате с ботом.')
+    }
+    safeApiTrack('onboarding1_reward_granted')
     flow.value = 'none'
     emit('visible-change', false)
     safeTgClose()
-    return
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in verifySubscription:', error)
   }
-  // Если возникла ошибка (часто это отсутствие подписки) — оставляем возможность перейти в канал
-  if (userStore.claimRewardError) {
-    userStore.notificationStore?.warning(userStore.claimRewardError || 'Не удалось подтвердить подписку.')
-    safeApiTrack('onboarding1_verify_failed')
-    return
-  }
-  try { /* stage остаётся onboarding1; переход в onboarding2 выполнит бэкенд после первого анализа */ } catch (_) {}
-  // Успех: сообщаем и закрываем онбординг
-  userStore.notificationStore?.success('Подписка подтверждена! Теперь отправьте свой сон в чате с ботом.')
-  safeApiTrack('onboarding1_reward_granted')
-  flow.value = 'none'
-  emit('visible-change', false)
-  safeTgClose()
 }
 
 // drag-логика упразднена — ею управляет Swiper
@@ -433,15 +456,29 @@ const verifySubscription = async () => {
 const completeFree = async () => {
   try {
     // 1) Просим сервер перевести в stage3/free
-    await api.setOnboardingStage('stage3');
+    if (api?.setOnboardingStage) {
+      await api.setOnboardingStage('stage3');
+    } else {
+      console.warn('⚠️ [ONBOARDING] api.setOnboardingStage not available');
+    }
+
     // 2) Сразу закрываем онбординг, чтобы не блокировать UI
     flow.value = 'none'
     emit('visible-change', false)
     clearMainButton()
+
     // 3) Обновляем профиль в фоне (без блокировки интерфейса)
-    try { await userStore.fetchProfile() } catch (_) {}
-    userStore.profile.onboarding_stage = 'stage3';
-  } catch (_) {}
+    const currentUserStore = getUserStore()
+    if (currentUserStore?.fetchProfile) {
+      try { await currentUserStore.fetchProfile() } catch (_) {}
+    }
+
+    if (currentUserStore?.profile) {
+      currentUserStore.profile.onboarding_stage = 'stage3';
+    }
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in completeFree:', error)
+  }
 }
 
 // Кнопка шага 4 второго онбординга — открыть историю
@@ -464,27 +501,35 @@ const onSlideChangeNew = async (swiper: any) => {
   if (step.value === 4) {
     // Автоматически пробуем подтвердить подписку/начислить токен
     clearMainButton()
-    api.trackOnboarding('onboarding1_step4_enter')
+    safeApiTrack('onboarding1_step4_enter')
     // Пытаемся автоматически подтвердить подписку и начислить токен
     try {
       await verifySubscription()
-      try { await userStore.fetchProfile() } catch (_) {}
+      const currentUserStore = getUserStore()
+      if (currentUserStore?.fetchProfile) {
+        try { await currentUserStore.fetchProfile() } catch (_) {}
+      }
     } catch (_) {}
+
     // После попытки показываем релевантную кнопку
-    if (userStore.profile?.channel_reward_claimed) {
-      setMainButton('Открыть чат', () => { try { tg.value?.close?.() } catch (_) {} })
+    const currentUserStore2 = getUserStore()
+    if (currentUserStore2?.profile?.channel_reward_claimed) {
+      setMainButton('Открыть чат', () => { safeTgClose() })
     } else {
       const visited = (()=>{ try { return localStorage.getItem('visited_channel') === '1' } catch(_) { return false } })()
       if (visited) {
         setMainButton('Проверить подписку', async () => {
           await verifySubscription();
-          try { await userStore.fetchProfile() } catch (_) {}
-          if (userStore.profile?.channel_reward_claimed) {
-            try { tg.value?.close?.() } catch (_) {}
+          const userStoreAfter = getUserStore()
+          if (userStoreAfter?.fetchProfile) {
+            try { await userStoreAfter.fetchProfile() } catch (_) {}
+          }
+          if (userStoreAfter?.profile?.channel_reward_claimed) {
+            safeTgClose()
           }
         })
       } else {
-        api.trackOnboarding('onboarding1_step4_need_subscribe')
+        safeApiTrack('onboarding1_step4_need_subscribe')
         setMainButton('Перейти и подписаться', goToCommunity)
       }
     }
@@ -502,9 +547,12 @@ const onSlideChangeFree = async (swiper: any) => {
     })
   } catch (_) {}
   if (step.value === 4) setMainButton('Открыть историю', async () => {
-    api.trackOnboarding('onboarding2_step4_open_history_click')
+    safeApiTrack('onboarding2_step4_open_history_click')
     await openHistory();
-    try { await userStore.fetchProfile() } catch (_) {}
+    const currentUserStore = getUserStore()
+    if (currentUserStore?.fetchProfile) {
+      try { await currentUserStore.fetchProfile() } catch (_) {}
+    }
   })
   else clearMainButton()
 }
@@ -521,8 +569,8 @@ const onSlideChangePostClaim = async (swiper: any) => {
   } catch (_) {}
   if (step.value === 1) {
     setMainButton('Написать сон', () => {
-      api.trackOnboarding('post_claim_open_chat_click')
-      try { tg.value?.close?.(); } catch (_) {}
+      safeApiTrack('post_claim_open_chat_click')
+      safeTgClose()
       clearMainButton()
     })
   } else {
@@ -606,25 +654,44 @@ const secondaryAction = computed(() => {
 })
 
 // If profile turns claimed externally, auto-complete
-watch(() => [userStore.profile?.onboarding_stage, userStore.profile?.subscription_type], ([stage, sub]) => {
-  const isDone = stage === 'stage3' || (sub && !String(sub).toLowerCase().startsWith('onboarding'))
-  if (isDone) {
-    flow.value = 'none'
-    emit('visible-change', false)
-    clearMainButton()
-    api.trackOnboarding('onboarding_closed', { subscription: sub, stage })
+watch(() => {
+  const currentUserStore = getUserStore()
+  return [currentUserStore?.profile?.onboarding_stage, currentUserStore?.profile?.subscription_type]
+}, ([stage, sub]) => {
+  try {
+    const isDone = stage === 'stage3' || (sub && !String(sub).toLowerCase().startsWith('onboarding'))
+    if (isDone) {
+      flow.value = 'none'
+      emit('visible-change', false)
+      clearMainButton()
+      safeApiTrack('onboarding_closed')
+    }
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in onboarding closed watch:', error)
   }
 })
 
 // Автопереход в onboarding2: если уже есть хотя бы один анализ, а статус ещё onboarding1 — переводим на сервере
-watch(() => [userStore.history?.length, userStore.profile?.subscription_type], async ([len, sub]) => {
+watch(() => {
+  const currentUserStore = getUserStore()
+  return [currentUserStore?.history?.length, currentUserStore?.profile?.subscription_type]
+}, async ([len, sub]) => {
   try {
     if ((Number(len) || 0) > 0 && String(sub || '').toLowerCase() === 'onboarding1') {
-      api.trackOnboarding('auto_transition_to_onboarding2')
-      await api.setOnboardingStage('stage2')
-      try { await userStore.fetchProfile() } catch (_) {}
+      safeApiTrack('auto_transition_to_onboarding2')
+
+      if (api?.setOnboardingStage) {
+        await api.setOnboardingStage('stage2')
+      }
+
+      const currentUserStore = getUserStore()
+      if (currentUserStore?.fetchProfile) {
+        try { await currentUserStore.fetchProfile() } catch (_) {}
+      }
     }
-  } catch (_) {}
+  } catch (error) {
+    console.error('❌ [ONBOARDING] Error in auto transition watch:', error)
+  }
 })
 </script>
 
