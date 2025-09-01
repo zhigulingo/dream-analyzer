@@ -31,36 +31,58 @@
         if (isMobile) {
           console.log('📱 Mobile device detected, preparing early fullscreen setup');
 
-          // Функция раннего fullscreen
+          // Функция раннего fullscreen с Telegram API
           const earlyFullscreenSetup = function() {
             try {
-              // Пытаемся активировать fullscreen как можно раньше
+              console.log('🚀 Early fullscreen setup starting...');
+
+              // Сначала пробуем Telegram WebApp fullscreen
+              if (window.Telegram?.WebApp?.requestFullscreen) {
+                console.log('🎯 Trying early Telegram fullscreen...');
+                window.Telegram.WebApp.requestFullscreen();
+                console.log('✅ Early Telegram fullscreen called');
+                return;
+              }
+
+              // Если Telegram не доступен, пробуем браузерный API
               const doc = document.documentElement;
 
               if (doc.requestFullscreen) {
                 doc.requestFullscreen().then(function() {
-                  console.log('🎯 Early fullscreen activated via requestFullscreen');
+                  console.log('🎯 Early browser fullscreen activated');
                 }).catch(function(err) {
-                  console.log('Early fullscreen failed, will retry later:', err);
+                  console.log('Early browser fullscreen failed:', err);
                 });
               } else if (doc.webkitRequestFullscreen) {
                 doc.webkitRequestFullscreen();
-                console.log('🎯 Early fullscreen activated via webkitRequestFullscreen');
+                console.log('🎯 Early webkit fullscreen activated');
               }
 
               // Добавляем обработчики для повторных попыток
               const retryFullscreen = function() {
+                console.log('🔄 Retrying fullscreen...');
+
+                // Проверяем, активен ли уже fullscreen
                 if (document.fullscreenElement || document.webkitFullscreenElement) {
                   console.log('✅ Fullscreen already active');
                   return;
                 }
 
+                // Повторяем попытку Telegram
+                if (window.Telegram?.WebApp?.requestFullscreen) {
+                  window.Telegram.WebApp.requestFullscreen();
+                  console.log('🔄 Telegram fullscreen retried');
+                  return;
+                }
+
+                // Повторяем браузерную попытку
                 if (doc.requestFullscreen) {
                   doc.requestFullscreen().catch(function() {
-                    // Игнорируем ошибки при повторных попытках
+                    console.log('Browser fullscreen retry failed');
                   });
                 } else if (doc.webkitRequestFullscreen) {
                   doc.webkitRequestFullscreen();
+                  console.log('🔄 Webkit fullscreen retried');
                 }
               };
 
@@ -69,8 +91,10 @@
               document.addEventListener('click', retryFullscreen, { once: true });
               document.addEventListener('DOMContentLoaded', retryFullscreen);
 
+              console.log('🎯 Early fullscreen setup completed');
+
             } catch (error) {
-              console.log('Early fullscreen setup failed:', error);
+              console.log('❌ Early fullscreen setup failed:', error);
             }
           };
 

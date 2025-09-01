@@ -253,23 +253,53 @@ const reapplySwipeProtection = () => {
 const setupMobileFullscreen = (tg) => {
   if (!tg) return;
 
-  console.log('Setting up mobile fullscreen mode');
+  console.log('🚀 Setting up mobile fullscreen mode');
+  console.log('📱 Telegram WebApp available:', !!tg);
+  console.log('📱 Telegram WebApp requestFullscreen:', !!tg.requestFullscreen);
 
-  // МНОЖЕСТВЕННЫЕ ПОПЫТКИ ДОСТИЧЬ ПОЛНОЭКРАННОГО РЕЖИМА
+  // АГРЕССИВНЫЙ ПОДХОД ДЛЯ TELEGRAM MINI APP
 
-  // Попытка 1: Браузерный fullscreen API
+  // Попытка 1: Telegram WebApp fullscreen API
+  const tryTelegramFullscreen = () => {
+    console.log('🔄 Trying Telegram WebApp fullscreen...');
+    return new Promise((resolve, reject) => {
+      try {
+        if (tg.requestFullscreen) {
+          tg.requestFullscreen();
+          console.log('✅ Telegram requestFullscreen() called');
+
+          // Проверяем результат через небольшую задержку
+          setTimeout(() => {
+            console.log('📊 Checking Telegram fullscreen result...');
+            resolve();
+          }, 500);
+        } else {
+          console.log('❌ Telegram requestFullscreen not available');
+          reject(new Error('Telegram requestFullscreen not available'));
+        }
+      } catch (error) {
+        console.log('❌ Telegram fullscreen failed:', error);
+        reject(error);
+      }
+    });
+  };
+
+  // Попытка 2: Браузерный fullscreen API
   const tryBrowserFullscreen = () => {
+    console.log('🔄 Trying browser fullscreen API...');
     return enterBrowserFullscreen().then(() => {
       console.log('✅ Browser fullscreen API succeeded');
     }).catch(err => {
-      console.log('Browser fullscreen API failed, trying simulation:', err);
-      // Попытка 2: CSS имитация fullscreen
+      console.log('❌ Browser fullscreen API failed, trying simulation:', err);
+      // Попытка 3: CSS имитация fullscreen
       return simulateMobileFullscreen();
     });
   };
 
-  // Попытка 3: Принудительная активация через события
+  // Попытка 4: Принудительная активация через события
   const forceFullscreenActivation = () => {
+    console.log('🔄 Force activating fullscreen via events...');
+
     // Имитируем пользовательское взаимодействие
     const events = ['touchstart', 'touchend', 'click'];
 
@@ -278,19 +308,39 @@ const setupMobileFullscreen = (tg) => {
       document.dispatchEvent(event);
     });
 
-    // Повторная попытка fullscreen после имитации взаимодействия
+    // Повторная попытка всех методов после имитации взаимодействия
     setTimeout(() => {
-      tryBrowserFullscreen().catch(err => {
-        console.log('All fullscreen attempts failed:', err);
-      });
-    }, 100);
+      tryTelegramFullscreen()
+        .catch(() => tryBrowserFullscreen())
+        .catch(err => {
+          console.log('❌ All fullscreen attempts failed:', err);
+        });
+    }, 200);
   };
 
-  // Начинаем с браузерного fullscreen
-  tryBrowserFullscreen().catch(() => {
-    console.log('Initial fullscreen attempt failed, trying with user interaction simulation');
-    forceFullscreenActivation();
+  // ГЛАВНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ ПОПЫТОК
+
+  // Начинаем с Telegram API
+  tryTelegramFullscreen().catch(() => {
+    console.log('🔄 Telegram fullscreen failed, trying browser API...');
+    // Если Telegram не сработал, пробуем браузерный API
+    tryBrowserFullscreen().catch(() => {
+      console.log('🔄 Browser fullscreen failed, trying force activation...');
+      // Если браузерный тоже не сработал, используем принудительную активацию
+      forceFullscreenActivation();
+    });
   });
+
+  // ДОПОЛНИТЕЛЬНЫЕ ПОВТОРНЫЕ ПОПЫТКИ
+  setTimeout(() => {
+    console.log('🔄 Additional fullscreen attempt after 1s...');
+    tryTelegramFullscreen().catch(() => tryBrowserFullscreen());
+  }, 1000);
+
+  setTimeout(() => {
+    console.log('🔄 Final fullscreen attempt after 3s...');
+    tryTelegramFullscreen().catch(() => tryBrowserFullscreen());
+  }, 3000);
 
   // Устанавливаем фоновый цвет для status bar
   document.body.style.backgroundColor = '#121a12';
