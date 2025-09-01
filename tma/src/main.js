@@ -776,12 +776,44 @@ console.log('📊 [INIT] Device detection completed:', deviceInfo);
 window.isMobileDevice = deviceInfo.isMobile;
 console.log('🚩 [INIT] Global mobile flag set:', window.isMobileDevice);
 
-// Инициализируем Telegram в зависимости от типа устройства
-let telegramInitialized = false;
+// ФУНКЦИЯ ОЖИДАНИЯ ЗАГРУЗКИ TELEGRAM SDK
+function waitForTelegramSDK(maxAttempts = 50) {
+  return new Promise((resolve) => {
+    let attempts = 0;
 
-console.log('🎯 [INIT] Starting device-specific initialization...');
+    const checkTelegram = () => {
+      attempts++;
+      console.log(`⏳ [WAIT] Attempt ${attempts}/${maxAttempts} - Checking Telegram SDK...`);
 
-// ЭКСТРЕННОЕ ПРИМЕНЕНИЕ ОГРАНИЧЕНИЙ ДЛЯ ДЕСКТОПА
+      // Проверяем наличие Telegram WebApp
+      const hasTelegram = typeof window !== 'undefined' && window.Telegram?.WebApp;
+      const hasWebView = typeof window !== 'undefined' && window.TelegramWebviewProxy;
+
+      console.log(`⏳ [WAIT] Telegram WebApp: ${hasTelegram}`);
+      console.log(`⏳ [WAIT] TelegramWebviewProxy: ${hasWebView}`);
+
+      if (hasTelegram || hasWebView || attempts >= maxAttempts) {
+        console.log(`✅ [WAIT] Telegram SDK ready after ${attempts} attempts`);
+        resolve(hasTelegram);
+      } else {
+        setTimeout(checkTelegram, 100);
+      }
+    };
+
+    checkTelegram();
+  });
+}
+
+// ЖДЕМ ЗАГРУЗКИ TELEGRAM SDK
+waitForTelegramSDK().then((hasTelegram) => {
+  console.log(`🎯 [INIT] Telegram SDK loaded: ${hasTelegram}`);
+
+  // Инициализируем Telegram в зависимости от типа устройства
+  let telegramInitialized = false;
+
+  console.log('🎯 [INIT] Starting device-specific initialization...');
+
+  // ЭКСТРЕННОЕ ПРИМЕНЕНИЕ ОГРАНИЧЕНИЙ ДЛЯ ДЕСКТОПА
 if (!deviceInfo.isMobile) {
   console.log('💻 [INIT] Desktop detected - applying immediate size restrictions');
   enforceDesktopSizeLimit();
@@ -789,9 +821,9 @@ if (!deviceInfo.isMobile) {
   // Повторяем через короткое время для гарантии
   setTimeout(enforceDesktopSizeLimit, 100);
   setTimeout(enforceDesktopSizeLimit, 500);
-}
+  }
 
-if (deviceInfo.isMobile) {
+  if (deviceInfo.isMobile) {
   console.log('📱 [INIT] Mobile device detected - initializing mobile mode');
   // Инициализация для мобильных устройств
   if (initTelegramMobile()) {
@@ -946,7 +978,9 @@ window.triggerHaptic = (type = 'light') => {
   } catch (error) {
     console.error('❌ [HAPTIC] Error triggering haptic feedback:', error);
   }
-};
+});
+
+console.log('✅ [MAIN] Telegram initialization completed');
 
 // Глобальные функции для браузерного fullscreen
 window.enterBrowserFullscreen = enterBrowserFullscreen;

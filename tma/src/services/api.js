@@ -86,28 +86,42 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Логируем детали ошибки ответа (сетевая ошибка или ошибка от сервера)
+    // Обрабатываем ошибки более gracefully
     if (error.response) {
       // Ошибка от сервера (статус не 2xx)
-      console.error('[api.js] Axios response error (from server):', {
-          message: error.message,
+      const status = error.response?.status;
+      const isAuthError = status === 401 || status === 403;
+
+      if (isAuthError) {
+        // Авторизационные ошибки логируем как предупреждения, а не ошибки
+        console.warn('[api.js] Auth error (normal for unauthorized users):', {
+          status: status,
+          url: error.config?.url,
+          message: error.response?.data?.error || error.message
+        });
+      } else {
+        // Другие ошибки сервера логируем как ошибки
+        console.error('[api.js] Server error:', {
+          status: status,
           url: error.config?.url,
           method: error.config?.method,
-          status: error.response?.status,
-          data: error.response?.data, // Тело ответа с ошибкой от бэкенда
-      });
+          message: error.message,
+          data: error.response?.data
+        });
+      }
     } else if (error.request) {
-      // Запрос был сделан, но ответ не получен (сетевая проблема, таймаут)
-      console.error('[api.js] Axios network error (no response):', {
-          message: error.message,
-          url: error.config?.url,
-          method: error.config?.method,
-          code: error.code, // e.g., 'ECONNABORTED' for timeout
+      // Сетевая ошибка
+      console.error('[api.js] Network error:', {
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        code: error.code
       });
     } else {
-      // Ошибка на этапе настройки запроса
-      console.error('[api.js] Axios request setup error:', error.message);
+      // Ошибка настройки запроса
+      console.error('[api.js] Request setup error:', error.message);
     }
+
     // Пробрасываем ошибку дальше для обработки в сторе или компоненте
     return Promise.reject(error);
   }
