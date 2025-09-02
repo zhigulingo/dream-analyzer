@@ -349,31 +349,36 @@ const onSlideChangeNew = async (swiper: any) => {
     })
   } catch (_) {}
   if (step.value === 4) {
-    // Автоматически пробуем подтвердить подписку/начислить токен
+    // Мгновенное появление кнопки без ожиданий
     clearMainButton()
     api.trackOnboarding('onboarding1_step4_enter')
-    // Пытаемся автоматически подтвердить подписку и начислить токен
-    try {
-      await verifySubscription()
-      try { await userStore.fetchProfile() } catch (_) {}
-    } catch (_) {}
-    // После попытки показываем релевантную кнопку
+
+    const visited = (()=>{ try { return localStorage.getItem('visited_channel') === '1' } catch(_) { return false } })()
+
     if (userStore.profile?.channel_reward_claimed) {
       setMainButton('Открыть чат', () => { try { tg.value?.close?.() } catch (_) {} })
-    } else {
-      const visited = (()=>{ try { return localStorage.getItem('visited_channel') === '1' } catch(_) { return false } })()
-      if (visited) {
-        setMainButton('Проверить подписку', async () => {
-          await verifySubscription();
+    } else if (visited) {
+      setMainButton('Проверить подписку', async () => {
+        await verifySubscription();
+        try { await userStore.fetchProfile() } catch (_) {}
+        if (userStore.profile?.channel_reward_claimed) {
+          try { tg.value?.close?.() } catch (_) {}
+        }
+      })
+
+      // Фоновая попытка верификации без блокировки кнопки
+      ;(async () => {
+        try {
+          await verifySubscription()
           try { await userStore.fetchProfile() } catch (_) {}
           if (userStore.profile?.channel_reward_claimed) {
-            try { tg.value?.close?.() } catch (_) {}
+            setMainButton('Открыть чат', () => { try { tg.value?.close?.() } catch (_) {} })
           }
-        })
-      } else {
-        api.trackOnboarding('onboarding1_step4_need_subscribe')
-        setMainButton('Перейти и подписаться', goToCommunity)
-      }
+        } catch (_) {}
+      })()
+    } else {
+      api.trackOnboarding('onboarding1_step4_need_subscribe')
+      setMainButton('Перейти и подписаться', goToCommunity)
     }
   }
   else clearMainButton()
