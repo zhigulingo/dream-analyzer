@@ -295,9 +295,10 @@ const verifySubscription = async () => {
   if (userStore.rewardAlreadyClaimed) {
     userStore.notificationStore?.info('Награда уже получена. Отправьте свой сон в чате с ботом.')
     api.trackOnboarding('onboarding1_reward_already')
-    flow.value = 'none'
-    emit('visible-change', false)
-    try { tg.value?.close() } catch (_) {}
+    // Переходим на экран перехода в чат (post_claim), не закрывая приложение
+    flow.value = 'post_claim'
+    step.value = 1
+    emit('visible-change', true)
     return
   }
   // Если возникла ошибка (часто это отсутствие подписки) — оставляем возможность перейти в канал
@@ -310,9 +311,10 @@ const verifySubscription = async () => {
   // Успех: сообщаем и закрываем онбординг
   userStore.notificationStore?.success('Подписка подтверждена! Теперь отправьте свой сон в чате с ботом.')
   api.trackOnboarding('onboarding1_reward_granted')
-  flow.value = 'none'
-  emit('visible-change', false)
-  try { tg.value?.close() } catch (_) {}
+  // Переходим на экран перехода в чат (post_claim) вместо закрытия приложения
+  flow.value = 'post_claim'
+  step.value = 1
+  emit('visible-change', true)
 }
 
 // drag-логика упразднена — ею управляет Swiper
