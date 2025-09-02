@@ -6,8 +6,8 @@
       :modules="modules"
       direction="vertical"
       :spaceBetween="18"
-      :slidesOffsetBefore="48"
-      :slidesOffsetAfter="48"
+      :slidesOffsetBefore="0"
+      :slidesOffsetAfter="0"
       slides-per-view="auto"
       :centeredSlides="true"
       :autoplay="autoplay"
@@ -517,10 +517,10 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 
 <style scoped>
 .onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: stretch; justify-content: center; z-index: 1000; padding: 16px; }
-.onboarding-card { width: 100%; max-width: 560px; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); border-radius: 16px; padding: 20px 16px 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; flex-direction: column; justify-content: space-between; align-items: center; min-height: 72vh; max-height: 72vh; margin: 0 auto; }
+.onboarding-card { width: 100%; max-width: 560px; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); border-radius: 16px; padding: 20px 16px 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 0 auto; }
 .center-card { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
 /* Карточка чуть меньше экрана для peeking; контент вертикально выстроен */
-.slidePeek { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.slidePeek { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 72vh; }
 .card-absolute { position: absolute; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); transition: transform .25s ease; }
 .card-absolute::before, .card-absolute::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 42%; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.10); }
 .card-absolute::before { top: -14px; }
