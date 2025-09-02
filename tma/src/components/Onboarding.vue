@@ -516,7 +516,7 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 </script>
 
 <style scoped>
-.onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: stretch; justify-content: center; z-index: 1000; padding: 16px; }
+.onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: stretch; justify-content: center; z-index: 1000; padding: 16px; padding-top: calc(var(--tma-safe-top, 88px) + 16px); }
 .onboarding-card { width: 100%; max-width: 560px; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); border-radius: 16px; padding: 20px 16px 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; flex-direction: column; justify-content: space-between; align-items: center; min-height: 72vh; max-height: 72vh; margin: 0 auto; }
 .center-card { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
 /* Карточка чуть меньше экрана для peeking; контент вертикально выстроен */
@@ -542,7 +542,7 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   opacity: 0.95;
 }
 .onboarding-body { width: 100%; display: flex; justify-content: center; align-items: center; }
-.headline { font-size: 24px; line-height: 1.25; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 700; }
+.headline { font-size: 16px; line-height: 1.4; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 500; }
 .centered { text-align: center; }
 .media-overlay { position: relative; display: inline-block; }
 .overlay-stack { position: absolute; left: 24px; top: 18px; right: 24px; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.55); }
