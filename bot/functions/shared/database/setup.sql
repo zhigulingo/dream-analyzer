@@ -398,3 +398,63 @@ BEGIN
   WHERE tg_id = user_tg_id;
 END;
 $$ LANGUAGE plpgsql;
+
+-- =============================
+-- БЕТА-ОПРОС: ХРАНИЛИЩЕ РЕЗУЛЬТАТОВ
+-- =============================
+-- Таблица для ответов бета-опроса. Поддерживает два режима идентификации:
+-- 1) tg_id (BIGINT) — когда пользователь авторизован через Telegram
+-- 2) client_id (TEXT) — локальный/браузерный идентификатор для предварительного теста UI
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema='public' AND table_name='beta_survey_responses'
+    ) THEN
+        CREATE TABLE public.beta_survey_responses (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            tg_id BIGINT,
+            client_id TEXT,
+            answers JSONB NOT NULL,
+            submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            approved BOOLEAN NOT NULL DEFAULT FALSE
+        );
+        CREATE UNIQUE INDEX ux_beta_survey_tg ON public.beta_survey_responses(tg_id) WHERE tg_id IS NOT NULL;
+        CREATE UNIQUE INDEX ux_beta_survey_client ON public.beta_survey_responses(client_id) WHERE client_id IS NOT NULL;
+        CREATE INDEX ix_beta_survey_approved ON public.beta_survey_responses(approved);
+        CREATE INDEX ix_beta_survey_submitted_at ON public.beta_survey_responses(submitted_at);
+    END IF;
+END$$;
+
+-- Триггер для updated_at
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'trg_beta_survey_set_updated_at'
+  ) THEN
+    CREATE TRIGGER trg_beta_survey_set_updated_at
+    BEFORE UPDATE ON public.beta_survey_responses
+    FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+  END IF;
+END$$;
+
+-- Флаг доступа к бете в таблице users
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema='public' AND table_name='users' AND column_name='beta_whitelisted'
+    ) THEN
+        ALTER TABLE public.users ADD COLUMN beta_whitelisted BOOLEAN NOT NULL DEFAULT FALSE;
+    END IF;
+END$$;
