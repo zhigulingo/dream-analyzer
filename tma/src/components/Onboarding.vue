@@ -103,14 +103,14 @@
         <div class="onboarding-body">
           <h2 class="headline centered">Удобный доступ</h2>
         </div>
-        <div class="onboarding-media media-bottom"><img :src="frame1" alt="onboarding-2" style="max-width: 320px; width: 100%; border-radius: 12px;" /></div>
+        <div class="onboarding-media media-bottom"><img class="onboarding-media-img" :src="frame1" alt="onboarding-2" /></div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-body">
           <h2 class="headline centered">Полезные факты</h2>
         </div>
         <div class="onboarding-media media-bottom">
-          <img :src="frame2" alt="onboarding-3" style="max-width: 320px; width: 100%; border-radius: 12px;" />
+          <img class="onboarding-media-img" :src="frame2" alt="onboarding-3" />
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
@@ -118,7 +118,7 @@
           <h2 class="headline centered">История снов и анализ</h2>
         </div>
         <div class="onboarding-media media-bottom">
-          <img :src="frame3" alt="onboarding-4" style="max-width: 320px; width: 100%; border-radius: 12px;" />
+          <img class="onboarding-media-img" :src="frame3" alt="onboarding-4" />
         </div>
       </SwiperSlide>
     </Swiper>
@@ -543,6 +543,15 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 .media-top { margin-top: 8px; }
 .media-bottom { margin-top: auto; margin-bottom: 0; align-self: center; width: 100%; }
 .media-bottom img { display: block; width: 100%; border-radius: 12px; }
+/* Responsive image inside onboarding card to never overflow */
+.onboarding-media-img {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  max-height: calc(72vh - 120px); /* резерв под заголовок/отступы */
+  object-fit: contain;
+  border-radius: 12px;
+}
 .onboarding-body .text {
   margin: 8px 0 0 0;
   font-size: 16px;
