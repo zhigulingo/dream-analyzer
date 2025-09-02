@@ -6,8 +6,8 @@
       :modules="modules"
       direction="vertical"
       :spaceBetween="18"
-      :slidesOffsetBefore="48"
-      :slidesOffsetAfter="48"
+      :slidesOffsetBefore="32"
+      :slidesOffsetAfter="32"
       slides-per-view="auto"
       :centeredSlides="true"
       :autoplay="autoplay"
@@ -18,7 +18,7 @@
       :watch-overflow="true"
       @init="onInitNew"
       @slideChange="onSlideChangeNew"
-      class="w-full h-full"
+      class="w-full h-full onboarding-swiper"
     >
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
@@ -52,8 +52,8 @@
       :modules="modules"
       direction="vertical"
       :spaceBetween="18"
-      :slidesOffsetBefore="48"
-      :slidesOffsetAfter="48"
+      :slidesOffsetBefore="32"
+      :slidesOffsetAfter="32"
       slides-per-view="auto"
       :centeredSlides="true"
       :keyboard="{ enabled: true }"
@@ -63,7 +63,7 @@
       :watch-overflow="true"
       @init="onInitPostClaim"
       @slideChange="onSlideChangePostClaim"
-      class="w-full h-full"
+      class="w-full h-full onboarding-swiper"
     >
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
@@ -79,8 +79,8 @@
       :modules="modules"
       direction="vertical"
       :spaceBetween="18"
-      :slidesOffsetBefore="48"
-      :slidesOffsetAfter="48"
+      :slidesOffsetBefore="32"
+      :slidesOffsetAfter="32"
       slides-per-view="auto"
       :centeredSlides="true"
       :autoplay="autoplay"
@@ -91,7 +91,7 @@
       :watch-overflow="true"
       @init="onInitFree"
       @slideChange="onSlideChangeFree"
-      class="w-full h-full"
+      class="w-full h-full onboarding-swiper"
     >
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="wizard-happy.tgs" :width="220" :height="220" /></div>
@@ -516,7 +516,7 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 </script>
 
 <style scoped>
-.onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: stretch; justify-content: center; z-index: 1000; padding: 16px; }
+.onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: stretch; justify-content: center; z-index: 1000; padding: 0; box-sizing: border-box; }
 .onboarding-card { width: 100%; max-width: 560px; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); border-radius: 16px; padding: 20px 16px 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 0 auto; }
 .center-card { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
 /* Карточка чуть меньше экрана для peeking; контент вертикально выстроен */
@@ -553,6 +553,10 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 .onboarding-header, .onboarding-body, .onboarding-media { max-width: 560px; width: 100%; }
 .onboarding-body { padding: 0 8px; }
 .onboarding-body .text { word-wrap: break-word; overflow-wrap: anywhere; text-align: center; }
+/* Swiper tune: убрать внутренние отступы и дать нижний просвет */
+:deep(.onboarding-swiper) { padding: 16px 16px 8px 16px; box-sizing: border-box; }
+:deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
+:deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; }
 /* Пузырь текста по центру поверх изображения (вторая карточка) */
 .overlay-center { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; justify-content: center; padding: 0 16px; }
 .overlay-bubble { background: rgba(30,30,60,0.85); color: #fff; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.25; box-shadow: 0 8px 24px rgba(0,0,0,0.35); max-width: 260px; text-align: left; }
