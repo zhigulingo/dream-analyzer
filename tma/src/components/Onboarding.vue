@@ -96,18 +96,18 @@
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="wizard-happy.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline-mono centered">Ура! Твой первый сон проанализирован</h2>
+          <h2 class="headline centered">Ура!<br/>Твой первый сон проанализирован.<br/><br/>Все сны твои сны<br/>в одном месте – личный кабинет.<br/><br/>Давай покажу его!</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-body">
-          <h2 class="headline-mono centered">Удобный доступ</h2>
+          <h2 class="headline-24 centered">Удобный доступ</h2>
         </div>
         <div class="onboarding-media media-bottom"><img class="onboarding-media-img" :src="frame1" alt="onboarding-2" /></div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-body">
-          <h2 class="headline-mono centered">Полезные факты</h2>
+          <h2 class="headline-24 centered">Полезные факты</h2>
         </div>
         <div class="onboarding-media media-bottom">
           <img class="onboarding-media-img" :src="frame2" alt="onboarding-3" />
@@ -115,7 +115,7 @@
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-body">
-          <h2 class="headline-mono centered">История снов и анализ</h2>
+          <h2 class="headline-24 centered">История снов и анализ</h2>
         </div>
         <div class="onboarding-media media-bottom">
           <img class="onboarding-media-img" :src="frame3" alt="onboarding-4" />
@@ -560,6 +560,7 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 .onboarding-body { width: 100%; display: flex; justify-content: center; align-items: center; }
 .headline { font-size: 16px; line-height: 1.4; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 500; }
 .headline-mono { font-size: 20px; line-height: 1.2; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.headline-24 { font-size: 24px; line-height: 1.2; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 600; }
 .centered { text-align: center; }
 .media-overlay { position: relative; display: inline-block; }
 .overlay-stack { position: absolute; left: 24px; top: 18px; right: 24px; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.55); }
