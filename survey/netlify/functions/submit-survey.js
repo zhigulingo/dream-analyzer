@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { getCorsHeaders, handleCorsPrelight } = require('../../../bot/functions/shared/middleware/cors');
+const { validateTelegramData, isInitDataValid } = require('../../../bot/functions/shared/auth/telegram-validator');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -39,13 +40,32 @@ exports.handler = async (event) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
 
-    // Локальный режим: сохраняем по client_id. Позже добавим tg_id при интеграции.
-    const upsertPayload = { answers, updated_at: new Date().toISOString() };
-    if (clientId) upsertPayload.client_id = clientId;
+    // Попытка авторизоваться через Telegram InitData
+    const initData = event.headers['x-telegram-init-data'] || event.headers['X-Telegram-Init-Data'];
+    const botToken = process.env.BOT_TOKEN;
+
+    let upsertPayload = { answers, updated_at: new Date().toISOString() };
+    let onConflictColumn;
+
+    if (initData && botToken && isInitDataValid(initData)) {
+      const res = validateTelegramData(initData, botToken, { enableLogging: true });
+      if (res.valid && res.data && typeof res.data.id !== 'undefined') {
+        upsertPayload.tg_id = res.data.id;
+        onConflictColumn = 'tg_id';
+      }
+    }
+
+    // Fallback: локальный client_id
+    if (!onConflictColumn) {
+      if (clientId) {
+        upsertPayload.client_id = clientId;
+        onConflictColumn = 'client_id';
+      }
+    }
 
     const { error } = await supabase
       .from('beta_survey_responses')
-      .upsert(upsertPayload, { onConflict: clientId ? 'client_id' : undefined });
+      .upsert(upsertPayload, { onConflict: onConflictColumn });
 
     if (error) {
       console.error('[submit-survey] upsert error', error);
@@ -58,5 +78,6 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Internal error' }) };
   }
 };
+
 
 
