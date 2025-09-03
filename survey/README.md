@@ -22,6 +22,12 @@ npm run netlify:dev
 Фронтенд: http://localhost:8888
 Функции: http://localhost:8888/.netlify/functions
 
+Если у вас монорепо (как здесь) и создаёте сайт Netlify:
+- Base directory: `survey`
+- Build command: `npm run build`
+- Publish directory: `dist`
+- Functions directory: `netlify/functions`
+
 ## Endpoints
 - GET /api/survey-status
 - POST /api/submit-survey { answers, clientId }

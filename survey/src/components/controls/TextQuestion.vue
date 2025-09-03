@@ -23,10 +23,10 @@ function commit() {
 </script>
 
 <style scoped>
-.title { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
-textarea { width: 100%; border: 1px solid #ddd; border-radius: 10px; padding: 10px; resize: vertical; }
+.title { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+textarea { width: 100%; border: 1px solid #e5e7eb; border-radius: 16px; padding: 12px; resize: vertical; box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
 .actions { display: flex; justify-content: flex-end; margin-top: 12px; }
-.btn { padding: 10px 16px; border-radius: 10px; background: #6366f1; color: #fff; border: none; cursor: pointer; }
+.btn { padding: 12px 16px; border-radius: 12px; background: #6366f1; color: #fff; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
 .btn:disabled { background: #c7c8fe; cursor: not-allowed; }
 </style>
 

@@ -68,14 +68,14 @@ exports.handler = async (event) => {
       .upsert(upsertPayload, { onConflict: onConflictColumn });
 
     if (error) {
-      console.error('[submit-survey] upsert error', error);
-      return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Database error' }) };
+      console.error('[submit-survey] upsert error', { onConflictColumn, upsertPayloadSummary: { hasTg: !!upsertPayload.tg_id, hasClient: !!upsertPayload.client_id }, error });
+      return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Database error', code: error.code, details: error.message }) };
     }
 
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ success: true }) };
   } catch (e) {
-    console.error('[submit-survey] exception', e);
-    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Internal error' }) };
+    console.error('[submit-survey] exception', { message: e?.message, stack: e?.stack, body: event.body });
+    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Internal error', details: e?.message }) };
   }
 };
 

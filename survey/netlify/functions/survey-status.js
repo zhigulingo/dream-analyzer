@@ -19,11 +19,16 @@ exports.handler = async (event) => {
     return true;
   })();
 
-  return {
-    statusCode: 200,
-    headers: corsHeaders,
-    body: JSON.stringify({ isOpen, now: nowIso, startAt, endAt })
-  };
+  try {
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({ isOpen, now: nowIso, startAt, endAt })
+    };
+  } catch (e) {
+    console.error('[survey-status] exception', { message: e?.message, stack: e?.stack });
+    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Internal error' }) };
+  }
 };
 
 

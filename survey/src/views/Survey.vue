@@ -2,17 +2,18 @@
   <div>
     <ProgressBar :current="store.index" :total="store.total" />
 
-    <div class="card">
+    <div class="card onboarding-card">
       <component
         :is="currentComponent"
         v-bind="currentProps"
+        :key="currentKey"
         v-model="modelValue"
         @commit="onCommit"
       />
     </div>
 
     <div class="nav">
-      <button class="btn" :disabled="store.index===0" @click="store.prev()">Назад</button>
+      <button class="btn btn-secondary" :disabled="store.index===0" @click="store.prev()">Назад</button>
     </div>
   </div>
 </template>
@@ -71,7 +72,15 @@ function onCommit() {
 <style scoped>
 .card { margin-top: 16px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
 .nav { margin-top: 16px; display: flex; justify-content: space-between; }
-.btn { padding: 10px 16px; border-radius: 10px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+.btn { padding: 12px 16px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; }
+.btn-secondary { background: #f9fafb; }
+.onboarding-card { 
+  padding: 24px; 
+  border-radius: 20px; 
+  border: 1px solid #e5e7eb; 
+  background: #ffffff; 
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
 </style>
 
 
