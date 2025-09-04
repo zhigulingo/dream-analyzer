@@ -22,3 +22,4 @@ const percent = computed(() => Math.round(((props.current + 1) / props.total) * 
 
 
 
+
