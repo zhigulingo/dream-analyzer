@@ -65,6 +65,15 @@ exports.handler = async (event) => {
       }
     }
 
+    // Во время тестов разрешаем повторные прохождения: если есть уникальный ключ, удаляем перед вставкой
+    const ALLOW_MULTI = (process.env.ALLOW_MULTI_SURVEY || 'false').toLowerCase() === 'true';
+    if (ALLOW_MULTI && onConflictColumn) {
+      const keyVal = onConflictColumn === 'tg_id' ? upsertPayload.tg_id : upsertPayload.client_id;
+      if (keyVal) {
+        await supabase.from('beta_survey_responses').delete().eq(onConflictColumn, keyVal);
+      }
+    }
+
     const { error } = await supabase
       .from('beta_survey_responses')
       .upsert(upsertPayload, { onConflict: onConflictColumn });

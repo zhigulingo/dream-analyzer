@@ -17,9 +17,9 @@ function select(opt) {
 </script>
 
 <style scoped>
-.title { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
-.col { display: flex; flex-direction: column; gap: 10px; }
-.btn { padding: 14px 16px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.06); text-align: left; }
+.title { font-size: 20px; font-weight: 700; margin-bottom: 16px; text-align: center; }
+.col { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.btn { width: 100%; max-width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.06); text-align: center; }
 .btn.active { border-color: #6366f1; background: #eef2ff; }
 </style>
 
