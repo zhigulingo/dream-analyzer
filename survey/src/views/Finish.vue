@@ -2,11 +2,22 @@
   <div>
     <h1>Спасибо!</h1>
     <p>Мы получили ваши ответы. Мы свяжемся с вами в Telegram.</p>
-    <a class="btn" href="https://t.me/dreamstalk_bot" target="_blank" rel="noopener">Вернуться в чат</a>
+    <button class="btn" @click="returnToChat">Вернуться в чат</button>
   </div>
 </template>
 
 <script setup>
+function returnToChat() {
+  try {
+    const tg = window?.Telegram?.WebApp;
+    if (tg && typeof tg.close === 'function') {
+      tg.close();
+      return;
+    }
+  } catch {}
+  const url = import.meta.env.VITE_TG_BOT_URL || 'https://t.me/dreamstalk_bot';
+  window.open(url, '_blank', 'noopener');
+}
 </script>
 
 <style scoped>

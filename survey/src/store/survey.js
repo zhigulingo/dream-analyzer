@@ -22,6 +22,13 @@ export const useSurveyStore = defineStore('survey', {
     clientId: generateClientId(),
   }),
   actions: {
+    startSurvey() {
+      // Всегда начинаем заново: очищаем ответы и ставим первый вопрос
+      this.stage = 'survey';
+      this.index = 0;
+      this.answers = { q1: null, q2: null, q3: null, q4: null, q5: null, q6: null, q7: '', q8: '', q9: null, q10: null };
+      this.persist();
+    },
     setAnswer(key, value) {
       this.answers[key] = value;
       this.persist();

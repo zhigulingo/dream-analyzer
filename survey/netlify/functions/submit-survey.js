@@ -17,9 +17,11 @@ function validateAnswers(answers) {
 }
 
 exports.handler = async (event) => {
+  const requestOrigin = event.headers.origin || event.headers.Origin || '';
   const ALLOWED_SURVEY_ORIGIN = process.env.ALLOWED_SURVEY_ORIGIN || '';
-  const corsHeaders = getCorsHeaders(event, [ALLOWED_SURVEY_ORIGIN]);
-  const pre = handleCorsPrelight(event, [ALLOWED_SURVEY_ORIGIN]);
+  const allowed = [ALLOWED_SURVEY_ORIGIN, requestOrigin].filter(Boolean);
+  const corsHeaders = getCorsHeaders(event, allowed);
+  const pre = handleCorsPrelight(event, allowed);
   if (pre) return pre;
 
   if (event.httpMethod !== 'POST') {

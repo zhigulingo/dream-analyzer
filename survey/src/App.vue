@@ -19,7 +19,7 @@ const currentView = computed(() => {
   return FinishView;
 });
 
-function goSurvey() { store.stage = 'survey'; }
+function goSurvey() { store.startSurvey(); }
 function goFinish() { store.stage = 'finish'; }
 </script>
 
