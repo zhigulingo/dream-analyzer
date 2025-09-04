@@ -1,33 +1,36 @@
 <template>
-  <div>
-    <ProgressBar :current="store.index" :total="store.total" />
-
-    <Swiper
-      :modules="modules"
-      direction="vertical"
-      :spaceBetween="18"
-      :slidesOffsetBefore="32"
-      :slidesOffsetAfter="32"
-      slides-per-view="auto"
-      :centeredSlides="true"
-      :allowTouchMove="false"
-      :keyboard="{ enabled: false }"
-      :a11y="{ enabled: false }"
-      class="w-full h-full onboarding-swiper"
-      :observer="true"
-      :observe-parents="true"
-      :watch-overflow="true"
-      @swiper="onSwiper"
-    >
-      <SwiperSlide v-for="(q, i) in QUESTIONS" :key="q.key" class="onboarding-card slidePeek center-card">
-        <component
-          :is="resolveComponent(q)"
-          v-bind="resolveProps(q)"
-          v-model="answersProxy[q.key]"
-          @commit="() => onCommit(q, i)"
-        />
-      </SwiperSlide>
-    </Swiper>
+  <div class="survey-overlay">
+    <div class="survey-viewport">
+      <div class="survey-top">
+        <ProgressBar :current="store.index" :total="store.total" />
+      </div>
+      <Swiper
+        :modules="modules"
+        direction="vertical"
+        :spaceBetween="18"
+        :slidesOffsetBefore="32"
+        :slidesOffsetAfter="32"
+        slides-per-view="auto"
+        :centeredSlides="true"
+        :allowTouchMove="false"
+        :keyboard="{ enabled: false }"
+        :a11y="{ enabled: false }"
+        class="onboarding-swiper"
+        :observer="true"
+        :observe-parents="true"
+        :watch-overflow="true"
+        @swiper="onSwiper"
+      >
+        <SwiperSlide v-for="(q, i) in QUESTIONS" :key="q.key" class="onboarding-card slidePeek center-card">
+          <component
+            :is="resolveComponent(q)"
+            v-bind="resolveProps(q)"
+            v-model="answersProxy[q.key]"
+            @commit="() => onCommit(q, i)"
+          />
+        </SwiperSlide>
+      </Swiper>
+    </div>
   </div>
 </template>
 
@@ -49,7 +52,10 @@ store.restore();
 // Swiper instance
 const modules = [A11y, Keyboard];
 const swiperRef = ref(null);
-function onSwiper(swiper) { swiperRef.value = swiper; }
+function onSwiper(swiper) {
+  swiperRef.value = swiper;
+  try { swiper.slideTo(store.index || 0, 0); } catch (_) {}
+}
 
 const answersProxy = reactive(new Proxy({}, {
   get(_, key) { return store.answers[key]; },
@@ -88,10 +94,21 @@ function onCommit(q, i) {
 
 <style scoped>
 .nav { display: none; }
-/* Блокируем прокрутку страницы на экране вопросов, Swiper сам управляет внутренним позиционированием */
-:host, .w-full.h-full.onboarding-swiper { overflow: hidden; }
-html, body { overscroll-behavior: none; }
-::v-deep(.onboarding-swiper) { padding: 16px 16px 8px 16px; box-sizing: border-box; }
+/* Фиксированный оверлей и вьюпорт по центру, как в онбординге */
+.survey-overlay { position: fixed; inset: 0; display: flex; align-items: stretch; justify-content: center; z-index: 10; background: transparent; }
+.survey-viewport { width: 100%; max-width: 560px; display: flex; flex-direction: column; padding: 16px; box-sizing: border-box; }
+.survey-top { padding: 0 0 8px 0; }
+/* Центрирование и peeking */
+::v-deep(.onboarding-swiper) { padding: 16px 0 8px 0; box-sizing: border-box; flex: 1; }
+::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
+::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; }
+::v-deep(.slidePeek) { min-height: 72vh; max-height: 72vh; }
+::v-deep(.center-card) { width: 100%; display: flex; align-items: center; justify-content: center; }
+/* Блокируем прокрутку страницы */
+:host { overflow: hidden; }
+::v-deep(html), ::v-deep(body) { overscroll-behavior: none; }
+/* Внутренние отступы слайдера */
+::v-deep(.onboarding-swiper) { padding-left: 16px; padding-right: 16px; }
 ::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
 ::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; }
 .btn { padding: 12px 16px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; }
