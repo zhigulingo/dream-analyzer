@@ -54,9 +54,9 @@ onUnmounted(() => { if (t) clearInterval(t); });
 </script>
 
 <style scoped>
-.start-wrap { display: flex; justify-content: center; }
+.start-wrap { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; box-sizing: border-box; }
 .start-card {
-  width: 100%; max-width: 560px; margin-top: 24px; padding: 24px;
+  width: 100%; max-width: 560px; padding: 24px;
   border-radius: 20px; color: #fff;
   background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%);
   box-shadow: 0 12px 28px rgba(0,0,0,0.16);

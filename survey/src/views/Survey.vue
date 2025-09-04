@@ -6,6 +6,8 @@
       :modules="modules"
       direction="vertical"
       :spaceBetween="18"
+      :slidesOffsetBefore="32"
+      :slidesOffsetAfter="32"
       slides-per-view="auto"
       :centeredSlides="true"
       :allowTouchMove="false"
@@ -86,6 +88,12 @@ function onCommit(q, i) {
 
 <style scoped>
 .nav { display: none; }
+/* Блокируем прокрутку страницы на экране вопросов, Swiper сам управляет внутренним позиционированием */
+:host, .w-full.h-full.onboarding-swiper { overflow: hidden; }
+html, body { overscroll-behavior: none; }
+::v-deep(.onboarding-swiper) { padding: 16px 16px 8px 16px; box-sizing: border-box; }
+::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
+::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; }
 .btn { padding: 12px 16px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; }
 .btn-secondary { background: #f9fafb; }
 .onboarding-card { 

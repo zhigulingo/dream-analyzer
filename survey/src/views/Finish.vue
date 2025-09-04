@@ -23,8 +23,8 @@ function returnToChat() {
 </script>
 
 <style scoped>
-.finish-wrap { display: flex; justify-content: center; }
-.finish-card { width: 100%; max-width: 560px; margin-top: 24px; padding: 24px; border-radius: 20px; color: #fff; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); box-shadow: 0 12px 28px rgba(0,0,0,0.16); }
+.finish-wrap { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; box-sizing: border-box; }
+.finish-card { width: 100%; max-width: 560px; padding: 24px; border-radius: 20px; color: #fff; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); box-shadow: 0 12px 28px rgba(0,0,0,0.16); }
 h1 { font-size: 22px; margin: 0 0 8px; }
 .lead { opacity: 0.95; }
 .btn { display: inline-block; margin-top: 16px; padding: 12px 16px; border-radius: 12px; background: #ffffff; color: #111827; text-decoration: none; border: none; cursor: pointer; }
