@@ -130,7 +130,15 @@ function resolveProps(q) {
   return base;
 }
 
-function goToSlide(i) { try { swiperRef.value?.slideTo(i); } catch (_) {} }
+function goToSlide(i) {
+  try {
+    const s = swiperRef.value;
+    if (!s) return;
+    s.slideTo(i, 300);
+    // На всякий случай прокручиваем контейнер к началу
+    try { s.el?.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) {}
+  } catch (_) {}
+}
 
 async function onCommit(q, i) {
   const value = store.answers[q.key];
