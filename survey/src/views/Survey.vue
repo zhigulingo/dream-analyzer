@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, onMounted, onBeforeUnmount } from 'vue';
+import { computed, reactive, ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useSurveyStore, QUESTIONS, validateAnswer } from '../store/survey';
 import ProgressBar from '../components/ProgressBar.vue';
 import SliderQuestion from '../components/controls/SliderQuestion.vue';
@@ -132,7 +132,7 @@ function resolveProps(q) {
 
 function goToSlide(i) { try { swiperRef.value?.slideTo(i); } catch (_) {} }
 
-function onCommit(q, i) {
+async function onCommit(q, i) {
   const value = store.answers[q.key];
   if (!validateAnswer(q.key, value)) return;
 
@@ -144,6 +144,7 @@ function onCommit(q, i) {
     return;
   }
   store.next();
+  await nextTick();
   goToSlide(store.index);
 }
 </script>

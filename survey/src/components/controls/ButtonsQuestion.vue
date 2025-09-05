@@ -1,8 +1,8 @@
 <template>
   <div>
     <div class="title">{{ title }}</div>
-    <div class="col">
-      <button v-for="opt in options" :key="opt" :class="['btn', { active: modelValue===opt }]" @click="select(opt)">{{ opt }}</button>
+    <div class="col" :class="{ chosen: !!modelValue }">
+      <button v-for="opt in options" :key="opt" :class="['btn', { active: modelValue===opt, faded: modelValue && modelValue!==opt }]" @click="select(opt)">{{ opt }}</button>
     </div>
   </div>
 </template>
@@ -19,8 +19,22 @@ function select(opt) {
 <style scoped>
 .title { font-size: 20px; font-weight: 700; margin-bottom: 16px; text-align: center; }
 .col { display: flex; flex-direction: column; gap: 12px; align-items: center; }
-.btn { width: 100%; max-width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.06); text-align: center; }
-.btn.active { border-color: #6366f1; background: #eef2ff; }
+.btn {
+  width: 100%;
+  max-width: 100%;
+  padding: 16px 18px;
+  border-radius: 24px;
+  border: 0;
+  background: #ffffff;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.10);
+  transition: opacity .2s ease;
+}
+.btn.active { outline: 3px solid rgba(255,255,255,0.7); }
+.btn.faded { opacity: 0.5; }
 </style>
 
 
