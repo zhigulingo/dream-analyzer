@@ -86,6 +86,20 @@ onMounted(() => {
   el.addEventListener('touchstart', onTouchStart, { passive: true });
   el.addEventListener('touchmove', onTouchMove, { passive: false });
   el.addEventListener('touchend', onTouchEnd, { passive: true });
+  // Глобальная блокировка прокрутки страницы во время опроса
+  try {
+    document.documentElement.classList.add('no-scroll');
+    document.body.classList.add('no-scroll');
+  } catch (_) {}
+  // Слушаем события на самом контейнере Swiper, чтобы жест работал всегда
+  try {
+    const sEl = swiperRef.value?.el;
+    if (sEl) {
+      sEl.addEventListener('touchstart', onTouchStart, { passive: true });
+      sEl.addEventListener('touchmove', onTouchMove, { passive: false });
+      sEl.addEventListener('touchend', onTouchEnd, { passive: true });
+    }
+  } catch (_) {}
 });
 onBeforeUnmount(() => {
   const el = dragHost.value;
@@ -93,6 +107,10 @@ onBeforeUnmount(() => {
   el.removeEventListener('touchstart', onTouchStart);
   el.removeEventListener('touchmove', onTouchMove);
   el.removeEventListener('touchend', onTouchEnd);
+  try {
+    document.documentElement.classList.remove('no-scroll');
+    document.body.classList.remove('no-scroll');
+  } catch (_) {}
 });
 
 const answersProxy = reactive(new Proxy({}, {
@@ -133,14 +151,14 @@ function onCommit(q, i) {
 <style scoped>
 .nav { display: none; }
 /* Фиксированный оверлей и вьюпорт по центру, как в онбординге */
-.survey-overlay { position: fixed; inset: 0; display: flex; align-items: stretch; justify-content: center; z-index: 10; background: transparent; }
-.survey-viewport { width: 100%; max-width: 560px; display: flex; flex-direction: column; padding: 16px; box-sizing: border-box; }
-.survey-top { padding: 0 0 8px 0; }
+.survey-overlay { position: fixed; inset: 0; display: flex; align-items: stretch; justify-content: center; z-index: 10; background: transparent; overflow: hidden; }
+.survey-viewport { position: relative; width: 100%; max-width: 560px; min-height: 100vh; display: flex; flex-direction: column; padding: 0 16px; box-sizing: border-box; }
+.survey-top { position: absolute; top: 8px; left: 16px; right: 16px; z-index: 2; }
 /* Центрирование и peeking */
-::v-deep(.onboarding-swiper) { padding: 24px 0 16px 0; box-sizing: border-box; flex: 1; }
+::v-deep(.onboarding-swiper) { padding: 24px 0 24px 0; box-sizing: border-box; flex: 1; height: 100vh; }
 ::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
-::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; }
-::v-deep(.slidePeek) { min-height: 70vh; max-height: 70vh; width: 100%; }
+::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; align-items: center; }
+::v-deep(.slidePeek) { height: 70vh; width: 100%; }
 ::v-deep(.center-card) { width: 100%; display: flex; align-items: center; justify-content: center; }
 /* Блокируем прокрутку страницы */
 :host { overflow: hidden; }
