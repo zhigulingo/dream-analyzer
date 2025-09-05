@@ -1,5 +1,5 @@
 <template>
-  <div class="survey-overlay">
+  <div class="survey-overlay" ref="dragHost">
     <div class="survey-viewport">
       <div class="survey-top">
         <ProgressBar :current="store.index" :total="store.total" />
@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useSurveyStore, QUESTIONS, validateAnswer } from '../store/survey';
 import ProgressBar from '../components/ProgressBar.vue';
 import SliderQuestion from '../components/controls/SliderQuestion.vue';
@@ -56,6 +56,44 @@ function onSwiper(swiper) {
   swiperRef.value = swiper;
   try { swiper.slideTo(store.index || 0, 0); } catch (_) {}
 }
+
+// Drag-to-previous: позволяем тянуть активную карточку вниз для возврата
+const dragHost = ref(null);
+let startY = 0;
+let lastY = 0;
+function touchY(e) { return (e.touches && e.touches[0]?.clientY) || e.clientY || 0; }
+function onTouchStart(e) { startY = touchY(e); lastY = startY; }
+function onTouchMove(e) {
+  const dy = touchY(e) - startY;
+  // Блокируем свайп вверх (вперёд) полностью
+  if (dy < 0) {
+    try { e.preventDefault(); } catch (_) {}
+  }
+  lastY = touchY(e);
+}
+function onTouchEnd() {
+  const dy = lastY - startY;
+  const THRESHOLD = 60;
+  if (dy > THRESHOLD && store.index > 0) {
+    store.prev();
+    try { swiperRef.value?.slideTo(store.index, 200); } catch (_) {}
+  }
+}
+
+onMounted(() => {
+  const el = dragHost.value;
+  if (!el) return;
+  el.addEventListener('touchstart', onTouchStart, { passive: true });
+  el.addEventListener('touchmove', onTouchMove, { passive: false });
+  el.addEventListener('touchend', onTouchEnd, { passive: true });
+});
+onBeforeUnmount(() => {
+  const el = dragHost.value;
+  if (!el) return;
+  el.removeEventListener('touchstart', onTouchStart);
+  el.removeEventListener('touchmove', onTouchMove);
+  el.removeEventListener('touchend', onTouchEnd);
+});
 
 const answersProxy = reactive(new Proxy({}, {
   get(_, key) { return store.answers[key]; },
@@ -121,6 +159,14 @@ function onCommit(q, i) {
   box-shadow: 0 8px 24px rgba(0,0,0,0.16);
   width: calc(100% - 32px);
   max-width: 560px;
+}
+.onboarding-card :deep(.btn) { font-size: 18px; font-weight: 600; border-radius: 20px; }
+
+@media (max-width: 400px) {
+  .survey-viewport { padding: 12px; }
+  .survey-top { padding-bottom: 6px; }
+  ::v-deep(.slidePeek) { min-height: 70vh; max-height: 70vh; }
+  .onboarding-card { width: calc(100% - 24px); padding: 18px; border-radius: 16px; }
 }
 .inactive { opacity: 1; }
 </style>
