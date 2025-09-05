@@ -137,10 +137,10 @@ function onCommit(q, i) {
 .survey-viewport { width: 100%; max-width: 560px; display: flex; flex-direction: column; padding: 16px; box-sizing: border-box; }
 .survey-top { padding: 0 0 8px 0; }
 /* Центрирование и peeking */
-::v-deep(.onboarding-swiper) { padding: 16px 0 8px 0; box-sizing: border-box; flex: 1; }
+::v-deep(.onboarding-swiper) { padding: 24px 0 16px 0; box-sizing: border-box; flex: 1; }
 ::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
 ::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; }
-::v-deep(.slidePeek) { min-height: 72vh; max-height: 72vh; width: 100%; }
+::v-deep(.slidePeek) { min-height: 70vh; max-height: 70vh; width: 100%; }
 ::v-deep(.center-card) { width: 100%; display: flex; align-items: center; justify-content: center; }
 /* Блокируем прокрутку страницы */
 :host { overflow: hidden; }
@@ -165,7 +165,8 @@ function onCommit(q, i) {
 @media (max-width: 400px) {
   .survey-viewport { padding: 12px; }
   .survey-top { padding-bottom: 6px; }
-  ::v-deep(.slidePeek) { min-height: 70vh; max-height: 70vh; }
+  ::v-deep(.onboarding-swiper) { padding-top: 16px; padding-bottom: 12px; }
+  ::v-deep(.slidePeek) { min-height: 68vh; max-height: 68vh; }
   .onboarding-card { width: calc(100% - 24px); padding: 18px; border-radius: 16px; }
 }
 .inactive { opacity: 1; }

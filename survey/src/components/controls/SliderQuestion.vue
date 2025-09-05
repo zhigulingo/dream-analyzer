@@ -2,8 +2,13 @@
   <div>
     <div class="title">{{ title }}</div>
     <div class="row">
-      <input type="range" :min="min" :max="max" v-model.number="localValue" @change="onCommit" />
+      <input class="track" type="range" :min="min" :max="max" step="1" v-model.number="localValue" @change="onCommit" />
       <div class="value">{{ localValue }}</div>
+    </div>
+    <div class="labels">
+      <span>1</span>
+      <span>5</span>
+      <span>10</span>
     </div>
   </div>
 </template>
@@ -21,10 +26,11 @@ function onCommit() {
 </script>
 
 <style scoped>
-.title { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+.title { font-size: 20px; font-weight: 700; margin-bottom: 16px; text-align: center; }
 .row { display: flex; align-items: center; gap: 12px; }
 .value { width: 40px; text-align: center; font-weight: 700; }
-input[type="range"] { flex: 1; accent-color: #6366f1; }
+.track { flex: 1; width: 100%; accent-color: #6366f1; }
+.labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 14px; opacity: 0.95; }
 </style>
 
 
