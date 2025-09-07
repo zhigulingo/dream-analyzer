@@ -45,7 +45,11 @@ exports.handler = async (event) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
 
     // Попытка авторизоваться через Telegram InitData
-    const initData = event.headers['x-telegram-init-data'] || event.headers['X-Telegram-Init-Data'];
+    let initData = event.headers['x-telegram-init-data'] || event.headers['X-Telegram-Init-Data'];
+    // Фолбэк: берём из тела, если не пришло в заголовке
+    if ((!initData || initData.length === 0) && typeof body?.initData === 'string') {
+      initData = body.initData;
+    }
     const botToken = process.env.BOT_TOKEN;
     try {
       console.log('[submit-survey] TMA header present:', !!initData, 'len:', initData ? String(initData).length : 0, 'botToken set:', !!botToken);

@@ -48,7 +48,7 @@ export async function submitSurvey(answers, clientId) {
   const res = await fetch(url, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ answers, clientId }),
+    body: JSON.stringify({ answers, clientId, initData }),
     keepalive: true,
     credentials: 'omit'
   });
@@ -64,7 +64,7 @@ export async function submitSurveyStep({ answerKey, answerValue, index, complete
   const headers = { 'Content-Type': 'application/json' };
   const initData = getTelegramInitData();
   if (initData) headers['X-Telegram-Init-Data'] = initData;
-  const body = { answerKey, answerValue, index, completed, clientId };
+  const body = { answerKey, answerValue, index, completed, clientId, initData };
   const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), keepalive: true, credentials: 'omit' });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
