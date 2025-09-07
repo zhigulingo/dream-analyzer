@@ -17,7 +17,8 @@ function returnToChat() {
       return;
     }
   } catch {}
-  // В вебе и десктопе просто закрываем вкладку
+  // В вебе/десктопе: сначала назад, если есть история, иначе попытка закрыть окно
+  try { if (history.length > 1) { history.back(); return; } } catch {}
   try { window.close(); } catch {}
 }
 </script>
