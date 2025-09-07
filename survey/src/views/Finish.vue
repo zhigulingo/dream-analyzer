@@ -15,6 +15,7 @@ function returnToChat() {
     if (tg) {
       try { tg.HapticFeedback?.impactOccurred?.('rigid'); } catch {}
       if (typeof tg.close === 'function') { tg.close(); return; }
+      if (typeof tg.requestClose === 'function') { tg.requestClose(); return; }
       // На всякий случай пробуем callBackButton
       try { tg.BackButton?.show?.(); tg.BackButton?.onClick?.(() => tg.close()); } catch {}
     }
