@@ -11,7 +11,8 @@ function getTelegramInitData() {
   }
 }
 
-const api = axios.create({ baseURL: base, withCredentials: true });
+// С учётом CORS заголовков функций достаточно не отправлять cookies
+const api = axios.create({ baseURL: base, withCredentials: false });
 // Динамически пробуем добавить InitData перед каждым запросом, чтобы не терять его при релоде
 api.interceptors.request.use((config) => {
   const initData = getTelegramInitData();

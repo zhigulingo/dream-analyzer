@@ -146,9 +146,12 @@ async function onCommit(q, i) {
 
   const isLast = i === store.total - 1;
   if (isLast) {
-    submitSurvey(store.answers, store.clientId)
-      .catch(() => {})
-      .finally(() => { store.next(); });
+    const payload = { ...store.answers };
+    const clientId = store.clientId;
+    // Переходим на финальный экран сразу, без ожидания сети
+    store.next();
+    // Отправляем ответы в фоне, не блокируя UI
+    try { submitSurvey(payload, clientId).catch(() => {}); } catch (_) {}
     return;
   }
   store.next();

@@ -66,18 +66,14 @@ exports.handler = async (event) => {
       }
     }
 
-    // Во время тестов разрешаем повторные прохождения: если есть уникальный ключ, удаляем перед вставкой
-    const ALLOW_MULTI = (process.env.ALLOW_MULTI_SURVEY || 'false').toLowerCase() === 'true';
-    if (ALLOW_MULTI && onConflictColumn) {
-      const keyVal = onConflictColumn === 'tg_id' ? upsertPayload.tg_id : upsertPayload.client_id;
-      if (keyVal) {
-        await supabase.from('beta_survey_responses').delete().eq(onConflictColumn, keyVal);
-      }
+    // Простая стратегия: сначала удаляем по ключу (если есть), затем вставляем новую запись
+    const keyVal = onConflictColumn === 'tg_id' ? upsertPayload.tg_id : upsertPayload.client_id;
+    if (onConflictColumn && keyVal) {
+      await supabase.from('beta_survey_responses').delete().eq(onConflictColumn, keyVal);
     }
-
     const { error } = await supabase
       .from('beta_survey_responses')
-      .upsert(upsertPayload, { onConflict: onConflictColumn });
+      .insert(upsertPayload);
 
     if (error) {
       console.error('[submit-survey] upsert error', { onConflictColumn, upsertPayloadSummary: { hasTg: !!upsertPayload.tg_id, hasClient: !!upsertPayload.client_id }, error });
