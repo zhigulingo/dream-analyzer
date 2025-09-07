@@ -46,16 +46,22 @@ exports.handler = async (event) => {
     // Попытка авторизоваться через Telegram InitData
     const initData = event.headers['x-telegram-init-data'] || event.headers['X-Telegram-Init-Data'];
     const botToken = process.env.BOT_TOKEN;
+    try {
+      console.log('[submit-survey] TMA header present:', !!initData, 'len:', initData ? String(initData).length : 0, 'botToken set:', !!botToken);
+    } catch (_) {}
 
     let upsertPayload = { answers, updated_at: new Date().toISOString() };
     let onConflictColumn;
 
     if (initData && botToken && isInitDataValid(initData)) {
       const res = validateTelegramData(initData, botToken, { enableLogging: true });
+      try { console.log('[submit-survey] validateTelegramData:', { valid: res?.valid, hasData: !!res?.data, userId: res?.data?.id }); } catch (_) {}
       if (res.valid && res.data && typeof res.data.id !== 'undefined') {
         upsertPayload.tg_id = res.data.id;
         onConflictColumn = 'tg_id';
       }
+    } else {
+      try { console.warn('[submit-survey] TMA validation skipped. Reasons:', { hasInitData: !!initData, hasBotToken: !!botToken, initDataValid: initData ? isInitDataValid(initData) : false }); } catch (_) {}
     }
 
     // Fallback: локальный client_id
