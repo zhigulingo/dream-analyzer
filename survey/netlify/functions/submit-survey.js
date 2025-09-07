@@ -56,6 +56,7 @@ exports.handler = async (event) => {
       upsertPayload.answers = answers;
       upsertPayload.completed = true;
       upsertPayload.last_answered_index = 9; // 0-based index of q10
+      upsertPayload.submitted_at = new Date().toISOString();
       // Дублируем по колонкам, если они существуют
       try {
         Object.entries(answers || {}).forEach(([k,v]) => { if (k.startsWith('q')) upsertPayload[k] = String(v); });
@@ -111,6 +112,7 @@ exports.handler = async (event) => {
         insertPayload.answers = { [answerKey]: answerValue };
       }
       ({ error } = await supabase.from('beta_survey_responses').insert(insertPayload));
+      try { console.log('[submit-survey] insert success', { idCol, keyVal, isFinalSubmit, answerKey }); } catch (_) {}
     } else {
       // Обновление существующей записи; при частичном ответе обновим JSON answers
       const updatePayload = { ...upsertPayload };
@@ -122,6 +124,7 @@ exports.handler = async (event) => {
         .from('beta_survey_responses')
         .update(updatePayload)
         .eq(idCol, keyVal));
+      try { console.log('[submit-survey] update success', { idCol, keyVal, isFinalSubmit, answerKey }); } catch (_) {}
     }
 
     if (error) {
