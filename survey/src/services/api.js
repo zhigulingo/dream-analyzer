@@ -41,6 +41,10 @@ export async function submitSurvey(answers, clientId) {
     keepalive: true,
     credentials: 'omit'
   });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    console.error('[submitSurvey] HTTP error', res.status, text);
+  }
   try { return await res.json(); } catch { return { ok: res.ok }; }
 }
 
@@ -51,6 +55,10 @@ export async function submitSurveyStep({ answerKey, answerValue, index, complete
   if (initData) headers['X-Telegram-Init-Data'] = initData;
   const body = { answerKey, answerValue, index, completed, clientId };
   const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), keepalive: true, credentials: 'omit' });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    console.error('[submitSurveyStep] HTTP error', res.status, text);
+  }
   try { return await res.json(); } catch { return { ok: res.ok }; }
 }
 

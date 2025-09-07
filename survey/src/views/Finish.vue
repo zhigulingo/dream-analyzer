@@ -12,9 +12,9 @@
 function returnToChat() {
   try {
     const tg = window?.Telegram?.WebApp;
-    if (tg && typeof tg.close === 'function') {
-      tg.close();
-      return;
+    if (tg) {
+      try { tg.HapticFeedback?.impactOccurred?.('rigid'); } catch {}
+      if (typeof tg.close === 'function') { tg.close(); return; }
     }
   } catch {}
   // В вебе/десктопе: сначала назад, если есть история, иначе попытка закрыть окно
