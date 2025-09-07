@@ -29,8 +29,19 @@ export async function getSurveyStatus() {
 }
 
 export async function submitSurvey(answers, clientId) {
-  const { data } = await api.post('/submit-survey', { answers, clientId });
-  return data;
+  // Используем fetch с keepalive, чтобы запрос не обрывался при закрытии TWA
+  const url = base + '/submit-survey';
+  const headers = { 'Content-Type': 'application/json' };
+  const initData = getTelegramInitData();
+  if (initData) headers['X-Telegram-Init-Data'] = initData;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ answers, clientId }),
+    keepalive: true,
+    credentials: 'omit'
+  });
+  try { return await res.json(); } catch { return { ok: res.ok }; }
 }
 
 

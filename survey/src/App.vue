@@ -36,9 +36,9 @@ onBeforeUnmount(() => { try { document.body.classList.remove('no-scroll'); } cat
 
 <style>
 .container {
-  max-width: 640px;
+  max-width: 560px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 0 16px;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
 }
 .no-scroll { overflow: hidden !important; }

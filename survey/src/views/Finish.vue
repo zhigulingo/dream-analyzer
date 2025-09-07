@@ -3,7 +3,7 @@
     <div class="finish-card onboarding-card slidePeek center-card">
       <h1>Спасибо!</h1>
       <p class="lead">Мы получили ваши ответы. Мы свяжемся с вами в Telegram.</p>
-      <button class="btn-primary" @click="returnToChat">Вернуться в чат</button>
+      <button class="btn-primary" @click="returnToChat">Закрыть</button>
     </div>
   </div>
 </template>
@@ -17,8 +17,8 @@ function returnToChat() {
       return;
     }
   } catch {}
-  const url = import.meta.env.VITE_TG_BOT_URL || 'https://t.me/dreamstalk_bot';
-  window.open(url, '_blank', 'noopener');
+  // В вебе и десктопе просто закрываем вкладку
+  try { window.close(); } catch {}
 }
 </script>
 
