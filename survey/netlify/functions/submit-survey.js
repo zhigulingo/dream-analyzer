@@ -53,19 +53,15 @@ exports.handler = async (event) => {
 
     let upsertPayload = { updated_at: new Date().toISOString() };
     if (isFinalSubmit) {
-      upsertPayload.answers = answers;
-      upsertPayload.completed = true;
-      upsertPayload.last_answered_index = 9; // 0-based index of q10
+      // финальная отправка: сохраняем все ответы и прогресс в JSON
+      upsertPayload.answers = {
+        ...(answers || {}),
+        _progress: { last_index: 9, completed: true }
+      };
       upsertPayload.submitted_at = new Date().toISOString();
-      // Дублируем по колонкам, если они существуют
-      try {
-        Object.entries(answers || {}).forEach(([k,v]) => { if (k.startsWith('q')) upsertPayload[k] = String(v); });
-      } catch (_) {}
     } else if (answerKey && typeof answerValue !== 'undefined') {
-      upsertPayload.completed = !!completed;
-      if (typeof index === 'number') upsertPayload.last_answered_index = index;
-      upsertPayload[answerKey] = String(answerValue);
-      // answers JSON будет обновлён через select+merge ниже
+      // частичный ответ: прогресс будет слит в JSON на этапе insert/update ниже
+      // никаких qN полей на верхнем уровне не пишем, чтобы не зависеть от схемы
     }
     let onConflictColumn;
 
@@ -109,7 +105,7 @@ exports.handler = async (event) => {
       if (idCol === 'client_id') insertPayload.client_id = keyVal;
       // Если это частичный ответ, и есть answerKey — сформируем answers JSON
       if (!isFinalSubmit && answerKey) {
-        insertPayload.answers = { [answerKey]: answerValue };
+        insertPayload.answers = { [answerKey]: answerValue, _progress: { last_index: typeof index === 'number' ? index : 0, completed: !!completed } };
       }
       ({ error } = await supabase.from('beta_survey_responses').insert(insertPayload));
       try { console.log('[submit-survey] insert success', { idCol, keyVal, isFinalSubmit, answerKey }); } catch (_) {}
@@ -118,7 +114,12 @@ exports.handler = async (event) => {
       const updatePayload = { ...upsertPayload };
       if (!isFinalSubmit && answerKey) {
         const prev = (existing.answers && typeof existing.answers === 'object') ? existing.answers : {};
-        updatePayload.answers = { ...prev, [answerKey]: answerValue };
+        const prevMeta = (prev && typeof prev._progress === 'object') ? prev._progress : {};
+        updatePayload.answers = {
+          ...prev,
+          [answerKey]: answerValue,
+          _progress: { last_index: typeof index === 'number' ? index : (prevMeta.last_index ?? 0), completed: !!completed }
+        };
       }
       ({ error } = await supabase
         .from('beta_survey_responses')
