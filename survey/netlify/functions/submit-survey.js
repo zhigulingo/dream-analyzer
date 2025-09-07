@@ -31,9 +31,10 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { answers, clientId } = body;
+    const { answers, clientId, answerKey, answerValue, index, completed } = body;
 
-    if (!validateAnswers(answers)) {
+    const isFinalSubmit = !!answers && typeof answers === 'object';
+    if (isFinalSubmit && !validateAnswers(answers)) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid answers' }) };
     }
 
@@ -50,7 +51,21 @@ exports.handler = async (event) => {
       console.log('[submit-survey] TMA header present:', !!initData, 'len:', initData ? String(initData).length : 0, 'botToken set:', !!botToken);
     } catch (_) {}
 
-    let upsertPayload = { answers, updated_at: new Date().toISOString() };
+    let upsertPayload = { updated_at: new Date().toISOString() };
+    if (isFinalSubmit) {
+      upsertPayload.answers = answers;
+      upsertPayload.completed = true;
+      upsertPayload.last_answered_index = 9; // 0-based index of q10
+      // Дублируем по колонкам, если они существуют
+      try {
+        Object.entries(answers || {}).forEach(([k,v]) => { if (k.startsWith('q')) upsertPayload[k] = String(v); });
+      } catch (_) {}
+    } else if (answerKey && typeof answerValue !== 'undefined') {
+      upsertPayload.completed = !!completed;
+      if (typeof index === 'number') upsertPayload.last_answered_index = index;
+      upsertPayload[answerKey] = String(answerValue);
+      // answers JSON будет обновлён через select+merge ниже
+    }
     let onConflictColumn;
 
     if (initData && botToken && isInitDataValid(initData)) {
@@ -72,14 +87,42 @@ exports.handler = async (event) => {
       }
     }
 
-    // Простая стратегия: сначала удаляем по ключу (если есть), затем вставляем новую запись
-    const keyVal = onConflictColumn === 'tg_id' ? upsertPayload.tg_id : upsertPayload.client_id;
-    if (onConflictColumn && keyVal) {
-      await supabase.from('beta_survey_responses').delete().eq(onConflictColumn, keyVal);
+    // Найдём существующую запись
+    const idCol = onConflictColumn;
+    const keyVal = idCol === 'tg_id' ? upsertPayload.tg_id : upsertPayload.client_id;
+    let existing = null;
+    if (idCol && keyVal) {
+      const { data: rows } = await supabase
+        .from('beta_survey_responses')
+        .select('id, answers')
+        .eq(idCol, keyVal)
+        .limit(1);
+      existing = Array.isArray(rows) && rows[0] ? rows[0] : null;
     }
-    const { error } = await supabase
-      .from('beta_survey_responses')
-      .insert(upsertPayload);
+
+    let error = null;
+    if (!existing) {
+      // Вставка новой
+      const insertPayload = { ...upsertPayload };
+      if (idCol === 'tg_id') insertPayload.tg_id = keyVal;
+      if (idCol === 'client_id') insertPayload.client_id = keyVal;
+      // Если это частичный ответ, и есть answerKey — сформируем answers JSON
+      if (!isFinalSubmit && answerKey) {
+        insertPayload.answers = { [answerKey]: answerValue };
+      }
+      ({ error } = await supabase.from('beta_survey_responses').insert(insertPayload));
+    } else {
+      // Обновление существующей записи; при частичном ответе обновим JSON answers
+      const updatePayload = { ...upsertPayload };
+      if (!isFinalSubmit && answerKey) {
+        const prev = (existing.answers && typeof existing.answers === 'object') ? existing.answers : {};
+        updatePayload.answers = { ...prev, [answerKey]: answerValue };
+      }
+      ({ error } = await supabase
+        .from('beta_survey_responses')
+        .update(updatePayload)
+        .eq(idCol, keyVal));
+    }
 
     if (error) {
       console.error('[submit-survey] upsert error', { onConflictColumn, upsertPayloadSummary: { hasTg: !!upsertPayload.tg_id, hasClient: !!upsertPayload.client_id }, error });

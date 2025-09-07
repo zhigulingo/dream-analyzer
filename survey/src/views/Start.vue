@@ -55,7 +55,7 @@ onUnmounted(() => { if (t) clearInterval(t); });
 
 <style scoped>
 .start-wrap { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; box-sizing: border-box; }
-.start-card { width: 100%; max-width: 560px; padding: 24px; border-radius: 20px; color: #fff; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); box-shadow: 0 12px 28px rgba(0,0,0,0.16); min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.start-card { width: calc(100% - 32px); max-width: 560px; padding: 24px; border-radius: 20px; color: #fff; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); box-shadow: 0 12px 28px rgba(0,0,0,0.16); min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 h1 { font-size: 22px; margin: 0 0 8px; text-align: center; }
 .lead { opacity: 0.95; }
 .muted { opacity: 0.8; }

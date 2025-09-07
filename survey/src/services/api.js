@@ -44,5 +44,15 @@ export async function submitSurvey(answers, clientId) {
   try { return await res.json(); } catch { return { ok: res.ok }; }
 }
 
+export async function submitSurveyStep({ answerKey, answerValue, index, completed }, clientId) {
+  const url = base + '/submit-survey';
+  const headers = { 'Content-Type': 'application/json' };
+  const initData = getTelegramInitData();
+  if (initData) headers['X-Telegram-Init-Data'] = initData;
+  const body = { answerKey, answerValue, index, completed, clientId };
+  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), keepalive: true, credentials: 'omit' });
+  try { return await res.json(); } catch { return { ok: res.ok }; }
+}
+
 
 

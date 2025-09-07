@@ -41,7 +41,7 @@ import ProgressBar from '../components/ProgressBar.vue';
 import SliderQuestion from '../components/controls/SliderQuestion.vue';
 import ButtonsQuestion from '../components/controls/ButtonsQuestion.vue';
 import TextQuestion from '../components/controls/TextQuestion.vue';
-import { submitSurvey } from '../services/api';
+import { submitSurvey, submitSurveyStep } from '../services/api';
 import { Swiper, SwiperSlide } from 'swiper/vue';
 import { A11y, Keyboard } from 'swiper/modules';
 import 'swiper/css';
@@ -154,6 +154,8 @@ async function onCommit(q, i) {
     try { submitSurvey(payload, clientId).catch(() => {}); } catch (_) {}
     return;
   }
+  // Отправляем частичный ответ (не блокируя переход)
+  try { submitSurveyStep({ answerKey: q.key, answerValue: value, index: i, completed: false }, store.clientId).catch(() => {}); } catch (_) {}
   store.next();
   await nextTick();
   goToSlide(store.index);
