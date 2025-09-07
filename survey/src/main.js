@@ -12,6 +12,11 @@ try {
   if (tg && typeof tg.ready === 'function') {
     tg.ready();
     try { tg.expand && tg.expand(); } catch {}
+    // Кэшируем initData для запросов и повторных заходов
+    try {
+      const initData = tg.initData;
+      if (initData && initData.length > 0) localStorage.setItem('tma_init_data', initData);
+    } catch {}
   }
 } catch {}
 

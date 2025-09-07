@@ -15,6 +15,8 @@ function returnToChat() {
     if (tg) {
       try { tg.HapticFeedback?.impactOccurred?.('rigid'); } catch {}
       if (typeof tg.close === 'function') { tg.close(); return; }
+      // На всякий случай пробуем callBackButton
+      try { tg.BackButton?.show?.(); tg.BackButton?.onClick?.(() => tg.close()); } catch {}
     }
   } catch {}
   // В вебе/десктопе: сначала назад, если есть история, иначе попытка закрыть окно

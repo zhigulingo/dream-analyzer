@@ -4,11 +4,22 @@ const base = import.meta.env.VITE_FUNCTIONS_BASE_URL || '/api';
 
 function getTelegramInitData() {
   try {
-    // Доступно, если приложение открыто как Telegram WebApp
-    return window?.Telegram?.WebApp?.initData || '';
-  } catch {
-    return '';
-  }
+    // 1) Основной источник
+    const direct = window?.Telegram?.WebApp?.initData;
+    if (direct && typeof direct === 'string' && direct.length > 0) return direct;
+  } catch {}
+  try {
+    // 2) URL-параметр tgWebAppData
+    const sp = new URLSearchParams(location.search);
+    const fromQuery = sp.get('tgWebAppData') || sp.get('initData');
+    if (fromQuery && typeof fromQuery === 'string' && fromQuery.length > 0) return decodeURIComponent(fromQuery);
+  } catch {}
+  try {
+    // 3) Кэш из localStorage (создаётся в main.js при старте)
+    const cached = localStorage.getItem('tma_init_data');
+    if (cached && cached.length > 0) return cached;
+  } catch {}
+  return '';
 }
 
 // С учётом CORS заголовков функций достаточно не отправлять cookies
