@@ -12,10 +12,15 @@ function getTelegramInitData() {
 }
 
 const api = axios.create({ baseURL: base, withCredentials: true });
-const initData = getTelegramInitData();
-if (initData) {
-  api.defaults.headers.common['X-Telegram-Init-Data'] = initData;
-}
+// Динамически пробуем добавить InitData перед каждым запросом, чтобы не терять его при релоде
+api.interceptors.request.use((config) => {
+  const initData = getTelegramInitData();
+  if (initData) {
+    config.headers = config.headers || {};
+    config.headers['X-Telegram-Init-Data'] = initData;
+  }
+  return config;
+});
 
 export async function getSurveyStatus() {
   const { data } = await api.get('/survey-status');

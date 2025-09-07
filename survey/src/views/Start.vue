@@ -6,7 +6,7 @@
       <div v-if="countdown && countdown.totalMs > 0" class="timer">
         Старт через: {{ countdown.days }}д {{ countdown.hours }}ч {{ countdown.minutes }}м {{ countdown.seconds }}с
       </div>
-      <button class="start" :disabled="!isOpen" @click="$emit('start')">
+      <button class="btn-primary" :disabled="!isOpen" @click="$emit('start')">
         Начать опрос
       </button>
       <p class="muted" v-if="!isOpen">Опрос ещё не начался.</p>
@@ -55,13 +55,13 @@ onUnmounted(() => { if (t) clearInterval(t); });
 
 <style scoped>
 .start-wrap { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; box-sizing: border-box; }
-.start-card { width: 100%; max-width: 560px; padding: 32px; border-radius: 20px; color: #fff; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); box-shadow: 0 12px 28px rgba(0,0,0,0.16); min-height: 64vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-h1 { font-size: 24px; margin: 0 0 8px; text-align: center; }
+.start-card { width: calc(100% - 32px); max-width: 560px; padding: 32px; border-radius: 20px; color: #fff; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); box-shadow: 0 12px 28px rgba(0,0,0,0.16); min-height: 64vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+h1 { font-size: 22px; margin: 0 0 8px; text-align: center; }
 .lead { opacity: 0.95; }
 .muted { opacity: 0.8; }
 .timer { margin: 12px 0; color: #fff; font-weight: 600; }
-.start { margin-top: 16px; padding: 12px 16px; border-radius: 12px; background: #ffffff; color: #111827; border: none; cursor: pointer; }
-.start:disabled { background: rgba(255,255,255,0.6); cursor: not-allowed; }
+.btn-primary { margin-top: 16px; padding: 14px 18px; border-radius: 20px; background: #ffffff; color: #111827; border: none; cursor: pointer; font-size: 18px; font-weight: 700; box-shadow: 0 10px 24px rgba(0,0,0,0.14); }
+.btn-primary:disabled { background: rgba(255,255,255,0.8); cursor: not-allowed; opacity: 0.8; }
 </style>
 
 

@@ -74,8 +74,9 @@ function generateClientId() {
 }
 
 export function validateAnswer(key, value) {
-  const buttonQs = ['q2','q3','q4','q5','q6','q9','q10'];
-  if (key === 'q1') return typeof value === 'number' && value >= 1 && value <= 10;
+  const buttonQs = ['q1','q2','q3','q4','q5','q6','q9','q10'];
+  // q1 переведён на кнопки: принимаем непустую строку
+  if (key === 'q1') return typeof value === 'string' && value.length > 0;
   if (buttonQs.includes(key)) return typeof value === 'string' && value.length > 0;
   if (key === 'q7' || key === 'q8') return typeof value === 'string' && value.trim().length > 3;
   return false;

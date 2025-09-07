@@ -26,11 +26,11 @@ function onCommit() {
 </script>
 
 <style scoped>
-.title { font-size: 20px; font-weight: 700; margin-bottom: 16px; text-align: center; }
+.title { font-size: 22px; font-weight: 800; margin-bottom: 16px; text-align: center; }
 .row { display: flex; align-items: center; gap: 12px; }
-.value { width: 40px; text-align: center; font-weight: 700; }
-.track { flex: 1; width: 100%; accent-color: #6366f1; }
-.labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 14px; opacity: 0.95; }
+.value { width: 44px; text-align: center; font-weight: 800; font-size: 18px; }
+.track { flex: 1; width: 100%; accent-color: #6A4DFF; }
+.labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 14px; opacity: 0.95; font-weight: 600; }
 </style>
 
 

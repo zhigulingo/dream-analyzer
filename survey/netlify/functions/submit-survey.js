@@ -9,7 +9,8 @@ function validateAnswers(answers) {
   if (!answers || typeof answers !== 'object') return false;
   const hasAll = ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10'].every(k => k in answers);
   if (!hasAll) return false;
-  const q1ok = typeof answers.q1 === 'number' && answers.q1 >= 1 && answers.q1 <= 10;
+  // q1 теперь кнопки: принимаем строку
+  const q1ok = typeof answers.q1 === 'string' && answers.q1.length > 0;
   const btn = v => typeof v === 'string' && v.length > 0;
   const text = v => typeof v === 'string' && v.trim().length > 3;
   return q1ok && btn(answers.q2) && btn(answers.q3) && btn(answers.q4) && btn(answers.q5)
