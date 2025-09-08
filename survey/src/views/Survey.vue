@@ -47,7 +47,6 @@ import { A11y, Keyboard } from 'swiper/modules';
 import 'swiper/css';
 
 const store = useSurveyStore();
-store.restore();
 
 // Swiper instance
 const modules = [A11y, Keyboard];
