@@ -31,7 +31,9 @@ function returnToChat() {
   // Жёсткий fallback: перейти в чат
   try {
     const url = import.meta.env.VITE_TG_BOT_URL || 'https://t.me/dreamstalk_bot';
-    location.href = url;
+    // Попытка tg:// ссылки для desktop Telegram
+    const deeplink = url.replace('https://t.me/','tg://resolve?domain=');
+    location.href = deeplink;
   } catch {}
 }
 </script>

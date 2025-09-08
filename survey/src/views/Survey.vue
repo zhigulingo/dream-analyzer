@@ -151,11 +151,11 @@ async function onCommit(q, i) {
     // Переходим на финальный экран сразу, без ожидания сети
     store.next();
     // Отправляем ответы в фоне, не блокируя UI
-    try { submitSurvey(payload, clientId).catch(() => {}); } catch (_) {}
+    try { submitSurvey(payload, clientId, store.sessionId).catch(() => {}); } catch (_) {}
     return;
   }
   // Отправляем частичный ответ (не блокируя переход)
-  try { submitSurveyStep({ answerKey: q.key, answerValue: value, index: i, completed: false }, store.clientId).catch(() => {}); } catch (_) {}
+  try { submitSurveyStep({ answerKey: q.key, answerValue: value, index: i, completed: false, sessionId: store.sessionId }, store.clientId).catch(() => {}); } catch (_) {}
   store.next();
   await nextTick();
   goToSlide(store.index);

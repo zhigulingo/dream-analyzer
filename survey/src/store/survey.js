@@ -6,6 +6,7 @@ export const useSurveyStore = defineStore('survey', {
   state: () => ({
     stage: 'start', // 'start' | 'survey' | 'finish'
     index: 0,
+    sessionId: null,
     answers: {
       q1: null,
       q2: null,
@@ -26,6 +27,7 @@ export const useSurveyStore = defineStore('survey', {
       // Всегда начинаем заново: очищаем ответы и ставим первый вопрос
       this.stage = 'survey';
       this.index = 0;
+      this.sessionId = 's_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
       this.answers = { q1: null, q2: null, q3: null, q4: null, q5: null, q6: null, q7: '', q8: '', q9: null, q10: null };
       this.persist();
     },
@@ -49,7 +51,7 @@ export const useSurveyStore = defineStore('survey', {
       this.persist();
     },
     persist() {
-      localStorage.setItem('survey_state', JSON.stringify({ stage: this.stage, index: this.index, answers: this.answers, clientId: this.clientId }));
+      localStorage.setItem('survey_state', JSON.stringify({ stage: this.stage, index: this.index, answers: this.answers, clientId: this.clientId, sessionId: this.sessionId }));
     },
     restore() {
       const raw = localStorage.getItem('survey_state');
@@ -60,6 +62,7 @@ export const useSurveyStore = defineStore('survey', {
         this.index = typeof data.index === 'number' ? data.index : this.index;
         this.answers = { ...this.answers, ...(data.answers || {}) };
         this.clientId = data.clientId || this.clientId;
+        this.sessionId = data.sessionId || this.sessionId;
       } catch {}
     }
   }

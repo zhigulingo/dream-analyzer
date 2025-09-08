@@ -31,7 +31,7 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { answers, clientId, answerKey, answerValue, index, completed } = body;
+    const { answers, clientId, answerKey, answerValue, index, completed, sessionId } = body;
 
     const isFinalSubmit = !!answers && typeof answers === 'object';
     if (isFinalSubmit && !validateAnswers(answers)) {
@@ -94,10 +94,12 @@ exports.handler = async (event) => {
     const keyVal = idCol === 'tg_id' ? upsertPayload.tg_id : upsertPayload.client_id;
     let existing = null;
     if (idCol && keyVal) {
+      // Ищем по пользователю и активной сессии, иначе создаём новую строку
       const { data: rows } = await supabase
         .from('beta_survey_responses')
         .select('id, answers')
         .eq(idCol, keyVal)
+        .contains('answers', sessionId ? { _session: sessionId } : {})
         .limit(1);
       existing = Array.isArray(rows) && rows[0] ? rows[0] : null;
     }
@@ -110,7 +112,7 @@ exports.handler = async (event) => {
       if (idCol === 'client_id') insertPayload.client_id = keyVal;
       // Если это частичный ответ, и есть answerKey — сформируем answers JSON
       if (!isFinalSubmit && answerKey) {
-        insertPayload.answers = { [answerKey]: answerValue, _progress: { last_index: typeof index === 'number' ? index : 0, completed: !!completed } };
+        insertPayload.answers = { _session: sessionId || ('s_'+Date.now()), [answerKey]: answerValue, _progress: { last_index: typeof index === 'number' ? index : 0, completed: !!completed } };
       }
       ({ error } = await supabase.from('beta_survey_responses').insert(insertPayload));
       try { console.log('[submit-survey] insert success', { idCol, keyVal, isFinalSubmit, answerKey }); } catch (_) {}
@@ -123,6 +125,7 @@ exports.handler = async (event) => {
         updatePayload.answers = {
           ...prev,
           [answerKey]: answerValue,
+          _session: sessionId || prev._session || ('s_'+Date.now()),
           _progress: { last_index: typeof index === 'number' ? index : (prevMeta.last_index ?? 0), completed: !!completed }
         };
       }

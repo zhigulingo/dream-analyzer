@@ -82,13 +82,13 @@ export async function getSurveyStatus() {
   return data;
 }
 
-export async function submitSurvey(answers, clientId) {
+export async function submitSurvey(answers, clientId, sessionId) {
   // Используем fetch с keepalive, чтобы запрос не обрывался при закрытии TWA
   const url = base + '/submit-survey';
   const headers = { 'Content-Type': 'application/json' };
   const initData = getTelegramInitData();
   if (initData) headers['X-Telegram-Init-Data'] = initData;
-  const payload = { answers, clientId, initData };
+  const payload = { answers, clientId, initData, sessionId };
   const res = await fetch(url, {
     method: 'POST',
     headers,
@@ -106,12 +106,12 @@ export async function submitSurvey(answers, clientId) {
   try { return await res.json(); } catch { return { ok: res.ok }; }
 }
 
-export async function submitSurveyStep({ answerKey, answerValue, index, completed }, clientId) {
+export async function submitSurveyStep({ answerKey, answerValue, index, completed, sessionId }, clientId) {
   const url = base + '/submit-survey';
   const headers = { 'Content-Type': 'application/json' };
   const initData = getTelegramInitData();
   if (initData) headers['X-Telegram-Init-Data'] = initData;
-  const body = { answerKey, answerValue, index, completed, clientId, initData };
+  const body = { answerKey, answerValue, index, completed, clientId, initData, sessionId };
   const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), keepalive: true, credentials: 'omit' });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
