@@ -15,15 +15,18 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { getSurveyStatus } from '../services/api';
+const emit = defineEmits(['start']);
 function onStartClick() {
   try {
     const tg = window?.Telegram?.WebApp;
     if (tg?.MainButton) {
       tg.MainButton.setText('Начать опрос');
       tg.MainButton.show();
-      tg.MainButton.onClick(() => { tg.MainButton.hide(); emitStart(); });
+      const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} emitStart(); };
+      try { tg.MainButton.offClick(handler); } catch {}
+      tg.MainButton.onClick(handler);
       return;
     }
   } catch {}
@@ -35,8 +38,7 @@ function emitStart() {
   // Блокируем прокрутку страницы
   try { document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; } catch {}
   // Эмитим событие старта
-  // eslint-disable-next-line no-undef
-  $emit('start');
+  emit('start');
 }
 
 const isOpen = ref(true);
@@ -69,6 +71,19 @@ onMounted(async () => {
   } catch {
     isOpen.value = true; // локальный фолбэк
   }
+  // Показ MainButton при готовности
+  try {
+    const tg = window?.Telegram?.WebApp;
+    if (tg?.ready) tg.ready();
+    if (tg?.expand) tg.expand();
+    if (tg?.MainButton) {
+      tg.MainButton.setText('Начать опрос');
+      if (isOpen.value) tg.MainButton.show(); else tg.MainButton.hide();
+      const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} emitStart(); };
+      try { tg.MainButton.offClick(handler); } catch {}
+      tg.MainButton.onClick(handler);
+    }
+  } catch {}
 });
 
 onUnmounted(() => { if (t) clearInterval(t); });
