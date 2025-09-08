@@ -49,7 +49,9 @@ onMounted(() => {
   try {
     const tg = window?.Telegram?.WebApp;
     if (tg?.MainButton) {
-      tg.MainButton.setText('Закрыть');
+      if (tg?.ready) tg.ready();
+      if (tg?.expand) tg.expand();
+      try { tg.MainButton.setParams({ text: 'Закрыть', is_active: true, is_visible: true }); } catch { tg.MainButton.setText('Закрыть'); }
       tg.MainButton.show();
       const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} returnToChat(); };
       try { tg.MainButton.offClick(handler); } catch {}

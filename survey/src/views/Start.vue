@@ -62,13 +62,20 @@ onMounted(async () => {
     if (tg?.ready) tg.ready();
     if (tg?.expand) tg.expand();
     if (tg?.MainButton) {
-      tg.MainButton.setText('Начать опрос');
+      try { tg.MainButton.setParams({ text: 'Начать опрос', is_active: true, is_visible: true }); } catch { tg.MainButton.setText('Начать опрос'); }
       if (isOpen.value) tg.MainButton.show(); else tg.MainButton.hide();
       const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} emitStart(); };
       try { tg.MainButton.offClick(handler); } catch {}
       tg.MainButton.onClick(handler);
       // Убираем MainButton при размонтировании
       onUnmounted(() => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} });
+      // Следим за открытием окна опроса (isOpen)
+      try {
+        watch(isOpen, (val) => {
+          try { tg.MainButton.setParams({ text: 'Начать опрос', is_active: true }); } catch { tg.MainButton.setText('Начать опрос'); }
+          if (val) tg.MainButton.show(); else tg.MainButton.hide();
+        });
+      } catch {}
     }
   } catch {}
 });
