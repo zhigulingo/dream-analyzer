@@ -14,6 +14,13 @@ function returnToChat() {
     const tg = window?.Telegram?.WebApp;
     if (tg) {
       try { tg.HapticFeedback?.impactOccurred?.('rigid'); } catch {}
+      try { tg.expand && tg.expand(); } catch {}
+      // Используем MainButton как надёжный обработчик для Desktop
+      try {
+        tg.MainButton.setText('Закрыть');
+        tg.MainButton.show();
+        tg.MainButton.onClick(() => { tg.close?.(); tg.requestClose?.(); });
+      } catch {}
       if (typeof tg.close === 'function') { tg.close(); return; }
       if (typeof tg.requestClose === 'function') { tg.requestClose(); return; }
       // На всякий случай пробуем callBackButton

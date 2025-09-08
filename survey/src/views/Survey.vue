@@ -90,6 +90,8 @@ onMounted(() => {
   try {
     document.documentElement.classList.add('no-scroll');
     document.body.classList.add('no-scroll');
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
   } catch (_) {}
   // Слушаем события на самом контейнере Swiper, чтобы жест работал всегда
   try {

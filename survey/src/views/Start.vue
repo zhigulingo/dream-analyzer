@@ -6,7 +6,7 @@
       <div v-if="countdown && countdown.totalMs > 0" class="timer">
         Старт через: {{ countdown.days }}д {{ countdown.hours }}ч {{ countdown.minutes }}м {{ countdown.seconds }}с
       </div>
-      <button class="btn-primary" :disabled="!isOpen" @click="$emit('start')">
+      <button class="btn-primary" :disabled="!isOpen" @click="onStartClick">
         Начать опрос
       </button>
       <p class="muted" v-if="!isOpen">Опрос ещё не начался.</p>
@@ -17,6 +17,27 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue';
 import { getSurveyStatus } from '../services/api';
+function onStartClick() {
+  try {
+    const tg = window?.Telegram?.WebApp;
+    if (tg?.MainButton) {
+      tg.MainButton.setText('Начать опрос');
+      tg.MainButton.show();
+      tg.MainButton.onClick(() => { tg.MainButton.hide(); emitStart(); });
+      return;
+    }
+  } catch {}
+  emitStart();
+}
+function emitStart() { 
+  // Разворачиваем TWA на iOS
+  try { const tg = window?.Telegram?.WebApp; tg?.expand?.(); } catch {}
+  // Блокируем прокрутку страницы
+  try { document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; } catch {}
+  // Эмитим событие старта
+  // eslint-disable-next-line no-undef
+  $emit('start');
+}
 
 const isOpen = ref(true);
 const countdown = ref(null);
