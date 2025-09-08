@@ -18,6 +18,11 @@ function returnToChat() {
       if (typeof tg.requestClose === 'function') { tg.requestClose(); return; }
       // На всякий случай пробуем callBackButton
       try { tg.BackButton?.show?.(); tg.BackButton?.onClick?.(() => tg.close()); } catch {}
+      // Desktop Telegram: вернуться в чат внутри Telegram, без внешнего браузера
+      try {
+        const botUrl = import.meta.env.VITE_TG_BOT_URL;
+        if (tg.openTelegramLink && botUrl) { tg.openTelegramLink(botUrl); return; }
+      } catch {}
     }
   } catch {}
   // В вебе/десктопе: сначала назад, если есть история, иначе попытка закрыть окно

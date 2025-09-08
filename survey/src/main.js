@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
+import { flushPendingQueue } from './services/api';
 
 const app = createApp(App);
 app.use(createPinia());
@@ -19,6 +20,9 @@ try {
     } catch {}
   }
 } catch {}
+
+// Восстановление и отправка отложенных запросов
+try { flushPendingQueue(); } catch {}
 
 
 
