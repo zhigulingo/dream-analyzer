@@ -6,9 +6,7 @@
       <div v-if="countdown && countdown.totalMs > 0" class="timer">
         Старт через: {{ countdown.days }}д {{ countdown.hours }}ч {{ countdown.minutes }}м {{ countdown.seconds }}с
       </div>
-      <button class="btn-primary" :disabled="!isOpen" @click="onStartClick">
-        Начать опрос
-      </button>
+      <!-- MainButton используется вместо локальной кнопки -->
       <p class="muted" v-if="!isOpen">Опрос ещё не начался.</p>
     </div>
   </div>
@@ -18,20 +16,7 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { getSurveyStatus } from '../services/api';
 const emit = defineEmits(['start']);
-function onStartClick() {
-  try {
-    const tg = window?.Telegram?.WebApp;
-    if (tg?.MainButton) {
-      tg.MainButton.setText('Начать опрос');
-      tg.MainButton.show();
-      const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} emitStart(); };
-      try { tg.MainButton.offClick(handler); } catch {}
-      tg.MainButton.onClick(handler);
-      return;
-    }
-  } catch {}
-  emitStart();
-}
+// Локальной кнопки нет — управление через MainButton
 function emitStart() { 
   // Разворачиваем TWA на iOS
   try { const tg = window?.Telegram?.WebApp; tg?.expand?.(); } catch {}
@@ -82,6 +67,8 @@ onMounted(async () => {
       const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} emitStart(); };
       try { tg.MainButton.offClick(handler); } catch {}
       tg.MainButton.onClick(handler);
+      // Убираем MainButton при размонтировании
+      onUnmounted(() => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} });
     }
   } catch {}
 });

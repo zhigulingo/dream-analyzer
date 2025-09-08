@@ -3,12 +3,13 @@
     <div class="finish-card onboarding-card slidePeek center-card">
       <h1>Спасибо!</h1>
       <p class="lead">Мы получили ваши ответы. Мы свяжемся с вами в Telegram.</p>
-      <button class="btn-primary" @click="returnToChat">Закрыть</button>
+      <!-- MainButton используется вместо локальной кнопки -->
     </div>
   </div>
 </template>
 
 <script setup>
+import { onMounted, onUnmounted } from 'vue';
 function returnToChat() {
   try {
     const tg = window?.Telegram?.WebApp;
@@ -43,6 +44,20 @@ function returnToChat() {
     location.href = deeplink;
   } catch {}
 }
+
+onMounted(() => {
+  try {
+    const tg = window?.Telegram?.WebApp;
+    if (tg?.MainButton) {
+      tg.MainButton.setText('Закрыть');
+      tg.MainButton.show();
+      const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} returnToChat(); };
+      try { tg.MainButton.offClick(handler); } catch {}
+      tg.MainButton.onClick(handler);
+      onUnmounted(() => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} });
+    }
+  } catch {}
+});
 </script>
 
 <style scoped>
