@@ -49,6 +49,15 @@ function getTelegramInitData() {
     if (fromQuery && typeof fromQuery === 'string' && fromQuery.length > 0) return decodeURIComponent(fromQuery);
   } catch {}
   try {
+    // 2b) Хэш-параметр (#tgWebAppData=...)
+    const hash = location.hash.startsWith('#') ? location.hash.slice(1) : location.hash;
+    if (hash) {
+      const hp = new URLSearchParams(hash);
+      const fromHash = hp.get('tgWebAppData') || hp.get('initData');
+      if (fromHash && fromHash.length > 0) return decodeURIComponent(fromHash);
+    }
+  } catch {}
+  try {
     // 3) Кэш из localStorage (создаётся в main.js при старте)
     const cached = localStorage.getItem('tma_init_data');
     if (cached && cached.length > 0) return cached;

@@ -21,13 +21,18 @@ function returnToChat() {
       // Desktop Telegram: вернуться в чат внутри Telegram, без внешнего браузера
       try {
         const botUrl = import.meta.env.VITE_TG_BOT_URL;
-        if (tg.openTelegramLink && botUrl) { tg.openTelegramLink(botUrl); return; }
+        if (tg.openTelegramLink && botUrl) { setTimeout(() => tg.openTelegramLink(botUrl), 120); return; }
       } catch {}
     }
   } catch {}
   // В вебе/десктопе: сначала назад, если есть история, иначе попытка закрыть окно
   try { if (history.length > 1) { history.back(); return; } } catch {}
   try { window.close(); } catch {}
+  // Жёсткий fallback: перейти в чат
+  try {
+    const url = import.meta.env.VITE_TG_BOT_URL || 'https://t.me/dreamstalk_bot';
+    location.href = url;
+  } catch {}
 }
 </script>
 

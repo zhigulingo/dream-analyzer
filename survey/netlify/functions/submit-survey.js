@@ -49,6 +49,7 @@ exports.handler = async (event) => {
     // Фолбэк: берём из тела, если не пришло в заголовке
     if ((!initData || initData.length === 0) && typeof body?.initData === 'string') {
       initData = body.initData;
+      try { console.log('[submit-survey] using initData from body:', !!initData, 'len:', initData ? String(initData).length : 0); } catch (_) {}
     }
     const botToken = process.env.BOT_TOKEN;
     try {
