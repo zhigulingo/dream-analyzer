@@ -1,4 +1,4 @@
-# Beta Survey (local)
+# Beta Survey
 
 ## Запуск локально
 
@@ -30,10 +30,18 @@ npm run netlify:dev
 
 ## Endpoints
 - GET /api/survey-status
-- POST /api/submit-survey { answers, clientId }
-  - Если приложение открыто как Telegram WebApp, автоматически передаётся заголовок X-Telegram-Init-Data, и запись сохраняется по tg_id.
+- POST /api/submit-survey
+  - partial: { answerKey, answerValue, index, completed, sessionId, clientId }
+  - final: { answers, sessionId, clientId }
+  - Telegram WebApp: заголовок `X-Telegram-Init-Data` (валидация по `BOT_TOKEN`); фолбэк — `initData` в теле; локально — `clientId`.
 
 ## Примечания
-- В режиме локального теста идентификатор сохраняется в localStorage как clientId и пишется в колонку client_id.
-- В проде будет использоваться tg_id через Telegram InitData, валидация переиспользуется из bot/functions/shared/auth/telegram-validator.js.
+- TMA интеграция:
+  - Подключён `https://telegram.org/js/telegram-web-app.js`.
+  - Источники initData на клиенте: WebApp.initData, `tgWebAppData`/`initData` из URL/хэша, кэш `localStorage:tma_init_data`.
+  - Заголовок `X-Telegram-Init-Data` + дублирование в теле запроса.
+  - WebApp.MainButton используется вместо локальных кнопок (Start/Finish). На десктопе есть BackButton и tg:// fallback.
+- Сохранение ответов:
+  - Частичные сохранения после каждого вопроса + финальный submit (keepalive). Fallback: `sendBeacon` и очередь `survey_pending_queue` (авто‑флаш при старте приложения).
+  - Новая строка создаётся для каждой сессии `sessionId`; прогресс в `answers._progress`.
 
