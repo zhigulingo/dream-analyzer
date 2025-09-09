@@ -6,7 +6,7 @@
       <div v-if="countdown && countdown.totalMs > 0" class="timer">
         Старт через: {{ countdown.days }}д {{ countdown.hours }}ч {{ countdown.minutes }}м {{ countdown.seconds }}с
       </div>
-      <!-- MainButton используется вместо локальной кнопки -->
+      <button v-if="!hasMainButton" class="btn-primary" :disabled="!isOpen" @click="emitStart">Начать опрос</button>
       <p class="muted" v-if="!isOpen">Опрос ещё не начался.</p>
     </div>
   </div>
@@ -29,6 +29,7 @@ function emitStart() {
 const isOpen = ref(true);
 const countdown = ref(null);
 let t;
+const hasMainButton = ref(false);
 
 function computeCountdown(targetIso) {
   const target = new Date(targetIso).getTime();
@@ -62,6 +63,7 @@ onMounted(async () => {
     if (tg?.ready) tg.ready();
     if (tg?.expand) tg.expand();
     if (tg?.MainButton) {
+      hasMainButton.value = true;
       try { tg.MainButton.setParams({ text: 'Начать опрос', is_active: true, is_visible: true }); } catch { tg.MainButton.setText('Начать опрос'); }
       if (isOpen.value) tg.MainButton.show(); else tg.MainButton.hide();
       const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} emitStart(); };
