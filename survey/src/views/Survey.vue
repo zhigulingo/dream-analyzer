@@ -7,9 +7,9 @@
       <Swiper
         :modules="modules"
         direction="vertical"
-        :spaceBetween="18"
-        :slidesOffsetBefore="32"
-        :slidesOffsetAfter="32"
+        :spaceBetween="12"
+        :slidesOffsetBefore="0"
+        :slidesOffsetAfter="0"
         slides-per-view="auto"
         :centeredSlides="true"
         :allowTouchMove="false"
@@ -54,6 +54,15 @@ const swiperRef = ref(null);
 function onSwiper(swiper) {
   swiperRef.value = swiper;
   try { swiper.slideTo(store.index || 0, 0); } catch (_) {}
+  // Подключаем обработчики жестов на реальный элемент свайпера
+  try {
+    const sEl = swiper?.el;
+    if (sEl) {
+      sEl.addEventListener('touchstart', onTouchStart, { passive: true });
+      sEl.addEventListener('touchmove', onTouchMove, { passive: false });
+      sEl.addEventListener('touchend', onTouchEnd, { passive: true });
+    }
+  } catch (_) {}
 }
 
 // Drag-to-previous: позволяем тянуть активную карточку вниз для возврата
@@ -95,6 +104,12 @@ onMounted(() => {
     document.body.classList.add('no-scroll');
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overscrollBehaviorY = 'none';
+    document.body.style.overscrollBehaviorY = 'none';
+  } catch (_) {}
+  // Блокируем системный вертикальный свайп закрытия: предотвращаем touchmove по умолчанию
+  try {
+    window.addEventListener('touchmove', blockMove, { passive: false });
   } catch (_) {}
   // Слушаем события на самом контейнере Swiper, чтобы жест работал всегда
   try {
@@ -117,6 +132,9 @@ onBeforeUnmount(() => {
     document.body.classList.remove('no-scroll');
     document.documentElement.style.overflow = '';
     document.body.style.overflow = '';
+    document.documentElement.style.overscrollBehaviorY = '';
+    document.body.style.overscrollBehaviorY = '';
+    window.removeEventListener('touchmove', blockMove);
   } catch (_) {}
 });
 
@@ -178,6 +196,15 @@ const answeredUntil = computed(() => {
   }
   return last;
 });
+
+// Глобальный блокировщик вертикального скролла, кроме ввода текста
+function blockMove(e) {
+  try {
+    const t = e.target;
+    if (t && (t.closest && (t.closest('textarea') || t.closest('input')))) return;
+    e.preventDefault();
+  } catch (_) {}
+}
 </script>
 
 <style scoped>
@@ -185,16 +212,16 @@ const answeredUntil = computed(() => {
 /* Фиксированный оверлей и вьюпорт по центру, как в онбординге */
 .survey-overlay { position: fixed; inset: 0; display: flex; align-items: stretch; justify-content: center; z-index: 10; background: transparent; overflow: hidden; }
 .survey-viewport { position: relative; width: 100%; max-width: 560px; min-height: 100vh; display: flex; flex-direction: column; padding: 0 16px; box-sizing: border-box; }
-.survey-top { position: sticky; top: 8px; left: 16px; right: 16px; z-index: 20; backdrop-filter: blur(10px) saturate(120%); -webkit-backdrop-filter: blur(10px) saturate(120%); padding-bottom: 16px; margin-bottom: 4px; }
+.survey-top { position: sticky; top: 8px; left: 16px; right: 16px; z-index: 20; backdrop-filter: blur(10px) saturate(120%); -webkit-backdrop-filter: blur(10px) saturate(120%); padding-bottom: 8px; }
 /* Центрирование и peeking */
-::v-deep(.onboarding-swiper) { padding: 32px 0 32px 0; box-sizing: border-box; flex: 1; height: 100dvh; }
+::v-deep(.onboarding-swiper) { padding: 32px 0 32px 0; box-sizing: border-box; flex: 1; height: 100dvh; touch-action: none; }
 ::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
 ::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; align-items: center; }
-::v-deep(.slidePeek) { height: 70dvh; width: 100%; }
+::v-deep(.slidePeek) { height: 64dvh; width: 100%; }
 ::v-deep(.center-card) { width: 100%; display: flex; align-items: center; justify-content: center; }
 /* Блокируем прокрутку страницы */
 :host { overflow: hidden; }
-::v-deep(html), ::v-deep(body) { overscroll-behavior: none; height: 100dvh; overflow: hidden; }
+.survey-overlay { touch-action: none; }
 /* Внутренние отступы слайдера */
 ::v-deep(.onboarding-swiper) { padding-left: 16px; padding-right: 16px; }
 ::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
@@ -214,7 +241,7 @@ const answeredUntil = computed(() => {
 
 @media (max-width: 400px) {
   .survey-viewport { padding: 12px; }
-  .survey-top { padding-bottom: 12px; }
+  .survey-top { padding-bottom: 10px; }
   ::v-deep(.onboarding-swiper) { padding-top: 16px; padding-bottom: 12px; }
   ::v-deep(.slidePeek) { min-height: 68vh; max-height: 68vh; }
   .onboarding-card { width: calc(100% - 24px); padding: 18px; border-radius: 16px; }
