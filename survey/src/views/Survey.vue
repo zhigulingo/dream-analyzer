@@ -2,7 +2,7 @@
   <div class="survey-overlay" ref="dragHost">
     <div class="survey-viewport">
       <div class="survey-top">
-        <ProgressBar :current="store.index" :total="store.total" />
+        <ProgressBar :current="store.index" :total="store.total" :answered-until="answeredUntil" />
       </div>
       <Swiper
         :modules="modules"
@@ -73,9 +73,13 @@ function onTouchMove(e) {
 function onTouchEnd() {
   const dy = lastY - startY;
   const THRESHOLD = 60;
-  if (dy > THRESHOLD && store.index > 0) {
-    store.prev();
-    try { swiperRef.value?.slideTo(store.index, 200); } catch (_) {}
+  if (dy > THRESHOLD) {
+    const target = store.index - 1;
+    // Возврат разрешён только на уже отвеченные вопросы
+    if (target >= 0 && target <= (answeredUntil?.value ?? -1)) {
+      store.prev();
+      try { swiperRef.value?.slideTo(store.index, 200); } catch (_) {}
+    }
   }
 }
 
@@ -111,6 +115,8 @@ onBeforeUnmount(() => {
   try {
     document.documentElement.classList.remove('no-scroll');
     document.body.classList.remove('no-scroll');
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
   } catch (_) {}
 });
 
@@ -161,6 +167,17 @@ async function onCommit(q, i) {
   await nextTick();
   goToSlide(store.index);
 }
+
+// Индекс последнего отвеченного вопроса (для прогресс-бара серой полосой)
+const answeredUntil = computed(() => {
+  let last = -1;
+  for (let i = 0; i < store.total; i++) {
+    const key = QUESTIONS[i].key;
+    const val = store.answers[key];
+    if (validateAnswer(key, val)) last = i;
+  }
+  return last;
+});
 </script>
 
 <style scoped>
@@ -168,7 +185,7 @@ async function onCommit(q, i) {
 /* Фиксированный оверлей и вьюпорт по центру, как в онбординге */
 .survey-overlay { position: fixed; inset: 0; display: flex; align-items: stretch; justify-content: center; z-index: 10; background: transparent; overflow: hidden; }
 .survey-viewport { position: relative; width: 100%; max-width: 560px; min-height: 100vh; display: flex; flex-direction: column; padding: 0 16px; box-sizing: border-box; }
-.survey-top { position: sticky; top: 8px; left: 16px; right: 16px; z-index: 20; backdrop-filter: blur(10px) saturate(120%); -webkit-backdrop-filter: blur(10px) saturate(120%); }
+.survey-top { position: sticky; top: 8px; left: 16px; right: 16px; z-index: 20; backdrop-filter: blur(10px) saturate(120%); -webkit-backdrop-filter: blur(10px) saturate(120%); padding-bottom: 16px; margin-bottom: 4px; }
 /* Центрирование и peeking */
 ::v-deep(.onboarding-swiper) { padding: 32px 0 32px 0; box-sizing: border-box; flex: 1; height: 100dvh; }
 ::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
@@ -197,7 +214,7 @@ async function onCommit(q, i) {
 
 @media (max-width: 400px) {
   .survey-viewport { padding: 12px; }
-  .survey-top { padding-bottom: 6px; }
+  .survey-top { padding-bottom: 12px; }
   ::v-deep(.onboarding-swiper) { padding-top: 16px; padding-bottom: 12px; }
   ::v-deep(.slidePeek) { min-height: 68vh; max-height: 68vh; }
   .onboarding-card { width: calc(100% - 24px); padding: 18px; border-radius: 16px; }
