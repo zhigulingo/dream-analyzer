@@ -19,7 +19,7 @@ const answeredPercent = computed(() => {
 </script>
 
 <style scoped>
-.wrap { backdrop-filter: blur(10px) saturate(120%); -webkit-backdrop-filter: blur(10px) saturate(120%); padding: 8px 10px; border-radius: 14px; }
+.wrap { backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); background: transparent; padding: 8px 10px; border-radius: 14px; }
 .label { font-size: 14px; color: rgba(255,255,255,0.9); margin-bottom: 6px; }
 .bar { position: relative; height: 10px; background: rgba(255,255,255,0.22); border-radius: 999px; overflow: hidden; }
 .fill-answered { position: absolute; inset: 0 auto 0 0; height: 100%; background: rgba(255,255,255,0.45); }
