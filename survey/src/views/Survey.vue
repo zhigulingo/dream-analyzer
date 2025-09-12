@@ -21,7 +21,7 @@
         :watch-overflow="true"
         @swiper="onSwiper"
       >
-        <SwiperSlide v-for="(q, i) in QUESTIONS" :key="q.key" :class="['onboarding-card','slidePeek','center-card', slideClass(i)]">
+        <SwiperSlide v-for="(q, i) in QUESTIONS" :key="q.key" class="onboarding-card slidePeek center-card">
           <component
             :is="resolveComponent(q)"
             v-bind="resolveProps(q)"
@@ -75,10 +75,7 @@ function onTouchMove(e) {
   const dy = touchY(e) - startY;
   // Блокируем свайп вверх (вперёд) полностью
   if (dy < 0) {
-    // Разрешаем только возврат к актуальному вопросу, не дальше
-    if (!canSwipeForward()) {
-      try { e.preventDefault(); } catch (_) {}
-    }
+    try { e.preventDefault(); } catch (_) {}
   }
   lastY = touchY(e);
 }
@@ -90,14 +87,6 @@ function onTouchEnd() {
     // Возврат разрешён только на уже отвеченные вопросы
     if (target >= 0 && target <= (answeredUntil?.value ?? -1)) {
       store.prev();
-      try { swiperRef.value?.slideTo(store.index, 200); } catch (_) {}
-    }
-  }
-  if (dy < -THRESHOLD) {
-    // Вперёд — только до актуального (следующего после последнего отвеченного)
-    const maxForwardIndex = Math.min((answeredUntil?.value ?? -1) + 1, store.total - 1);
-    if (store.index < maxForwardIndex) {
-      store.index = Math.min(store.index + 1, maxForwardIndex);
       try { swiperRef.value?.slideTo(store.index, 200); } catch (_) {}
     }
   }
@@ -216,17 +205,6 @@ function blockMove(e) {
     e.preventDefault();
   } catch (_) {}
 }
-
-// Классы для скейлинга соседних карточек
-function slideClass(i) {
-  return i === store.index ? 'slide-active' : 'slide-inactive';
-}
-
-// Свайп вверх — возвращаемся к актуальному (максимально доступному) вопросу
-function canSwipeForward() {
-  const maxForwardIndex = Math.min((answeredUntil?.value ?? -1) + 1, store.total - 1);
-  return store.index < maxForwardIndex;
-}
 </script>
 
 <style scoped>
@@ -238,10 +216,8 @@ function canSwipeForward() {
 /* Центрирование и peeking */
 ::v-deep(.onboarding-swiper) { padding: 32px 0 32px 0; box-sizing: border-box; flex: 1; height: 100dvh; touch-action: none; }
 ::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
-::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; align-items: center; transition: transform .22s ease, opacity .22s ease; transform-origin: center; }
+::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; align-items: center; }
 ::v-deep(.slidePeek) { height: 64dvh; width: 100%; }
-::v-deep(.slide-inactive) { transform: scale(0.8); opacity: 0.9; }
-::v-deep(.slide-active) { transform: scale(1); }
 ::v-deep(.center-card) { width: 100%; display: flex; align-items: center; justify-content: center; }
 /* Блокируем прокрутку страницы */
 :host { overflow: hidden; }
