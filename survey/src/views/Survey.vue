@@ -242,15 +242,6 @@ function canSwipeForward() {
 ::v-deep(.slidePeek) { height: 64dvh; width: 100%; }
 ::v-deep(.slide-inactive) { transform: scale(0.8); opacity: 0.9; }
 ::v-deep(.slide-active) { transform: scale(1); }
-
-/* При возвращении к предыдущим вопросам: выбранный ответ подсвечиваем градиентной обводкой, а не заливкой */
-::v-deep(.slide-inactive .btn.active) {
-  color: #111827;
-  border: 2px solid transparent;
-  background: linear-gradient(#ffffff, #ffffff) padding-box,
-              linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%) border-box;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.10);
-}
 ::v-deep(.center-card) { width: 100%; display: flex; align-items: center; justify-content: center; }
 /* Блокируем прокрутку страницы */
 :host { overflow: hidden; }
