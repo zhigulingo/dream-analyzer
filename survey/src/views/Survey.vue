@@ -169,17 +169,20 @@ async function onCommit(q, i) {
 .survey-top { position: sticky; top: 8px; left: 16px; right: 16px; z-index: 20; backdrop-filter: blur(10px) saturate(120%); -webkit-backdrop-filter: blur(10px) saturate(120%); }
 /* Центрирование и peeking */
 ::v-deep(.onboarding-swiper) {
-  padding: 32px 0;
+  padding: 32px 16px;
   box-sizing: border-box;
   flex: 1;
-  height: 100dvh;
   display: flex;
   flex-direction: column;
+  height: 100dvh;
 }
 ::v-deep(.onboarding-swiper .swiper-wrapper) {
   align-items: center;
   justify-content: center;
   flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 ::v-deep(.onboarding-swiper .swiper-slide) {
   display: flex;
@@ -187,9 +190,9 @@ async function onCommit(q, i) {
   align-items: center;
   width: 100%;
   height: auto;
+  min-height: 70dvh;
 }
 ::v-deep(.slidePeek) {
-  height: 70dvh;
   width: 100%;
   max-width: 560px;
 }
@@ -202,10 +205,6 @@ async function onCommit(q, i) {
 /* Блокируем прокрутку страницы */
 :host { overflow: hidden; }
 ::v-deep(html), ::v-deep(body) { overscroll-behavior: none; height: 100dvh; overflow: hidden; }
-/* Внутренние отступы слайдера */
-::v-deep(.onboarding-swiper) { padding-left: 16px; padding-right: 16px; }
-::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
-::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; }
 .btn { padding: 12px 16px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; }
 .btn-secondary { background: #f9fafb; }
 .onboarding-card { 
@@ -223,7 +222,7 @@ async function onCommit(q, i) {
   .survey-viewport { padding: 12px; }
   .survey-top { padding-bottom: 6px; }
   ::v-deep(.onboarding-swiper) { padding-top: 16px; padding-bottom: 12px; }
-  ::v-deep(.slidePeek) { min-height: 68vh; max-height: 68vh; }
+  ::v-deep(.swiper-slide) { min-height: 68vh; }
   .onboarding-card { width: calc(100% - 24px); padding: 18px; border-radius: 16px; }
 }
 .inactive { opacity: 1; }
