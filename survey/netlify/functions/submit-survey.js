@@ -44,107 +44,67 @@ exports.handler = async (event) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
 
+    // Определяем идентификатор пользователя
+    let upsertPayload = { updated_at: new Date().toISOString() };
+    let userIdentifier = null;
+
     // Попытка авторизоваться через Telegram InitData
     let initData = event.headers['x-telegram-init-data'] || event.headers['X-Telegram-Init-Data'];
     // Фолбэк: берём из тела, если не пришло в заголовке
     if ((!initData || initData.length === 0) && typeof body?.initData === 'string') {
       initData = body.initData;
-      try { console.log('[submit-survey] using initData from body:', !!initData, 'len:', initData ? String(initData).length : 0); } catch (_) {}
     }
     const botToken = process.env.BOT_TOKEN;
-    try {
-      console.log('[submit-survey] TMA header present:', !!initData, 'len:', initData ? String(initData).length : 0, 'botToken set:', !!botToken);
-    } catch (_) {}
-
-    let upsertPayload = { updated_at: new Date().toISOString() };
-    if (isFinalSubmit) {
-      // финальная отправка: сохраняем все ответы и прогресс в JSON
-      upsertPayload.answers = {
-        ...(answers || {}),
-        _progress: { last_index: 9, completed: true }
-      };
-      upsertPayload.submitted_at = new Date().toISOString();
-    } else if (answerKey && typeof answerValue !== 'undefined') {
-      // частичный ответ: прогресс будет слит в JSON на этапе insert/update ниже
-      // никаких qN полей на верхнем уровне не пишем, чтобы не зависеть от схемы
-    }
-    let onConflictColumn;
 
     if (initData && botToken && isInitDataValid(initData)) {
       const res = validateTelegramData(initData, botToken, { enableLogging: true });
-      try { console.log('[submit-survey] validateTelegramData:', { valid: res?.valid, hasData: !!res?.data, userId: res?.data?.id }); } catch (_) {}
       if (res.valid && res.data && typeof res.data.id !== 'undefined') {
         upsertPayload.tg_id = res.data.id;
-        onConflictColumn = 'tg_id';
+        userIdentifier = { type: 'tg_id', value: res.data.id };
       }
     } else {
-      try { console.warn('[submit-survey] TMA validation skipped. Reasons:', { hasInitData: !!initData, hasBotToken: !!botToken, initDataValid: initData ? isInitDataValid(initData) : false }); } catch (_) {}
-    }
-
-    // Fallback: локальный client_id
-    if (!onConflictColumn) {
+      // Fallback: локальный client_id
       if (clientId) {
         upsertPayload.client_id = clientId;
-        onConflictColumn = 'client_id';
+        userIdentifier = { type: 'client_id', value: clientId };
       }
     }
 
-    // Найдём существующую запись
-    const idCol = onConflictColumn;
-    const keyVal = idCol === 'tg_id' ? upsertPayload.tg_id : upsertPayload.client_id;
-    let existing = null;
-    if (idCol && keyVal) {
-      if (sessionId) {
-        // Ищем запись только в рамках текущей сессии
-        const { data: rows } = await supabase
-          .from('beta_survey_responses')
-          .select('id, answers')
-          .eq(idCol, keyVal)
-          .contains('answers', { _session: sessionId })
-          .limit(1);
-        existing = Array.isArray(rows) && rows[0] ? rows[0] : null;
-      } else {
-        existing = null; // без sessionId всегда создаём новую строку
-      }
+    // Всегда создаём новую запись для каждого ответа
+    const insertPayload = { ...upsertPayload };
+
+    if (isFinalSubmit) {
+      // Финальная отправка: сохраняем все ответы
+      insertPayload.answers = {
+        ...(answers || {}),
+        _progress: { last_index: 9, completed: true },
+        _session: sessionId || ('s_'+Date.now())
+      };
+      insertPayload.submitted_at = new Date().toISOString();
+    } else if (answerKey && typeof answerValue !== 'undefined') {
+      // Частичный ответ: создаём новую запись с прогрессом
+      insertPayload.answers = {
+        _session: sessionId || ('s_'+Date.now()),
+        [answerKey]: answerValue,
+        _progress: { last_index: typeof index === 'number' ? index : 0, completed: !!completed }
+      };
     }
 
-    let error = null;
-    if (!existing) {
-      // Вставка новой
-      const insertPayload = { ...upsertPayload };
-      if (idCol === 'tg_id') insertPayload.tg_id = keyVal;
-      if (idCol === 'client_id') insertPayload.client_id = keyVal;
-      // Если это частичный ответ, и есть answerKey — сформируем answers JSON
-      if (!isFinalSubmit && answerKey) {
-        insertPayload.answers = { _session: sessionId || ('s_'+Date.now()), [answerKey]: answerValue, _progress: { last_index: typeof index === 'number' ? index : 0, completed: !!completed } };
-      } else if (isFinalSubmit) {
-        const sess = sessionId || ('s_'+Date.now());
-        insertPayload.answers = { ...(insertPayload.answers || {}), _session: sess };
-      }
-      ({ error } = await supabase.from('beta_survey_responses').insert(insertPayload));
-      try { console.log('[submit-survey] insert success', { idCol, keyVal, isFinalSubmit, answerKey }); } catch (_) {}
-    } else {
-      // Обновление существующей записи; при частичном ответе обновим JSON answers
-      const updatePayload = { ...upsertPayload };
-      if (!isFinalSubmit && answerKey) {
-        const prev = (existing.answers && typeof existing.answers === 'object') ? existing.answers : {};
-        const prevMeta = (prev && typeof prev._progress === 'object') ? prev._progress : {};
-        updatePayload.answers = {
-          ...prev,
-          [answerKey]: answerValue,
-          _session: sessionId || prev._session || ('s_'+Date.now()),
-          _progress: { last_index: typeof index === 'number' ? index : (prevMeta.last_index ?? 0), completed: !!completed }
-        };
-      }
-      ({ error } = await supabase
-        .from('beta_survey_responses')
-        .update(updatePayload)
-        .eq(idCol, keyVal));
-      try { console.log('[submit-survey] update success', { idCol, keyVal, isFinalSubmit, answerKey }); } catch (_) {}
-    }
+    const { error } = await supabase.from('beta_survey_responses').insert(insertPayload);
+
+    try {
+      console.log('[submit-survey] insert success', {
+        userIdentifier: userIdentifier ? `${userIdentifier.type}:${userIdentifier.value}` : 'none',
+        isFinalSubmit,
+        answerKey
+      });
+    } catch (_) {}
 
     if (error) {
-      console.error('[submit-survey] upsert error', { onConflictColumn, upsertPayloadSummary: { hasTg: !!upsertPayload.tg_id, hasClient: !!upsertPayload.client_id }, error });
+      console.error('[submit-survey] insert error', {
+        userIdentifier: userIdentifier ? `${userIdentifier.type}:${userIdentifier.value}` : 'none',
+        error
+      });
       return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Database error', code: error.code, details: error.message }) };
     }
 
