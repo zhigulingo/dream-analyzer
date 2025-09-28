@@ -8,10 +8,11 @@
         :modules="modules"
         direction="vertical"
         :spaceBetween="18"
-        :slidesOffsetBefore="32"
-        :slidesOffsetAfter="32"
-        slides-per-view="auto"
+        :slidesOffsetBefore="0"
+        :slidesOffsetAfter="0"
+        :slides-per-view="1"
         :centeredSlides="true"
+        :centeredSlidesBounds="true"
         :allowTouchMove="false"
         :keyboard="{ enabled: false }"
         :a11y="{ enabled: false }"
@@ -145,6 +146,14 @@ async function onCommit(q, i) {
   const value = store.answers[q.key];
   if (!validateAnswer(q.key, value)) return;
 
+  // Защита от двойных отправок одного и того же шага (быстрые тапы)
+  const now = Date.now();
+  if (!onCommit._last) onCommit._last = { index: -1, at: 0 };
+  if (onCommit._last.index === i && (now - onCommit._last.at) < 800) {
+    return;
+  }
+  onCommit._last = { index: i, at: now };
+
   const isLast = i === store.total - 1;
   if (isLast) {
     const payload = { ...store.answers };
@@ -182,6 +191,8 @@ async function onCommit(q, i) {
 ::v-deep(.onboarding-swiper) { padding-left: 16px; padding-right: 16px; }
 ::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
 ::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; }
+.onboarding-swiper :deep(.swiper-slide) { height: auto; }
+.onboarding-swiper :deep(.swiper) { height: 100dvh; }
 .btn { padding: 12px 16px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; }
 .btn-secondary { background: #f9fafb; }
 .onboarding-card { 

@@ -89,23 +89,17 @@ exports.handler = async (event) => {
       }
     }
 
-    // Найдём существующую запись
+    // Найдём существующую запись (всегда по ключу пользователя, чтобы избежать дублей)
     const idCol = onConflictColumn;
     const keyVal = idCol === 'tg_id' ? upsertPayload.tg_id : upsertPayload.client_id;
     let existing = null;
     if (idCol && keyVal) {
-      if (sessionId) {
-        // Ищем запись только в рамках текущей сессии
-        const { data: rows } = await supabase
-          .from('beta_survey_responses')
-          .select('id, answers')
-          .eq(idCol, keyVal)
-          .contains('answers', { _session: sessionId })
-          .limit(1);
-        existing = Array.isArray(rows) && rows[0] ? rows[0] : null;
-      } else {
-        existing = null; // без sessionId всегда создаём новую строку
-      }
+      const { data: rows } = await supabase
+        .from('beta_survey_responses')
+        .select('id, answers')
+        .eq(idCol, keyVal)
+        .limit(1);
+      existing = Array.isArray(rows) && rows[0] ? rows[0] : null;
     }
 
     let error = null;
@@ -122,7 +116,42 @@ exports.handler = async (event) => {
         insertPayload.answers = { ...(insertPayload.answers || {}), _session: sess };
       }
       ({ error } = await supabase.from('beta_survey_responses').insert(insertPayload));
-      try { console.log('[submit-survey] insert success', { idCol, keyVal, isFinalSubmit, answerKey }); } catch (_) {}
+      // Если поймали уникальный конфликт (параллельные запросы) — переключаемся на обновление
+      if (error && String(error.code) === '23505') {
+        try { console.warn('[submit-survey] unique conflict on insert, switching to update'); } catch (_) {}
+        // Получим актуальное предыдущее значение answers для merge
+        let prev = {};
+        try {
+          const { data: rows2 } = await supabase
+            .from('beta_survey_responses')
+            .select('id, answers')
+            .eq(idCol, keyVal)
+            .limit(1);
+          const row = Array.isArray(rows2) && rows2[0] ? rows2[0] : null;
+          prev = (row && row.answers && typeof row.answers === 'object') ? row.answers : {};
+        } catch {}
+        const prevMeta = (prev && typeof prev._progress === 'object') ? prev._progress : {};
+        const updatePayloadOnConflict = { updated_at: new Date().toISOString() };
+        if (!isFinalSubmit && answerKey) {
+          updatePayloadOnConflict.answers = {
+            ...prev,
+            [answerKey]: answerValue,
+            _session: sessionId || prev._session || ('s_'+Date.now()),
+            _progress: { last_index: typeof index === 'number' ? index : (prevMeta.last_index ?? 0), completed: !!completed }
+          };
+        } else if (isFinalSubmit) {
+          const sess = sessionId || prev._session || ('s_'+Date.now());
+          updatePayloadOnConflict.answers = { ...(answers || {}), _session: sess, _progress: { last_index: 9, completed: true } };
+          updatePayloadOnConflict.submitted_at = new Date().toISOString();
+        }
+        const updRes = await supabase
+          .from('beta_survey_responses')
+          .update(updatePayloadOnConflict)
+          .eq(idCol, keyVal);
+        error = updRes.error || null;
+      } else {
+        try { console.log('[submit-survey] insert success', { idCol, keyVal, isFinalSubmit, answerKey }); } catch (_) {}
+      }
     } else {
       // Обновление существующей записи; при частичном ответе обновим JSON answers
       const updatePayload = { ...upsertPayload };
