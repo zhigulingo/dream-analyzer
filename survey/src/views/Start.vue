@@ -6,7 +6,6 @@
       <div v-if="countdown && countdown.totalMs > 0" class="timer">
         Старт через: {{ countdown.days }}д {{ countdown.hours }}ч {{ countdown.minutes }}м {{ countdown.seconds }}с
       </div>
-      <button v-if="!hasMainButton" class="btn-primary" :disabled="!isOpen" @click="emitStart">Начать опрос</button>
       <p class="muted" v-if="!isOpen">Опрос ещё не начался.</p>
     </div>
   </div>
