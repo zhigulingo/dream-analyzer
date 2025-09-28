@@ -83,6 +83,9 @@ function onTouchEnd() {
 onMounted(() => {
   const el = dragHost.value;
   if (!el) return;
+  // Отключаем вертикальные свайпы Telegram WebApp на время опроса,
+  // чтобы жест возврата к предыдущему вопросу не сворачивал TWA
+  try { window?.Telegram?.WebApp?.disableVerticalSwipes?.(); } catch {}
   el.addEventListener('touchstart', onTouchStart, { passive: true });
   el.addEventListener('touchmove', onTouchMove, { passive: false });
   el.addEventListener('touchend', onTouchEnd, { passive: true });
@@ -106,6 +109,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   const el = dragHost.value;
   if (!el) return;
+  // Возвращаем поведение свайпов по умолчанию при выходе
+  try { window?.Telegram?.WebApp?.enableVerticalSwipes?.(); } catch {}
   el.removeEventListener('touchstart', onTouchStart);
   el.removeEventListener('touchmove', onTouchMove);
   el.removeEventListener('touchend', onTouchEnd);
