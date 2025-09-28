@@ -10,7 +10,7 @@
         :spaceBetween="18"
         :slidesOffsetBefore="0"
         :slidesOffsetAfter="0"
-        :slides-per-view="1"
+        slides-per-view="auto"
         :centeredSlides="true"
         :centeredSlidesBounds="true"
         :allowTouchMove="false"
@@ -178,11 +178,17 @@ async function onCommit(q, i) {
 .survey-overlay { position: fixed; inset: 0; display: flex; align-items: stretch; justify-content: center; z-index: 10; background: transparent; overflow: hidden; }
 .survey-viewport { position: relative; width: 100%; max-width: 560px; min-height: 100vh; display: flex; flex-direction: column; padding: 0 16px; box-sizing: border-box; }
 .survey-top { position: sticky; top: 8px; left: 16px; right: 16px; z-index: 20; backdrop-filter: blur(10px) saturate(120%); -webkit-backdrop-filter: blur(10px) saturate(120%); }
-/* Центрирование и peeking */
-::v-deep(.onboarding-swiper) { padding: 32px 0 32px 0; box-sizing: border-box; flex: 1; height: 100dvh; }
-::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
+/* Центрирование и равные отступы вокруг активной карточки */
+::v-deep(.onboarding-swiper) { 
+  --peek: 64px; /* видимая часть соседних карточек сверху/снизу */
+  padding: 32px 0 32px 0; 
+  box-sizing: border-box; 
+  flex: 1; 
+}
+::v-deep(.onboarding-swiper .swiper) { height: 100%; }
+::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; height: 100%; }
 ::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; align-items: center; }
-::v-deep(.slidePeek) { height: 70dvh; width: 100%; }
+::v-deep(.slidePeek) { height: calc(100% - var(--peek) * 2); width: 100%; }
 ::v-deep(.center-card) { width: 100%; display: flex; align-items: center; justify-content: center; }
 /* Блокируем прокрутку страницы */
 :host { overflow: hidden; }
@@ -191,8 +197,6 @@ async function onCommit(q, i) {
 ::v-deep(.onboarding-swiper) { padding-left: 16px; padding-right: 16px; }
 ::v-deep(.onboarding-swiper .swiper-wrapper) { align-items: center; }
 ::v-deep(.onboarding-swiper .swiper-slide) { display: flex; justify-content: center; }
-.onboarding-swiper :deep(.swiper-slide) { height: auto; }
-.onboarding-swiper :deep(.swiper) { height: 100dvh; }
 .btn { padding: 12px 16px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; }
 .btn-secondary { background: #f9fafb; }
 .onboarding-card { 
@@ -209,8 +213,7 @@ async function onCommit(q, i) {
 @media (max-width: 400px) {
   .survey-viewport { padding: 12px; }
   .survey-top { padding-bottom: 6px; }
-  ::v-deep(.onboarding-swiper) { padding-top: 16px; padding-bottom: 12px; }
-  ::v-deep(.slidePeek) { min-height: 68vh; max-height: 68vh; }
+  ::v-deep(.onboarding-swiper) { padding-top: 16px; padding-bottom: 12px; --peek: 56px; }
   .onboarding-card { width: calc(100% - 24px); padding: 18px; border-radius: 16px; }
 }
 .inactive { opacity: 1; }
