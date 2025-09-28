@@ -61,8 +61,9 @@ function onSwiper(swiper) {
 const dragHost = ref(null);
 let startY = 0;
 let lastY = 0;
+let gestureHandled = false;
 function touchY(e) { return (e.touches && e.touches[0]?.clientY) || e.clientY || 0; }
-function onTouchStart(e) { startY = touchY(e); lastY = startY; }
+function onTouchStart(e) { startY = touchY(e); lastY = startY; gestureHandled = false; }
 function onTouchMove(e) {
   const dy = touchY(e) - startY;
   // Блокируем свайп вверх (вперёд) полностью
@@ -72,11 +73,13 @@ function onTouchMove(e) {
   lastY = touchY(e);
 }
 function onTouchEnd() {
+  if (gestureHandled) return;
   const dy = lastY - startY;
   const THRESHOLD = 60;
   if (dy > THRESHOLD && store.index > 0) {
     store.prev();
     try { swiperRef.value?.slideTo(store.index, 200); } catch (_) {}
+    gestureHandled = true;
   }
 }
 
