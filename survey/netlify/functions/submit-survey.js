@@ -7,14 +7,14 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function validateAnswers(answers) {
   if (!answers || typeof answers !== 'object') return false;
-  const hasAll = ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10'].every(k => k in answers);
+  const hasAll = ['q1','q2','q3','q4','q6','q7','q8','q9'].every(k => k in answers);
   if (!hasAll) return false;
   // q1 теперь кнопки: принимаем строку
   const q1ok = typeof answers.q1 === 'string' && answers.q1.length > 0;
   const btn = v => typeof v === 'string' && v.length > 0;
   const text = v => typeof v === 'string' && v.trim().length > 3;
-  return q1ok && btn(answers.q2) && btn(answers.q3) && btn(answers.q4) && btn(answers.q5)
-         && btn(answers.q6) && text(answers.q7) && text(answers.q8) && btn(answers.q9) && btn(answers.q10);
+  return q1ok && btn(answers.q2) && btn(answers.q3) && btn(answers.q4)
+         && btn(answers.q6) && text(answers.q7) && text(answers.q8) && btn(answers.q9);
 }
 
 exports.handler = async (event) => {
@@ -61,7 +61,7 @@ exports.handler = async (event) => {
       // финальная отправка: сохраняем все ответы и прогресс в JSON
       upsertPayload.answers = {
         ...(answers || {}),
-        _progress: { last_index: 9, completed: true }
+        _progress: { last_index: 7, completed: true }
       };
       upsertPayload.submitted_at = new Date().toISOString();
     } else if (answerKey && typeof answerValue !== 'undefined') {
@@ -141,7 +141,7 @@ exports.handler = async (event) => {
           };
         } else if (isFinalSubmit) {
           const sess = sessionId || prev._session || ('s_'+Date.now());
-          updatePayloadOnConflict.answers = { ...(answers || {}), _session: sess, _progress: { last_index: 9, completed: true } };
+          updatePayloadOnConflict.answers = { ...(answers || {}), _session: sess, _progress: { last_index: 7, completed: true } };
           updatePayloadOnConflict.submitted_at = new Date().toISOString();
         }
         const updRes = await supabase

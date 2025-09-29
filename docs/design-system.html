@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dream Analyzer Design Guide</title>
+  <style>
+    :root {
+      --color-bg: #111111;
+      --color-card: #6c6cd6;
+      --color-accent: #4caf50;
+      --color-text: #ffffff;
+      --color-muted: #b0b0ff;
+      --color-card-alt: #23234a;
+      --color-card-green: #4caf50;
+      --color-card-green-text: #ffffff;
+      --border-radius-lg: 20px;
+      --border-radius-md: 14px;
+      --transition: 0.3s cubic-bezier(.4, 2, .6, 1);
+      --font-main: "Inter", "Nunito", system-ui, sans-serif;
+      --surface: #ffffff;
+      --surface-muted: #f4f4f4;
+      --text-primary: #1f2937;
+      --text-secondary: #4b5563;
+      --text-link: #0056b3;
+      --primary: #007bff;
+      --primary-dark: #0056b3;
+      --success: #28a745;
+      --danger: #dc3545;
+      --warning: #fbbf24;
+      --info: #2563eb;
+      --success-soft: #f0fdf4;
+      --info-soft: #eef2ff;
+      --danger-soft: #fef2f2;
+      --warning-soft: #fef3c7;
+      --border-subtle: #e5e7eb;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 4px 24px rgba(108, 108, 214, 0.1);
+      --radius-base: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-main);
+      background: var(--surface-muted);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .page {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 48px 32px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    header.hero {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    header.hero h1 {
+      margin: 0;
+      font-size: 2.5rem;
+      color: var(--text-link);
+    }
+
+    header.hero p {
+      margin: 0;
+      max-width: 720px;
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    .tab-bar {
+      display: inline-flex;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.04);
+      padding: 8px;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      width: fit-content;
+    }
+
+    .tab-button {
+      appearance: none;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-secondary);
+      background: transparent;
+      transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .tab-button:hover {
+      background: rgba(59, 130, 246, 0.08);
+    }
+
+    .tab-button.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 12px 24px rgba(0, 123, 255, 0.25);
+    }
+
+    .tab-panels {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .tab-panel {
+      display: none;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .tab-panel.active {
+      display: flex;
+    }
+
+    section {
+      background: var(--surface);
+      border-radius: var(--radius-base);
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
+    section h2 {
+      margin: 0 0 16px;
+      font-size: 1.75rem;
+      color: var(--text-link);
+    }
+
+    section > p {
+      margin: 0 0 24px;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .token-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+    }
+
+    .token {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-base);
+      overflow: hidden;
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .token-swatch {
+      height: 96px;
+      background: var(--swatch-color, var(--surface-muted));
+    }
+
+    .token-meta {
+      padding: 12px 16px 16px;
+    }
+
+    .token-meta strong {
+      display: block;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+    }
+
+    .token-meta span {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .typography-grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .type-sample {
+      padding: 20px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-base);
+      background: var(--surface-muted);
+    }
+
+    .type-sample small {
+      display: block;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .type-sample p {
+      margin: 0;
+    }
+
+    .type-sample h1,
+    .type-sample h2,
+    .type-sample h3,
+    .type-sample h4 {
+      margin: 0;
+      color: var(--text-link);
+    }
+
+    .type-sample h1 { font-size: 2.25rem; }
+    .type-sample h2 { font-size: 1.75rem; }
+    .type-sample h3 { font-size: 1.35rem; }
+    .type-sample h4 { font-size: 1.1rem; }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      padding: 0.75rem 1.5rem;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      font-size: 0.95rem;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #ffffff;
+    }
+
+    .btn-success:hover {
+      background: #1d8b36;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #ffffff;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+
+    .btn-outline {
+      background: #ffffff;
+      color: var(--text-link);
+      border: 1px solid var(--text-link);
+    }
+
+    .btn-outline:hover {
+      background: rgba(0, 86, 179, 0.1);
+    }
+
+    .layout-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      color: var(--text-link);
+      font-size: 1.25rem;
+    }
+
+    .card p {
+      margin: 0 0 8px;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .account-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 16px;
+    }
+
+    .logout-button {
+      background-color: var(--danger);
+      color: #ffffff;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: background-color 0.2s ease;
+    }
+
+    .logout-button:hover {
+      background-color: #c82333;
+    }
+
+    .dream-input textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      resize: vertical;
+      margin-bottom: 12px;
+    }
+
+    .dream-submit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 12px 16px;
+      background-color: var(--primary);
+      color: #ffffff;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s ease;
+    }
+
+    .dream-submit-btn:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .dream-submit-btn.is-busy {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+
+    .history-item {
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 0;
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
+    .dream-toggle-header {
+      cursor: pointer;
+      background: #f5f5f5;
+      padding: 10px 12px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-primary);
+    }
+
+    .dream-details {
+      padding: 12px 14px;
+      margin-top: 8px;
+      background: #fafafa;
+      border-left: 3px solid var(--border-subtle);
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    .meta {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    .offline-banner {
+      background-color: var(--warning);
+      color: #92400e;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pending-count {
+      margin-left: 8px;
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    .error-message {
+      color: var(--danger);
+      font-weight: 600;
+      margin-top: 12px;
+      font-size: 0.9rem;
+    }
+
+    .retry-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--info);
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      font-size: 0.9rem;
+    }
+
+    .retry-button:hover {
+      background-color: #1d4ed8;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .login-form {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-base);
+      background: var(--surface-muted);
+      padding: 20px;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+      max-width: 420px;
+    }
+
+    .login-form h3 {
+      margin: 0 0 16px;
+      color: var(--text-link);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.95rem;
+    }
+
+    .login-form button {
+      width: 100%;
+      padding: 12px 16px;
+      background-color: var(--primary);
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .login-form button:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .login-form .hint {
+      margin-top: 16px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
+    .feedback-grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .status-card {
+      padding: 20px;
+      border-radius: var(--radius-base);
+      border: 1px solid var(--border-subtle);
+      background: #ffffff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .status-card h4 {
+      margin: 0 0 12px;
+      color: var(--text-link);
+      font-size: 1.1rem;
+    }
+
+    .status-card p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .info-callout {
+      background: var(--info-soft);
+      border-left: 4px solid var(--info);
+      padding: 16px;
+      border-radius: var(--radius-base);
+      color: #1e3a8a;
+    }
+
+    .progress-container {
+      width: 100%;
+      user-select: none;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .progress-label {
+      font-weight: 500;
+      color: #374151;
+      font-size: 0.95rem;
+    }
+
+    .progress-percentage {
+      font-weight: 600;
+      color: var(--info);
+      font-size: 0.95rem;
+    }
+
+    .progress-track-base {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 9999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill-base {
+      height: 100%;
+      background: var(--info);
+      border-radius: 9999px;
+      position: relative;
+      overflow: hidden;
+      transition: width 0.3s ease-in-out;
+    }
+
+    .progress-fill-base.success {
+      background: var(--success);
+    }
+
+    .progress-shimmer {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+      animation: shimmer 1.5s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .progress-steps {
+      margin-top: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .progress-step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .step-indicator {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-weight: 600;
+      font-size: 0.8rem;
+      border: 2px solid #e5e7eb;
+      background: #f9fafb;
+      color: #6b7280;
+    }
+
+    .step-completed .step-indicator {
+      background: var(--success);
+      border-color: var(--success);
+      color: #ffffff;
+    }
+
+    .step-loading .step-indicator {
+      background: var(--info);
+      border-color: var(--info);
+      color: #ffffff;
+    }
+
+    .step-error .step-indicator {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #ffffff;
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-title {
+      font-weight: 500;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+
+    .step-description {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .step-duration {
+      font-size: 0.8rem;
+      color: var(--info);
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .progress-status {
+      margin-top: 16px;
+      padding: 12px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-align: center;
+      border-radius: 8px;
+      background: rgba(37, 99, 235, 0.08);
+      color: var(--info);
+    }
+
+    .loading-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .loading-spinner-container {
+      user-select: none;
+    }
+
+    .inline-flex { display: inline-flex; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-center { justify-content: center; }
+    .mt-2 { margin-top: 0.5rem; }
+    .mt-4 { margin-top: 1rem; }
+    .mr-2 { margin-right: 0.5rem; }
+
+    .loading-spinner {
+      position: relative;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      border: 2px solid transparent;
+    }
+
+    .spinner-ring {
+      position: absolute;
+      inset: 0;
+      border: 2px solid transparent;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .spinner-ring:nth-child(1) { animation-delay: 0s; }
+    .spinner-ring:nth-child(2) { animation-delay: 0.2s; }
+    .spinner-ring:nth-child(3) { animation-delay: 0.4s; }
+    .spinner-ring:nth-child(4) { animation-delay: 0.6s; }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.85);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .w-6 { width: 1.5rem; }
+    .h-6 { height: 1.5rem; }
+    .w-8 { width: 2rem; }
+    .h-8 { height: 2rem; }
+    .border-blue-600 { border-color: var(--info); }
+    .border-t-transparent { border-top-color: transparent; }
+    .text-gray-600 { color: var(--text-secondary); }
+    .text-white { color: #ffffff; }
+
+    .skeleton-container {
+      user-select: none;
+      width: 100%;
+    }
+
+    .skeleton-line,
+    .skeleton-circle,
+    .skeleton-square {
+      background: linear-gradient(90deg, rgb(243, 244, 246) 0%, rgb(229, 231, 235) 50%, rgb(243, 244, 246) 100%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s ease-in-out infinite;
+      border-radius: 6px;
+    }
+
+    .skeleton-circle { border-radius: 50%; }
+    .skeleton-line { height: 0.75rem; width: 100%; }
+
+    @keyframes skeleton-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .space-y-2 > * + * { margin-top: 0.5rem; }
+    .space-y-4 > * + * { margin-top: 1rem; }
+    .space-x-4 > * + * { margin-left: 1rem; }
+    .border { border: 1px solid var(--border-subtle); border-radius: 6px; }
+
+    .showcase-grid {
+      display: grid;
+      gap: 24px;
+    }
+
+    .utility-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .utility-table th,
+    .utility-table td {
+      border: 1px solid var(--border-subtle);
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    .utility-table th {
+      background: var(--surface-muted);
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    /* TMA tab styling */
+    .tab-panel[data-tab-panel="tma"] {
+      background: radial-gradient(circle at top left, rgba(84, 97, 255, 0.08), rgba(6, 10, 6, 0.85));
+      border: 1px solid rgba(84, 97, 255, 0.12);
+      border-radius: 24px;
+      padding: 36px 32px;
+      color: #e2e8f0;
+      box-shadow: 0 24px 64px rgba(9, 16, 12, 0.45);
+    }
+
+    .tab-panel[data-tab-panel="tma"] section {
+      background: rgba(12, 17, 12, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 24px 48px rgba(5, 10, 8, 0.55);
+      color: #f8fafc;
+    }
+
+    .tab-panel[data-tab-panel="tma"] section h2 {
+      color: #9fe870;
+    }
+
+    .tab-panel[data-tab-panel="tma"] section > p {
+      color: rgba(226, 232, 240, 0.72);
+    }
+
+    .tab-panel[data-tab-panel="tma"] .token {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 32px rgba(4, 8, 6, 0.45);
+    }
+
+    .tab-panel[data-tab-panel="tma"] .token-meta strong {
+      color: #f8fafc;
+    }
+
+    .tab-panel[data-tab-panel="tma"] .token-meta span {
+      color: rgba(226, 232, 240, 0.72);
+    }
+
+    .tab-panel[data-tab-panel="tma"] .type-sample {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .tab-panel[data-tab-panel="tma"] .type-sample small {
+      color: rgba(226, 232, 240, 0.7);
+    }
+
+    .tab-panel[data-tab-panel="tma"] .type-sample h1,
+    .tab-panel[data-tab-panel="tma"] .type-sample h2,
+    .tab-panel[data-tab-panel="tma"] .type-sample h3,
+    .tab-panel[data-tab-panel="tma"] .type-sample h4 {
+      color: #ffffff;
+    }
+
+    .tma-buttons {
+      gap: 12px;
+    }
+
+    .tma-button {
+      border: none;
+      border-radius: 18px;
+      padding: 12px 18px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 180px;
+    }
+
+    .tma-button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .tma-button-primary {
+      background: #366832;
+      color: #ffffff;
+      box-shadow: 0 16px 32px rgba(54, 104, 50, 0.45);
+    }
+
+    .tma-button-primary:hover {
+      background: #2f582a;
+    }
+
+    .tma-button-ghost {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 12px 28px rgba(15, 17, 25, 0.4);
+    }
+
+    .tma-button-outline {
+      background: transparent;
+      color: #9fe870;
+      border: 1px solid rgba(159, 232, 112, 0.6);
+    }
+
+    .tma-button-surface {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .tma-button-destructive {
+      background: rgba(239, 91, 91, 0.24);
+      color: #ffbdbd;
+      border: 1px solid rgba(239, 91, 91, 0.5);
+    }
+
+    .tma-button-disabled {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.35);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .tma-layout-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .tma-card {
+      border-radius: 28px;
+      padding: 24px;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 24px 48px rgba(6, 10, 18, 0.5);
+    }
+
+    .tma-card-user { background: linear-gradient(135deg, #5461ff 0%, #4a58ff 100%); }
+    .tma-card-dream { background: linear-gradient(135deg, #4a58ff 0%, #5664ff 100%); }
+    .tma-card-carousel { background: linear-gradient(135deg, #5342e1 0%, #7a164f 82%); }
+
+    .tma-card-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .tma-card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-right: auto;
+    }
+
+    .tma-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #ffffff;
+    }
+
+    .tma-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+      font-size: 0.8rem;
+      color: #f1f5f9;
+    }
+
+    .tma-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.95rem;
+      color: rgba(249, 250, 251, 0.92);
+    }
+
+    .tma-card-subtitle {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 14px;
+    }
+
+    .tma-card-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .tma-card-fact {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      margin: 18px 0;
+    }
+
+    .tma-card-meta {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .tma-feedback-grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .tma-offline {
+      background: rgba(251, 191, 36, 0.16);
+      color: #fde68a;
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .tma-toast {
+      padding: 18px;
+      border-radius: 18px;
+      font-size: 0.95rem;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .tma-toast.success {
+      background: rgba(54, 104, 50, 0.28);
+      color: #d1fae5;
+    }
+
+    .tma-toast.error {
+      background: rgba(239, 91, 91, 0.22);
+      color: #fecaca;
+    }
+
+    .tma-modal-preview {
+      padding: 20px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tma-modal-preview h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #ffffff;
+    }
+
+    .tma-modal-preview p {
+      margin: 0;
+      color: rgba(226, 232, 240, 0.75);
+    }
+
+    .tma-showcase {
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .tma-skeleton {
+      padding: 18px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .tma-skeleton .skeleton-line,
+    .tma-skeleton .skeleton-circle {
+      background: linear-gradient(90deg, rgba(51, 65, 85, 0.6) 0%, rgba(148, 163, 184, 0.45) 50%, rgba(51, 65, 85, 0.6) 100%);
+    }
+
+    .tab-panel[data-tab-panel="tma"] .loading-label {
+      color: rgba(226, 232, 240, 0.72);
+    }
+
+    .tab-panel[data-tab-panel="tma"] .utility-table th,
+    .tab-panel[data-tab-panel="tma"] .utility-table td {
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .tab-panel[data-tab-panel="tma"] .utility-table th {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(226, 232, 240, 0.78);
+    }
+
+    .tab-panel[data-tab-panel="tma"] .utility-table td {
+      color: rgba(226, 232, 240, 0.78);
+    }
+
+    @media (max-width: 900px) {
+      .account-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .tma-button {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .tab-panel[data-tab-panel="tma"] {
+        padding: 28px 20px;
+        border-radius: 20px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        padding: 32px 20px 64px;
+      }
+
+      section {
+        padding: 24px;
+      }
+
+      header.hero h1 {
+        font-size: 2rem;
+      }
+
+      .button-group {
+        flex-direction: column;
+      }
+
+      .tab-bar {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .tab-button {
+        flex: 1;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <h1>Dream Analyzer Design Guide</h1>
+      <p>Unified reference for the Dream Analyzer web console and Telegram Mini App (TMA). Match colors, typography, layouts, and feedback patterns here so any new surface feels native to its platform while staying on brand.</p>
+    </header>
+
+    <nav class="tab-bar" role="tablist" aria-label="Interface variants">
+      <button class="tab-button active" role="tab" id="tab-control-web" aria-selected="true" aria-controls="tab-web" data-tab="web">Web App</button>
+      <button class="tab-button" role="tab" id="tab-control-tma" aria-selected="false" aria-controls="tab-tma" data-tab="tma">TMA (Telegram Mini App)</button>
+    </nav>
+
+    <div class="tab-panels">
+      <div class="tab-panel active" data-tab-panel="web" id="tab-web" role="tabpanel" aria-labelledby="tab-control-web">
+        <section id="tokens">
+          <h2>Color Tokens</h2>
+          <p>Primary swatches mirror the production palette: muted violet legacy tones, light dashboard neutrals, and stateful accents for actions and feedback.</p>
+          <div class="token-grid">
+            <div class="token">
+              <div class="token-swatch" style="--swatch-color: var(--surface-muted);"></div>
+              <div class="token-meta">
+                <strong>Surface Muted</strong>
+                <span>#F4F4F4 · Container backdrop</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="--swatch-color: var(--surface);"></div>
+              <div class="token-meta">
+                <strong>Surface</strong>
+                <span>#FFFFFF · Card & dialog base</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="--swatch-color: var(--primary);"></div>
+              <div class="token-meta">
+                <strong>Primary</strong>
+                <span>#007BFF · Calls to action</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="--swatch-color: var(--success);"></div>
+              <div class="token-meta">
+                <strong>Success</strong>
+                <span>#28A745 · Positive confirmation</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="--swatch-color: var(--danger);"></div>
+              <div class="token-meta">
+                <strong>Danger</strong>
+                <span>#DC3545 · Errors & destructive</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="--swatch-color: var(--warning);"></div>
+              <div class="token-meta">
+                <strong>Warning</strong>
+                <span>#FBBF24 · Offline and cautions</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="--swatch-color: var(--color-card);"></div>
+              <div class="token-meta">
+                <strong>Legacy Card</strong>
+                <span>#6C6CD6 · Legacy gradient shell</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="--swatch-color: var(--color-bg);"></div>
+              <div class="token-meta">
+                <strong>Legacy Background</strong>
+                <span>#111111 · Dark landing background</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="typography">
+          <h2>Typography Scale</h2>
+          <p>All text uses Inter/Nunito with accessible contrast; the samples reuse production copy from the personal account.</p>
+          <div class="typography-grid">
+            <div class="type-sample">
+              <small>Display / Page Title</small>
+              <h1>Ваш Личный кабинет (Web)</h1>
+            </div>
+            <div class="type-sample">
+              <small>Section Heading</small>
+              <h2>История анализов</h2>
+            </div>
+            <div class="type-sample">
+              <small>Subsection Heading</small>
+              <h3>Анализировать новый сон</h3>
+            </div>
+            <div class="type-sample">
+              <small>Support Heading</small>
+              <h4>Debug Information (Web)</h4>
+            </div>
+            <div class="type-sample">
+              <small>Body / Default Copy</small>
+              <p>Текущий тариф: <strong class="capitalize">Premium</strong> (до 12.10.2024)</p>
+            </div>
+            <div class="type-sample">
+              <small>Helper / Meta</small>
+              <p class="meta">Set your password using the /setpassword command in the Telegram bot.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="buttons">
+          <h2>Buttons & Actions</h2>
+          <p>Primary blue is the main action, green mirrors dream submission, red matches destructive logout actions, and outline suits secondary retries.</p>
+          <div class="button-group">
+            <button class="btn btn-primary">Primary Action</button>
+            <button class="btn btn-success">Success / Confirm</button>
+            <button class="btn btn-danger">Logout / Destructive</button>
+            <button class="btn btn-outline">Secondary / Ghost</button>
+          </div>
+        </section>
+
+        <section id="forms">
+          <h2>Forms</h2>
+          <p>Inputs keep subtle borders with 12px padding. Maintain stacked labels for readability on mobile screens.</p>
+          <div class="form-grid">
+            <div class="login-form">
+              <h3>Web Login</h3>
+              <div class="form-group">
+                <label for="example-telegram">Telegram ID</label>
+                <input id="example-telegram" type="number" placeholder="000000" />
+              </div>
+              <div class="form-group">
+                <label for="example-password">Password</label>
+                <input id="example-password" type="password" placeholder="••••••••" />
+              </div>
+              <button type="button">Login</button>
+              <p class="hint">Set your password using the /setpassword command in the Telegram bot.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="layout">
+          <h2>Cards & Layout</h2>
+          <p>Core screens stack cards inside a muted container. The examples mirror the personal account sections.</p>
+          <div class="layout-grid">
+            <div class="card">
+              <div class="account-header">
+                <div>
+                  <h3>Ваш профиль</h3>
+                  <p>Остаток токенов: <strong>125</strong></p>
+                  <p>Текущий тариф: <strong class="capitalize">Premium</strong> (до 12.10.2024)</p>
+                </div>
+                <button class="logout-button" type="button">Logout</button>
+              </div>
+              <div class="meta">Обновление данных профиля происходит автоматически после успешного анализа.</div>
+            </div>
+
+            <div class="card dream-input">
+              <h3>Анализировать новый сон</h3>
+              <textarea rows="4" placeholder="Введите ваш сон..."></textarea>
+              <button class="dream-submit-btn" type="button">Анализировать сон</button>
+              <div class="meta mt-4">Среднее время ответа: 10-12 секунд.</div>
+            </div>
+
+            <div class="card">
+              <h3>История анализов</h3>
+              <article class="history-item">
+                <div class="dream-toggle-header">
+                  <span><strong>Дата:</strong> 01.09.2024</span>
+                  <span>▼</span>
+                </div>
+                <div class="dream-details">
+                  <p><strong>Запрос:</strong> «Вижу мост через реку и золотой свет»</p>
+                  <p><strong>Анализ:</strong> Символизирует переходный период и внутреннее примирение.</p>
+                </div>
+              </article>
+              <article class="history-item">
+                <div class="dream-toggle-header">
+                  <span><strong>Дата:</strong> 28.08.2024</span>
+                  <span>▲</span>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section id="feedback">
+          <h2>Feedback & Messaging</h2>
+          <p>Standard banners and error cards keep messaging consistent across the account.</p>
+          <div class="feedback-grid">
+            <div class="offline-banner">
+              ⚠️ Нет подключения к интернету <span class="pending-count">(2 операции в очереди)</span>
+            </div>
+            <div class="status-card info-callout">
+              <h4>Информационное уведомление</h4>
+              <p>Перезагрузка страницы сохранит локальные черновики и повторит запросы.</p>
+            </div>
+            <div class="status-card" style="background: var(--danger-soft); border-left: 4px solid var(--danger);">
+              <h4>Ошибка загрузки профиля</h4>
+              <p>Не удалось связаться с сервером. Попробуйте снова.</p>
+              <button class="retry-button mt-2" type="button">Попробовать снова</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="progress">
+          <h2>Progress & Steps</h2>
+          <p>Multi-step analysis pairs an animated bar with contextual steps so users see background work.</p>
+          <div class="progress-container">
+            <div class="progress-header">
+              <div class="progress-label">Анализ сна</div>
+              <div class="progress-percentage">72%</div>
+            </div>
+            <div class="progress-track-base">
+              <div class="progress-fill-base" style="width: 72%;">
+                <div class="progress-shimmer"></div>
+              </div>
+            </div>
+            <div class="progress-steps">
+              <div class="progress-step step-completed">
+                <div class="step-indicator">✓</div>
+                <div class="step-content">
+                  <div class="step-title">Подготовка запроса</div>
+                  <div class="step-description">Обработка текста сна</div>
+                  <div class="step-duration">~3 сек</div>
+                </div>
+              </div>
+              <div class="progress-step step-loading">
+                <div class="step-indicator">2</div>
+                <div class="step-content">
+                  <div class="step-title">Анализ содержания</div>
+                  <div class="step-description">Интерпретация символов и образов</div>
+                  <div class="step-duration">~6 сек</div>
+                </div>
+              </div>
+              <div class="progress-step step-pending">
+                <div class="step-indicator">3</div>
+                <div class="step-content">
+                  <div class="step-title">Генерация результата</div>
+                  <div class="step-description">Создание персонального анализа</div>
+                </div>
+              </div>
+              <div class="progress-step step-pending">
+                <div class="step-indicator">4</div>
+                <div class="step-content">
+                  <div class="step-title">Сохранение</div>
+                  <div class="step-description">Добавление в историю</div>
+                </div>
+              </div>
+            </div>
+            <div class="progress-status mt-2">Продолжаем интерпретировать ключевые образы...</div>
+          </div>
+        </section>
+
+        <section id="loading">
+          <h2>Loading States</h2>
+          <p>Pair spinners with captions and swap to skeletons when the layout is known so users can predict incoming content.</p>
+          <div class="showcase-grid">
+            <div class="loading-section">
+              <div class="loading-spinner-container inline-flex flex-col items-center">
+                <div class="loading-spinner w-6 h-6 border-blue-600 border-t-transparent">
+                  <div class="spinner-ring"></div>
+                  <div class="spinner-ring"></div>
+                  <div class="spinner-ring"></div>
+                  <div class="spinner-ring"></div>
+                </div>
+                <div class="loading-label text-gray-600 mt-2">Загрузка профиля...</div>
+              </div>
+            </div>
+            <div class="skeleton-container">
+              <div class="space-y-4">
+                <div class="border p-3">
+                  <div class="space-y-2">
+                    <div class="skeleton-line" style="width: 30%;"></div>
+                    <div class="skeleton-line" style="width: 75%;"></div>
+                    <div class="skeleton-line" style="width: 60%;"></div>
+                  </div>
+                </div>
+                <div class="border p-3">
+                  <div class="space-y-2">
+                    <div class="skeleton-line" style="width: 40%;"></div>
+                    <div class="skeleton-line" style="width: 85%;"></div>
+                    <div class="skeleton-line" style="width: 65%;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="utilities">
+          <h2>Utility Snapshot</h2>
+          <p>Frequently used utility classes keep implementation aligned with the component-scoped styles.</p>
+          <table class="utility-table">
+            <thead>
+              <tr>
+                <th>Utility</th>
+                <th>Effect</th>
+                <th>Usage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>.mt-2 / .mt-4 / .mr-2</td>
+                <td>Margin top/right spacers (8px / 16px)</td>
+                <td>Button icons, stacked loaders, meta notes</td>
+              </tr>
+              <tr>
+                <td>.flex / .inline-flex / .flex-col / .items-center</td>
+                <td>Flexbox helpers</td>
+                <td>Loading overlays, skeleton presets, step lists</td>
+              </tr>
+              <tr>
+                <td>.space-y-2 / .space-y-4 / .space-x-4</td>
+                <td>Consistent gaps inside repeaters</td>
+                <td>Skeleton history cards, profile list items</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <div class="tab-panel" data-tab-panel="tma" id="tab-tma" role="tabpanel" aria-labelledby="tab-control-tma" aria-hidden="true">
+        <section id="tma-tokens">
+          <h2>Color Tokens</h2>
+          <p>Telegram inherits base colors from the WebApp SDK. The gradients come from the Figma source and should be reused across hero cards, carousels, and deep analysis surfaces.</p>
+          <div class="token-grid">
+            <div class="token">
+              <div class="token-swatch" style="background:#121a12;"></div>
+              <div class="token-meta">
+                <strong>Background Base</strong>
+                <span>#121A12 · App canvas behind cards</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="background:#0c110c;"></div>
+              <div class="token-meta">
+                <strong>Surface Card</strong>
+                <span>#0C110C · Default container fill</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="background:#366832;"></div>
+              <div class="token-meta">
+                <strong>Accent Action</strong>
+                <span>#366832 · CTA buttons & focus state</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="background:#b1c3d5;"></div>
+              <div class="token-meta">
+                <strong>Hint Text</strong>
+                <span>#B1C3D5 · Secondary copy & hints</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="background:#ef5b5b;"></div>
+              <div class="token-meta">
+                <strong>Destructive</strong>
+                <span>#EF5B5B · Error toasts & destructive text</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="background:linear-gradient(135deg,#5461FF 0%,#4A58FF 100%);"></div>
+              <div class="token-meta">
+                <strong>User Gradient</strong>
+                <span>#5461FF → #4A58FF · Profile hero card</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="background:linear-gradient(135deg,#6A4DFF 0%,#9A3CFF 100%);"></div>
+              <div class="token-meta">
+                <strong>Fact Carousel</strong>
+                <span>#6A4DFF → #9A3CFF · Facts carousel slides</span>
+              </div>
+            </div>
+            <div class="token">
+              <div class="token-swatch" style="background:linear-gradient(135deg,#BF62ED 0%,#701E99 85%);"></div>
+              <div class="token-meta">
+                <strong>Deep Analysis</strong>
+                <span>#BF62ED → #701E99 · Deep analysis upsell</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="tma-typography">
+          <h2>Typography & Voice</h2>
+          <p>System fonts align with Telegram to feel native. Titles stay high-contrast, while meta text leans on the hint color.</p>
+          <div class="typography-grid">
+            <div class="type-sample">
+              <small>Hero Title</small>
+              <h1>Приветствуем в Dreams Talk</h1>
+            </div>
+            <div class="type-sample">
+              <small>Primary Heading</small>
+              <h2>История снов</h2>
+            </div>
+            <div class="type-sample">
+              <small>Secondary Heading</small>
+              <h3>Глубокий анализ</h3>
+            </div>
+            <div class="type-sample">
+              <small>Pill Label</small>
+              <p><span class="tma-badge">Токенов: 125</span></p>
+            </div>
+            <div class="type-sample">
+              <small>Body Copy</small>
+              <p>Проанализировано снов: <strong>48</strong></p>
+            </div>
+            <div class="type-sample">
+              <small>Meta / System</small>
+              <p class="meta">Загрузка истории...</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="tma-buttons">
+          <h2>Buttons & Haptics</h2>
+          <p>Rounded 18px pills mirror Telegram components. Trigger <code>window.triggerHaptic</code> for taps on primary actions and card toggles.</p>
+          <div class="button-group tma-buttons">
+            <button class="tma-button tma-button-primary">Продолжить анализ</button>
+            <button class="tma-button tma-button-ghost">Сменить тариф</button>
+            <button class="tma-button tma-button-outline">Загрузить ещё</button>
+            <button class="tma-button tma-button-disabled" disabled>Получить токены (скоро)</button>
+          </div>
+          <p class="meta">Используйте акцент #366832 на CTA и белые/прозрачные контрастные кнопки для второстепенных действий.</p>
+        </section>
+
+        <section id="tma-cards">
+          <h2>Cards & Surfaces</h2>
+          <p>Gradient shells create depth without feeling heavy. Keep 24px padding, 28px radius, and staggered fade-seq animation to reveal metrics.</p>
+          <div class="tma-layout-grid">
+            <article class="tma-card tma-card-user">
+              <div class="tma-card-header">
+                <div class="tma-card-title">Пользователь</div>
+                <span class="tma-chip">Токенов: 125</span>
+                <span class="tma-chip">Premium до 12.10</span>
+              </div>
+              <div class="tma-card-body">
+                <p>Пользователь уже: 3 месяца</p>
+                <p>Проанализировано снов: 48</p>
+                <p>Глубоких анализов: 5</p>
+                <p>Приглашено друзей: 2</p>
+              </div>
+              <div class="tma-card-actions">
+                <button class="tma-button tma-button-surface">Сменить тариф</button>
+                <button class="tma-button tma-button-disabled" disabled>Получить токены</button>
+              </div>
+            </article>
+
+            <article class="tma-card tma-card-dream">
+              <div class="tma-card-header">
+                <div class="tma-card-title">Символы света</div>
+                <span class="tma-chip">2 д</span>
+              </div>
+              <div class="tma-card-body">
+                <p class="tma-card-subtitle">Сон</p>
+                <p>“Вижу мост через реку и золотой свет...”</p>
+                <p class="tma-card-subtitle">Анализ</p>
+                <p>Сон отражает переходный период и внутреннее равновесие.</p>
+                <div class="tma-card-actions">
+                  <button class="tma-button tma-button-surface">👍 Нравится</button>
+                  <button class="tma-button tma-button-surface">👎 Не нравится</button>
+                  <button class="tma-button tma-button-destructive">🗑 Удалить</button>
+                </div>
+              </div>
+            </article>
+
+            <article class="tma-card tma-card-carousel">
+              <span class="tma-badge">Факт</span>
+              <p class="tma-card-fact">Большинство снов забываются в течение первых 5-10 минут после пробуждения.</p>
+              <div class="tma-card-meta">Автопрокрутка слайдов каждые 5 секунд. Сохраняйте 8px gap между ними.</div>
+            </article>
+          </div>
+        </section>
+
+        <section id="tma-feedback">
+          <h2>Feedback & Overlays</h2>
+          <p>Blend Telegram popups with in-app toasts. Keep translucent layers so gradients remain visible.</p>
+          <div class="tma-feedback-grid">
+            <div class="tma-offline">
+              <span>⚠️ Нет подключения к интернету</span>
+              <span class="pending-count">(2 операции в очереди)</span>
+            </div>
+            <div class="tma-toast success">Сохранено в истории — повторите отправку, когда сеть восстановится.</div>
+            <div class="tma-toast error">Не удалось загрузить историю. Попробуйте снова позже.</div>
+            <div class="tma-modal-preview">
+              <h3>Телеграм модалка</h3>
+              <p>Используйте <code>tg.showPopup</code> для подтверждений: «Удалить запись?»</p>
+              <button class="tma-button tma-button-outline">Показать пример</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="tma-loading">
+          <h2>Loading & Skeletons</h2>
+          <p>Overlay spinner only for blocking states; otherwise prefer skeletons that hint at card structure.</p>
+          <div class="showcase-grid tma-showcase">
+            <div class="loading-section">
+              <div class="loading-spinner-container inline-flex flex-col items-center">
+                <div class="loading-spinner w-8 h-8" style="border-color:#5461ff;border-top-color:transparent;">
+                  <div class="spinner-ring"></div>
+                  <div class="spinner-ring"></div>
+                  <div class="spinner-ring"></div>
+                  <div class="spinner-ring"></div>
+                </div>
+                <div class="loading-label mt-2">Загрузка профиля...</div>
+              </div>
+            </div>
+            <div class="tma-skeleton">
+              <div class="space-y-2">
+                <div class="skeleton-line" style="width:35%; height:0.9rem;"></div>
+                <div class="skeleton-line" style="width:60%;"></div>
+                <div class="skeleton-line" style="width:45%;"></div>
+              </div>
+            </div>
+            <div class="tma-skeleton">
+              <div class="space-y-4">
+                <div class="skeleton-line" style="width:20%; height:0.9rem;"></div>
+                <div class="skeleton-line" style="width:100%; height:0.75rem;"></div>
+                <div class="skeleton-line" style="width:80%; height:0.75rem;"></div>
+                <div class="skeleton-line" style="width:90%; height:0.75rem;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="tma-utilities">
+          <h2>Utilities & Motion</h2>
+          <p>These helpers power the animated feel inside the mini app. Keep them consistent with Vue components.</p>
+          <table class="utility-table">
+            <thead>
+              <tr>
+                <th>Utility</th>
+                <th>Effect</th>
+                <th>Usage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>.fade-seq + .seq-offset-*</td>
+                <td>Staggered entrance animation</td>
+                <td>UserInfoCard stats, dream card expansion</td>
+              </tr>
+              <tr>
+                <td>.bg-white/10 + rounded-xl</td>
+                <td>Translucent pills</td>
+                <td>Badge.vue tokens, load-more buttons</td>
+              </tr>
+              <tr>
+                <td>.pb-safe-area + max-w-72r</td>
+                <td>Respect Telegram safe area</td>
+                <td>Root layout spacing in PersonalAccount</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      const buttons = document.querySelectorAll('.tab-button');
+      const panels = document.querySelectorAll('.tab-panel');
+
+      const showTab = (target) => {
+        buttons.forEach((btn) => {
+          const isActive = btn.dataset.tab === target;
+          btn.classList.toggle('active', isActive);
+          btn.setAttribute('aria-selected', String(isActive));
+        });
+
+        panels.forEach((panel) => {
+          const isActive = panel.dataset.tabPanel === target;
+          panel.classList.toggle('active', isActive);
+          panel.setAttribute('aria-hidden', String(!isActive));
+        });
+      };
+
+      buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+          showTab(button.dataset.tab);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
