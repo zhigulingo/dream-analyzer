@@ -4,6 +4,14 @@
       <div class="survey-top">
         <ProgressBar :current="store.index" :total="store.total" />
       </div>
+      <button
+        v-if="showDesktopBack"
+        class="back-circle"
+        aria-label="Назад к предыдущему вопросу"
+        @click="onDesktopBack"
+      >
+        ↑
+      </button>
       <Swiper
         :modules="modules"
         direction="vertical"
@@ -57,6 +65,16 @@ function onSwiper(swiper) {
   try { swiper.slideTo(store.index || 0, 0); } catch (_) {}
 }
 
+// Desktop detection (no coarse pointer => считаем десктоп)
+const isDesktop = ref(false);
+const showDesktopBack = computed(() => isDesktop.value && store.index > 0);
+function onDesktopBack() {
+  if (store.index > 0) {
+    store.prev();
+    try { swiperRef.value?.slideTo(store.index, 200); } catch (_) {}
+  }
+}
+
 // Drag-to-previous: позволяем тянуть активную карточку вниз для возврата
 const dragHost = ref(null);
 let startY = 0;
@@ -89,6 +107,11 @@ onMounted(() => {
   // Отключаем вертикальные свайпы Telegram WebApp на время опроса,
   // чтобы жест возврата к предыдущему вопросу не сворачивал TWA
   try { window?.Telegram?.WebApp?.disableVerticalSwipes?.(); } catch {}
+  // Определяем десктоп
+  try {
+    const coarse = window?.matchMedia && window.matchMedia('(pointer: coarse)')?.matches;
+    isDesktop.value = !coarse;
+  } catch {}
   el.addEventListener('touchstart', onTouchStart, { passive: true });
   el.addEventListener('touchmove', onTouchMove, { passive: false });
   el.addEventListener('touchend', onTouchEnd, { passive: true });
@@ -186,6 +209,8 @@ async function onCommit(q, i) {
 .survey-overlay { position: fixed; inset: 0; display: flex; align-items: stretch; justify-content: center; z-index: 10; background: transparent; overflow: hidden; }
 .survey-viewport { position: relative; width: 100%; max-width: 560px; min-height: 100vh; display: flex; flex-direction: column; padding: 0 16px; box-sizing: border-box; }
 .survey-top { position: sticky; top: 8px; left: 16px; right: 16px; z-index: 20; backdrop-filter: blur(10px) saturate(120%); -webkit-backdrop-filter: blur(10px) saturate(120%); }
+/* Desktop back circle */
+.back-circle { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); z-index: 30; width: 36px; height: 36px; border-radius: 9999px; border: 2px solid transparent; background-image: linear-gradient(#ffffff, #ffffff), linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); background-origin: border-box; background-clip: padding-box, border-box; color: #111827; font-size: 18px; font-weight: 800; box-shadow: 0 6px 16px rgba(0,0,0,0.18); cursor: pointer; display: flex; align-items: center; justify-content: center; }
 /* Центрирование и равные отступы вокруг активной карточки */
 ::v-deep(.onboarding-swiper) { 
   --peek: 64px; /* видимая часть соседних карточек сверху/снизу */
