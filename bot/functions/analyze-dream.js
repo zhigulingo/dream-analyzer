@@ -1,10 +1,13 @@
 const { createClient } = require("@supabase/supabase-js");
 const jwt = require('jsonwebtoken');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 const { wrapApiHandler, createApiError } = require('./shared/middleware/api-wrapper');
 const userCacheService = require('./shared/services/user-cache-service');
 const { createSuccessResponse, createErrorResponse } = require('./shared/middleware/error-handler');
 const geminiService = require('./shared/services/gemini-service');
+const embeddingService = require('./shared/services/embedding-service');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -21,6 +24,168 @@ async function getGeminiAnalysisRaw(dreamText) {
         console.error("[getGeminiAnalysisRaw] Error from Gemini service:", error);
         throw error;
     }
+}
+
+let knowledgeInitialized = false;
+let knowledgeInitPromise = null;
+
+function normalizeKnowledgeEntries(raw) {
+    const items = [];
+
+    if (Array.isArray(raw)) {
+        raw.forEach((entry, index) => {
+            const content = entry?.content ?? entry?.text ?? entry?.description ?? '';
+            if (!content || !content.trim()) return;
+            items.push({
+                id: entry?.id || `doc-${index}-${crypto.randomUUID()}`,
+                category: entry?.category || entry?.type || 'general',
+                title: entry?.title || entry?.name || 'Без названия',
+                content
+            });
+        });
+        return items;
+    }
+
+    if (raw && typeof raw === 'object') {
+        Object.entries(raw).forEach(([category, arr]) => {
+            if (!Array.isArray(arr)) return;
+            arr.forEach((entry, index) => {
+                const content = entry?.content ?? entry?.text ?? entry?.description ?? '';
+                if (!content || !content.trim()) return;
+                items.push({
+                    id: entry?.id || `${category}-${index}-${crypto.randomUUID()}`,
+                    category,
+                    title: entry?.title || entry?.name || entry?.symbol || 'Без названия',
+                    content
+                });
+            });
+        });
+    }
+
+    return items;
+}
+
+async function chunkText(text, maxChars = 1200) {
+    if (text.length <= maxChars) return [text];
+    const chunks = [];
+    let start = 0;
+    while (start < text.length) {
+        const slice = text.slice(start, start + maxChars);
+        chunks.push(slice);
+        start += maxChars;
+    }
+    return chunks;
+}
+
+async function ensureKnowledgeBase(supabase) {
+    if (knowledgeInitialized) return;
+    if (knowledgeInitPromise) return knowledgeInitPromise;
+
+    knowledgeInitPromise = (async () => {
+        try {
+            const { count, error } = await supabase
+                .from('knowledge_chunks')
+                .select('id', { count: 'exact', head: true });
+            if (error) {
+                console.warn('[analyze-dream] Failed to query knowledge_chunks count', error);
+                return;
+            }
+            if ((count ?? 0) > 0) {
+                knowledgeInitialized = true;
+                return;
+            }
+
+            const filePath = path.resolve(__dirname, '../../docs/dream_symbols_archetypes.json');
+            if (!fs.existsSync(filePath)) {
+                console.warn('[analyze-dream] Knowledge base file not found:', filePath);
+                return;
+            }
+
+            const raw = fs.readFileSync(filePath, 'utf-8');
+            const parsed = JSON.parse(raw);
+            const entries = normalizeKnowledgeEntries(parsed);
+
+            if (!entries.length) {
+                console.warn('[analyze-dream] Knowledge base file has no entries with content');
+                return;
+            }
+
+            const rows = [];
+            for (const entry of entries) {
+                const chunks = await chunkText(entry.content);
+                for (const chunk of chunks) {
+                    const embedding = await embeddingService.embed(chunk);
+                    rows.push({
+                        source: entry.id,
+                        category: entry.category,
+                        title: entry.title,
+                        chunk,
+                        embedding,
+                        metadata: {
+                            original_length: entry.content.length,
+                            chunk_count: chunks.length
+                        }
+                    });
+                }
+            }
+
+            const BATCH = 50;
+            for (let i = 0; i < rows.length; i += BATCH) {
+                const chunk = rows.slice(i, i + BATCH);
+                const { error: insertError } = await supabase.from('knowledge_chunks').insert(chunk);
+                if (insertError) {
+                    console.warn('[analyze-dream] Failed to insert knowledge chunks', insertError);
+                    return;
+                }
+            }
+
+            console.log('[analyze-dream] Knowledge base successfully ingested via Netlify function');
+            knowledgeInitialized = true;
+        } catch (err) {
+            console.warn('[analyze-dream] ensureKnowledgeBase error', err?.message || err);
+        } finally {
+            knowledgeInitPromise = null;
+        }
+    })();
+
+    await knowledgeInitPromise;
+}
+
+async function retrieveKnowledgeContext(supabase, dreamText) {
+    try {
+        await ensureKnowledgeBase(supabase);
+        const embedding = await embeddingService.embed(dreamText);
+        const { data, error } = await supabase.rpc('match_knowledge', {
+            query_embedding: embedding,
+            match_limit: 5,
+            min_similarity: 0.75
+        });
+
+        if (error) {
+            console.warn('[analyze-dream] match_knowledge error', error);
+            return [];
+        }
+        return Array.isArray(data) ? data : [];
+    } catch (err) {
+        console.warn('[analyze-dream] Failed to retrieve knowledge context', err?.message || err);
+        return [];
+    }
+}
+
+function buildContextAugmentedDreamText(dreamText, knowledgeMatches) {
+    if (!Array.isArray(knowledgeMatches) || knowledgeMatches.length === 0) {
+        return dreamText;
+    }
+
+    const contextLines = knowledgeMatches
+        .slice(0, 5)
+        .map((item, idx) => {
+            const header = item.title ? `${item.title}` : `Контекст ${idx + 1}`;
+            const category = item.category ? `[${item.category}] ` : '';
+            return `(${idx + 1}) ${category}${header}\n${item.chunk}`;
+        });
+
+    return `${dreamText.trim()}\n\nДополнительный контекст (символы, архетипы, статистика):\n${contextLines.join('\n\n')}`;
 }
 
 // Parse final two metadata lines: "Заголовок: ..." and "Теги: a, b, c"
@@ -155,10 +320,12 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
         throw createApiError('Insufficient tokens for analysis.', 402);
     }
 
-    // Analyze dream
+    // Analyze dream (с учётом найденного контекста из базы знаний)
     let analysisResult;
     try {
-        const raw = await getGeminiAnalysisRaw(dreamText);
+        const knowledgeMatches = await retrieveKnowledgeContext(supabase, dreamText);
+        const augmentedDreamText = buildContextAugmentedDreamText(dreamText, knowledgeMatches);
+        const raw = await getGeminiAnalysisRaw(augmentedDreamText);
         analysisResult = parseAnalysisWithMeta(raw, dreamText);
     } catch (error) {
         throw createApiError(error.message || 'Analysis failed.', 500);

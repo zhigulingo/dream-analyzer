@@ -9,7 +9,8 @@
     "test:coverage": "jest --coverage",
     "test:integration": "jest tests/integration --testTimeout=60000",
     "test:unit": "jest tests/cors-middleware.test.js tests/gemini-service.test.js tests/telegram-validator.test.js",
-    "test:all": "jest --coverage --testTimeout=60000"
+    "test:all": "jest --coverage --testTimeout=60000",
+    "ingest:knowledge": "node scripts/ingest-knowledge.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.11.1",
