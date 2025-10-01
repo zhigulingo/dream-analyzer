@@ -9,6 +9,23 @@
  * @returns {Function} - Grammy handler function
  */
 function createTextMessageHandler(userService, messageService, analysisService, TMA_URL) {
+    // Локальный helper для таймаутов операций
+    function withTimeout(promise, ms, label = 'operation') {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                reject(new Error(`${label} timeout`));
+            }, ms);
+            promise
+                .then((value) => { clearTimeout(timer); resolve(value); })
+                .catch((error) => { clearTimeout(timer); reject(error); });
+        });
+    }
+    // Общий таймаут всего процесса анализа (конфигурируемый)
+    const overallTimeoutMs = (() => {
+        const raw = process.env.BOT_ANALYSIS_OVERALL_TIMEOUT_MS || '20000';
+        const parsed = Number.parseInt(raw, 10);
+        return Number.isFinite(parsed) ? Math.max(8000, Math.min(parsed, 30000)) : 20000;
+    })();
     return async (ctx) => {
         console.log("[TextMessageHandler] Received text message.");
         const messages = require('../../shared/services/messages-service');
@@ -81,8 +98,12 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 throw new Error("Insufficient tokens for analysis.");
             }
 
-            // Perform analysis first; only decrement token on success
-            await analysisService.analyzeDream(userData.id, userId, dreamText);
+            // Perform analysis first; only decrement token on success (с общим таймаутом)
+            await withTimeout(
+                analysisService.analyzeDream(userData.id, userId, dreamText),
+                overallTimeoutMs,
+                'overall analysis'
+            );
 
             // Decrement token now that analysis has succeeded
             console.log(`[TextMessageHandler] Decrementing token after successful analysis for ${userId}...`);
