@@ -23,15 +23,16 @@ class GeminiService {
         
         // Лимиты
         this.MAX_DREAM_LENGTH = 4000;
-        // Модель делаем настраиваемой через переменную окружения с надёжным значением по умолчанию
-        this.MODEL_NAME = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+        // Модель делаем настраиваемой через переменную окружения с современным значением по умолчанию
+        this.MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.5-flash";
         // Последовательность фолбэков на случай 404 модели в проде
         const configured = this.MODEL_NAME;
         const fallbacks = [
             configured,
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
             "gemini-1.5-flash",
-            "gemini-1.5-flash-001",
-            "gemini-1.5-flash-8b",
+            "gemini-2.0-pro",
             "gemini-1.5-pro"
         ];
         // Удаляем дубликаты, сохраняя порядок
@@ -105,25 +106,43 @@ class GeminiService {
         
         return this._retryAnalysis(async () => {
             const prompt = this._getPrompt(promptKey, dreamText);
-            console.log("[GeminiService] Requesting analysis from Gemini...");
+            console.log("[GeminiService] Requesting analysis from Gemini...", { model: this.MODEL_NAME });
             
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            
-            this._validateResponse(response);
-            
-            // Ensure plain text without code fences
-            const analysisText = String(response.text())
-                .replace(/^```[\s\S]*?\n/, '')
-                .replace(/```$/,'')
-                .trim();
-            this._validateAnalysisText(analysisText);
-            
-            // Сохраняем в кеш с тегами для invalidation
-            this.cache.setWithTags(cacheKey, analysisText, this.cacheTimeout, ['gemini', 'analysis', promptKey]);
-            
-            console.log("[GeminiService] Analysis completed successfully");
-            return analysisText;
+            try {
+                const result = await model.generateContent(prompt);
+                const response = await result.response;
+                this._validateResponse(response);
+                
+                // Ensure plain text without code fences
+                const analysisText = String(response.text())
+                    .replace(/^```[\s\S]*?\n/, '')
+                    .replace(/```$/,'')
+                    .trim();
+                this._validateAnalysisText(analysisText);
+                
+                // Сохраняем в кеш с тегами для invalidation
+                this.cache.setWithTags(cacheKey, analysisText, this.cacheTimeout, ['gemini', 'analysis', promptKey]);
+                
+                console.log("[GeminiService] Analysis completed successfully");
+                return analysisText;
+            } catch (err) {
+                const msg = err?.message?.toLowerCase?.() || '';
+                if (err?.status === 404 || msg.includes('404') || msg.includes('is not found') || msg.includes('model not found')) {
+                    // Переключаемся на следующий кандидат и пробуем заново в рамках retry
+                    const nextIndex = this.modelFallbacks.indexOf(this.MODEL_NAME) + 1;
+                    if (nextIndex < this.modelFallbacks.length) {
+                        const nextModel = this.modelFallbacks[nextIndex];
+                        console.warn(`[GeminiService] Switching model due to 404: ${this.MODEL_NAME} -> ${nextModel}`);
+                        this.MODEL_NAME = nextModel;
+                        // Переинициализируем модель на лету
+                        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+                        this.genAI = new (require('@google/generative-ai').GoogleGenerativeAI)(GEMINI_API_KEY);
+                        this.model = this.genAI.getGenerativeModel({ model: this.MODEL_NAME });
+                        return await this.analyzeDream(dreamText, promptKey);
+                    }
+                }
+                throw err;
+            }
         });
     }
 
