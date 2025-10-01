@@ -9,6 +9,12 @@
  * @returns {Function} - Grammy handler function
  */
 function createTextMessageHandler(userService, messageService, analysisService, TMA_URL) {
+    // Глобальный переключатель паузы бота
+    const isPaused = (() => {
+        const v = process.env.BOT_PAUSED;
+        if (v === undefined) return true; // По умолчанию ставим на паузу, чтобы мгновенно остановить
+        return String(v).toLowerCase() === 'true';
+    })();
     // Локальный helper для таймаутов операций
     function withTimeout(promise, ms, label = 'operation') {
         return new Promise((resolve, reject) => {
@@ -29,6 +35,13 @@ function createTextMessageHandler(userService, messageService, analysisService, 
     return async (ctx) => {
         console.log("[TextMessageHandler] Received text message.");
         const messages = require('../../shared/services/messages-service');
+
+        if (isPaused) {
+            try {
+                await messageService.sendReply(ctx, 'Анализ временно приостановлен. Попробуйте позже.');
+            } catch (_) {}
+            return;
+        }
         
         const dreamText = ctx.message.text;
         const userId = ctx.from?.id;

@@ -59,6 +59,9 @@ async function embed(text) {
 }
 
 exports.handler = async (event) => {
+    if (String(process.env.BOT_PAUSED || 'true').toLowerCase() === 'true') {
+        return { statusCode: 202, body: 'Paused' };
+    }
     try {
         if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
             console.error('[analyze-dream-background] Missing required env vars');
