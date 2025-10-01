@@ -48,6 +48,15 @@ function createTextMessageHandler(userService, messageService, analysisService, 
         const chatId = ctx.chat.id;
         const messageId = ctx.message.message_id;
         const updateId = ctx.update?.update_id;
+        // Игнорируем устаревшие апдейты (старше 60 секунд)
+        try {
+            const msgTs = Number(ctx.message?.date || 0);
+            const ageSec = Math.floor(Date.now() / 1000) - msgTs;
+            if (ageSec > 60) {
+                console.warn(`[TextMessageHandler] Ignoring stale update ${updateId} (age ${ageSec}s).`);
+                return;
+            }
+        } catch (_) {}
         
         if (!userId || !chatId) {
             console.warn("[TextMessageHandler] No user/chat ID.");
@@ -81,9 +90,10 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 console.warn(`[TextMessageHandler] In-flight analysis exists for ${userId}, ignoring.`);
                 return;
             }
-            cache.set(idemKey, true, 2 * 60 * 1000); // 2 minutes TTL
+            // Увеличиваем TTL идемпотентности, чтобы Telegram ретраи того же update_id не проходили
+            cache.set(idemKey, true, 60 * 60 * 1000); // 1 hour TTL
             cache.set(rateKey, true, 10 * 1000); // 10 seconds
-            cache.set(inflightKey, true, 60 * 1000); // 60 seconds safety
+            cache.set(inflightKey, true, 120 * 1000); // 120 seconds safety
         } catch (e) {
             console.warn('[TextMessageHandler] Idempotency cache failed:', e?.message);
         }
