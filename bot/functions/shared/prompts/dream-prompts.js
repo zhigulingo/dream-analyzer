@@ -22,7 +22,11 @@ const PROMPTS = {
      */
     basic_meta: `You are an empathetic dream interpreter. Analyze the following dream in Russian, maintaining confidentiality and avoiding medical diagnoses/predictions.
 
-Dream (Russian): "[DREAM_TEXT]"
+Dream (Russian + optional context below): "[DREAM_TEXT]"
+
+Guidance:
+- If a section starting with "Дополнительный контекст (символы, архетипы, статистика):" is present below the dream, carefully use it to refine the interpretation. Explicitly connect 1-2 key ideas from the context to the dream's symbols/themes.
+- Keep the tone supportive, avoid predictions and diagnoses.
 
 Write a supportive analysis in 2-4 short paragraphs.
 
