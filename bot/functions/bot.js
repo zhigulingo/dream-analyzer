@@ -86,6 +86,31 @@ try {
     // Command handlers
     bot.command("start", createStartCommandHandler(userService, messageService, TMA_APP_URL));
     bot.command("setpassword", createSetPasswordCommandHandler(userService, messageService));
+    // Admin-only ingest command
+    const ADMIN_TG_ID = process.env.ADMIN_TG_ID ? Number(process.env.ADMIN_TG_ID) : null;
+    bot.command('ingest_database', async (ctx) => {
+        try {
+            const fromId = ctx.from?.id;
+            if (!ADMIN_TG_ID || fromId !== ADMIN_TG_ID) {
+                return ctx.reply('Недостаточно прав.');
+            }
+            await ctx.reply('Запускаю инжест базы знаний...');
+            const siteUrl = process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN;
+            if (!siteUrl) {
+                throw new Error('Site URL is not configured');
+            }
+            const url = new URL('/.netlify/functions/ingest-knowledge', siteUrl).toString();
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ secret: process.env.INGEST_SECRET, reset: true })
+            });
+            const txt = await res.text();
+            await ctx.reply(`Результат инжеста: ${txt.slice(0, 3500)}`);
+        } catch (e) {
+            await ctx.reply(`Ошибка инжеста: ${e?.message || 'неизвестная ошибка'}`);
+        }
+    });
 
     // Message handlers
     bot.on("message:text", createTextMessageHandler(userService, messageService, analysisService, TMA_APP_URL));
