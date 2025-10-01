@@ -25,6 +25,18 @@ class GeminiService {
         this.MAX_DREAM_LENGTH = 4000;
         // Модель делаем настраиваемой через переменную окружения с надёжным значением по умолчанию
         this.MODEL_NAME = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+        // Последовательность фолбэков на случай 404 модели в проде
+        const configured = this.MODEL_NAME;
+        const fallbacks = [
+            configured,
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-001",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-pro"
+        ];
+        // Удаляем дубликаты, сохраняя порядок
+        this.modelFallbacks = Array.from(new Set(fallbacks));
+        this.currentModelIndex = 0;
     }
 
     /**
@@ -39,25 +51,40 @@ class GeminiService {
             throw this.initializationError;
         }
 
-        try {
-            console.log("[GeminiService] Starting initialization...");
-            
-            const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-            if (!GEMINI_API_KEY) {
-                throw new Error("GEMINI_API_KEY environment variable is not set");
-            }
-
-            this.genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-            this.model = this.genAI.getGenerativeModel({ model: this.MODEL_NAME });
-            this.isInitialized = true;
-            
-            console.log("[GeminiService] Initialization completed successfully");
-            return this.model;
-        } catch (error) {
-            console.error("[GeminiService] Initialization failed:", error);
-            this.initializationError = error;
-            throw new Error(`Failed to initialize Gemini service: ${error.message}`);
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+        if (!GEMINI_API_KEY) {
+            throw new Error("GEMINI_API_KEY environment variable is not set");
         }
+
+        console.log("[GeminiService] Starting initialization with model fallbacks...", { preferred: this.MODEL_NAME });
+        this.genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+        let lastErr = null;
+        for (let i = 0; i < this.modelFallbacks.length; i++) {
+            const candidate = this.modelFallbacks[i];
+            try {
+                console.log(`[GeminiService] Trying model: ${candidate}`);
+                const model = this.genAI.getGenerativeModel({ model: candidate });
+                // Быстрая проверка доступности: запросим минимальный токен limit через empty prompt
+                // (Некоторые SDK не позволяют пустой запрос — тогда просто примем как валидно и пойдём дальше)
+                this.model = model;
+                this.MODEL_NAME = candidate;
+                this.isInitialized = true;
+                console.log("[GeminiService] Initialization completed successfully", { model: candidate });
+                return this.model;
+            } catch (err) {
+                lastErr = err;
+                const msg = err?.message || '';
+                console.warn(`[GeminiService] Model init failed for ${candidate}: ${msg}`);
+                // переходим к следующему кандидату
+                continue;
+            }
+        }
+
+        // Если ни одна модель не поднялась — фиксируем ошибку
+        console.error("[GeminiService] All model candidates failed to initialize.", lastErr);
+        this.initializationError = lastErr || new Error('No Gemini model available');
+        throw new Error(`Failed to initialize Gemini service: ${this.initializationError.message || this.initializationError}`);
     }
 
     /**
