@@ -124,7 +124,7 @@ try {
             const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ secret: process.env.INGEST_SECRET, reset: true })
+                body: JSON.stringify({ reset: true })
             });
             const txt = await res.text();
             await ctx.reply(`Результат инжеста: ${txt.slice(0, 3500)}`);

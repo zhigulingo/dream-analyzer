@@ -8,7 +8,6 @@ const embeddingService = require('./shared/services/embedding-service');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const INGEST_SECRET = process.env.INGEST_SECRET;
 
 function normalizeEntries(raw) {
     const items = [];
@@ -67,11 +66,7 @@ async function handler(event) {
         }
         let body = {};
         try { body = JSON.parse(event.body || '{}'); } catch (_) {}
-        const providedSecret = body.secret || (event.queryStringParameters && event.queryStringParameters.secret);
         const reset = Boolean(body.reset || (event.queryStringParameters && event.queryStringParameters.reset));
-        if (!INGEST_SECRET || providedSecret !== INGEST_SECRET) {
-            return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized' }) };
-        }
 
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
 
