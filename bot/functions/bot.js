@@ -86,15 +86,36 @@ try {
     // Command handlers
     bot.command("start", createStartCommandHandler(userService, messageService, TMA_APP_URL));
     bot.command("setpassword", createSetPasswordCommandHandler(userService, messageService));
-    // Admin-only ingest command
-    const ADMIN_TG_ID = process.env.ADMIN_TG_ID ? Number(process.env.ADMIN_TG_ID) : null;
+    // Ingest command (one-time, open access, with strong idempotency)
     bot.command('ingest_database', async (ctx) => {
+        const cache = require('./shared/services/cache-service');
         try {
-            const fromId = ctx.from?.id;
-            if (!ADMIN_TG_ID || fromId !== ADMIN_TG_ID) {
-                return ctx.reply('Недостаточно прав.');
+            const updateId = ctx.update?.update_id;
+            // Ignore stale updates (>60s)
+            try {
+                const msgTs = Number(ctx.message?.date || 0);
+                const ageSec = Math.floor(Date.now() / 1000) - msgTs;
+                if (ageSec > 60) {
+                    return; // silent ignore
+                }
+            } catch (_) {}
+
+            // Idempotency by update_id (1 hour)
+            const idemKey = `bot:idem:update:${updateId}`;
+            if (cache.get(idemKey)) {
+                return;
             }
+            cache.set(idemKey, true, 60 * 60 * 1000);
+
+            // Single-flight lock for ingest (10 minutes)
+            const lockKey = 'bot:ingest:lock';
+            if (cache.get(lockKey)) {
+                return ctx.reply('Инжест уже выполняется, подождите...');
+            }
+            cache.set(lockKey, true, 10 * 60 * 1000);
+
             await ctx.reply('Запускаю инжест базы знаний...');
+
             const siteUrl = process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN;
             if (!siteUrl) {
                 throw new Error('Site URL is not configured');
@@ -108,7 +129,11 @@ try {
             const txt = await res.text();
             await ctx.reply(`Результат инжеста: ${txt.slice(0, 3500)}`);
         } catch (e) {
+            try { cache.delete('bot:ingest:lock'); } catch (_) {}
             await ctx.reply(`Ошибка инжеста: ${e?.message || 'неизвестная ошибка'}`);
+        } finally {
+            // Release lock after short delay to avoid immediate re-entry
+            setTimeout(() => { try { cache.delete('bot:ingest:lock'); } catch (_) {} }, 5 * 1000);
         }
     });
 
