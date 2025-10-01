@@ -143,7 +143,8 @@ try {
 let netlifyWebhookHandler = null;
 if (botInitializedAndHandlersSet && bot) {
     try {
-        netlifyWebhookHandler = webhookCallback(bot, 'aws-lambda-async');
+        // Используем синхронный режим, чтобы Netlify ожидал завершения обработки
+        netlifyWebhookHandler = webhookCallback(bot, 'aws-lambda');
         logger.info("Webhook callback created successfully");
     } catch (callbackError) { 
         logger.error("Failed to create webhook callback", {}, callbackError); 
@@ -158,6 +159,8 @@ if (botInitializedAndHandlersSet && bot) {
 }
 
 exports.handler = async (event, context) => {
+    // Не ждём очистки event loop, чтобы ускорить возврат ответа
+    try { context.callbackWaitsForEmptyEventLoop = false; } catch (_) {}
     const handlerLogger = logger.child({ handler: 'netlify-webhook' });
     handlerLogger.generateCorrelationId();
     

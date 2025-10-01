@@ -17,9 +17,9 @@ class AnalysisService {
     constructor(supabaseClient) {
         this.supabase = supabaseClient;
         // Конфигурируемый таймаут анализа, по умолчанию 12 секунд (чуть ниже лимитов Netlify)
-        const raw = process.env.GEMINI_ANALYSIS_TIMEOUT_MS || process.env.ANALYSIS_TIMEOUT_MS || '12000';
+        const raw = process.env.GEMINI_ANALYSIS_TIMEOUT_MS || process.env.ANALYSIS_TIMEOUT_MS || '8000';
         const parsed = Number.parseInt(raw, 10);
-        const clamped = Number.isFinite(parsed) ? Math.max(5000, Math.min(parsed, 25000)) : 12000;
+        const clamped = Number.isFinite(parsed) ? Math.max(3000, Math.min(parsed, 9500)) : 8000;
         this.analysisTimeoutMs = clamped;
     }
 

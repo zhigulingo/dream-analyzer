@@ -22,9 +22,9 @@ function createTextMessageHandler(userService, messageService, analysisService, 
     }
     // Общий таймаут всего процесса анализа (конфигурируемый)
     const overallTimeoutMs = (() => {
-        const raw = process.env.BOT_ANALYSIS_OVERALL_TIMEOUT_MS || '20000';
+        const raw = process.env.BOT_ANALYSIS_OVERALL_TIMEOUT_MS || '9500';
         const parsed = Number.parseInt(raw, 10);
-        return Number.isFinite(parsed) ? Math.max(8000, Math.min(parsed, 30000)) : 20000;
+        return Number.isFinite(parsed) ? Math.max(5000, Math.min(parsed, 10000)) : 9500;
     })();
     return async (ctx) => {
         console.log("[TextMessageHandler] Received text message.");
