@@ -4,6 +4,8 @@
   # Path to the bot functions folder
   directory = "bot/functions/"
   node_bundler = "esbuild"
+  # Ensure RAG knowledge file is bundled with functions that reference it
+  included_files = ["docs/dream_symbols_archetypes.json"]
 
 # Build settings for root deployment (functions only)
 [build]

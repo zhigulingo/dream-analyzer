@@ -8,10 +8,11 @@ BOT_TOKEN=your_telegram_bot_token
 
 # Supabase Configuration
 SUPABASE_URL=your_supabase_project_url
-SUPABASE_SERVICE_KEY=your_supabase_service_role_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 # AI Service Configuration
 GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-1.5-flash
 
 # Authentication Secrets
 JWT_SECRET=your_jwt_secret_key

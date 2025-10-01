@@ -23,7 +23,8 @@ class GeminiService {
         
         // Лимиты
         this.MAX_DREAM_LENGTH = 4000;
-        this.MODEL_NAME = "gemini-1.5-flash-latest";
+        // Модель делаем настраиваемой через переменную окружения с надёжным значением по умолчанию
+        this.MODEL_NAME = process.env.GEMINI_MODEL || "gemini-1.5-flash";
     }
 
     /**
