@@ -1,5 +1,5 @@
 // bot/functions/shared/services/embedding-service.js
-// Унифицированный доступ к модели эмбеддингов Gemini (gemini-embedding-001)
+// Унифицированный доступ к модели эмбеддингов Gemini (text-embedding-004)
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
@@ -21,7 +21,7 @@ class EmbeddingService {
     }
 
     this.client = new GoogleGenerativeAI(apiKey);
-    this.model = this.client.getGenerativeModel({ model: 'models/embedding-001' });
+    this.model = this.client.getGenerativeModel({ model: 'text-embedding-004' });
     this.initialized = true;
     return this.model;
   }
@@ -32,7 +32,10 @@ class EmbeddingService {
     }
 
     const model = await this.initialize();
-    const response = await model.embedContent(text);
+    const response = await model.embedContent({
+      content: { parts: [{ text }] },
+      outputDimensionality: 768
+    });
     return response.embedding.values;
   }
 }

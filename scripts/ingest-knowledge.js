@@ -24,7 +24,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const embeddingModel = genAI.getGenerativeModel({ model: 'models/embedding-001' });
+const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
 
 function normalizeEntries(raw) {
   const items = [];
@@ -75,7 +75,10 @@ async function chunkText(text, maxChars = 1200) {
 }
 
 async function embed(text) {
-  const response = await embeddingModel.embedContent(text);
+  const response = await embeddingModel.embedContent({
+    content: { parts: [{ text }] },
+    outputDimensionality: 768
+  });
   return response.embedding.values;
 }
 
