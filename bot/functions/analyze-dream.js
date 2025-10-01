@@ -1,8 +1,5 @@
 const { createClient } = require("@supabase/supabase-js");
 const jwt = require('jsonwebtoken');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
 const { wrapApiHandler, createApiError } = require('./shared/middleware/api-wrapper');
 const userCacheService = require('./shared/services/user-cache-service');
 const { createSuccessResponse, createErrorResponse } = require('./shared/middleware/error-handler');
@@ -29,54 +26,6 @@ async function getGeminiAnalysisRaw(dreamText) {
 let knowledgeInitialized = false;
 let knowledgeInitPromise = null;
 
-function normalizeKnowledgeEntries(raw) {
-    const items = [];
-
-    if (Array.isArray(raw)) {
-        raw.forEach((entry, index) => {
-            const content = entry?.content ?? entry?.text ?? entry?.description ?? '';
-            if (!content || !content.trim()) return;
-            items.push({
-                id: entry?.id || `doc-${index}-${crypto.randomUUID()}`,
-                category: entry?.category || entry?.type || 'general',
-                title: entry?.title || entry?.name || 'Без названия',
-                content
-            });
-        });
-        return items;
-    }
-
-    if (raw && typeof raw === 'object') {
-        Object.entries(raw).forEach(([category, arr]) => {
-            if (!Array.isArray(arr)) return;
-            arr.forEach((entry, index) => {
-                const content = entry?.content ?? entry?.text ?? entry?.description ?? '';
-                if (!content || !content.trim()) return;
-                items.push({
-                    id: entry?.id || `${category}-${index}-${crypto.randomUUID()}`,
-                    category,
-                    title: entry?.title || entry?.name || entry?.symbol || 'Без названия',
-                    content
-                });
-            });
-        });
-    }
-
-    return items;
-}
-
-async function chunkText(text, maxChars = 1200) {
-    if (text.length <= maxChars) return [text];
-    const chunks = [];
-    let start = 0;
-    while (start < text.length) {
-        const slice = text.slice(start, start + maxChars);
-        chunks.push(slice);
-        start += maxChars;
-    }
-    return chunks;
-}
-
 async function ensureKnowledgeBase(supabase) {
     if (knowledgeInitialized) return;
     if (knowledgeInitPromise) return knowledgeInitPromise;
@@ -88,62 +37,13 @@ async function ensureKnowledgeBase(supabase) {
                 .select('id', { count: 'exact', head: true });
             if (error) {
                 console.warn('[analyze-dream] Failed to query knowledge_chunks count', error);
-                return;
+            } else if ((count ?? 0) === 0) {
+                console.warn('[analyze-dream] knowledge_chunks table is empty. Run npm run ingest:knowledge to pre-populate.');
             }
-            if ((count ?? 0) > 0) {
-                knowledgeInitialized = true;
-                return;
-            }
-
-            const filePath = path.resolve(__dirname, '../../docs/dream_symbols_archetypes.json');
-            if (!fs.existsSync(filePath)) {
-                console.warn('[analyze-dream] Knowledge base file not found:', filePath);
-                return;
-            }
-
-            const raw = fs.readFileSync(filePath, 'utf-8');
-            const parsed = JSON.parse(raw);
-            const entries = normalizeKnowledgeEntries(parsed);
-
-            if (!entries.length) {
-                console.warn('[analyze-dream] Knowledge base file has no entries with content');
-                return;
-            }
-
-            const rows = [];
-            for (const entry of entries) {
-                const chunks = await chunkText(entry.content);
-                for (const chunk of chunks) {
-                    const embedding = await embeddingService.embed(chunk);
-                    rows.push({
-                        source: entry.id,
-                        category: entry.category,
-                        title: entry.title,
-                        chunk,
-                        embedding,
-                        metadata: {
-                            original_length: entry.content.length,
-                            chunk_count: chunks.length
-                        }
-                    });
-                }
-            }
-
-            const BATCH = 50;
-            for (let i = 0; i < rows.length; i += BATCH) {
-                const chunk = rows.slice(i, i + BATCH);
-                const { error: insertError } = await supabase.from('knowledge_chunks').insert(chunk);
-                if (insertError) {
-                    console.warn('[analyze-dream] Failed to insert knowledge chunks', insertError);
-                    return;
-                }
-            }
-
-            console.log('[analyze-dream] Knowledge base successfully ingested via Netlify function');
-            knowledgeInitialized = true;
         } catch (err) {
-            console.warn('[analyze-dream] ensureKnowledgeBase error', err?.message || err);
+            console.warn('[analyze-dream] ensureKnowledgeBase check error', err?.message || err);
         } finally {
+            knowledgeInitialized = true;
             knowledgeInitPromise = null;
         }
     })();
