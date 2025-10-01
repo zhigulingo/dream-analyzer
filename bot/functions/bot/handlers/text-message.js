@@ -98,12 +98,19 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 throw new Error("Insufficient tokens for analysis.");
             }
 
-            // Perform analysis first; only decrement token on success (с общим таймаутом)
-            await withTimeout(
-                analysisService.analyzeDream(userData.id, userId, dreamText),
-                overallTimeoutMs,
-                'overall analysis'
-            );
+            // Отправляем задачу на фоновую функцию, чтобы обойти лимит 10s
+            const status = await messageService.sendStatusMessage(ctx, messages.get('analysis.status'));
+            const siteUrl = process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN;
+            if (!siteUrl) throw new Error('Site URL is not configured');
+            const backgroundUrl = new URL('/.netlify/functions/analyze-dream-background', siteUrl).toString();
+            const payload = {
+                tgUserId: userId,
+                userDbId: userData.id,
+                chatId,
+                statusMessageId: status?.message_id || null,
+                dreamText
+            };
+            await fetch(backgroundUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 
             // Decrement token now that analysis has succeeded
             console.log(`[TextMessageHandler] Decrementing token after successful analysis for ${userId}...`);
