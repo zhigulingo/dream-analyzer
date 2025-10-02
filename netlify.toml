@@ -63,6 +63,16 @@
   to = "/.netlify/functions/analyze-dream-background"
   status = 200
 
+[[redirects]]
+  from = "/api/ingest-knowledge"
+  to = "/.netlify/functions/ingest-knowledge"
+  status = 200
+
+[[redirects]]
+  from = "/api/ingest-knowledge-background"
+  to = "/.netlify/functions/ingest-knowledge-background"
+  status = 200
+
 # SPA fallback - все неизвестные роуты перенаправляем на index.html для Vue роутера
 [[redirects]]
   from = "/*"

@@ -114,20 +114,20 @@ try {
             }
             cache.set(lockKey, true, 10 * 60 * 1000);
 
-            await ctx.reply('Запускаю инжест базы знаний...');
+            await ctx.reply('Запускаю инжест базы знаний (фоново)...');
 
-            const siteUrl = process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN;
+            const siteUrl = process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN || process.env.URL;
             if (!siteUrl) {
                 throw new Error('Site URL is not configured');
             }
-            const url = new URL('/.netlify/functions/ingest-knowledge', siteUrl).toString();
+            const url = new URL('/.netlify/functions/ingest-knowledge-background', siteUrl).toString();
             const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reset: true })
+                body: JSON.stringify({ reset: true, chatId: ctx.chat?.id })
             });
             const txt = await res.text();
-            await ctx.reply(`Результат инжеста: ${txt.slice(0, 3500)}`);
+            await ctx.reply(`Инжест запущен. Ответ функции: ${txt.slice(0, 100)}`);
         } catch (e) {
             try { cache.delete('bot:ingest:lock'); } catch (_) {}
             await ctx.reply(`Ошибка инжеста: ${e?.message || 'неизвестная ошибка'}`);
