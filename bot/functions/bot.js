@@ -116,7 +116,7 @@ try {
 
             await ctx.reply('Запускаю инжест базы знаний (фоново)...');
 
-            const siteUrl = process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN || process.env.URL;
+            const siteUrl = process.env.FUNCTIONS_BASE_URL || process.env.URL || process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN;
             if (!siteUrl) {
                 throw new Error('Site URL is not configured');
             }

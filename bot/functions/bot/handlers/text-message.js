@@ -123,7 +123,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
 
             // Отправляем задачу на фоновую функцию, чтобы обойти лимит 10s
             const status = await messageService.sendStatusMessage(ctx, messages.get('analysis.status'));
-            const siteUrl = process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN;
+            const siteUrl = process.env.FUNCTIONS_BASE_URL || process.env.URL || process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN;
             if (!siteUrl) throw new Error('Site URL is not configured');
             const backgroundUrl = new URL('/.netlify/functions/analyze-dream-background', siteUrl).toString();
             const payload = {
