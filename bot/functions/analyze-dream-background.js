@@ -55,7 +55,12 @@ function parseAnalysisWithMeta(rawText, originalDreamText) {
 }
 
 async function embed(text) {
-    try { return await embeddingService.embed(text); } catch (_) { return null; }
+    try { 
+        return await embeddingService.embed(text); 
+    } catch (err) { 
+        console.warn('[analyze-dream-background] Embedding failed:', err?.message);
+        return null; 
+    }
 }
 
 exports.handler = async (event) => {

@@ -122,7 +122,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             }
 
             // Отправляем задачу на фоновую функцию, чтобы обойти лимит 10s
-            const status = await messageService.sendStatusMessage(ctx, messages.get('analysis.status'));
+            // NOTE: Token decrement happens in the background function AFTER successful analysis
             const siteUrl = process.env.FUNCTIONS_BASE_URL || process.env.URL || process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN;
             if (!siteUrl) throw new Error('Site URL is not configured');
             const backgroundUrl = new URL('/.netlify/functions/analyze-dream-background', siteUrl).toString();
@@ -130,17 +130,10 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 tgUserId: userId,
                 userDbId: userData.id,
                 chatId,
-                statusMessageId: status?.message_id || null,
+                statusMessageId: statusMessage?.message_id || null,
                 dreamText
             };
             await fetch(backgroundUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-
-            // Decrement token now that analysis has succeeded
-            console.log(`[TextMessageHandler] Decrementing token after successful analysis for ${userId}...`);
-            const tokenDecremented = await userService.decrementTokenIfAvailable(userId);
-            if (!tokenDecremented) {
-                console.warn(`[TextMessageHandler] Token was not decremented post-success (possibly race condition).`);
-            }
             
             // Delete status message
             console.log(`[TextMessageHandler] Deleting status message ${statusMessage.message_id}`);
