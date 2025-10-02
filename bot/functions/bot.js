@@ -193,8 +193,8 @@ try {
 let netlifyWebhookHandler = null;
 if (botInitializedAndHandlersSet && bot) {
     try {
-        // Используем синхронный режим, чтобы Netlify ожидал завершения обработки
-        netlifyWebhookHandler = webhookCallback(bot, 'aws-lambda');
+        // Используем async-режим AWS Lambda, совместимый с нашей обёрткой
+        netlifyWebhookHandler = webhookCallback(bot, 'aws-lambda-async');
         logger.info("Webhook callback created successfully");
     } catch (callbackError) { 
         logger.error("Failed to create webhook callback", {}, callbackError); 
