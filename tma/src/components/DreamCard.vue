@@ -22,7 +22,7 @@
       </div>
       <div>
         <h4 class="font-semibold mb-1">Анализ:</h4>
-        <p class="leading-snug opacity-90">{{ dream.analysis }}</p>
+        <div class="leading-snug opacity-90 space-y-3" v-html="formattedAnalysis"></div>
       </div>
       <div class="mt-6 flex gap-2">
         <button 
@@ -195,6 +195,30 @@ const displayTags = computed(() => {
   const tags = props.dream?.deep_source?.tags
   if (Array.isArray(tags)) return tags.slice(0, 5)
   return []
+})
+
+// Форматирование анализа с подзаголовками
+const formattedAnalysis = computed(() => {
+  const text = props.dream?.analysis || ''
+  if (!text) return ''
+  
+  // Заменяем подзаголовки на HTML с отступами
+  let formatted = text
+    // Нумерованные заголовки с жирным текстом (1. **Заголовок**)
+    .replace(/(\d+)\.\s*\*\*([^*]+)\*\*/g, '<div class="mt-4 mb-2"><span class="font-semibold text-white/95">$1. $2</span></div>')
+    // Обычные жирные заголовки без номеров (**Заголовок**)
+    .replace(/\*\*([^*]+)\*\*/g, '<span class="font-semibold text-white/95">$1</span>')
+    // Параграфы (двойной перенос строки)
+    .replace(/\n\n+/g, '</p><p class="mt-2">')
+    // Одиночные переносы строки
+    .replace(/\n/g, '<br>')
+  
+  // Оборачиваем в параграф
+  if (!formatted.startsWith('<div')) {
+    formatted = '<p>' + formatted + '</p>'
+  }
+  
+  return formatted
 })
 
 const relativeDate = computed(() => {
