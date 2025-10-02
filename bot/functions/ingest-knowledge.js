@@ -11,6 +11,8 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function normalizeEntries(raw) {
     const items = [];
+    
+    // Handle array format
     if (Array.isArray(raw)) {
         raw.forEach((entry, index) => {
             const content = entry?.content ?? entry?.text ?? entry?.description ?? '';
@@ -18,27 +20,71 @@ function normalizeEntries(raw) {
             items.push({
                 id: entry?.id || `doc-${index}-${crypto.randomUUID()}`,
                 category: entry?.category || entry?.type || 'general',
-                title: entry?.title || entry?.name || 'Без названия',
+                title: entry?.title || entry?.name || entry?.symbol || 'Без названия',
                 content
             });
         });
         return items;
     }
+    
+    // Handle object format with symbols/archetypes structure
     if (raw && typeof raw === 'object') {
-        Object.entries(raw).forEach(([category, arr]) => {
-            if (!Array.isArray(arr)) return;
-            arr.forEach((entry, index) => {
-                const content = entry?.content ?? entry?.text ?? entry?.description ?? '';
-                if (!content || !content.trim()) return;
+        // Process symbols
+        if (Array.isArray(raw.symbols)) {
+            raw.symbols.forEach((symbol, index) => {
+                const parts = [];
+                if (symbol.scientific) parts.push(`Научный подход: ${symbol.scientific}`);
+                if (symbol.freud) parts.push(`Фрейд: ${symbol.freud}`);
+                if (symbol.jung) parts.push(`Юнг: ${symbol.jung}`);
+                const content = parts.join(' | ');
+                if (!content.trim()) return;
+                
                 items.push({
-                    id: entry?.id || `${category}-${index}-${crypto.randomUUID()}`,
-                    category,
-                    title: entry?.title || entry?.name || entry?.symbol || 'Без названия',
+                    id: `symbol-${index}-${crypto.randomUUID()}`,
+                    category: 'symbols',
+                    title: symbol.symbol || `Символ ${index + 1}`,
                     content
                 });
             });
-        });
+        }
+        
+        // Process archetypes
+        if (Array.isArray(raw.archetypes)) {
+            raw.archetypes.forEach((archetype, index) => {
+                const parts = [archetype.description || ''];
+                if (Array.isArray(archetype.dream_examples) && archetype.dream_examples.length) {
+                    parts.push(`Примеры в снах: ${archetype.dream_examples.join(', ')}`);
+                }
+                const content = parts.join(' | ');
+                if (!content.trim()) return;
+                
+                items.push({
+                    id: `archetype-${index}-${crypto.randomUUID()}`,
+                    category: 'archetypes',
+                    title: archetype.name || `Архетип ${index + 1}`,
+                    content
+                });
+            });
+        }
+        
+        // Fallback: process other object formats
+        if (items.length === 0) {
+            Object.entries(raw).forEach(([category, arr]) => {
+                if (!Array.isArray(arr)) return;
+                arr.forEach((entry, index) => {
+                    const content = entry?.content ?? entry?.text ?? entry?.description ?? '';
+                    if (!content || !content.trim()) return;
+                    items.push({
+                        id: entry?.id || `${category}-${index}-${crypto.randomUUID()}`,
+                        category,
+                        title: entry?.title || entry?.name || entry?.symbol || 'Без названия',
+                        content
+                    });
+                });
+            });
+        }
     }
+    
     return items;
 }
 
@@ -72,7 +118,7 @@ async function handler(event) {
 
         // Optional reset (delete all rows)
         if (reset) {
-            const { error: delErr } = await supabase.from('knowledge_chunks').delete().neq('id', null);
+            const { error: delErr } = await supabase.from('knowledge_chunks').delete().not('id', 'is', null);
             if (delErr) {
                 return { statusCode: 500, body: JSON.stringify({ error: 'Failed to reset table', details: delErr.message }) };
             }
