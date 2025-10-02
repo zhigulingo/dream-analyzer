@@ -135,16 +135,12 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             };
             await fetch(backgroundUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             
-            // Delete status message
-            console.log(`[TextMessageHandler] Deleting status message ${statusMessage.message_id}`);
-            await messageService.deleteStatusMessage(chatId, statusMessage);
-            
-            console.log(`[TextMessageHandler] Analysis complete. Sending confirmation.`);
-            
-            // Send success message
-            await messageService.sendReply(ctx, messages.get('analysis.success'), {
-                reply_markup: messageService.createWebAppButton(messages.get('buttons.open_account'), TMA_URL)
-            });
+            // NOTE: Background function will handle:
+            // - Deleting status message
+            // - Sending success message
+            // - Token decrement
+            // We just fire-and-forget here to avoid 10s webhook timeout
+            console.log(`[TextMessageHandler] Background analysis triggered for user ${userId}`);
             
         } catch (error) {
             console.error(`[TextMessageHandler] Error processing dream for ${userId}:`, error);
