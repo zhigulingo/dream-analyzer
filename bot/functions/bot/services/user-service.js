@@ -177,13 +177,15 @@ class UserService {
     async isBetaWhitelisted(tgUserId) {
         const { data, error } = await this.supabase
             .from('users')
-            .select('beta_whitelisted')
+            .select('beta_whitelisted, beta_access_at')
             .eq('tg_id', tgUserId)
             .single();
         if (error && error.code !== 'PGRST116') {
             throw new Error(`Failed to fetch beta whitelist flag: ${error.message}`);
         }
-        return Boolean(data?.beta_whitelisted);
+        const whitelisted = Boolean(data?.beta_whitelisted);
+        const accessAt = data?.beta_access_at ? new Date(data.beta_access_at).getTime() : null;
+        return { whitelisted, accessAt };
     }
 
     /**

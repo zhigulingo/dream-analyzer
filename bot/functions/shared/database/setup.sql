@@ -457,4 +457,28 @@ BEGIN
     ) THEN
         ALTER TABLE public.users ADD COLUMN beta_whitelisted BOOLEAN NOT NULL DEFAULT FALSE;
     END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema='public' AND table_name='users' AND column_name='beta_approved_at'
+    ) THEN
+        ALTER TABLE public.users ADD COLUMN beta_approved_at TIMESTAMPTZ;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema='public' AND table_name='users' AND column_name='beta_access_at'
+    ) THEN
+        ALTER TABLE public.users ADD COLUMN beta_access_at TIMESTAMPTZ;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema='public' AND table_name='users' AND column_name='beta_notified_approved'
+    ) THEN
+        ALTER TABLE public.users ADD COLUMN beta_notified_approved BOOLEAN DEFAULT FALSE;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema='public' AND table_name='users' AND column_name='beta_notified_access'
+    ) THEN
+        ALTER TABLE public.users ADD COLUMN beta_notified_access BOOLEAN DEFAULT FALSE;
+    END IF;
 END$$;

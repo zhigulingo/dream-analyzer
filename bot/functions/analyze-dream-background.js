@@ -80,20 +80,29 @@ exports.handler = async (event) => {
 
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
 
-        // Enforce beta whitelist gate
+        // Enforce beta whitelist + access_at gate
         try {
             const { data: u, error: uErr } = await supabase
                 .from('users')
-                .select('beta_whitelisted')
+                .select('beta_whitelisted, beta_access_at')
                 .eq('tg_id', tgUserId)
                 .single();
             if (uErr && uErr.code !== 'PGRST116') {
                 throw uErr;
             }
+            const accessAt = u?.beta_access_at ? new Date(u.beta_access_at).getTime() : null;
             if (!u || !u.beta_whitelisted) {
                 if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
                 await sendTelegramMessage(chatId, 'Бета-доступ пока закрыт. Заполните анкету и дождитесь одобрения.');
                 return { statusCode: 202, body: 'Not whitelisted' };
+            }
+            if (accessAt && accessAt > Date.now()) {
+                const secs = Math.max(0, Math.floor((accessAt - Date.now()) / 1000));
+                const hours = Math.floor(secs / 3600);
+                const minutes = Math.floor((secs % 3600) / 60);
+                if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
+                await sendTelegramMessage(chatId, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
+                return { statusCode: 202, body: 'Access pending' };
             }
         } catch (e) {
             console.warn('[analyze-dream-background] Whitelist check failed', e?.message);

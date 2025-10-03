@@ -195,6 +195,7 @@ class DatabaseQueries {
                 subscription_type,
                 subscription_end,
                 beta_whitelisted,
+                beta_access_at,
                 channel_reward_claimed,
                 deep_analysis_credits
             `)

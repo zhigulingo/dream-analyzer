@@ -73,10 +73,19 @@ function createTextMessageHandler(userService, messageService, analysisService, 
 
         // Beta whitelist gate: only allow approved users to run analysis
         try {
-            const isWhitelisted = await userService.isBetaWhitelisted(userId);
-            if (!isWhitelisted) {
+            const gate = await userService.isBetaWhitelisted(userId);
+            const nowTs = Date.now();
+            if (!gate?.whitelisted) {
                 try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
                 await messageService.sendReply(ctx, 'Бета-доступ пока закрыт. Заполните анкету и дождитесь одобрения — мы пришлём уведомление.');
+                return;
+            }
+            if (gate?.accessAt && gate.accessAt > nowTs) {
+                const secs = Math.max(0, Math.floor((gate.accessAt - nowTs) / 1000));
+                const hours = Math.floor(secs / 3600);
+                const minutes = Math.floor((secs % 3600) / 60);
+                try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
+                await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
                 return;
             }
         } catch (e) {
