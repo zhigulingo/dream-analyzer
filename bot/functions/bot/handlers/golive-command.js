@@ -4,7 +4,7 @@
  * Admin-only command: /golive <tg_id>
  * Immediately opens beta access for the specified user and notifies them.
  */
-function createGoLiveCommandHandler(userService, messageService, adminIds = []) {
+function createGoLiveCommandHandler(userService, messageService, adminIds = [], tmaUrl = '') {
   const adminSet = new Set((adminIds || []).map(id => String(id).trim()).filter(Boolean));
 
   return async (ctx) => {
@@ -30,7 +30,9 @@ function createGoLiveCommandHandler(userService, messageService, adminIds = []) 
 
       // Notify target user via bot
       try {
-        await messageService.api.sendMessage(targetId, 'Бета-доступ открыт администратором. Можете начинать пользоваться приложением.');
+        await messageService.api.sendMessage(targetId, 'Бета-доступ открыт администратором. Нажмите кнопку, чтобы открыть приложение.', {
+          reply_markup: messageService.createWebAppButton('Открыть Личный кабинет', tmaUrl || 'https://dream-analyzer.netlify.app')
+        });
       } catch (_) {}
 
       await messageService.sendReply(ctx, `Открыт доступ для ${targetId}.`);

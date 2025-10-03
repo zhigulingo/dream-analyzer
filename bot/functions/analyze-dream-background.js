@@ -84,7 +84,7 @@ exports.handler = async (event) => {
         try {
             const { data: u, error: uErr } = await supabase
                 .from('users')
-                .select('beta_whitelisted, beta_access_at')
+                .select('beta_whitelisted, beta_access_at, subscription_type')
                 .eq('tg_id', tgUserId)
                 .single();
             if (uErr && uErr.code !== 'PGRST116') {
@@ -103,6 +103,11 @@ exports.handler = async (event) => {
                 if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
                 await sendTelegramMessage(chatId, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
                 return { statusCode: 202, body: 'Access pending' };
+            }
+            if (String(u.subscription_type || '').toLowerCase() === 'beta') {
+                if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
+                await sendTelegramMessage(chatId, 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).');
+                return { statusCode: 202, body: 'Onboarding pending' };
             }
         } catch (e) {
             console.warn('[analyze-dream-background] Whitelist check failed', e?.message);

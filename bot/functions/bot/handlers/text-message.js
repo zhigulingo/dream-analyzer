@@ -88,6 +88,12 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
                 return;
             }
+            // Block analysis for 'beta' until onboarding started
+            if (String(gate?.subscription_type || '').toLowerCase() === 'beta') {
+                try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
+                await messageService.sendReply(ctx, 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).');
+                return;
+            }
         } catch (e) {
             console.warn('[TextMessageHandler] Whitelist check failed:', e?.message);
             try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}

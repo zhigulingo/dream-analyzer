@@ -3,6 +3,7 @@
   <div class="tma-app-container">
     <BetaGate v-if="!onboardingVisible && appReady && !userStore.profile?.beta_whitelisted" />
     <BetaTimer v-else-if="!onboardingVisible && appReady && userStore.profile?.beta_whitelisted && userStore.profile?.beta_access_at && (new Date(userStore.profile.beta_access_at).getTime() > Date.now())" />
+    <BetaReady v-else-if="!onboardingVisible && appReady && (String(userStore.profile?.subscription_type || '').toLowerCase() === 'beta')" />
     <PersonalAccount v-else-if="!onboardingVisible && appReady" />
     <NotificationSystem v-if="!onboardingVisible" />
     <Onboarding @visible-change="onboardingVisible = $event" />
@@ -18,6 +19,7 @@ import { useUserStore } from '@/stores/user.js'
 const PersonalAccount = defineAsyncComponent(() => import('./views/PersonalAccount.vue'))
 const BetaGate = defineAsyncComponent(() => import('./views/BetaGate.vue'))
 const BetaTimer = defineAsyncComponent(() => import('./views/BetaTimer.vue'))
+const BetaReady = defineAsyncComponent(() => import('./views/BetaReady.vue'))
 const NotificationSystem = defineAsyncComponent(() => import('./components/NotificationSystem.vue'))
 const Onboarding = defineAsyncComponent(() => import('./components/Onboarding.vue'))
 const LoadingOverlay = defineAsyncComponent(() => import('./components/LoadingOverlay.vue'))

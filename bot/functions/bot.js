@@ -88,7 +88,7 @@ try {
     // Command handlers
     bot.command("start", createStartCommandHandler(userService, messageService, TMA_APP_URL));
     bot.command("setpassword", createSetPasswordCommandHandler(userService, messageService));
-    bot.command("golive", createGoLiveCommandHandler(userService, messageService, ADMIN_IDS));
+    bot.command("golive", createGoLiveCommandHandler(userService, messageService, ADMIN_IDS, TMA_APP_URL));
     // Ingest command (one-time, open access, with strong idempotency)
     bot.command('ingest_database', async (ctx) => {
         const cache = require('./shared/services/cache-service');
