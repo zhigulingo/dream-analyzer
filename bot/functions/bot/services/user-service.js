@@ -170,6 +170,23 @@ class UserService {
     }
 
     /**
+     * Checks if user is beta whitelisted
+     * @param {number} tgUserId - Telegram user ID
+     * @returns {Promise<boolean>}
+     */
+    async isBetaWhitelisted(tgUserId) {
+        const { data, error } = await this.supabase
+            .from('users')
+            .select('beta_whitelisted')
+            .eq('tg_id', tgUserId)
+            .single();
+        if (error && error.code !== 'PGRST116') {
+            throw new Error(`Failed to fetch beta whitelist flag: ${error.message}`);
+        }
+        return Boolean(data?.beta_whitelisted);
+    }
+
+    /**
      * Processes successful subscription payment
      * @param {number} userId - Telegram user ID
      * @param {string} plan - Plan type

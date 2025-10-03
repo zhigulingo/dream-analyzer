@@ -195,7 +195,8 @@ exports.handler = async (event) => {
                 deep_analysis_credits: 0,
                 total_dreams_count: 0,
                 deep_analyses_count: 0,
-                onboarding_stage: null
+                onboarding_stage: null,
+                beta_whitelisted: false
             };
         } else {
             responseBody = {
@@ -206,7 +207,8 @@ exports.handler = async (event) => {
                 deep_analysis_credits: userData.deep_analysis_credits || 0,
                 total_dreams_count: userData.total_dreams_count || 0,
                 deep_analyses_count: userData.deep_analyses_count || 0,
-                onboarding_stage: null
+                onboarding_stage: null,
+                beta_whitelisted: Boolean(userData.beta_whitelisted)
             };
         }
 

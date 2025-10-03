@@ -1,7 +1,8 @@
 // tma/src/App.vue
 <template>
   <div class="tma-app-container">
-    <PersonalAccount v-if="!onboardingVisible && appReady" />
+    <BetaGate v-if="!onboardingVisible && appReady && !userStore.profile?.beta_whitelisted" />
+    <PersonalAccount v-else-if="!onboardingVisible && appReady" />
     <NotificationSystem v-if="!onboardingVisible" />
     <Onboarding @visible-change="onboardingVisible = $event" />
     <LoadingOverlay :visible="isLoadingGlobal && !onboardingVisible" />
@@ -14,6 +15,7 @@ import { useUserStore } from '@/stores/user.js'
 
 // Lazy-loaded компоненты для уменьшения начального bundle
 const PersonalAccount = defineAsyncComponent(() => import('./views/PersonalAccount.vue'))
+const BetaGate = defineAsyncComponent(() => import('./views/BetaGate.vue'))
 const NotificationSystem = defineAsyncComponent(() => import('./components/NotificationSystem.vue'))
 const Onboarding = defineAsyncComponent(() => import('./components/Onboarding.vue'))
 const LoadingOverlay = defineAsyncComponent(() => import('./components/LoadingOverlay.vue'))

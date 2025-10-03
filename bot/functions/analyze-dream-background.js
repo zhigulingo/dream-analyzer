@@ -80,6 +80,28 @@ exports.handler = async (event) => {
 
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
 
+        // Enforce beta whitelist gate
+        try {
+            const { data: u, error: uErr } = await supabase
+                .from('users')
+                .select('beta_whitelisted')
+                .eq('tg_id', tgUserId)
+                .single();
+            if (uErr && uErr.code !== 'PGRST116') {
+                throw uErr;
+            }
+            if (!u || !u.beta_whitelisted) {
+                if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
+                await sendTelegramMessage(chatId, 'Бета-доступ пока закрыт. Заполните анкету и дождитесь одобрения.');
+                return { statusCode: 202, body: 'Not whitelisted' };
+            }
+        } catch (e) {
+            console.warn('[analyze-dream-background] Whitelist check failed', e?.message);
+            if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
+            await sendTelegramMessage(chatId, 'Временная ошибка. Попробуйте позже.');
+            return { statusCode: 202, body: 'Whitelist check error' };
+        }
+
         // Retrieve RAG context if possible
         let augmented = dreamText;
         try {

@@ -71,6 +71,21 @@ function createTextMessageHandler(userService, messageService, analysisService, 
         
         console.log(`[TextMessageHandler] Processing dream for ${userId} (update ${updateId})`);
 
+        // Beta whitelist gate: only allow approved users to run analysis
+        try {
+            const isWhitelisted = await userService.isBetaWhitelisted(userId);
+            if (!isWhitelisted) {
+                try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
+                await messageService.sendReply(ctx, 'Бета-доступ пока закрыт. Заполните анкету и дождитесь одобрения — мы пришлём уведомление.');
+                return;
+            }
+        } catch (e) {
+            console.warn('[TextMessageHandler] Whitelist check failed:', e?.message);
+            try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
+            await messageService.sendReply(ctx, 'Техническая ошибка. Попробуйте позже.');
+            return;
+        }
+
         // Basic idempotency + per-user rate limit & in-flight guard
         try {
             const cache = require('../../shared/services/cache-service');
