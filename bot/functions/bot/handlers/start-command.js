@@ -54,6 +54,24 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
         try {
             const userData = await userService.getOrCreateUser(userId);
             console.log(`[StartCommandHandler] User data received: ID=${userData.id}, Claimed=${userData.claimed}, LastMsgId=${userData.lastMessageId}`);
+            // Auto-transition to beta if timer passed
+            try {
+                const st = await userService.getBetaStatus(userId);
+                const nowTs = Date.now();
+                const accessAt = st?.beta_access_at ? new Date(st.beta_access_at).getTime() : null;
+                if (st?.beta_whitelisted && st?.subscription_type === 'whitelisted' && accessAt && accessAt <= nowTs && !st?.beta_notified_access) {
+                    const updated = await userService.transitionToBeta(userId);
+                    if (updated) {
+                        try {
+                            await messageService.sendReply(ctx, 'Бета-доступ открыт! Нажмите кнопку, чтобы открыть приложение.', {
+                                reply_markup: messageService.createWebAppButton('Открыть Личный кабинет', TMA_URL)
+                            });
+                        } catch (_) {}
+                    }
+                }
+            } catch (e) {
+                console.warn('[StartCommandHandler] beta auto-transition failed:', e?.message);
+            }
             
             // Delete previous message if exists
             if (userData.lastMessageId) {

@@ -19,13 +19,13 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'OPTIONS') {
       return { statusCode: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, X-Webhook-Secret', 'Access-Control-Allow-Methods': 'POST, OPTIONS' }, body: '' };
     }
-    if (event.httpMethod !== 'POST') {
-      return { statusCode: 405, body: 'Method Not Allowed' };
-    }
+    // Allow GET for scheduled runs; POST with secret for manual trigger
+    const isScheduled = event.httpMethod === 'GET';
+    const isManual = event.httpMethod === 'POST';
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
       return { statusCode: 500, body: 'Server not configured' };
     }
-    if (ADMIN_SECRET) {
+    if (isManual && ADMIN_SECRET) {
       const sent = event.headers['x-webhook-secret'] || event.headers['X-Webhook-Secret'];
       if (sent !== ADMIN_SECRET) {
         return { statusCode: 403, body: 'Forbidden' };

@@ -16,6 +16,7 @@ const AnalysisService = require("./bot/services/analysis-service");
 const createStartCommandHandler = require("./bot/handlers/start-command");
 const createSetPasswordCommandHandler = require("./bot/handlers/setpassword-command");
 const createTextMessageHandler = require("./bot/handlers/text-message");
+const createGoLiveCommandHandler = require("./bot/handlers/golive-command");
 const { 
     createPreCheckoutQueryHandler, 
     createSuccessfulPaymentHandler 
@@ -28,6 +29,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TMA_URL = process.env.TMA_URL;
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
+const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
 
 // --- Global Initialization ---
 let bot;
@@ -86,6 +88,7 @@ try {
     // Command handlers
     bot.command("start", createStartCommandHandler(userService, messageService, TMA_APP_URL));
     bot.command("setpassword", createSetPasswordCommandHandler(userService, messageService));
+    bot.command("golive", createGoLiveCommandHandler(userService, messageService, ADMIN_IDS));
     // Ingest command (one-time, open access, with strong idempotency)
     bot.command('ingest_database', async (ctx) => {
         const cache = require('./shared/services/cache-service');

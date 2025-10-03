@@ -177,7 +177,7 @@ class UserService {
     async isBetaWhitelisted(tgUserId) {
         const { data, error } = await this.supabase
             .from('users')
-            .select('beta_whitelisted, beta_access_at')
+            .select('beta_whitelisted, beta_access_at, subscription_type, beta_notified_access')
             .eq('tg_id', tgUserId)
             .single();
         if (error && error.code !== 'PGRST116') {
@@ -185,7 +185,57 @@ class UserService {
         }
         const whitelisted = Boolean(data?.beta_whitelisted);
         const accessAt = data?.beta_access_at ? new Date(data.beta_access_at).getTime() : null;
-        return { whitelisted, accessAt };
+        return { whitelisted, accessAt, subscription_type: data?.subscription_type || null, notified: Boolean(data?.beta_notified_access) };
+    }
+
+    /**
+     * Transition user to beta state
+     * @param {number} tgUserId
+     * @returns {Promise<boolean>} true if updated
+     */
+    async transitionToBeta(tgUserId) {
+        const { data, error } = await this.supabase
+            .from('users')
+            .update({ subscription_type: 'beta', beta_notified_access: true })
+            .eq('tg_id', tgUserId)
+            .select('id')
+            .single();
+        if (error) {
+            throw new Error(`Failed to transition to beta: ${error.message}`);
+        }
+        return Boolean(data?.id);
+    }
+
+    /**
+     * Open access immediately (set access_at=now, ensure whitelisted, set status beta)
+     */
+    async openAccessNow(tgUserId) {
+        const nowIso = new Date().toISOString();
+        const { data, error } = await this.supabase
+            .from('users')
+            .update({ beta_whitelisted: true, beta_access_at: nowIso, subscription_type: 'beta', beta_notified_access: true })
+            .eq('tg_id', tgUserId)
+            .select('id')
+            .single();
+        if (error) {
+            throw new Error(`Failed to open access: ${error.message}`);
+        }
+        return Boolean(data?.id);
+    }
+
+    /**
+     * Get beta status fields
+     */
+    async getBetaStatus(tgUserId) {
+        const { data, error } = await this.supabase
+            .from('users')
+            .select('subscription_type, beta_whitelisted, beta_access_at, beta_notified_access')
+            .eq('tg_id', tgUserId)
+            .single();
+        if (error && error.code !== 'PGRST116') {
+            throw new Error(`Failed to get beta status: ${error.message}`);
+        }
+        return data || null;
     }
 
     /**

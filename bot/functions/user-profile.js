@@ -176,6 +176,14 @@ exports.handler = async (event) => {
                 userData = await dbQueries.getUserProfile(verifiedUserId);
             }
             
+            // Lazy transition to 'beta' if timer passed and still 'whitelisted'
+            try {
+                const accessAt = userData?.beta_access_at ? new Date(userData.beta_access_at).getTime() : null;
+                if (userData?.beta_whitelisted && userData?.subscription_type === 'whitelisted' && accessAt && accessAt <= Date.now()) {
+                    await supabase.from('users').update({ subscription_type: 'beta' }).eq('id', userData.id);
+                    userData.subscription_type = 'beta';
+                }
+            } catch (_) {}
             // Кешируем результат если получены данные
             if (userData && !noCache) {
                 userCacheService.cacheFullUserData(verifiedUserId, userData);

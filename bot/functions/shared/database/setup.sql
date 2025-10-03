@@ -482,3 +482,47 @@ BEGIN
         ALTER TABLE public.users ADD COLUMN beta_notified_access BOOLEAN DEFAULT FALSE;
     END IF;
 END$$;
+
+-- Триггер: при установке beta_whitelisted=true заполняем beta_approved_at/beta_access_at и переводим в 'whitelisted'
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_proc WHERE proname = 'set_whitelist_fields'
+    ) THEN
+        CREATE OR REPLACE FUNCTION set_whitelist_fields()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            IF NEW.beta_whitelisted IS TRUE THEN
+                IF NEW.beta_approved_at IS NULL THEN
+                    NEW.beta_approved_at := NOW();
+                END IF;
+                IF NEW.beta_access_at IS NULL THEN
+                    NEW.beta_access_at := NOW() + INTERVAL '24 hours';
+                END IF;
+                IF NEW.subscription_type IS NULL OR NEW.subscription_type NOT IN ('beta','onboarding1','onboarding2','free') THEN
+                    NEW.subscription_type := 'whitelisted';
+                END IF;
+            END IF;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+    END IF;
+
+    -- Создаем триггеры, если их нет
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'trg_users_set_whitelist_fields_ins'
+    ) THEN
+        CREATE TRIGGER trg_users_set_whitelist_fields_ins
+        BEFORE INSERT ON public.users
+        FOR EACH ROW EXECUTE FUNCTION set_whitelist_fields();
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'trg_users_set_whitelist_fields_upd'
+    ) THEN
+        CREATE TRIGGER trg_users_set_whitelist_fields_upd
+        BEFORE UPDATE OF beta_whitelisted ON public.users
+        FOR EACH ROW WHEN (NEW.beta_whitelisted IS DISTINCT FROM OLD.beta_whitelisted)
+        EXECUTE FUNCTION set_whitelist_fields();
+    END IF;
+END$$;

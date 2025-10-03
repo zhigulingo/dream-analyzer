@@ -7,6 +7,12 @@
   # Ensure RAG knowledge file is bundled with functions that reference it
   included_files = ["docs/dream_symbols_archetypes.json"]
 
+[functions."beta-whitelist-processor"]
+  schedule = "*/5 * * * *"
+
+[functions."beta-access-notifier"]
+  schedule = "*/5 * * * *"
+
 # Build settings for root deployment (functions only)
 [build]
   # No build needed for root, just functions
