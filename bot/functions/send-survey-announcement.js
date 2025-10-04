@@ -46,6 +46,34 @@ exports.handler = async (event) => {
     if (!resp.ok || data.ok === false) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: 'Telegram API error', details: data }) };
     }
+    // Persist announcement message reference for per-user follow-up (button text update after submission)
+    try {
+      const numericChatId = Number(chatId);
+      if (Number.isFinite(numericChatId)) {
+        const { createClient } = require('@supabase/supabase-js');
+        const SUPABASE_URL = process.env.SUPABASE_URL;
+        const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+          const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+          const msgId = data?.result?.message_id || null;
+          const nowIso = new Date().toISOString();
+          const { data: rows } = await supabase
+            .from('beta_survey_responses')
+            .select('id, answers')
+            .eq('tg_id', numericChatId)
+            .limit(1);
+          const existing = Array.isArray(rows) && rows[0] ? rows[0] : null;
+          const prevAns = existing && existing.answers && typeof existing.answers === 'object' ? existing.answers : {};
+          const merged = { ...prevAns, _announce: { chat_id: numericChatId, message_id: msgId, updated_at: nowIso } };
+          if (existing) {
+            await supabase.from('beta_survey_responses').update({ answers: merged, updated_at: nowIso }).eq('tg_id', numericChatId);
+          } else {
+            await supabase.from('beta_survey_responses').insert({ tg_id: numericChatId, answers: merged, updated_at: nowIso });
+          }
+        }
+      }
+    } catch (_) {}
+
     return { statusCode: 200, headers, body: JSON.stringify({ ok: true, result: data.result || null }) };
   } catch (e) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Internal error', details: e?.message }) };

@@ -58,6 +58,7 @@ exports.handler = async (event) => {
 
     let upsertPayload = { updated_at: new Date().toISOString() };
     let resolvedTgId = null;
+    let existingAnswers = null; // preserve meta like _announce
     if (isFinalSubmit) {
       // финальная отправка: сохраняем все ответы и прогресс в JSON
       upsertPayload.answers = {
@@ -102,6 +103,7 @@ exports.handler = async (event) => {
         .eq(idCol, keyVal)
         .limit(1);
       existing = Array.isArray(rows) && rows[0] ? rows[0] : null;
+      existingAnswers = existing && existing.answers && typeof existing.answers === 'object' ? existing.answers : null;
     }
 
     let error = null;
@@ -146,6 +148,10 @@ exports.handler = async (event) => {
           updatePayloadOnConflict.answers = { ...(answers || {}), _session: sess, _progress: { last_index: 7, completed: true } };
           updatePayloadOnConflict.submitted_at = new Date().toISOString();
         }
+        // Preserve meta like _announce from previous answers
+        if (prev && prev._announce && (!updatePayloadOnConflict.answers._announce)) {
+          updatePayloadOnConflict.answers._announce = prev._announce;
+        }
         const updRes = await supabase
           .from('beta_survey_responses')
           .update(updatePayloadOnConflict)
@@ -166,6 +172,15 @@ exports.handler = async (event) => {
           _session: sessionId || prev._session || ('s_'+Date.now()),
           _progress: { last_index: typeof index === 'number' ? index : (prevMeta.last_index ?? 0), completed: !!completed }
         };
+      } else if (isFinalSubmit) {
+        // preserve meta from existing answers (e.g., _announce)
+        const prev = existingAnswers || {};
+        const sess = sessionId || prev._session || ('s_'+Date.now());
+        updatePayload.answers = { ...(answers || {}), _session: sess, _progress: { last_index: 7, completed: true } };
+        if (prev && prev._announce && !updatePayload.answers._announce) {
+          updatePayload.answers._announce = prev._announce;
+        }
+        updatePayload.submitted_at = new Date().toISOString();
       }
       ({ error } = await supabase
         .from('beta_survey_responses')
@@ -191,6 +206,40 @@ exports.handler = async (event) => {
         });
       } catch (notifyErr) {
         try { console.warn('[submit-survey] failed to notify user about submission:', notifyErr?.message || notifyErr); } catch (_) {}
+      }
+    }
+
+    // Попробуем обновить текст кнопки в исходном анонсе (если отправляли в ЛС ранее)
+    if (isFinalSubmit && botToken) {
+      try {
+        // Fetch announce meta
+        let announce = null;
+        if (idCol && keyVal) {
+          const { data: rows2 } = await supabase
+            .from('beta_survey_responses')
+            .select('answers')
+            .eq(idCol, keyVal)
+            .limit(1);
+          const row2 = Array.isArray(rows2) && rows2[0] ? rows2[0] : null;
+          const ans2 = row2 && row2.answers && typeof row2.answers === 'object' ? row2.answers : null;
+          announce = ans2 && ans2._announce ? ans2._announce : null;
+        }
+        const msgId = announce?.message_id;
+        const chatForMsg = announce?.chat_id || resolvedTgId;
+        if (msgId && chatForMsg) {
+          const editUrl = `https://api.telegram.org/bot${botToken}/editMessageReplyMarkup`;
+          const buttonText = 'Заявка принята';
+          // Keep URL to the app (fallback to t.me link if not configured)
+          const appUrl = process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN || 'https://t.me/dreamtestaibot/betasurvey';
+          const reply_markup = { inline_keyboard: [[{ text: buttonText, url: appUrl }]] };
+          await fetch(editUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatForMsg, message_id: msgId, reply_markup })
+          });
+        }
+      } catch (e2) {
+        try { console.warn('[submit-survey] failed to edit announce button:', e2?.message || e2); } catch (_) {}
       }
     }
 
