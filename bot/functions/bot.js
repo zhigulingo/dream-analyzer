@@ -111,9 +111,28 @@ try {
             if (debounceKey) cache.set(debounceKey, true, 5 * 60 * 1000);
 
             const text = 'Мы запускаем бета-тест. Пожалуйста, заполните короткий опрос — это займёт пару минут.';
-            await messageService.sendReply(ctx, text, {
-                reply_markup: messageService.createWebAppButton('Принять участие', TMA_APP_URL)
+            // Use URL button to open survey TMA via t.me link
+            const SURVEY_URL = process.env.SURVEY_APP_URL || 'https://t.me/dreamtestaibot/betasurvey';
+            const sent = await messageService.sendReply(ctx, text, {
+                reply_markup: { inline_keyboard: [[{ text: 'Принять участие', url: SURVEY_URL }]] }
             });
+            // Persist last message id for later edits
+            try {
+                if (sent && sent.message_id && userId) {
+                    const { createClient } = require('@supabase/supabase-js');
+                    const SUPABASE_URL = process.env.SUPABASE_URL;
+                    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+                    if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+                        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+                        // Ensure user exists then update last_start_message_id
+                        const { data: u } = await supabase.from('users').select('id').eq('tg_id', userId).single();
+                        if (!u) {
+                            await supabase.from('users').insert({ tg_id: userId, subscription_type: 'guest', tokens: 0, channel_reward_claimed: false });
+                        }
+                        await supabase.from('users').update({ last_start_message_id: sent.message_id }).eq('tg_id', userId);
+                    }
+                }
+            } catch (e) { logger.warn('Failed to persist stub message id', { error: e?.message }); }
         } catch (e) {
             logger.warn('Stub handler failed', { error: e?.message });
         }
