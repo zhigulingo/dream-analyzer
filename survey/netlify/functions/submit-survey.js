@@ -243,6 +243,31 @@ exports.handler = async (event) => {
       }
     }
 
+    // Также обновим кнопку в последнем /start сообщении пользователя (если id сохранён)
+    if (isFinalSubmit && botToken && resolvedTgId) {
+      try {
+        const { data: userRow, error: uErr } = await supabase
+          .from('users')
+          .select('last_start_message_id')
+          .eq('tg_id', resolvedTgId)
+          .single();
+        if (!uErr && userRow && userRow.last_start_message_id) {
+          const msgId = userRow.last_start_message_id;
+          const editUrl = `https://api.telegram.org/bot${botToken}/editMessageReplyMarkup`;
+          const buttonText = 'Заявка принята';
+          const appUrl = process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN || 'https://t.me/dreamtestaibot/betasurvey';
+          const reply_markup = { inline_keyboard: [[{ text: buttonText, url: appUrl }]] };
+          await fetch(editUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: resolvedTgId, message_id: msgId, reply_markup })
+          });
+        }
+      } catch (e3) {
+        try { console.warn('[submit-survey] failed to edit /start button:', e3?.message || e3); } catch (_) {}
+      }
+    }
+
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ success: true }) };
   } catch (e) {
     console.error('[submit-survey] exception', { message: e?.message, stack: e?.stack, body: event.body });

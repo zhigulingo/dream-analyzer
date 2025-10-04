@@ -27,6 +27,7 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body || '{}');
     const tgId = Number(body.tg_id || body.chat_id);
     const appUrl = body.web_app_url || body.url || 'https://t.me/dreamtestaibot/betasurvey';
+    const buttonText = String(body.text || body.button_text || 'Принять участие');
     if (!Number.isFinite(tgId)) return { statusCode: 400, headers, body: JSON.stringify({ error: 'tg_id is required' }) };
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -40,7 +41,7 @@ exports.handler = async (event) => {
     const messageId = data?.last_start_message_id;
     if (!messageId) return { statusCode: 404, headers, body: JSON.stringify({ error: 'No start message to edit' }) };
 
-    const reply_markup = { inline_keyboard: [[{ text: 'Принять участие', url: appUrl }]] };
+    const reply_markup = { inline_keyboard: [[{ text: buttonText, url: appUrl }]] };
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/editMessageReplyMarkup`;
     const resp = await fetch(url, {
       method: 'POST',
