@@ -526,3 +526,8 @@ BEGIN
         EXECUTE FUNCTION set_whitelist_fields();
     END IF;
 END$$;
+
+-- Демографические поля для персонализации статистики
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS age_range TEXT CHECK (age_range IN ('0-20','20-30','30-40','40-50','50+')),
+  ADD COLUMN IF NOT EXISTS gender TEXT CHECK (gender IN ('male','female'));

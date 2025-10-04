@@ -7,11 +7,7 @@
   # Ensure RAG knowledge file is bundled with functions that reference it
   included_files = ["docs/dream_symbols_archetypes.json"]
 
-[functions."beta-whitelist-processor"]
-  schedule = "*/5 * * * *"
-
-[functions."beta-access-notifier"]
-  schedule = "*/5 * * * *"
+# Schedules removed per request; flow is DB-triggered and reactive
 
 # Build settings for root deployment (functions only)
 [build]
@@ -77,6 +73,11 @@
 [[redirects]]
   from = "/api/ingest-knowledge-background"
   to = "/.netlify/functions/ingest-knowledge-background"
+  status = 200
+
+[[redirects]]
+  from = "/api/set-demographics"
+  to = "/.netlify/functions/set-demographics"
   status = 200
 
 # SPA fallback - все неизвестные роуты перенаправляем на index.html для Vue роутера

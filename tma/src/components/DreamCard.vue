@@ -20,38 +20,77 @@
         <h4 class="font-semibold mb-1">Сон:</h4>
         <p class="leading-snug opacity-90">{{ dream.dream_text }}</p>
       </div>
-      <div>
-        <h4 class="font-semibold mb-1">Анализ:</h4>
-        <div class="leading-snug opacity-90 space-y-3" v-html="formattedAnalysis"></div>
+
+      <div class="space-y-2">
+        <div v-for="sec in sections" :key="sec.key" class="rounded-lg bg-white/10">
+          <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection(sec.key)">
+            <span>{{ sec.title }}</span>
+            <span class="opacity-80">{{ expanded[sec.key] ? '−' : '+' }}</span>
+          </button>
+          <div v-if="expanded[sec.key]" class="px-3 pb-3 text-white/90 leading-snug space-y-2">
+            <div v-html="sec.html"></div>
+            <div v-if="sec.key==='emp'" class="pt-2">
+              <button class="rounded-lg bg-white/20 hover:bg-white/25 px-3 py-2 text-sm" @click.stop="openDemographics()">Улучшить анализ</button>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="mt-6 flex gap-2">
+
+      <div class="mt-4 flex gap-2">
         <button 
-          class="flex-1 rounded-xl py-2 text-sm font-medium transition-colors"
+          class="flex-1 rounded-xl py-2 text-sm font-medium text-center transition-colors"
           :class="localFeedback === 1 ? 'bg-green-500/30 text-white ring-2 ring-green-400/60' : 'bg-white/20 hover:bg-white/30 text-white'"
           @click.stop="handleLike"
         >
-          👍 Нравится
+          👍
         </button>
         <button 
-          class="flex-1 rounded-xl py-2 text-sm font-medium transition-colors"
+          class="flex-1 rounded-xl py-2 text-sm font-medium text-center transition-colors"
           :class="localFeedback === 2 ? 'bg-red-500/30 text-white ring-2 ring-red-400/60' : 'bg-white/20 hover:bg-white/30 text-white'"
           @click.stop="handleDislike"
         >
-          👎 Не нравится
+          👎
         </button>
         <button 
-          class="flex-1 bg-red-500/20 hover:bg-red-500/30 text-white rounded-xl py-2 text-sm font-medium transition-colors"
+          class="flex-1 bg-red-500/20 hover:bg-red-500/30 text-white rounded-xl py-2 text-sm font-medium text-center transition-colors"
           @click.stop="handleDelete"
         >
-          🗑️ Удалить
+          🗑️
         </button>
+      </div>
+
+      <div v-if="showDemo" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60" @click.self="closeDemographics">
+        <div class="w-[90vw] max-w-[420px] rounded-xl bg-[#0c110c] text-white p-4">
+          <h3 class="text-lg font-semibold mb-2">Уточнить данные</h3>
+          <div v-if="demoStep===1" class="space-y-3">
+            <p class="opacity-90">Ваш возрастной диапазон:</p>
+            <div class="grid grid-cols-2 gap-2">
+              <button v-for="a in ages" :key="a" :class="['px-3 py-2 rounded-lg', age===a ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15']" @click="age=a">{{ a }}</button>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+              <button class="px-3 py-2 rounded-lg bg-white/10" @click="closeDemographics">Отмена</button>
+              <button class="px-3 py-2 rounded-lg bg-white/20" :disabled="!age" @click="demoStep=2">Далее</button>
+            </div>
+          </div>
+          <div v-else class="space-y-3">
+            <p class="opacity-90">Ваш пол:</p>
+            <div class="grid grid-cols-2 gap-2">
+              <button :class="['px-3 py-2 rounded-lg', gender==='male' ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15']" @click="gender='male'">Мужской</button>
+              <button :class="['px-3 py-2 rounded-lg', gender==='female' ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15']" @click="gender='female'">Женский</button>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+              <button class="px-3 py-2 rounded-lg bg-white/10" @click="closeDemographics">Отмена</button>
+              <button class="px-3 py-2 rounded-lg bg-white/20" :disabled="!gender" @click="saveDemographics">Сохранить</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </article>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
@@ -198,26 +237,63 @@ const displayTags = computed(() => {
 })
 
 // Форматирование анализа с подзаголовками
-const formattedAnalysis = computed(() => {
-  const text = props.dream?.analysis || ''
-  if (!text) return ''
-  
-  // Заменяем подзаголовки на HTML с отступами
-  let formatted = text
-    // Жирные заголовки (**Заголовок**) с отступом сверху
-    .replace(/\*\*([^*]+)\*\*/g, '<div class="mt-3 mb-1 font-semibold text-white/95">$1</div>')
-    // Параграфы (двойной перенос строки)
-    .replace(/\n\n+/g, '</p><p class="mt-2">')
-    // Одиночные переносы строки
-    .replace(/\n/g, '<br>')
-  
-  // Оборачиваем в параграф, если не начинается с div
-  if (!formatted.startsWith('<div') && !formatted.startsWith('<p>')) {
-    formatted = '<p>' + formatted + '</p>'
+function sanitize(text:string){
+  return String(text||'')
+    .replace(/^```[\s\S]*?\n/, '')
+    .replace(/```$/,'')
+}
+
+const sections = computed(() => {
+  const raw = sanitize(props.dream?.analysis || '')
+  if (!raw) return [] as any[]
+  const map: Record<string,{key:string,title:string,text:string}> = {
+    arch: { key:'arch', title:'Архетипическая история', text:'' },
+    func: { key:'func', title:'Возможная функция сна', text:'' },
+    freud:{ key:'freud',title:'По Фрейду', text:'' },
+    jung: { key:'jung', title:'По Юнгу', text:'' },
+    emp:  { key:'emp',  title:'Эмпирический слой', text:'' }
   }
-  
-  return formatted
+  const parts: {title:string; start:number; end:number}[] = []
+  const re = /\*\*([^*]+)\*\*/g
+  let m
+  while((m=re.exec(raw))){ parts.push({ title:m[1].trim(), start:m.index, end: m.index + m[0].length }) }
+  // Арха до первого **
+  const firstStart = parts[0]?.start ?? raw.length
+  map.arch.text = raw.slice(0, firstStart).trim()
+  for(let i=0;i<parts.length;i++){
+    const t = parts[i].title.toLowerCase()
+    const body = raw.slice(parts[i].end, parts[i+1]?.start ?? raw.length).trim()
+    if (t.includes('возможная функция')) map.func.text = body
+    else if (t.includes('по фрейду')) map.freud.text = body
+    else if (t.includes('по юнгу')) map.jung.text = body
+    else if (t.includes('эмпир')) map.emp.text = body
+  }
+  const toHtml = (txt:string) => txt
+    .replace(/\n\n+/g, '</p><p class="mt-2">')
+    .replace(/\n/g, '<br>')
+    .replace(/^(.+)$/, '<p>$1')
+  const res = Object.values(map).map(s=>({ ...s, html: toHtml(s.text||'') }))
+  return res
 })
+
+const expanded = reactive<Record<string,boolean>>({ arch:true, func:false, freud:false, jung:false, emp:false })
+function toggleSection(key:string){ expanded[key] = !expanded[key] }
+
+// Demographics dialog
+const showDemo = ref(false)
+const demoStep = ref(1)
+const ages = ['0-20','20-30','30-40','40-50','50+']
+const age = ref('')
+const gender = ref('')
+function openDemographics(){ showDemo.value = true; demoStep.value=1; age.value=''; gender.value='' }
+function closeDemographics(){ showDemo.value = false }
+async function saveDemographics(){
+  try {
+    await api.setDemographics(age.value, gender.value)
+    notificationStore.success('Информация сохранена')
+    showDemo.value = false
+  } catch(e){ notificationStore.error('Не удалось сохранить') }
+}
 
 const relativeDate = computed(() => {
   if (!props.dream.created_at) return ''

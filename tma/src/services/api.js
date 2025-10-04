@@ -176,6 +176,12 @@ const apiMethods = {
     return apiClient.post('/analysis-feedback', { analysisId, feedback });
   },
 
+  // Demographics
+  setDemographics(age_range, gender) {
+    console.log('[api.js] Calling POST /set-demographics');
+    return apiClient.post('/set-demographics', { age_range, gender });
+  },
+
   // Новый: удаление анализа
   deleteAnalysis(analysisId) {
     console.log('[api.js] Calling DELETE /analysis');
