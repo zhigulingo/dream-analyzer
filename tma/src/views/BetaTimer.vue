@@ -109,17 +109,15 @@ onUnmounted(() => {
 .beta-card {
   width: 100%;
   max-width: 720px;
-  background: var(--tg-theme-secondary-bg-color);
   background: linear-gradient(167deg, rgba(191,98,237,1) 0%, rgba(112,30,153,1) 100%);
   border-radius: 36px;
   padding: 28px 18px 20px 18px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
   border: 1px solid rgba(255,255,255,0.06);
-.title { margin: 0 0 8px; font-size: 20px; }
+}
 .title { margin: 4px 0 10px; font-size: 24px; color: #fff; font-weight: 600; text-align: center; }
 .subtitle { margin: 0 0 14px; opacity: 0.95; color: #fff; text-align: center; }
 .sticker-wrap { display: flex; justify-content: center; margin-bottom: 6px; }
-.countdown { display: flex; gap: 8px; margin: 10px 0; justify-content: center; }
 .countdown { display: flex; gap: 14px; margin: 12px 0; justify-content: center; }
 .chip {
   display: inline-flex; flex-direction: column; align-items: center;
@@ -128,5 +126,6 @@ onUnmounted(() => {
   border: 1px solid #b1c3d5; border-radius: 28px; color: #fff;
 }
 .chip-ico { width: 36px; height: 36px; opacity: 0.9; }
+.num { font-size: 28px; font-weight: 700; }
 .lbl { font-size: 12px; opacity: 0.8; }
 </style>
