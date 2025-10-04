@@ -1,5 +1,8 @@
 <template>
-  <div ref="containerRef" class="sticker-container" :style="containerStyle"></div>
+  <div class="sticker-container" :style="containerStyle">
+    <div v-if="useLottie" ref="containerRef"></div>
+    <img v-else-if="imgSrc" :src="imgSrc" :width="width" :height="height" alt="sticker" />
+  </div>
   <div v-if="errorMessage" class="sticker-error">{{ errorMessage }}</div>
 </template>
 
@@ -11,6 +14,8 @@ import { inflate } from 'pako'
 interface Props {
   /** File name inside /stickers, e.g., "chat.tgs" */
   src: string
+  /** Optional: Telegram file_id to fetch via server proxy */
+  fileId?: string
   /** Width in pixels */
   width?: number
   /** Height in pixels */
@@ -34,6 +39,8 @@ const props = withDefaults(defineProps<Props>(), {
 const containerRef = ref<HTMLDivElement | null>(null)
 const animInstance = ref<lottie.AnimationItem | null>(null)
 const errorMessage = ref<string | null>(null)
+const useLottie = ref(true)
+const imgSrc = ref<string | null>(null)
 
 const containerStyle = computed(() => ({
   width: `${props.width}px`,
@@ -49,7 +56,7 @@ const destroyAnimation = () => {
   } catch (_) {}
 }
 
-const loadTgs = async () => {
+const loadFromLocalTgs = async () => {
   errorMessage.value = null
   destroyAnimation()
   if (!containerRef.value) return
@@ -63,6 +70,8 @@ const loadTgs = async () => {
     const jsonString = new TextDecoder('utf-8').decode(inflate(uint8))
     const animationData = JSON.parse(jsonString)
 
+    useLottie.value = true
+    imgSrc.value = null
     animInstance.value = lottie.loadAnimation({
       container: containerRef.value!,
       renderer: 'svg',
@@ -82,12 +91,52 @@ const loadTgs = async () => {
   }
 }
 
+const loadFromTelegram = async () => {
+  errorMessage.value = null
+  destroyAnimation()
+  try {
+    const base = import.meta.env.VITE_API_BASE_URL || ''
+    const url = `${base}/tg-sticker?file_id=${encodeURIComponent(props.fileId!)}`
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const ct = res.headers.get('Content-Type') || ''
+    const buf = await res.arrayBuffer()
+    if (ct.startsWith('image/')) {
+      // webp/png
+      useLottie.value = false
+      imgSrc.value = URL.createObjectURL(new Blob([buf], { type: ct }))
+      return
+    }
+    // assume .tgs gzipped json
+    if (!containerRef.value) return
+    const uint8 = new Uint8Array(buf)
+    const jsonString = new TextDecoder('utf-8').decode(inflate(uint8))
+    const animationData = JSON.parse(jsonString)
+    useLottie.value = true
+    imgSrc.value = null
+    animInstance.value = lottie.loadAnimation({
+      container: containerRef.value!,
+      renderer: 'svg',
+      loop: props.loop,
+      autoplay: props.autoplay,
+      animationData,
+      rendererSettings: { preserveAspectRatio: 'xMidYMid meet', progressiveLoad: true, hideOnTransparent: true }
+    })
+    animInstance.value.setSpeed(props.speed)
+  } catch (e: any) {
+    console.error('[StickerPlayer] Failed to load tg sticker', e)
+    errorMessage.value = 'Не удалось загрузить стикер'
+  }
+}
+
 onMounted(() => {
-  loadTgs()
+  if (props.fileId) loadFromTelegram()
+  else loadFromLocalTgs()
 })
 
-watch(() => props.src, () => {
-  loadTgs()
+watch(() => [props.src, props.fileId], () => {
+  if (props.fileId) loadFromTelegram()
+  else loadFromLocalTgs()
 })
 
 onBeforeUnmount(() => {

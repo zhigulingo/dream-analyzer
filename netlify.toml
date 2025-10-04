@@ -80,6 +80,11 @@
   to = "/.netlify/functions/set-demographics"
   status = 200
 
+[[redirects]]
+  from = "/api/tg-sticker"
+  to = "/.netlify/functions/tg-sticker"
+  status = 200
+
 # SPA fallback - все неизвестные роуты перенаправляем на index.html для Vue роутера
 [[redirects]]
   from = "/*"
