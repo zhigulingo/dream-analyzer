@@ -196,6 +196,8 @@ class DatabaseQueries {
                 subscription_end,
                 beta_whitelisted,
                 beta_access_at,
+                age_range,
+                gender,
                 channel_reward_claimed,
                 deep_analysis_credits
             `)

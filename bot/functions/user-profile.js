@@ -218,7 +218,9 @@ exports.handler = async (event) => {
                 deep_analyses_count: userData.deep_analyses_count || 0,
                 onboarding_stage: null,
                 beta_whitelisted: Boolean(userData.beta_whitelisted),
-                beta_access_at: userData.beta_access_at || null
+                beta_access_at: userData.beta_access_at || null,
+                age_range: userData.age_range || null,
+                gender: userData.gender || null
             };
         }
 

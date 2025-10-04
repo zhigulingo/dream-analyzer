@@ -29,7 +29,7 @@
           </button>
           <div v-if="expanded[sec.key]" class="px-3 pb-3 text-white/90 leading-snug space-y-2">
             <div v-html="sec.html"></div>
-            <div v-if="sec.key==='emp'" class="pt-2">
+            <div v-if="sec.key==='emp' && !hasDemographics" class="pt-2">
               <button class="rounded-lg bg-white/20 hover:bg-white/25 px-3 py-2 text-sm" @click.stop="openDemographics()">Улучшить анализ</button>
             </div>
           </div>
@@ -59,32 +59,34 @@
         </button>
       </div>
 
-      <div v-if="showDemo" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60" @click.self="closeDemographics">
-        <div class="w-[90vw] max-w-[420px] rounded-xl bg-[#0c110c] text-white p-4">
+      <Teleport to="body">
+      <div v-if="showDemo" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70" @click.self="closeDemographics" @wheel.prevent @touchmove.prevent>
+        <div class="w-[92vw] max-w-[440px] rounded-2xl bg-[var(--tg-theme-secondary-bg-color,#0c110c)] text-white p-4 shadow-2xl border border-white/10" @click.stop>
           <h3 class="text-lg font-semibold mb-2">Уточнить данные</h3>
           <div v-if="demoStep===1" class="space-y-3">
             <p class="opacity-90">Ваш возрастной диапазон:</p>
             <div class="grid grid-cols-2 gap-2">
-              <button v-for="a in ages" :key="a" :class="['px-3 py-2 rounded-lg', age===a ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15']" @click="age=a">{{ a }}</button>
+              <button v-for="a in ages" :key="a" :class="['px-4 py-3 rounded-xl text-sm', age===a ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15']" @click="age=a">{{ a }}</button>
             </div>
             <div class="flex justify-end gap-2 pt-2">
-              <button class="px-3 py-2 rounded-lg bg-white/10" @click="closeDemographics">Отмена</button>
-              <button class="px-3 py-2 rounded-lg bg-white/20" :disabled="!age" @click="demoStep=2">Далее</button>
+              <button class="px-4 py-2 rounded-xl bg-white/10" @click="closeDemographics">Отмена</button>
+              <button class="px-4 py-2 rounded-xl bg-white/20" :disabled="!age" @click="demoStep=2">Далее</button>
             </div>
           </div>
           <div v-else class="space-y-3">
             <p class="opacity-90">Ваш пол:</p>
             <div class="grid grid-cols-2 gap-2">
-              <button :class="['px-3 py-2 rounded-lg', gender==='male' ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15']" @click="gender='male'">Мужской</button>
-              <button :class="['px-3 py-2 rounded-lg', gender==='female' ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15']" @click="gender='female'">Женский</button>
+              <button :class="['px-4 py-3 rounded-xl text-sm', gender==='male' ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15']" @click="gender='male'">Мужской</button>
+              <button :class="['px-4 py-3 rounded-xl text-sm', gender==='female' ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15']" @click="gender='female'">Женский</button>
             </div>
             <div class="flex justify-end gap-2 pt-2">
-              <button class="px-3 py-2 rounded-lg bg-white/10" @click="closeDemographics">Отмена</button>
-              <button class="px-3 py-2 rounded-lg bg-white/20" :disabled="!gender" @click="saveDemographics">Сохранить</button>
+              <button class="px-4 py-2 rounded-xl bg-white/10" @click="closeDemographics">Отмена</button>
+              <button class="px-4 py-2 rounded-xl bg-white/20" :disabled="!gender" @click="saveDemographics">Сохранить</button>
             </div>
           </div>
         </div>
       </div>
+      </Teleport>
     </div>
   </article>
 </template>
@@ -290,10 +292,16 @@ function closeDemographics(){ showDemo.value = false }
 async function saveDemographics(){
   try {
     await api.setDemographics(age.value, gender.value)
+    try { await userStore.fetchProfile() } catch(_) {}
     notificationStore.success('Информация сохранена')
     showDemo.value = false
   } catch(e){ notificationStore.error('Не удалось сохранить') }
 }
+
+const hasDemographics = computed(()=>{
+  const p = userStore.profile || {}
+  return !!(p.age_range && p.gender)
+})
 
 const relativeDate = computed(() => {
   if (!props.dream.created_at) return ''
