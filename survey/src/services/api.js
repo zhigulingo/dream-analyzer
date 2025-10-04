@@ -82,6 +82,16 @@ export async function getSurveyStatus() {
   return data;
 }
 
+export async function getSurveyUserState(clientId) {
+  const initData = getTelegramInitData();
+  const headers = {};
+  if (initData) headers['X-Telegram-Init-Data'] = initData;
+  const params = clientId ? ('?client_id=' + encodeURIComponent(clientId)) : '';
+  const res = await fetch(base + '/survey-user-state' + params, { method: 'GET', headers });
+  if (!res.ok) return { submitted: false, approved: false };
+  try { return await res.json(); } catch { return { submitted: false, approved: false }; }
+}
+
 export async function submitSurvey(answers, clientId, sessionId) {
   // Используем fetch с keepalive, чтобы запрос не обрывался при закрытии TWA
   const url = base + '/submit-survey';

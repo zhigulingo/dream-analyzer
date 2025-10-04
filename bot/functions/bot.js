@@ -85,6 +85,41 @@ try {
     // --- Setting up Handlers ---
     logger.info("Setting up bot handlers");
 
+    // Global 5‑minute stub for any incoming messages/commands to prevent spam during beta survey
+    bot.on('message', async (ctx) => {
+        try {
+            const cache = require('./shared/services/cache-service');
+            const userId = ctx.from?.id;
+            const updateId = ctx.update?.update_id;
+            // Ignore stale updates (>60s)
+            try {
+                const msgTs = Number(ctx.message?.date || 0);
+                const ageSec = Math.floor(Date.now() / 1000) - msgTs;
+                if (ageSec > 60) return; // silent ignore
+            } catch (_) {}
+            // Idempotency by update_id (1 hour)
+            if (updateId) {
+                const idemKey = `bot:idem:update:${updateId}`;
+                if (cache.get(idemKey)) return;
+                cache.set(idemKey, true, 60 * 60 * 1000);
+            }
+            // Debounce per user (5 minutes)
+            const debounceKey = userId ? `bot:stub:5m:${userId}` : null;
+            if (debounceKey && cache.get(debounceKey)) {
+                return; // swallow within buffer window
+            }
+            if (debounceKey) cache.set(debounceKey, true, 5 * 60 * 1000);
+
+            const text = 'Мы запускаем бета-тест. Пожалуйста, заполните короткий опрос — это займёт пару минут.';
+            await messageService.sendReply(ctx, text, {
+                reply_markup: messageService.createWebAppButton('Принять участие', TMA_APP_URL)
+            });
+        } catch (e) {
+            logger.warn('Stub handler failed', { error: e?.message });
+        }
+        return; // stop further handlers
+    });
+
     // Command handlers
     bot.command("start", createStartCommandHandler(userService, messageService, TMA_APP_URL));
     bot.command("setpassword", createSetPasswordCommandHandler(userService, messageService));
@@ -140,7 +175,7 @@ try {
         }
     });
 
-    // Message handlers
+    // Message handlers (inactive due to global stub above)
     bot.on("message:text", createTextMessageHandler(userService, messageService, analysisService, TMA_APP_URL));
 
     // Payment handlers

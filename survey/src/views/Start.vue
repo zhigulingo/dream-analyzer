@@ -13,7 +13,9 @@
 
 <script setup>
 import { onMounted, onUnmounted, ref, watch } from 'vue';
-import { getSurveyStatus } from '../services/api';
+import { getSurveyStatus, getSurveyUserState } from '../services/api';
+import { useSurveyStore } from '../store/survey';
+const store = useSurveyStore();
 const emit = defineEmits(['start']);
 // Локальной кнопки нет — управление через MainButton
 function emitStart() { 
@@ -42,6 +44,25 @@ function computeCountdown(targetIso) {
 }
 
 onMounted(async () => {
+  // Если уже подавал заявку – сразу показать Finish
+  try {
+    const state = await getSurveyUserState(store.clientId);
+    if (state?.submitted) {
+      try {
+        const tg = window?.Telegram?.WebApp;
+        if (tg?.MainButton) {
+          tg.MainButton.setParams({ text: 'Заявка принята', is_active: true, is_visible: true });
+          const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} emit('start'); emit('finish'); };
+          try { tg.MainButton.offClick(handler); } catch {}
+          tg.MainButton.onClick(handler);
+          tg.MainButton.show();
+        }
+      } catch {}
+      // Перейдём сразу на finish
+      try { emit('finish'); } catch {}
+      return;
+    }
+  } catch {}
   try {
     const data = await getSurveyStatus();
     if (data.startAt) {

@@ -57,6 +57,7 @@ exports.handler = async (event) => {
     } catch (_) {}
 
     let upsertPayload = { updated_at: new Date().toISOString() };
+    let resolvedTgId = null;
     if (isFinalSubmit) {
       // финальная отправка: сохраняем все ответы и прогресс в JSON
       upsertPayload.answers = {
@@ -75,6 +76,7 @@ exports.handler = async (event) => {
       try { console.log('[submit-survey] validateTelegramData:', { valid: res?.valid, hasData: !!res?.data, userId: res?.data?.id }); } catch (_) {}
       if (res.valid && res.data && typeof res.data.id !== 'undefined') {
         upsertPayload.tg_id = res.data.id;
+        resolvedTgId = res.data.id;
         onConflictColumn = 'tg_id';
       }
     } else {
@@ -175,6 +177,21 @@ exports.handler = async (event) => {
     if (error) {
       console.error('[submit-survey] upsert error', { onConflictColumn, upsertPayloadSummary: { hasTg: !!upsertPayload.tg_id, hasClient: !!upsertPayload.client_id }, error });
       return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Database error', code: error.code, details: error.message }) };
+    }
+
+    // Уведомим пользователя в Telegram при финальной отправке анкеты
+    if (isFinalSubmit && resolvedTgId && botToken) {
+      try {
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        const text = 'Спасибо, что решили уделить время тестированию приложения. В ближайшее время мы вернемся с ответом.';
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: resolvedTgId, text })
+        });
+      } catch (notifyErr) {
+        try { console.warn('[submit-survey] failed to notify user about submission:', notifyErr?.message || notifyErr); } catch (_) {}
+      }
     }
 
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ success: true }) };
