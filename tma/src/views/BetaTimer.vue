@@ -70,34 +70,78 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Fullscreen center without scroll */
 .beta-container {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
   overflow: hidden;
 }
+
 .beta-card {
   width: 100%;
   max-width: 720px;
   background: linear-gradient(167deg, rgba(191,98,237,1) 0%, rgba(112,30,153,1) 100%);
-  border-radius: 36px;
   border-radius: 60px;
   padding: 32px 22px 26px 22px;
-  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
   border: none;
-.title { margin: 4px 0 10px; font-size: 24px; color: #fff; font-weight: 600; text-align: center; }
-.subtitle { margin: 0 0 14px; opacity: 0.95; color: #fff; text-align: center; }
-.sticker-wrap { display: flex; justify-content: center; margin-bottom: 6px; }
-.countdown { display: flex; gap: 14px; margin: 12px 0; justify-content: center; }
-.chip {
-  display: inline-flex; flex-direction: column; align-items: center;
-  gap: 14px; padding: 20px; min-width: 92px;
-  gap: 14px; padding: 24px; min-width: 120px;
-  border: 1px solid #b1c3d5; border-radius: 28px; color: #fff;
 }
-.chip-ico { width: 36px; height: 36px; opacity: 0.9; }
-.lbl { font-size: 12px; opacity: 0.8; }
+
+.title {
+  margin: 4px 0 10px;
+  font-size: 24px;
+  color: #ffffff;
+  font-weight: 600;
+  text-align: center;
+}
+
+.subtitle {
+  margin: 0 0 14px;
+  opacity: 0.95;
+  color: #ffffff;
+  text-align: center;
+}
+
+.sticker-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.countdown {
+  display: flex;
+  gap: 14px;
+  margin: 12px 0;
+  justify-content: center;
+}
+
+.chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px;
+  min-width: 120px;
+  background: rgba(177,195,213,0.10);
+  border: 1px solid #b1c3d5;
+  border-radius: 28px;
+  color: #ffffff;
+}
+
+.num {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.lbl {
+  font-size: 12px;
+  opacity: 0.8;
+}
 </style>
