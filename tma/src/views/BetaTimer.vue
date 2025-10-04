@@ -51,6 +51,8 @@ onMounted(() => {
       tg.MainButton.show()
     }
   } catch (_) {}
+  // Disable page scroll while timer screen is visible
+  try { document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; } catch(_) {}
 })
 
 function closeApp() {
@@ -66,6 +68,7 @@ onUnmounted(() => {
       tg.MainButton.offClick(closeApp)
     }
   } catch (_) {}
+  try { document.documentElement.style.overflow = ''; document.body.style.overflow = ''; } catch(_) {}
 })
 </script>
 
@@ -86,10 +89,10 @@ onUnmounted(() => {
 
 .beta-card {
   width: 100%;
-  max-width: 720px;
-  background: linear-gradient(167deg, rgba(191,98,237,1) 0%, rgba(112,30,153,1) 100%);
-  border-radius: 60px;
-  padding: 32px 22px 26px 22px;
+  max-width: 560px;
+  background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%);
+  border-radius: 20px;
+  padding: 24px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
   border: none;
 }
@@ -106,7 +109,7 @@ onUnmounted(() => {
   margin: 0 0 14px;
   opacity: 0.95;
   color: #ffffff;
-  text-align: center;
+  text-align: left;
 }
 
 .sticker-wrap {
@@ -117,18 +120,19 @@ onUnmounted(() => {
 
 .countdown {
   display: flex;
-  gap: 14px;
+  gap: 10px;
   margin: 12px 0;
-  justify-content: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
 }
 
 .chip {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 24px;
-  min-width: 120px;
+  gap: 10px;
+  padding: 16px;
+  min-width: 96px;
   background: rgba(177,195,213,0.10);
   border: 1px solid #b1c3d5;
   border-radius: 28px;
@@ -143,5 +147,6 @@ onUnmounted(() => {
 .lbl {
   font-size: 12px;
   opacity: 0.8;
+  align-self: flex-start;
 }
 </style>
