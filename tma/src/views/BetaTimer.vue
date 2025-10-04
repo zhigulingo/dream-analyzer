@@ -142,11 +142,17 @@ onUnmounted(() => {
 .num {
   font-size: 28px;
   font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  text-align: center;
+  display: block;
 }
 
 .lbl {
   font-size: 12px;
   opacity: 0.8;
-  align-self: flex-start;
+  text-align: center;
+  display: block;
 }
 </style>
