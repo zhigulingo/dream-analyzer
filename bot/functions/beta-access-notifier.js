@@ -37,7 +37,7 @@ exports.handler = async (event) => {
 
     const { data: users, error } = await supabase
       .from('users')
-      .select('id, tg_id, beta_access_at, beta_notified_access, beta_whitelisted')
+      .select('id, tg_id, beta_access_at, beta_notified_access, beta_whitelisted, subscription_type')
       .eq('beta_whitelisted', true)
       .lte('beta_access_at', nowIso)
       .or('beta_notified_access.is.null,beta_notified_access.eq.false');
@@ -49,7 +49,11 @@ exports.handler = async (event) => {
     const list = Array.isArray(users) ? users : [];
     for (const u of list) {
       await sendTelegramMessage(u.tg_id, 'Бета-доступ открыт! Вы можете пользоваться приложением — личный кабинет уже доступен.');
-      await supabase.from('users').update({ beta_notified_access: true }).eq('id', u.id);
+      const patch = { beta_notified_access: true };
+      if (String(u.subscription_type || '').toLowerCase() === 'whitelisted') {
+        patch.subscription_type = 'beta';
+      }
+      await supabase.from('users').update(patch).eq('id', u.id);
     }
 
     return { statusCode: 200, body: JSON.stringify({ notified: list.length }) };

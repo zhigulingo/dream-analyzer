@@ -9,6 +9,10 @@
 
 # Schedules removed per request; flow is DB-triggered and reactive
 
+[[scheduled.functions]]
+  name = "beta-access-notifier"
+  cron = "*/15 * * * *"
+
 # Build settings for root deployment (functions only)
 [build]
   # No build needed for root, just functions

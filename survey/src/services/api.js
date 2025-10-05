@@ -132,5 +132,20 @@ export async function submitSurveyStep({ answerKey, answerValue, index, complete
   try { return await res.json(); } catch { return { ok: res.ok }; }
 }
 
+export async function updateStartButton(buttonText = 'Заявка принята') {
+  const url = base + '/edit-start-button';
+  const headers = { 'Content-Type': 'application/json' };
+  const initData = getTelegramInitData();
+  if (initData) headers['X-Telegram-Init-Data'] = initData;
+  const payload = { text: buttonText };
+  try {
+    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload), keepalive: true, credentials: 'omit' });
+    return await res.json().catch(() => ({}));
+  } catch {
+    try { enqueuePending('/edit-start-button', payload); } catch {}
+    return { ok: false };
+  }
+}
+
 
 

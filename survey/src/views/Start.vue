@@ -13,7 +13,7 @@
 
 <script setup>
 import { onMounted, onUnmounted, ref, watch } from 'vue';
-import { getSurveyStatus, getSurveyUserState } from '../services/api';
+import { getSurveyStatus, getSurveyUserState, updateStartButton } from '../services/api';
 import { useSurveyStore } from '../store/survey';
 const store = useSurveyStore();
 const emit = defineEmits(['start']);
@@ -58,6 +58,8 @@ onMounted(async () => {
           tg.MainButton.show();
         }
       } catch {}
+      // Обновим кнопку в последнем /start сообщении, если не была обновлена ранее
+      try { updateStartButton('Заявка принята').catch(() => {}); } catch {}
       // Перейдём сразу на finish
       try { emit('finish'); } catch {}
       return;

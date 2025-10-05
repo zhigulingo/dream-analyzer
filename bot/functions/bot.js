@@ -86,9 +86,8 @@ try {
     logger.info("Setting up bot handlers");
 
     // Global 5‑minute stub for any incoming messages/commands to prevent spam during beta survey
-    bot.on('message', async (ctx) => {
+    bot.on('message', async (ctx, next) => {
         try {
-            const cache = require('./shared/services/cache-service');
             const userId = ctx.from?.id;
             const updateId = ctx.update?.update_id;
             // Ignore stale updates (>60s)
@@ -97,21 +96,10 @@ try {
                 const ageSec = Math.floor(Date.now() / 1000) - msgTs;
                 if (ageSec > 60) return; // silent ignore
             } catch (_) {}
-            // Idempotency by update_id (1 hour)
-            if (updateId) {
-                const idemKey = `bot:idem:update:${updateId}`;
-                if (cache.get(idemKey)) return;
-                cache.set(idemKey, true, 60 * 60 * 1000);
-            }
-            // Debounce per user (5 minutes)
-            const debounceKey = userId ? `bot:stub:5m:${userId}` : null;
-            if (debounceKey && cache.get(debounceKey)) {
-                return; // swallow within buffer window
-            }
-            if (debounceKey) cache.set(debounceKey, true, 5 * 60 * 1000);
 
             // Resolve user type to customize message for guests
             let isGuest = true;
+            let subType = 'guest';
             try {
                 if (userId && supabaseAdmin) {
                     const { data: u } = await supabaseAdmin
@@ -119,10 +107,29 @@ try {
                         .select('subscription_type')
                         .eq('tg_id', userId)
                         .single();
-                    const sub = String(u?.subscription_type || 'guest').toLowerCase();
-                    isGuest = (sub === 'guest');
+                    subType = String(u?.subscription_type || 'guest').toLowerCase();
+                    isGuest = (subType === 'guest');
                 }
             } catch (_) { /* default to guest */ }
+
+            // For onboarding1 users: do NOT show survey stub, allow normal handlers (dream analysis etc.)
+            if (subType === 'onboarding1') {
+                return next();
+            }
+
+            const cache = require('./shared/services/cache-service');
+            // Idempotency by update_id (1 hour) — only for stub path
+            if (updateId) {
+                const idemKey = `bot:idem:update:${updateId}`;
+                if (cache.get(idemKey)) return;
+                cache.set(idemKey, true, 60 * 60 * 1000);
+            }
+            // Debounce per user (5 minutes) — only for stub path
+            const debounceKey = userId ? `bot:stub:5m:${userId}` : null;
+            if (debounceKey && cache.get(debounceKey)) {
+                return; // swallow within buffer window
+            }
+            if (debounceKey) cache.set(debounceKey, true, 5 * 60 * 1000);
 
             let sent;
             if (isGuest) {
@@ -156,7 +163,7 @@ try {
         } catch (e) {
             logger.warn('Stub handler failed', { error: e?.message });
         }
-        return; // stop further handlers
+        return; // stop further handlers when stub path used
     });
 
     // Command handlers
