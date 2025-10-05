@@ -110,12 +110,32 @@ try {
             }
             if (debounceKey) cache.set(debounceKey, true, 5 * 60 * 1000);
 
-            const text = 'Мы запускаем бета-тест. Пожалуйста, заполните короткий опрос — это займёт пару минут.';
-            // Use URL button to open survey TMA via t.me link
-            const SURVEY_URL = process.env.SURVEY_APP_URL || 'https://t.me/dreamtestaibot/betasurvey';
-            const sent = await messageService.sendReply(ctx, text, {
-                reply_markup: { inline_keyboard: [[{ text: 'Принять участие', url: SURVEY_URL }]] }
-            });
+            // Resolve user type to customize message for guests
+            let isGuest = true;
+            try {
+                if (userId && supabaseAdmin) {
+                    const { data: u } = await supabaseAdmin
+                        .from('users')
+                        .select('subscription_type')
+                        .eq('tg_id', userId)
+                        .single();
+                    const sub = String(u?.subscription_type || 'guest').toLowerCase();
+                    isGuest = (sub === 'guest');
+                }
+            } catch (_) { /* default to guest */ }
+
+            let sent;
+            if (isGuest) {
+                const text = 'Привет! Наш бот в процессе обновления и скоро будет вновь доступен. Следи за новостями и подпишись на нашу группу: @TheDreamsHub';
+                sent = await messageService.sendReply(ctx, text);
+            } else {
+                const text = 'Мы запускаем бета-тест. Пожалуйста, заполните короткий опрос — это займёт пару минут.';
+                // Use URL button to open survey TMA via t.me link
+                const SURVEY_URL = process.env.SURVEY_APP_URL || 'https://t.me/dreamtestaibot/betasurvey';
+                sent = await messageService.sendReply(ctx, text, {
+                    reply_markup: { inline_keyboard: [[{ text: 'Принять участие', url: SURVEY_URL }]] }
+                });
+            }
             // Persist last message id for later edits
             try {
                 if (sent && sent.message_id && userId) {
