@@ -15,21 +15,16 @@ function returnToChat() {
     const tg = window?.Telegram?.WebApp;
     if (tg) {
       try { tg.HapticFeedback?.impactOccurred?.('rigid'); } catch {}
-      try { tg.expand && tg.expand(); } catch {}
-      // Используем MainButton как надёжный обработчик для Desktop
-      try {
-        tg.MainButton.setText('Закрыть');
-        tg.MainButton.show();
-        tg.MainButton.onClick(() => { tg.close?.(); tg.requestClose?.(); });
-      } catch {}
-      if (typeof tg.close === 'function') { tg.close(); return; }
-      if (typeof tg.requestClose === 'function') { tg.requestClose(); return; }
-      // На всякий случай пробуем callBackButton
-      try { tg.BackButton?.show?.(); tg.BackButton?.onClick?.(() => tg.close()); } catch {}
-      // Desktop Telegram: вернуться в чат внутри Telegram, без внешнего браузера
+      try { tg.expand?.(); } catch {}
+      // Пытаемся закрыть приложение стандартными методами
+      try { if (typeof tg.close === 'function') { tg.close(); return; } } catch {}
+      try { if (typeof tg.requestClose === 'function') { tg.requestClose(); return; } } catch {}
+      // Фолбэк через BackButton
+      try { tg.BackButton?.show?.(); tg.BackButton?.onClick?.(() => tg.close?.()); } catch {}
+      // Фолбэк: открыть чат бота в Telegram
       try {
         const botUrl = import.meta.env.VITE_TG_BOT_URL;
-        if (tg.openTelegramLink && botUrl) { setTimeout(() => tg.openTelegramLink(botUrl), 120); return; }
+        if (tg.openTelegramLink && botUrl) { tg.openTelegramLink(botUrl); return; }
       } catch {}
     }
   } catch {}
@@ -53,7 +48,7 @@ onMounted(() => {
       if (tg?.expand) tg.expand();
       try { tg.MainButton.setParams({ text: 'Закрыть', is_active: true, is_visible: true }); } catch { tg.MainButton.setText('Закрыть'); }
       tg.MainButton.show();
-      const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} returnToChat(); };
+      const handler = () => { returnToChat(); };
       try { tg.MainButton.offClick(handler); } catch {}
       tg.MainButton.onClick(handler);
       onUnmounted(() => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} });
