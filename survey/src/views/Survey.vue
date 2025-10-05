@@ -1,5 +1,5 @@
 <template>
-  <div class="survey-overlay" ref="dragHost">
+  <div class="survey-overlay" :class="{ 'keyboard-open': keyboardOpen }" ref="dragHost">
     <div class="survey-viewport">
       <div class="survey-top">
         <ProgressBar :current="store.index" :total="store.total" />
@@ -56,6 +56,7 @@ import { A11y, Keyboard } from 'swiper/modules';
 import 'swiper/css';
 
 const store = useSurveyStore();
+const keyboardOpen = ref(false);
 
 // Swiper instance
 const modules = [A11y, Keyboard];
@@ -115,6 +116,27 @@ onMounted(() => {
   el.addEventListener('touchstart', onTouchStart, { passive: true });
   el.addEventListener('touchmove', onTouchMove, { passive: false });
   el.addEventListener('touchend', onTouchEnd, { passive: true });
+  // Детектируем показ клавиатуры (visualViewport) и фокус на текстовых полях
+  try {
+    const baseInnerH = window.innerHeight;
+    const vv = window.visualViewport;
+    function onVVResize() {
+      try {
+        const h = vv?.height || baseInnerH;
+        keyboardOpen.value = h < baseInnerH - 120;
+      } catch {}
+    }
+    vv?.addEventListener('resize', onVVResize);
+    el.addEventListener('focusin', (e) => {
+      const t = e.target;
+      if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT')) keyboardOpen.value = true;
+    }, { passive: true });
+    el.addEventListener('focusout', (e) => {
+      const t = e.target;
+      if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT')) keyboardOpen.value = false;
+    }, { passive: true });
+    onBeforeUnmount(() => { try { vv?.removeEventListener('resize', onVVResize); } catch {} });
+  } catch {}
   // Глобальная блокировка прокрутки страницы во время опроса
   try {
     document.documentElement.classList.add('no-scroll');
@@ -160,7 +182,13 @@ function resolveProps(q) {
   const base = { title: q.title };
   if (q.type === 'slider') return { ...base, min: q.min, max: q.max };
   if (q.type === 'buttons') return { ...base, options: q.options };
-  return base;
+  // Примеры для открытых вопросов
+  const placeholders = {
+    q7: 'Например: «Хочу лучше понимать символику снов и их влияние на настроение»',
+    q8: 'Например: «Авто‑расшифровка символов, дневник сна, рекомендации по улучшению сна»'
+  };
+  const key = q.key;
+  return { ...base, placeholder: placeholders[key] || 'Например: опишите ваш ответ' };
 }
 
 function goToSlide(i) {
@@ -250,6 +278,11 @@ async function onCommit(q, i) {
   .onboarding-card { width: calc(100% - 24px); padding: 18px; border-radius: 16px; }
 }
 .inactive { opacity: 1; }
+
+/* Режим с открытой клавиатурой: скрываем peek и растягиваем активную карточку */
+.keyboard-open :deep(.onboarding-swiper) { --peek: 0; padding-top: 8px; padding-bottom: 8px; }
+.keyboard-open :deep(.onboarding-swiper .swiper-wrapper) { align-items: stretch; }
+.keyboard-open :deep(.slidePeek) { height: 100%; }
 </style>
 
 
