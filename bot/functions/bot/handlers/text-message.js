@@ -264,14 +264,17 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             
         } catch (error) {
             console.error(`[TextMessageHandler] Error processing dream for ${userId}:`, error);
-            
+
             // Clean up status message if it exists
             if (statusMessage) {
                 await messageService.deleteStatusMessage(chatId, statusMessage);
             }
-            
-            // Show error to user (do not decrement token on failure)
-            await messageService.sendReply(ctx, messages.get('analysis.error', { details: error.message || 'Неизвестная ошибка' }));
+
+            // Return user's dream text back to avoid losing it
+            const back = (dreamText || '').toString().slice(0, 3000) + ((dreamText || '').length > 3000 ? '…' : '');
+            const isTokens = /Insufficient tokens/i.test(error?.message || '');
+            const prefix = isTokens ? messages.get('analysis.insufficient_tokens') : 'Ошибка приложения. Ваш сон не проанализирован:';
+            await messageService.sendReply(ctx, `${prefix}\n\n${back}`);
         }
         finally {
             try {

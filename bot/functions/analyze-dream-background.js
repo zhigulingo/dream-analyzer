@@ -63,6 +63,14 @@ async function embed(text) {
     }
 }
 
+function truncateDream(text, maxLen = 3000) {
+    try {
+        const t = String(text || '');
+        if (t.length <= maxLen) return t;
+        return t.slice(0, maxLen) + '…';
+    } catch { return ''; }
+}
+
 exports.handler = async (event) => {
     if (String(process.env.BOT_PAUSED || 'true').toLowerCase() === 'true') {
         return { statusCode: 202, body: 'Paused' };
@@ -141,7 +149,8 @@ exports.handler = async (event) => {
         } catch (e) {
             console.error('[analyze-dream-background] Gemini error', e?.message);
             if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
-            await sendTelegramMessage(chatId, `Произошла ошибка при анализе сна: ${e.message || 'Неизвестная ошибка'}. Попробуйте позже.`);
+            const back = truncateDream(dreamText);
+            await sendTelegramMessage(chatId, `Ошибка приложения. Ваш сон не проанализирован:\n\n${back}`);
             return { statusCode: 202, body: 'Gemini error' };
         }
 
@@ -174,6 +183,13 @@ exports.handler = async (event) => {
         return { statusCode: 202, body: 'OK' };
     } catch (e) {
         console.error('[analyze-dream-background] Fatal error', e?.message);
+        try {
+            const body = JSON.parse(event.body || '{}');
+            const { chatId, statusMessageId, dreamText } = body;
+            if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
+            const back = truncateDream(dreamText);
+            await sendTelegramMessage(chatId, `Ошибка приложения. Ваш сон не проанализирован:\n\n${back}`);
+        } catch (_) {}
         return { statusCode: 202, body: 'Error' };
     }
 };
