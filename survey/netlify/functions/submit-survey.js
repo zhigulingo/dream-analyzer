@@ -194,6 +194,23 @@ exports.handler = async (event) => {
       return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Database error', code: error.code, details: error.message }) };
     }
 
+    // Обновим тип подписки пользователя на 'beta' (новая семантика: подал заявку, ждёт одобрения)
+    if (isFinalSubmit && resolvedTgId) {
+      try {
+        const { data: urow } = await supabase
+          .from('users')
+          .select('id, beta_whitelisted, subscription_type')
+          .eq('tg_id', resolvedTgId)
+          .single();
+        if (urow && !urow.beta_whitelisted) {
+          await supabase
+            .from('users')
+            .update({ subscription_type: 'beta' })
+            .eq('id', urow.id);
+        }
+      } catch (_) {}
+    }
+
     // Уведомим пользователя в Telegram при финальной отправке анкеты
     if (isFinalSubmit && resolvedTgId && botToken) {
       try {

@@ -50,7 +50,35 @@ exports.handler = async () => {
       }
 
       if (!u.beta_notified_approved) {
-        await sendTelegramMessage(u.tg_id, 'Вы одобрены для бета-теста! Доступ к приложению откроется в течение 24 часов. Мы уведомим вас, когда всё будет готово.');
+        try {
+          // Удалим прошлое "approved" если по какой-то причине есть
+          const { data: rows } = await supabase
+            .from('beta_survey_responses')
+            .select('answers')
+            .eq('tg_id', u.tg_id)
+            .limit(1);
+          const ans = Array.isArray(rows) && rows[0] && rows[0].answers && typeof rows[0].answers === 'object' ? rows[0].answers : {};
+          const status = ans._status || {};
+          const prevApproved = status.approved?.message_id;
+          if (prevApproved) {
+            try {
+              const url = `https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`;
+              await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: u.tg_id, message_id: prevApproved }) });
+            } catch (_) {}
+          }
+          // Отправим "одобрены"
+          const urlSend = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+          const resp = await fetch(urlSend, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: u.tg_id, text: 'Вы одобрены для бета-теста! Доступ к приложению откроется в течение 24 часов. Мы уведомим вас, когда всё будет готово.' }) });
+          const dataResp = await resp.json().catch(() => ({}));
+          const msgId = dataResp?.result?.message_id || null;
+          const newStatus = { ...(ans._status || {}), approved: { message_id: msgId, chat_id: u.tg_id, updated_at: new Date().toISOString() } };
+          await supabase
+            .from('beta_survey_responses')
+            .update({ answers: { ...ans, _status: newStatus } })
+            .eq('tg_id', u.tg_id);
+        } catch (_) {
+          await sendTelegramMessage(u.tg_id, 'Вы одобрены для бета-теста! Доступ к приложению откроется в течение 24 часов. Мы уведомим вас, когда всё будет готово.');
+        }
         await supabase.from('users').update({ beta_notified_approved: true }).eq('id', u.id);
       }
 

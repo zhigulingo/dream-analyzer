@@ -112,8 +112,8 @@ try {
                 }
             } catch (_) { /* default to guest */ }
 
-            // For onboarding1 users: do NOT show survey stub, allow normal handlers (dream analysis etc.)
-            if (subType === 'onboarding1') {
+            // For any non-guest user types (beta, whitelisted, onboarding, free, paid): skip stub and allow normal handlers
+            if (subType !== 'guest') {
                 return next();
             }
 

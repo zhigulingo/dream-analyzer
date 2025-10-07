@@ -93,7 +93,9 @@ exports.handler = async (event) => {
             const accessAt = u?.beta_access_at ? new Date(u.beta_access_at).getTime() : null;
             if (!u || !u.beta_whitelisted) {
                 if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
-                await sendTelegramMessage(chatId, 'Бета-доступ пока закрыт. Заполните анкету и дождитесь одобрения.');
+                const sub = String(u?.subscription_type || '').toLowerCase();
+                const txt = sub === 'beta' ? 'Ваша заявка на участие в бета-тесте принята. Дождитесь одобрения.' : 'Бета-доступ пока закрыт. Заполните анкету и дождитесь одобрения.';
+                await sendTelegramMessage(chatId, txt);
                 return { statusCode: 202, body: 'Not whitelisted' };
             }
             if (accessAt && accessAt > Date.now()) {
@@ -104,7 +106,7 @@ exports.handler = async (event) => {
                 await sendTelegramMessage(chatId, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
                 return { statusCode: 202, body: 'Access pending' };
             }
-            if (String(u.subscription_type || '').toLowerCase() === 'beta') {
+            if (u.beta_whitelisted && (!accessAt || accessAt <= Date.now())) {
                 if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
                 await sendTelegramMessage(chatId, 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).');
                 return { statusCode: 202, body: 'Onboarding pending' };

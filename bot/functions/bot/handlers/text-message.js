@@ -77,7 +77,11 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             const nowTs = Date.now();
             if (!gate?.whitelisted) {
                 try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
-                await messageService.sendReply(ctx, 'Бета-доступ пока закрыт. Заполните анкету и дождитесь одобрения — мы пришлём уведомление.');
+                const sub = String(gate?.subscription_type || '').toLowerCase();
+                const txt = sub === 'beta'
+                  ? 'Ваша заявка на участие в бета-тесте принята. Пожалуйста, дождитесь одобрения — мы уведомим вас.'
+                  : 'Бета-доступ пока закрыт. Заполните анкету и дождитесь одобрения — мы пришлём уведомление.';
+                await messageService.sendReply(ctx, txt);
                 return;
             }
             if (gate?.accessAt && gate.accessAt > nowTs) {
@@ -85,13 +89,72 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 const hours = Math.floor(secs / 3600);
                 const minutes = Math.floor((secs % 3600) / 60);
                 try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
-                await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
+                // Удаляем предыдущее DM-уведомление "одобрены", если есть, и сохраняем текущее как stage=soon
+                try {
+                    const { createClient } = require('@supabase/supabase-js');
+                    const SUPABASE_URL = process.env.SUPABASE_URL;
+                    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+                    if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+                        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+                        const { data: rows } = await supabase
+                            .from('beta_survey_responses')
+                            .select('answers')
+                            .eq('tg_id', userId)
+                            .limit(1);
+                        const ans = Array.isArray(rows) && rows[0] && rows[0].answers && typeof rows[0].answers === 'object' ? rows[0].answers : {};
+                        const status = ans._status || {};
+                        const prevApprovedId = status.approved?.message_id;
+                        if (prevApprovedId) { try { await messageService.deleteMessage(chatId, prevApprovedId); } catch (_) {} }
+                        // удалим прошлое "soon" если было
+                        const prevSoonId = status.soon?.message_id;
+                        if (prevSoonId) { try { await messageService.deleteMessage(chatId, prevSoonId); } catch (_) {} }
+                        const sentSoon = await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
+                        const newStatus = { ...status, approved: undefined, soon: { message_id: sentSoon?.message_id, chat_id: chatId, updated_at: new Date().toISOString() } };
+                        await supabase
+                            .from('beta_survey_responses')
+                            .update({ answers: { ...ans, _status: newStatus } })
+                            .eq('tg_id', userId);
+                    } else {
+                        await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
+                    }
+                } catch (_) {
+                    await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
+                }
                 return;
             }
-            // Block analysis for 'beta' until onboarding started
-            if (String(gate?.subscription_type || '').toLowerCase() === 'beta') {
+            // Block analysis after access opens until onboarding is started (semantics: whitelisted and access time passed)
+            if (gate?.whitelisted && (!gate?.accessAt || gate.accessAt <= nowTs)) {
                 try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
-                await messageService.sendReply(ctx, 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).');
+                // Сохраняем/обновляем onboarding-уведомление, не удаляя предыдущие (чтобы оставалось вместе с "soon")
+                try {
+                    const { createClient } = require('@supabase/supabase-js');
+                    const SUPABASE_URL = process.env.SUPABASE_URL;
+                    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+                    let sentOnb;
+                    if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+                        sentOnb = await messageService.sendReply(ctx, 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).');
+                        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+                        const { data: rows } = await supabase
+                            .from('beta_survey_responses')
+                            .select('answers')
+                            .eq('tg_id', userId)
+                            .limit(1);
+                        const ans = Array.isArray(rows) && rows[0] && rows[0].answers && typeof rows[0].answers === 'object' ? rows[0].answers : {};
+                        const status = ans._status || {};
+                        // удалим прошлое onboarding сообщение, чтобы не плодить дубликаты
+                        const prevOnbId = status.onboarding?.message_id;
+                        if (prevOnbId) { try { await messageService.deleteMessage(chatId, prevOnbId); } catch (_) {} }
+                        const newStatus = { ...status, onboarding: { message_id: sentOnb?.message_id, chat_id: chatId, updated_at: new Date().toISOString() } };
+                        await supabase
+                            .from('beta_survey_responses')
+                            .update({ answers: { ...ans, _status: newStatus } })
+                            .eq('tg_id', userId);
+                    } else {
+                        await messageService.sendReply(ctx, 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).');
+                    }
+                } catch (_) {
+                    await messageService.sendReply(ctx, 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).');
+                }
                 return;
             }
         } catch (e) {
@@ -135,6 +198,33 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             console.log(`[TextMessageHandler] Deleting user message ${messageId}`);
             await messageService.deleteMessage(chatId, messageId);
             
+            // Перед началом анализа удалим сохранённое сообщение про онбординг, если было
+            try {
+                const { createClient } = require('@supabase/supabase-js');
+                const SUPABASE_URL = process.env.SUPABASE_URL;
+                const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+                if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+                    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
+                    const { data: rows } = await supabase
+                        .from('beta_survey_responses')
+                        .select('answers')
+                        .eq('tg_id', userId)
+                        .limit(1);
+                    const ans = Array.isArray(rows) && rows[0] && rows[0].answers && typeof rows[0].answers === 'object' ? rows[0].answers : {};
+                    const status = ans._status || {};
+                    const onbId = status.onboarding?.message_id;
+                    if (onbId) {
+                        try { await messageService.deleteMessage(chatId, onbId); } catch (_) {}
+                        const newStatus = { ...status };
+                        delete newStatus.onboarding;
+                        await supabase
+                            .from('beta_survey_responses')
+                            .update({ answers: { ...ans, _status: newStatus } })
+                            .eq('tg_id', userId);
+                    }
+                }
+            } catch (_) {}
+
             // Send status message
             statusMessage = await messageService.sendStatusMessage(ctx, messages.get('analysis.status'));
             if (!statusMessage) {
