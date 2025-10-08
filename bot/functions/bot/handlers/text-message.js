@@ -76,16 +76,18 @@ function createTextMessageHandler(userService, messageService, analysisService, 
         try {
             const gate = await userService.isBetaWhitelisted(userId);
             const nowTs = Date.now();
+            const sub = String(gate?.subscription_type || '').toLowerCase();
+
             if (!gate?.whitelisted) {
-                try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
-                const sub = String(gate?.subscription_type || '').toLowerCase();
-                const txt = sub === 'beta'
-                  ? 'Ваша заявка на участие в бета-тесте принята. Пожалуйста, дождитесь одобрения — мы уведомим вас.'
-                  : 'Бета-доступ пока закрыт. Заполните анкету и дождитесь одобрения — мы пришлём уведомление.';
-                await messageService.sendReply(ctx, `${txt}\n\n${back}`);
-                return;
+                // Only gate users who applied to beta; allow others (free/premium/etc.) to proceed
+                if (sub === 'beta') {
+                    try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
+                    const txt = 'Ваша заявка на участие в бета-тесте принята. Пожалуйста, дождитесь одобрения — мы уведомим вас.';
+                    await messageService.sendReply(ctx, `${txt}\n\n${back}`);
+                    return;
+                }
             }
-            if (gate?.accessAt && gate.accessAt > nowTs) {
+            if (gate?.whitelisted && gate?.accessAt && gate.accessAt > nowTs) {
                 const secs = Math.max(0, Math.floor((gate.accessAt - nowTs) / 1000));
                 const hours = Math.floor(secs / 3600);
                 const minutes = Math.floor((secs % 3600) / 60);
@@ -123,8 +125,8 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 }
                 return;
             }
-            // Block analysis after access opens until onboarding is started (semantics: whitelisted and access time passed)
-            if (gate?.whitelisted && (!gate?.accessAt || gate.accessAt <= nowTs)) {
+            // After access opens: gate only if user is explicitly in 'whitelisted' state; allow free/premium/etc.
+            if (gate?.whitelisted && (!gate?.accessAt || gate.accessAt <= nowTs) && sub === 'whitelisted') {
                 try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
                 // Сохраняем/обновляем onboarding-уведомление, не удаляя предыдущие (чтобы оставалось вместе с "soon")
                 try {

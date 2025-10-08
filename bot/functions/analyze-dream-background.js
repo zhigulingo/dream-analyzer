@@ -99,29 +99,37 @@ exports.handler = async (event) => {
             if (uErr && uErr.code !== 'PGRST116') {
                 throw uErr;
             }
+            const sub = String(u?.subscription_type || '').toLowerCase();
             const accessAt = u?.beta_access_at ? new Date(u.beta_access_at).getTime() : null;
+
+            // Gate only for beta application/whitelist states; allow normal plans (free/premium) to proceed
             if (!u || !u.beta_whitelisted) {
-                if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
-                const sub = String(u?.subscription_type || '').toLowerCase();
-                const back = truncateDream(dreamText);
-                const txt = sub === 'beta' ? 'Ваша заявка на участие в бета-тесте принята. Дождитесь одобрения.' : 'Бета-доступ пока закрыт. Заполните анкету и дождитесь одобрения.';
-                await sendTelegramMessage(chatId, `${txt}\n\n${back}`);
-                return { statusCode: 202, body: 'Not whitelisted' };
-            }
-            if (accessAt && accessAt > Date.now()) {
-                const secs = Math.max(0, Math.floor((accessAt - Date.now()) / 1000));
-                const hours = Math.floor(secs / 3600);
-                const minutes = Math.floor((secs % 3600) / 60);
-                if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
-                const back = truncateDream(dreamText);
-                await sendTelegramMessage(chatId, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.\n\n${back}`);
-                return { statusCode: 202, body: 'Access pending' };
-            }
-            if (u.beta_whitelisted && (!accessAt || accessAt <= Date.now())) {
-                if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
-                const back = truncateDream(dreamText);
-                await sendTelegramMessage(chatId, `Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).\n\n${back}`);
-                return { statusCode: 202, body: 'Onboarding pending' };
+                if (sub === 'beta') {
+                    if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
+                    const back = truncateDream(dreamText);
+                    const txt = 'Ваша заявка на участие в бета-тесте принята. Дождитесь одобрения.';
+                    await sendTelegramMessage(chatId, `${txt}\n\n${back}`);
+                    return { statusCode: 202, body: 'Not whitelisted (applied)' };
+                }
+                // else: not whitelisted and not in beta application → proceed without gating
+            } else {
+                // Whitelisted: gate only if access not opened yet OR explicit onboarding state
+                if (accessAt && accessAt > Date.now()) {
+                    const secs = Math.max(0, Math.floor((accessAt - Date.now()) / 1000));
+                    const hours = Math.floor(secs / 3600);
+                    const minutes = Math.floor((secs % 3600) / 60);
+                    if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
+                    const back = truncateDream(dreamText);
+                    await sendTelegramMessage(chatId, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.\n\n${back}`);
+                    return { statusCode: 202, body: 'Access pending' };
+                }
+                if (sub === 'whitelisted') {
+                    if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
+                    const back = truncateDream(dreamText);
+                    await sendTelegramMessage(chatId, `Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).\n\n${back}`);
+                    return { statusCode: 202, body: 'Onboarding pending' };
+                }
+                // else (e.g., free/premium etc.) → proceed
             }
         } catch (e) {
             console.warn('[analyze-dream-background] Whitelist check failed', e?.message);
