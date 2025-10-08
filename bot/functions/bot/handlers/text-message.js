@@ -70,6 +70,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
         }
         
         console.log(`[TextMessageHandler] Processing dream for ${userId} (update ${updateId})`);
+        const back = (dreamText || '').toString().slice(0, 3000) + ((dreamText || '').length > 3000 ? '…' : '');
 
         // Beta whitelist gate: only allow approved users to run analysis
         try {
@@ -81,7 +82,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 const txt = sub === 'beta'
                   ? 'Ваша заявка на участие в бета-тесте принята. Пожалуйста, дождитесь одобрения — мы уведомим вас.'
                   : 'Бета-доступ пока закрыт. Заполните анкету и дождитесь одобрения — мы пришлём уведомление.';
-                await messageService.sendReply(ctx, txt);
+                await messageService.sendReply(ctx, `${txt}\n\n${back}`);
                 return;
             }
             if (gate?.accessAt && gate.accessAt > nowTs) {
@@ -108,17 +109,17 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                         // удалим прошлое "soon" если было
                         const prevSoonId = status.soon?.message_id;
                         if (prevSoonId) { try { await messageService.deleteMessage(chatId, prevSoonId); } catch (_) {} }
-                        const sentSoon = await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
+                        const sentSoon = await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.\n\n${back}`);
                         const newStatus = { ...status, approved: undefined, soon: { message_id: sentSoon?.message_id, chat_id: chatId, updated_at: new Date().toISOString() } };
                         await supabase
                             .from('beta_survey_responses')
                             .update({ answers: { ...ans, _status: newStatus } })
                             .eq('tg_id', userId);
                     } else {
-                        await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
+                        await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.\n\n${back}`);
                     }
                 } catch (_) {
-                    await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
+                    await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.\n\n${back}`);
                 }
                 return;
             }
@@ -132,7 +133,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                     const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
                     let sentOnb;
                     if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
-                        sentOnb = await messageService.sendReply(ctx, 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).');
+                        sentOnb = await messageService.sendReply(ctx, `Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).\n\n${back}`);
                         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
                         const { data: rows } = await supabase
                             .from('beta_survey_responses')
@@ -150,17 +151,17 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                             .update({ answers: { ...ans, _status: newStatus } })
                             .eq('tg_id', userId);
                     } else {
-                        await messageService.sendReply(ctx, 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).');
+                        await messageService.sendReply(ctx, `Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).\n\n${back}`);
                     }
                 } catch (_) {
-                    await messageService.sendReply(ctx, 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).');
+                    await messageService.sendReply(ctx, `Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).\n\n${back}`);
                 }
                 return;
             }
         } catch (e) {
             console.warn('[TextMessageHandler] Whitelist check failed:', e?.message);
             try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
-            await messageService.sendReply(ctx, 'Техническая ошибка. Попробуйте позже.');
+            await messageService.sendReply(ctx, `Техническая ошибка. Попробуйте позже.\n\n${back}`);
             return;
         }
 

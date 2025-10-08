@@ -103,8 +103,9 @@ exports.handler = async (event) => {
             if (!u || !u.beta_whitelisted) {
                 if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
                 const sub = String(u?.subscription_type || '').toLowerCase();
+                const back = truncateDream(dreamText);
                 const txt = sub === 'beta' ? 'Ваша заявка на участие в бета-тесте принята. Дождитесь одобрения.' : 'Бета-доступ пока закрыт. Заполните анкету и дождитесь одобрения.';
-                await sendTelegramMessage(chatId, txt);
+                await sendTelegramMessage(chatId, `${txt}\n\n${back}`);
                 return { statusCode: 202, body: 'Not whitelisted' };
             }
             if (accessAt && accessAt > Date.now()) {
@@ -112,18 +113,21 @@ exports.handler = async (event) => {
                 const hours = Math.floor(secs / 3600);
                 const minutes = Math.floor((secs % 3600) / 60);
                 if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
-                await sendTelegramMessage(chatId, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`);
+                const back = truncateDream(dreamText);
+                await sendTelegramMessage(chatId, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.\n\n${back}`);
                 return { statusCode: 202, body: 'Access pending' };
             }
             if (u.beta_whitelisted && (!accessAt || accessAt <= Date.now())) {
                 if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
-                await sendTelegramMessage(chatId, 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).');
+                const back = truncateDream(dreamText);
+                await sendTelegramMessage(chatId, `Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).\n\n${back}`);
                 return { statusCode: 202, body: 'Onboarding pending' };
             }
         } catch (e) {
             console.warn('[analyze-dream-background] Whitelist check failed', e?.message);
             if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
-            await sendTelegramMessage(chatId, 'Временная ошибка. Попробуйте позже.');
+            const back = truncateDream(dreamText);
+            await sendTelegramMessage(chatId, `Временная ошибка. Попробуйте позже.\n\n${back}`);
             return { statusCode: 202, body: 'Whitelist check error' };
         }
 
