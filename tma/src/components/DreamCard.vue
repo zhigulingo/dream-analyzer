@@ -22,13 +22,38 @@
       </div>
 
       <div class="space-y-2">
+        <div v-if="hvdc" class="rounded-lg bg-white/10 px-3 py-2">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-semibold">HVdC</span>
+            <span v-if="hvdc.demographic_used && hvdc.norm_group" class="text-xs opacity-80">норма: {{ hvdc.norm_group.age_range }}, {{ hvdc.norm_group.gender==='male'?'муж.':'жен.' }}</span>
+          </div>
+          <div class="space-y-2">
+            <div v-for="row in hvdcRows" :key="row.key">
+              <div class="flex justify-between text-xs opacity-80">
+                <span>{{ row.label }}</span>
+                <span>
+                  {{ row.value }}%
+                  <template v-if="row.norm !== null"> / {{ row.norm }}%</template>
+                  <template v-if="row.delta !== null">
+                    <span :class="row.delta>0 ? 'text-green-300' : (row.delta<0 ? 'text-red-300' : 'text-white/70')">
+                      ({{ row.delta>0? '+'+row.delta : row.delta }}pp)
+                    </span>
+                  </template>
+                </span>
+              </div>
+              <div class="h-2 w-full bg-white/10 rounded overflow-hidden">
+                <div class="h-full bg-white/60" :style="{ width: row.value+'%' }"></div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div v-for="sec in sections" :key="sec.key" class="rounded-lg bg-white/10">
           <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection(sec.key)">
             <span>{{ sec.title }}</span>
             <span class="opacity-80">{{ expanded[sec.key] ? '−' : '+' }}</span>
           </button>
           <div v-if="expanded[sec.key]" class="px-3 pb-3 text-white/90 leading-snug space-y-2">
-            <div v-html="sec.html"></div>
+            <div v-if="!(sec.key==='emp' && !hasDemographics && hvdc)" v-html="sec.html"></div>
             <div v-if="sec.key==='emp' && !hasDemographics" class="pt-2">
               <button class="rounded-lg bg-white/20 hover:bg-white/25 px-3 py-2 text-sm" @click.stop="openDemographics()">Улучшить анализ</button>
             </div>
@@ -270,6 +295,9 @@ const sections = computed(() => {
     else if (t.includes('по юнгу')) map.jung.text = body
     else if (t.includes('эмпир')) map.emp.text = body
   }
+  if (!hasDemographics.value && hvdc.value) {
+    map.emp.text = ''
+  }
   const toHtml = (txt:string) => txt
     .replace(/\n\n+/g, '</p><p class="mt-2">')
     .replace(/\n/g, '<br>')
@@ -293,7 +321,7 @@ async function saveDemographics(){
   try {
     await api.setDemographics(age.value, gender.value)
     try { await userStore.fetchProfile() } catch(_) {}
-    notificationStore.success('Информация сохранена')
+    notificationStore.success('Готово! Дальнейшие анализы будут учитывать эти данные')
     showDemo.value = false
   } catch(e){ notificationStore.error('Не удалось сохранить') }
 }
@@ -301,6 +329,27 @@ async function saveDemographics(){
 const hasDemographics = computed(()=>{
   const p = userStore.profile || {}
   return !!(p.age_range && p.gender)
+})
+
+const hvdc = computed(()=> props.dream?.deep_source?.hvdc || null)
+const hvdcRows = computed(()=>{
+  const map = [
+    { key:'characters', label:'Персонажи' },
+    { key:'emotions',   label:'Эмоции' },
+    { key:'actions',    label:'Действия' },
+    { key:'symbols',    label:'Символы' },
+    { key:'settings',   label:'Сцены' }
+  ]
+  const dist = hvdc.value?.distribution || {}
+  const norm = hvdc.value?.norm || null
+  const cmp  = hvdc.value?.comparison || null
+  return map.map(m=>({
+    key: m.key,
+    label: m.label,
+    value: Number(dist[m.key] ?? 0),
+    norm: norm ? Number(norm[m.key] ?? 0) : null,
+    delta: cmp ? Number(cmp[m.key] ?? 0) : null
+  }))
 })
 
 const relativeDate = computed(() => {

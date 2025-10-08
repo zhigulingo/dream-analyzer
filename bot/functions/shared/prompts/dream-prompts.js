@@ -132,6 +132,83 @@ Text:
 Rules:
 - Output ONLY JSON, no markdown, no comments.
 - If information is missing, infer best possible based on the text.`
+    ,
+
+    /**
+     * HVdC distribution without demographics (strict JSON)
+     * Keys must sum to ~100 (±3pp tolerance)
+     */
+    hvdc_json_nodemo: `Проанализируй сон и верни СТРОГО JSON с распределением по укрупнённым категориям HVdC (проценты, целые числа, сумма ≈ 100):
+{
+  "schema": "hvdc_v1",
+  "distribution": {
+    "characters": number,  // Про персонажей/социальные фигуры
+    "emotions": number,    // Эмоции/аффекты
+    "actions": number,     // Действия/взаимодействия
+    "symbols": number,     // Символы/объекты
+    "settings": number     // Места/сцены/контексты
+  }
+}
+
+Сон:
+"[DREAM_TEXT]"
+
+Правила:
+- Ответь ТОЛЬКО JSON без форматирования/комментариев.
+- Числа — целые проценты; допускается погрешность суммирования до 3 п.п.
+- Не добавляй текстовый анализ.`,
+
+    /**
+     * HVdC distribution with demographics and norm comparison (strict JSON)
+     */
+    hvdc_json_demo: `Проанализируй сон и верни СТРОГО JSON c распределением HVdC (проценты) и сравнением с нормой для указанной демографической группы, если ниже присутствует раздел «Норма HVdC (контекст)».
+Структура ответа:
+{
+  "schema": "hvdc_v1",
+  "distribution": { "characters": number, "emotions": number, "actions": number, "symbols": number, "settings": number },
+  "comparison": { // Разница «мой сон минус норма», проценты (целые или десятичные)
+    "characters": number,
+    "emotions": number,
+    "actions": number,
+    "symbols": number,
+    "settings": number
+  }
+}
+
+Сон:
+"[DREAM_TEXT]"
+
+Ниже (в том же тексте после пустой строки) может быть раздел:
+Норма HVdC (контекст): <несколько абзацев>
+
+Правила:
+- Ответь ТОЛЬКО JSON, без пояснений.
+- Если контекст отсутствует или непонятен — верни только distribution без comparison.
+- Проценты — целые числа для distribution; comparison допустим с десятичными.`,
+
+    /**
+     * Parse free text stats into strict HVdC JSON norm (helper)
+     */
+    hvdc_stats_parse: `Преобразуй текст со статистикой HVdC в СТРОГИЙ JSON распределения (целые проценты, сумма ≈ 100):
+{
+  "schema": "hvdc_v1",
+  "distribution": {
+    "characters": number,
+    "emotions": number,
+    "actions": number,
+    "symbols": number,
+    "settings": number
+  }
+}
+
+Текст:
+"""
+[DREAM_TEXT]
+"""
+
+Правила:
+- Ответь только JSON, без комментариев.
+- Если встречаются диапазоны — округляй к ближайшему целому.`
 };
 
 /**

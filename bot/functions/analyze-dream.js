@@ -5,6 +5,7 @@ const userCacheService = require('./shared/services/user-cache-service');
 const { createSuccessResponse, createErrorResponse } = require('./shared/middleware/error-handler');
 const geminiService = require('./shared/services/gemini-service');
 const embeddingService = require('./shared/services/embedding-service');
+const hvdcService = require('./shared/services/hvdc-service');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -222,11 +223,21 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
 
     // Analyze dream (с учётом найденного контекста из базы знаний)
     let analysisResult;
+    let hvdcResult = null;
     try {
         const knowledgeMatches = await retrieveKnowledgeContext(supabase, dreamText);
         const augmentedDreamText = buildContextAugmentedDreamText(dreamText, knowledgeMatches);
         const raw = await getGeminiAnalysisRaw(augmentedDreamText);
         analysisResult = parseAnalysisWithMeta(raw, dreamText);
+        // Demographics for HVdC
+        try {
+            const { data: demoRow } = await supabase
+                .from('users')
+                .select('age_range, gender')
+                .eq('id', userDbId)
+                .single();
+            hvdcResult = await hvdcService.computeHVDC({ supabase, dreamText, age_range: demoRow?.age_range, gender: demoRow?.gender });
+        } catch (_) { hvdcResult = null; }
     } catch (error) {
         throw createApiError(error.message || 'Analysis failed.', 500);
     }
@@ -247,7 +258,8 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
                 analysis: analysisResult?.analysis || '',
                 deep_source: { 
                     title: finalTitle,
-                    tags: finalTags
+                    tags: finalTags,
+                    hvdc: hvdcResult || null
                 }
             });
         if (insertError) {
@@ -284,7 +296,8 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
     return createSuccessResponse({ 
         analysis: analysisResult?.analysis || '',
         title: analysisResult?.title || null,
-        tags: Array.isArray(analysisResult?.tags) ? analysisResult.tags : []
+        tags: Array.isArray(analysisResult?.tags) ? analysisResult.tags : [],
+        hvdc: hvdcResult || null
     }, corsHeaders);
 }
 
