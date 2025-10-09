@@ -56,6 +56,30 @@ async function retrieveNormChunks(supabase, age_range, gender) {
   } catch (_) { return []; }
 }
 
+async function retrieveNormFromTable(supabase, age_range, gender) {
+  if (!supabase) return null;
+  const order = [
+    { age: age_range || 'any', gen: gender || 'any' },
+    { age: age_range || 'any', gen: 'any' },
+    { age: 'any', gen: gender || 'any' },
+    { age: 'any', gen: 'any' }
+  ];
+  for (const key of order) {
+    try {
+      const { data, error } = await supabase
+        .from('hvdc_norms')
+        .select('distribution,id')
+        .eq('age_range', key.age)
+        .eq('gender', key.gen)
+        .maybeSingle();
+      if (!error && data && data.distribution) {
+        return { norm: normalizeDistribution(data.distribution), sourceIds: [data.id] };
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
 async function parseNormFromText(text) {
   try {
     const prompt = require('../prompts/dream-prompts').getPrompt(PROMPT_KEYS.PARSE_STATS, text);
@@ -93,12 +117,19 @@ async function computeHVDC({ supabase, dreamText, age_range, gender }) {
     let norm = null; let normSourceIds = [];
 
     if (hasDemo) {
-      const chunks = await retrieveNormChunks(supabase, age_range, gender);
-      const { norm: parsedNorm, sourceIds } = await buildNormFromChunks(chunks);
-      norm = parsedNorm; normSourceIds = sourceIds;
-      if (chunks?.length) {
-        const lines = chunks.slice(0,3).map((c,i)=>`(${i+1}) ${c.title || 'Статистика'}\n${c.chunk}`);
-        normCtxText = `Норма HVdC (контекст):\n${lines.join('\n\n')}`;
+      // 1) Try explicit hvdc_norms table
+      const fromTable = await retrieveNormFromTable(supabase, age_range, gender);
+      if (fromTable?.norm) {
+        norm = fromTable.norm; normSourceIds = fromTable.sourceIds || [];
+      } else {
+        // 2) Fallback: try RAG knowledge chunks (optional)
+        const chunks = await retrieveNormChunks(supabase, age_range, gender);
+        const { norm: parsedNorm, sourceIds } = await buildNormFromChunks(chunks);
+        norm = parsedNorm; normSourceIds = sourceIds;
+        if (chunks?.length) {
+          const lines = chunks.slice(0,3).map((c,i)=>`(${i+1}) ${c.title || 'Статистика'}\n${c.chunk}`);
+          normCtxText = `Норма HVdC (контекст):\n${lines.join('\n\n')}`;
+        }
       }
     }
 
