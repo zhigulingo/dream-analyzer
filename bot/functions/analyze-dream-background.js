@@ -141,12 +141,14 @@ exports.handler = async (event) => {
 
         // Retrieve RAG context if possible
         let augmented = dreamText;
+        let knowledgeMatches = [];
         try {
             const qEmb = await embed(dreamText);
             if (Array.isArray(qEmb)) {
                 const { data, error } = await supabase.rpc('match_knowledge', { query_embedding: qEmb, match_limit: 5, min_similarity: 0.6 });
                 if (error) console.warn('[analyze-dream-background] match_knowledge error', error?.message);
                 const matches = Array.isArray(data) ? data : [];
+                knowledgeMatches = matches;
                 console.log(`[analyze-dream-background] RAG matches: ${matches.length}`);
                 if (matches.length) {
                     const ctx = matches.slice(0, 5).map((item, idx) => `(${idx + 1}) ${item.title || 'Контекст'}\n${item.chunk || ''}`).join('\n\n');
@@ -168,6 +170,11 @@ exports.handler = async (event) => {
         }
 
         const parsed = parseAnalysisWithMeta(analysisText, dreamText);
+        // Prefer DB symbols from knowledge matches
+        try {
+            const dbSymbols = (knowledgeMatches || []).filter(it => String(it.category || '').toLowerCase() === 'symbols').map(it => it.title).filter(Boolean);
+            if (dbSymbols.length) parsed.tags = dbSymbols.slice(0, 5);
+        } catch (_) {}
         // HVdC computation (non-blocking)
         let hvdcResult = null;
         try {

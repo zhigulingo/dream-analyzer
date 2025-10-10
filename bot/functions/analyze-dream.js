@@ -229,6 +229,13 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
         const augmentedDreamText = buildContextAugmentedDreamText(dreamText, knowledgeMatches);
         const raw = await getGeminiAnalysisRaw(augmentedDreamText);
         analysisResult = parseAnalysisWithMeta(raw, dreamText);
+        // Prefer DB symbols from knowledge_matches over LLM tags
+        try {
+            const dbSymbols = (knowledgeMatches || []).filter(it => String(it.category || '').toLowerCase() === 'symbols').map(it => it.title).filter(Boolean);
+            if (dbSymbols.length) {
+                analysisResult.tags = dbSymbols.slice(0, 5);
+            }
+        } catch (_) {}
         // Demographics for HVdC
         try {
             const { data: demoRow } = await supabase
