@@ -31,7 +31,7 @@
           <div class="rounded-lg bg-white/10">
             <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection(sec.key)">
               <span>{{ sec.title }}</span>
-              <span class="opacity-80 inline-block" :style="{ fontSize: '130%', transform: expanded[sec.key] ? 'rotate(90deg)' : 'rotate(0deg)' }">›</span>
+              <span class="opacity-80 inline-block" :style="{ fontSize: '130%' }">{{ expanded[sec.key] ? '−' : '+' }}</span>
             </button>
             <div v-if="expanded[sec.key]" class="px-3 pb-3 text-white/90 leading-snug space-y-2">
               <template v-if="sec.key !== 'hvdc'">
@@ -57,9 +57,9 @@
                       <div class="relative h-full bg-white/70" :style="{ width: row.value+'%' }"></div>
                     </div>
                   </div>
-                  <div class="pt-2 text-xs opacity-80 flex items-center gap-4">
-                    <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/70"></span> ваш сон</span>
-                    <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/20"></span> {{ hvdcLegend }}</span>
+                  <div class="pt-2 text-xs opacity-80 flex flex-wrap items-center gap-4">
+                    <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/70 shrink-0"></span> ваш сон</span>
+                    <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/20 shrink-0"></span> {{ hvdcLegend }}</span>
                   </div>
                   <div class="text-xs opacity-70 flex items-start gap-2">
                     <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px]">i</span>
@@ -253,12 +253,26 @@ function extractTitleFromText(text) {
   return toTitleCase(picked.join(' '))
 }
 
+function refineTitle(t) {
+  if (!t) return ''
+  let s = String(t).toLowerCase().replace(/["'«»]/g,'').trim()
+  s = s.replace(/^(приснилось|снилось|сон о|сон про|сон|мне снится|мне приснилось)\s+/i,'')
+  s = s.replace(/\s+/g,' ').trim()
+  const words = s.split(' ').filter(Boolean).slice(0,3)
+  if (!words.length) return ''
+  return words.map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ')
+}
+
 const displayTitle = computed(() => {
-  const deepTitle = props.dream?.deep_source?.title
-  if (deepTitle && typeof deepTitle === 'string' && deepTitle.trim().length) return deepTitle.trim()
+  const deepTitle = refineTitle(props.dream?.deep_source?.title)
+  if (deepTitle) return deepTitle
   const tags = (props.dream?.deep_source?.tags || []).filter(Boolean)
-  if (tags.length) return tags.slice(0,2).join(' • ')
-  const t = extractTitleFromText(props.dream?.dream_text)
+  if (tags.length) {
+    const a = String(tags[0]||'').trim()
+    const b = String(tags[1]||'').trim()
+    return (a && b) ? `${a} и ${b}` : (a || b) || 'Без названия'
+  }
+  const t = refineTitle(extractTitleFromText(props.dream?.dream_text))
   return t || 'Без названия'
 })
 
@@ -360,9 +374,11 @@ const hvdcLegend = computed(()=>{
   const g = hvdc.value?.norm_group || null
   if (!g) return 'общая статистика'
   const gender = String(g.gender || '').toLowerCase()
-  const gRu = gender === 'male' ? 'общая статистика по вашим данным [муж.]' : (gender === 'female' ? 'общая статистика по вашим данным [жен.]' : 'общая статистика')
-  const age = g.age_range ? ` [${g.age_range}]` : ''
-  return `${gRu}${age}`
+  const gShort = gender === 'male' ? 'муж.' : (gender === 'female' ? 'жен.' : '')
+  const age = g.age_range || ''
+  const ageText = age ? `${age} лет` : ''
+  const tail = [gShort, ageText].filter(Boolean).join(' ')
+  return tail ? `общая статистика* для ${tail}` : 'общая статистика'
 })
 
 const relativeDate = computed(() => {
