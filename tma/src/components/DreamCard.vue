@@ -299,6 +299,49 @@ function sanitize(text:string){
     .replace(/```$/,'')
 }
 
+const dreamType = computed(()=> props.dream?.deep_source?.dream_type || null)
+
+function buildWorkHtml(){
+  const dt = dreamType.value
+  if (!dt || !dt.dominant) return ''
+  const type = String(dt.dominant).toLowerCase()
+  if (type === 'memory') {
+    return [
+      '<div class="space-y-2">',
+      '<div class="font-semibold">🌙 Сон-Память</div>',
+      '<p class="opacity-90">Переработка недавнего опыта, соединение нового с прошлым.</p>',
+      '<ol class="list-decimal pl-5 space-y-1">',
+      '<li><span class="font-semibold">Отрази:</span> Вспомни, что происходило последние 1–2 дня. Какие события могли попасть в сон?</li>',
+      '<li><span class="font-semibold">Соедини:</span> Отметь, какие элементы сна перекликаются с реальностью — это завершает «архивацию» опыта.</li>',
+      '</ol>',
+      '</div>'
+    ].join('')
+  }
+  if (type === 'emotion') {
+    return [
+      '<div class="space-y-2">',
+      '<div class="font-semibold">⚡️ Сон-Эмоция</div>',
+      '<p class="opacity-90">Проживание и нейтрализация сильных чувств.</p>',
+      '<ol class="list-decimal pl-5 space-y-1">',
+      '<li><span class="font-semibold">Почувствуй:</span> Определи, какая эмоция была самой сильной во сне. Где она чувствуется в теле сейчас?</li>',
+      '<li><span class="font-semibold">Услышь:</span> Представь, что главный персонаж сна говорит тебе что-то. Что он хочет, чтобы ты понял?</li>',
+      '</ol>',
+      '</div>'
+    ].join('')
+  }
+  // anticipation
+  return [
+    '<div class="space-y-2">',
+    '<div class="font-semibold">🔮 Сон-Предвосхищение</div>',
+    '<p class="opacity-90">Тренировка будущих ситуаций и реакций.</p>',
+    '<ol class="list-decimal pl-5 space-y-1">',
+    '<li><span class="font-semibold">Представь:</span> Как бы ты хотел повести себя, если бы это произошло в реальности?</li>',
+    '<li><span class="font-semibold">Расшифруй:</span> Какой символ кажется ключевым? Что он может говорить о твоих страхах или намерениях?</li>',
+    '</ol>',
+    '</div>'
+  ].join('')
+}
+
 const sections = computed(() => {
   const raw = sanitize(props.dream?.analysis || '')
   if (!raw) return [] as any[]
@@ -332,10 +375,18 @@ const sections = computed(() => {
   if (archIdx !== -1) {
     res.splice(archIdx + 1, 0, { key:'hvdc', title:'Контент анализ', text:'', html:'' } as any)
   }
+  // Вставляем «Поработай со сном» после блока «Возможная функция сна» если есть тип сна
+  const workHtml = buildWorkHtml()
+  if (workHtml) {
+    const funcIdx = res.findIndex(s=>s.key==='func')
+    const item:any = { key:'work', title:'Поработай со сном', text:'', html: workHtml }
+    if (funcIdx !== -1) res.splice(funcIdx + 1, 0, item)
+    else res.push(item)
+  }
   return res
 })
 
-const expanded = reactive<Record<string,boolean>>({ arch:true, hvdc:false, func:false, freud:false, jung:false })
+const expanded = reactive<Record<string,boolean>>({ arch:true, hvdc:false, func:false, work:false, freud:false, jung:false })
 function toggleSection(key:string){ expanded[key] = !expanded[key] }
 
 // Demographics dialog
