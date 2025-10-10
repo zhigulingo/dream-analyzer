@@ -22,7 +22,10 @@
           <span class="opacity-80 text-pink-400" style="font-size:130%; font-family: ui-rounded, -apple-system, system-ui, 'SF Pro Rounded', 'Segoe UI', Roboto, Arial;">“</span>
         </div>
         <div class="px-3 pb-3 text-white/90 leading-snug">
-          <p class="opacity-90">{{ dream.dream_text }}</p>
+          <p :class="['opacity-90', dreamCollapsed ? 'clamp-5' : '']">{{ dream.dream_text }}</p>
+          <div class="mt-2 flex justify-end">
+            <button class="text-sm font-semibold opacity-80 hover:opacity-100" @click.stop="dreamCollapsed = !dreamCollapsed">{{ dreamCollapsed ? '+' : '−' }}</button>
+          </div>
         </div>
       </div>
 
@@ -155,6 +158,7 @@ import { useUserStore } from '@/stores/user.js'
 import { useNotificationStore } from '@/stores/notifications.js'
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
+const dreamCollapsed = ref(true)
 
 const localFeedback = computed({
   get: () => (props.dream?.user_feedback ?? props.dream?.deep_source?.user_feedback ?? 0),
@@ -260,20 +264,26 @@ function refineTitle(t) {
   s = s.replace(/\s+/g,' ').trim()
   const words = s.split(' ').filter(Boolean).slice(0,3)
   if (!words.length) return ''
-  return words.map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ')
+  return words.join(' ')
+}
+
+function toSentenceCase(s){
+  if (!s) return ''
+  const lower = String(s).toLowerCase()
+  return lower.charAt(0).toUpperCase() + lower.slice(1)
 }
 
 const displayTitle = computed(() => {
   const deepTitle = refineTitle(props.dream?.deep_source?.title)
-  if (deepTitle) return deepTitle
+  if (deepTitle) return toSentenceCase(deepTitle)
   const tags = (props.dream?.deep_source?.tags || []).filter(Boolean)
   if (tags.length) {
     const a = String(tags[0]||'').trim()
     const b = String(tags[1]||'').trim()
-    return (a && b) ? `${a} и ${b}` : (a || b) || 'Без названия'
+    return toSentenceCase((a && b) ? `${a} и ${b}` : (a || b) || 'Без названия')
   }
   const t = refineTitle(extractTitleFromText(props.dream?.dream_text))
-  return t || 'Без названия'
+  return toSentenceCase(t || 'Без названия')
 })
 
 const displayTags = computed(() => {
@@ -402,4 +412,14 @@ const relativeDate = computed(() => {
     return props.dream.created_at
   }
 })
+</script>
+
+<style scoped>
+.clamp-5 {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>
 </script>
