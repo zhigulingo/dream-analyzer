@@ -170,10 +170,18 @@ exports.handler = async (event) => {
         }
 
         const parsed = parseAnalysisWithMeta(analysisText, dreamText);
-        // Prefer DB symbols from knowledge matches
+        // Prefer DB symbols from knowledge matches (fallback to wider search)
         try {
-            const dbSymbols = (knowledgeMatches || []).filter(it => String(it.category || '').toLowerCase() === 'symbols').map(it => it.title).filter(Boolean);
-            if (dbSymbols.length) parsed.tags = dbSymbols.slice(0, 5);
+            let dbSymbols = (knowledgeMatches || [])
+              .filter(it => String(it.category || '').toLowerCase() === 'symbols')
+              .map(it => it.title).filter(Boolean);
+            if (!dbSymbols.length) {
+              const { data: more } = await supabase.rpc('match_knowledge', { query_embedding: await embed(dreamText), match_limit: 20, min_similarity: 0.55 });
+              dbSymbols = (Array.isArray(more) ? more : [])
+                .filter(it => String(it.category || '').toLowerCase() === 'symbols')
+                .map(it => it.title).filter(Boolean);
+            }
+            if (dbSymbols.length) parsed.tags = Array.from(new Set(dbSymbols)).slice(0, 5);
         } catch (_) {}
         // HVdC computation (non-blocking)
         let hvdcResult = null;

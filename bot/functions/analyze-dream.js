@@ -231,9 +231,21 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
         analysisResult = parseAnalysisWithMeta(raw, dreamText);
         // Prefer DB symbols from knowledge_matches over LLM tags
         try {
-            const dbSymbols = (knowledgeMatches || []).filter(it => String(it.category || '').toLowerCase() === 'symbols').map(it => it.title).filter(Boolean);
+            let dbSymbols = (knowledgeMatches || [])
+                .filter(it => String(it.category || '').toLowerCase() === 'symbols')
+                .map(it => it.title).filter(Boolean);
+            if (!dbSymbols.length) {
+                const { data: more } = await supabase.rpc('match_knowledge', {
+                    query_embedding: await embeddingService.embed(dreamText),
+                    match_limit: 20,
+                    min_similarity: 0.55
+                });
+                dbSymbols = (Array.isArray(more) ? more : [])
+                    .filter(it => String(it.category || '').toLowerCase() === 'symbols')
+                    .map(it => it.title).filter(Boolean);
+            }
             if (dbSymbols.length) {
-                analysisResult.tags = dbSymbols.slice(0, 5);
+                analysisResult.tags = Array.from(new Set(dbSymbols)).slice(0, 5);
             }
         } catch (_) {}
         // Demographics for HVdC

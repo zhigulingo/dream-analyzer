@@ -58,10 +58,13 @@
                     </div>
                   </div>
                   <div class="pt-2 text-xs opacity-80 flex items-center gap-4">
-                    <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full inline-block bg-white/70"></span> белая — ваша статистика</span>
-                    <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full inline-block bg-white/20"></span> светлая — средняя по DreamBank+SDDB</span>
+                    <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/70"></span> ваш сон</span>
+                    <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/20"></span> {{ hvdcLegend }}</span>
                   </div>
-                  <p class="text-xs opacity-70">Контент‑анализ по схеме HVdC; сравнение с демографическими нормами (DreamBank, SDDB).</p>
+                  <div class="text-xs opacity-70 flex items-start gap-2">
+                    <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px]">i</span>
+                    <span>Контент‑анализ по схеме HVdC; сравнение с демографическими нормами (DreamBank, SDDB).</span>
+                  </div>
                 </div>
               </template>
             </div>
@@ -251,7 +254,10 @@ function extractTitleFromText(text) {
 }
 
 const displayTitle = computed(() => {
-  // Заголовок должен отражать пользовательское описание сна
+  const deepTitle = props.dream?.deep_source?.title
+  if (deepTitle && typeof deepTitle === 'string' && deepTitle.trim().length) return deepTitle.trim()
+  const tags = (props.dream?.deep_source?.tags || []).filter(Boolean)
+  if (tags.length) return tags.slice(0,2).join(' • ')
   const t = extractTitleFromText(props.dream?.dream_text)
   return t || 'Без названия'
 })
@@ -348,6 +354,15 @@ const hvdcRows = computed(()=>{
     norm: norm ? Number(norm[m.key] ?? 0) : null,
     delta: cmp ? Number(cmp[m.key] ?? 0) : null
   }))
+})
+
+const hvdcLegend = computed(()=>{
+  const g = hvdc.value?.norm_group || null
+  if (!g) return 'общая статистика'
+  const gender = String(g.gender || '').toLowerCase()
+  const gRu = gender === 'male' ? 'общая статистика по вашим данным [муж.]' : (gender === 'female' ? 'общая статистика по вашим данным [жен.]' : 'общая статистика')
+  const age = g.age_range ? ` [${g.age_range}]` : ''
+  return `${gRu}${age}`
 })
 
 const relativeDate = computed(() => {

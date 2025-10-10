@@ -15,7 +15,8 @@ function clampPercent(n) {
 }
 
 function normalizeDistribution(dist) {
-  const keys = ['characters','emotions','actions','symbols','settings'];
+  // Only 4 buckets: characters, emotions, actions, settings
+  const keys = ['characters','emotions','actions','settings'];
   const out = {};
   let sum = 0;
   for (const k of keys) {
@@ -34,7 +35,7 @@ function normalizeDistribution(dist) {
 }
 
 function buildComparison(dist, norm) {
-  const keys = ['characters','emotions','actions','symbols','settings'];
+  const keys = ['characters','emotions','actions','settings'];
   const cmp = {};
   for (const k of keys) {
     const a = Number(dist?.[k] ?? 0);
@@ -149,7 +150,15 @@ async function computeHVDC({ supabase, dreamText, age_range, gender }) {
       }
     }
     if (!obj || typeof obj !== 'object') throw new Error('HVDC JSON parse failed');
-    const distribution = normalizeDistribution(obj.distribution || {});
+    // Map any 5-bucket payloads to 4-bucket by ignoring 'symbols'
+    const rawDist = obj.distribution || {};
+    const four = {
+      characters: rawDist.characters,
+      emotions: rawDist.emotions,
+      actions: rawDist.actions,
+      settings: rawDist.settings
+    };
+    const distribution = normalizeDistribution(four);
     const result = {
       schema: 'hvdc_v1',
       distribution,
@@ -157,7 +166,13 @@ async function computeHVDC({ supabase, dreamText, age_range, gender }) {
       norm_group: hasDemo ? { age_range, gender } : null
     };
     if (hasDemo) {
-      const finalNorm = norm || (obj.norm ? normalizeDistribution(obj.norm) : null);
+      const rawNorm = obj.norm ? {
+        characters: obj.norm.characters,
+        emotions: obj.norm.emotions,
+        actions: obj.norm.actions,
+        settings: obj.norm.settings
+      } : null;
+      const finalNorm = norm || (rawNorm ? normalizeDistribution(rawNorm) : null);
       if (finalNorm) {
         result.norm = finalNorm;
         result.comparison = buildComparison(distribution, finalNorm);

@@ -142,7 +142,6 @@ Rules:
     "characters": number,  // Про персонажей/социальные фигуры
     "emotions": number,    // Эмоции/аффекты
     "actions": number,     // Действия/взаимодействия
-    "symbols": number,     // Символы/объекты
     "settings": number     // Места/сцены/контексты
   }
 }
@@ -162,12 +161,11 @@ Rules:
 Структура ответа:
 {
   "schema": "hvdc_v1",
-  "distribution": { "characters": number, "emotions": number, "actions": number, "symbols": number, "settings": number },
+  "distribution": { "characters": number, "emotions": number, "actions": number, "settings": number },
   "comparison": { // Разница «мой сон минус норма», проценты (целые или десятичные)
     "characters": number,
     "emotions": number,
     "actions": number,
-    "symbols": number,
     "settings": number
   }
 }
@@ -193,7 +191,6 @@ Rules:
     "characters": number,
     "emotions": number,
     "actions": number,
-    "symbols": number,
     "settings": number
   }
 }
