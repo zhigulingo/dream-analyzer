@@ -4,6 +4,7 @@ const { createClient } = require('@supabase/supabase-js');
 const geminiService = require('./shared/services/gemini-service');
 const embeddingService = require('./shared/services/embedding-service');
 const hvdcService = require('./shared/services/hvdc-service');
+const dreamTypeService = require('./shared/services/dream-type-service');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -185,6 +186,7 @@ exports.handler = async (event) => {
         } catch (_) {}
         // HVdC computation (non-blocking)
         let hvdcResult = null;
+        let dreamType = null;
         try {
             const { data: demoRow } = await supabase
               .from('users')
@@ -193,6 +195,9 @@ exports.handler = async (event) => {
               .single();
             hvdcResult = await hvdcService.computeHVDC({ supabase, dreamText, age_range: demoRow?.age_range, gender: demoRow?.gender });
         } catch (_) { hvdcResult = null; }
+        try {
+            dreamType = await dreamTypeService.computeDreamType({ dreamText });
+        } catch (_) { dreamType = null; }
 
         // Save to DB
         try {
@@ -200,7 +205,7 @@ exports.handler = async (event) => {
                 user_id: userDbId,
                 dream_text: dreamText,
                 analysis: parsed.analysis || analysisText || '',
-                deep_source: { title: parsed.title || null, tags: parsed.tags || [], hvdc: hvdcResult || null }
+                deep_source: { title: parsed.title || null, tags: parsed.tags || [], hvdc: hvdcResult || null, dream_type: dreamType || null }
             });
         } catch (e) { console.warn('[analyze-dream-background] Save error', e?.message); }
 

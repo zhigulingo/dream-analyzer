@@ -6,6 +6,7 @@ const { createSuccessResponse, createErrorResponse } = require('./shared/middlew
 const geminiService = require('./shared/services/gemini-service');
 const embeddingService = require('./shared/services/embedding-service');
 const hvdcService = require('./shared/services/hvdc-service');
+const dreamTypeService = require('./shared/services/dream-type-service');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -224,6 +225,7 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
     // Analyze dream (с учётом найденного контекста из базы знаний)
     let analysisResult;
     let hvdcResult = null;
+    let dreamType = null;
     try {
         const knowledgeMatches = await retrieveKnowledgeContext(supabase, dreamText);
         const augmentedDreamText = buildContextAugmentedDreamText(dreamText, knowledgeMatches);
@@ -257,6 +259,10 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
                 .single();
             hvdcResult = await hvdcService.computeHVDC({ supabase, dreamText, age_range: demoRow?.age_range, gender: demoRow?.gender });
         } catch (_) { hvdcResult = null; }
+        // Dream Type classification (memory/emotion/anticipation)
+        try {
+            dreamType = await dreamTypeService.computeDreamType({ dreamText });
+        } catch (_) { dreamType = null; }
     } catch (error) {
         throw createApiError(error.message || 'Analysis failed.', 500);
     }
@@ -278,7 +284,8 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
                 deep_source: { 
                     title: finalTitle,
                     tags: finalTags,
-                    hvdc: hvdcResult || null
+                    hvdc: hvdcResult || null,
+                    dream_type: dreamType || null
                 }
             });
         if (insertError) {
