@@ -16,49 +16,55 @@
           {{ tag }}
         </span>
       </div>
-      <div>
-        <h4 class="font-semibold mb-1">Сон:</h4>
-        <p class="leading-snug opacity-90">{{ dream.dream_text }}</p>
+      <div class="rounded-lg bg-white/10 border-l-4 border-pink-400">
+        <div class="px-3 py-2 font-semibold flex items-center justify-between">
+          <span>Сон</span>
+          <span class="opacity-80">“”</span>
+        </div>
+        <div class="px-3 pb-3 text-white/90 leading-snug">
+          <p class="opacity-90">{{ dream.dream_text }}</p>
+        </div>
       </div>
 
       <div class="space-y-2">
-        <div v-if="hvdc" class="rounded-lg bg-white/10 px-3 py-2">
-          <div class="flex items-center justify-between mb-2">
-            <span class="font-semibold">HVdC</span>
-            <span v-if="hvdc.demographic_used && hvdc.norm_group" class="text-xs opacity-80">норма: {{ hvdc.norm_group.age_range }}, {{ hvdc.norm_group.gender==='male'?'муж.':'жен.' }}</span>
+        <template v-for="(sec, idx) in sections" :key="sec.key">
+          <div class="rounded-lg bg-white/10">
+            <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection(sec.key)">
+              <span>{{ sec.title }}</span>
+              <span class="opacity-80">{{ expanded[sec.key] ? '▴' : '▾' }}</span>
+            </button>
+            <div v-if="expanded[sec.key]" class="px-3 pb-3 text-white/90 leading-snug space-y-2">
+              <div v-html="sec.html"></div>
+            </div>
           </div>
-          <div class="space-y-2">
-            <div v-for="row in hvdcRows" :key="row.key">
-              <div class="flex justify-between text-xs opacity-80">
-                <span>{{ row.label }}</span>
-                <span>
-                  {{ row.value }}%
-                  <template v-if="row.norm !== null"> / {{ row.norm }}%</template>
-                  <template v-if="row.delta !== null">
-                    <span :class="row.delta>0 ? 'text-green-300' : (row.delta<0 ? 'text-red-300' : 'text-white/70')">
-                      ({{ row.delta>0? '+'+row.delta : row.delta }}pp)
-                    </span>
-                  </template>
-                </span>
-              </div>
-              <div class="h-2 w-full bg-white/10 rounded overflow-hidden">
-                <div class="h-full bg-white/60" :style="{ width: row.value+'%' }"></div>
+          <!-- После архетипической истории размещаем HVdC отдельной карточкой -->
+          <div v-if="idx===0 && hvdc" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 flex items-center justify-between">
+              <span class="font-semibold">HVdC</span>
+              <span v-if="hvdc.demographic_used && hvdc.norm_group" class="text-xs opacity-80">норма: {{ hvdc.norm_group.age_range }}, {{ hvdc.norm_group.gender==='male'?'муж.':'жен.' }}</span>
+            </div>
+            <div class="px-3 pb-3 space-y-2">
+              <div v-for="row in hvdcRows" :key="row.key">
+                <div class="flex justify-between text-xs opacity-80">
+                  <span>{{ row.label }}</span>
+                  <span>
+                    {{ row.value }}%
+                    <template v-if="row.norm !== null"> / {{ row.norm }}%</template>
+                    <template v-if="row.delta !== null">
+                      <span :class="row.delta>0 ? 'text-green-300' : (row.delta<0 ? 'text-red-300' : 'text-white/70')">
+                        ({{ row.delta>0? '+'+row.delta : row.delta }}pp)
+                      </span>
+                    </template>
+                  </span>
+                </div>
+                <div class="relative h-2 w-full bg-white/10 rounded overflow-hidden">
+                  <div v-if="row.norm !== null" class="absolute inset-y-0 left-0 bg-white/20" :style="{ width: row.norm+'%' }"></div>
+                  <div class="relative h-full bg-white/70" :style="{ width: row.value+'%' }"></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div v-for="sec in sections" :key="sec.key" class="rounded-lg bg-white/10">
-          <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection(sec.key)">
-            <span>{{ sec.title }}</span>
-            <span class="opacity-80">{{ expanded[sec.key] ? '−' : '+' }}</span>
-          </button>
-          <div v-if="expanded[sec.key]" class="px-3 pb-3 text-white/90 leading-snug space-y-2">
-            <div v-if="!(sec.key==='emp' && !hasDemographics && hvdc)" v-html="sec.html"></div>
-            <div v-if="sec.key==='emp' && !hasDemographics" class="pt-2">
-              <button class="rounded-lg bg-white/20 hover:bg-white/25 px-3 py-2 text-sm" @click.stop="openDemographics()">Улучшить анализ</button>
-            </div>
-          </div>
-        </div>
+        </template>
       </div>
 
       <div class="mt-4 flex gap-2">
@@ -277,8 +283,7 @@ const sections = computed(() => {
     arch: { key:'arch', title:'Архетипическая история', text:'' },
     func: { key:'func', title:'Возможная функция сна', text:'' },
     freud:{ key:'freud',title:'По Фрейду', text:'' },
-    jung: { key:'jung', title:'По Юнгу', text:'' },
-    emp:  { key:'emp',  title:'Эмпирический слой', text:'' }
+    jung: { key:'jung', title:'По Юнгу', text:'' }
   }
   const parts: {title:string; start:number; end:number}[] = []
   const re = /\*\*([^*]+)\*\*/g
@@ -293,10 +298,6 @@ const sections = computed(() => {
     if (t.includes('возможная функция')) map.func.text = body
     else if (t.includes('по фрейду')) map.freud.text = body
     else if (t.includes('по юнгу')) map.jung.text = body
-    else if (t.includes('эмпир')) map.emp.text = body
-  }
-  if (!hasDemographics.value && hvdc.value) {
-    map.emp.text = ''
   }
   const toHtml = (txt:string) => txt
     .replace(/\n\n+/g, '</p><p class="mt-2">')
@@ -306,7 +307,7 @@ const sections = computed(() => {
   return res
 })
 
-const expanded = reactive<Record<string,boolean>>({ arch:true, func:false, freud:false, jung:false, emp:false })
+const expanded = reactive<Record<string,boolean>>({ arch:true, func:false, freud:false, jung:false })
 function toggleSection(key:string){ expanded[key] = !expanded[key] }
 
 // Demographics dialog
@@ -337,7 +338,6 @@ const hvdcRows = computed(()=>{
     { key:'characters', label:'Персонажи' },
     { key:'emotions',   label:'Эмоции' },
     { key:'actions',    label:'Действия' },
-    { key:'symbols',    label:'Символы' },
     { key:'settings',   label:'Сцены' }
   ]
   const dist = hvdc.value?.distribution || {}
