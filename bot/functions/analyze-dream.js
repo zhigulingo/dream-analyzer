@@ -323,7 +323,8 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
         analysis: analysisResult?.analysis || '',
         title: analysisResult?.title || null,
         tags: Array.isArray(analysisResult?.tags) ? analysisResult.tags : [],
-        hvdc: hvdcResult || null
+        hvdc: hvdcResult || null,
+        dream_type: dreamType || null
     }, corsHeaders);
 }
 
