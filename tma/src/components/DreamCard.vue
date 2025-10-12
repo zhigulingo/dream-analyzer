@@ -305,6 +305,12 @@ function sanitize(text:string){
   return String(text||'')
     .replace(/^```[\s\S]*?\n/, '')
     .replace(/```$/,'')
+    // удаляем числовые ссылки вида (1), (2) и т.п.
+    .replace(/\(\s*\d+\s*\)/g, '')
+    // удаляем ссылки вида [1]
+    .replace(/\s\[\s*\d+\s*\]/g, '')
+    // удаляем надстрочные цифры ¹²³⁴…⁹
+    .replace(/[\u00B9\u00B2\u00B3\u2070-\u2079]/g, '')
 }
 
 const dreamType = computed(()=> props.dream?.deep_source?.dream_type || null)
