@@ -375,18 +375,24 @@ const sections = computed(() => {
   if (archIdx !== -1) {
     res.splice(archIdx + 1, 0, { key:'hvdc', title:'Контент анализ', text:'', html:'' } as any)
   }
-  // Вставляем «Поработай со сном» после блока «Возможная функция сна» если есть тип сна
+  // Добавляем «Поработай со сном» ВНУТРЬ секции «Возможная функция сна», если есть тип сна
   const workHtml = buildWorkHtml()
   if (workHtml) {
     const funcIdx = res.findIndex(s=>s.key==='func')
-    const item:any = { key:'work', title:'Поработай со сном', text:'', html: workHtml }
-    if (funcIdx !== -1) res.splice(funcIdx + 1, 0, item)
-    else res.push(item)
+    if (funcIdx !== -1) {
+      const wrapper = [
+        '<div class="mt-3 pt-2 border-t border-white/10 space-y-1">',
+        '<div class="font-semibold">Поработай со сном</div>',
+        workHtml,
+        '</div>'
+      ].join('')
+      res[funcIdx].html = (res[funcIdx].html || '') + wrapper
+    }
   }
   return res
 })
 
-const expanded = reactive<Record<string,boolean>>({ arch:true, hvdc:false, func:false, work:false, freud:false, jung:false })
+const expanded = reactive<Record<string,boolean>>({ arch:true, hvdc:false, func:false, freud:false, jung:false })
 function toggleSection(key:string){ expanded[key] = !expanded[key] }
 
 // Demographics dialog

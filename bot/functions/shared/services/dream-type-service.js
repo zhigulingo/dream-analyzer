@@ -22,6 +22,38 @@ function deriveDominant(scores) {
   return { dominant: leader?.[0] || 'memory', confidence };
 }
 
+// Heuristic fallback when LLM JSON is missing/unavailable
+function heuristicClassify(dreamText) {
+  try {
+    const s = String(dreamText || '').toLowerCase();
+    const countMatches = (arr) => arr.reduce((acc, k) => acc + (s.includes(k) ? 1 : 0), 0);
+
+    const emotionKeys = ['страх','ужас','паник','тревог','стыд','гнев','злост','плак','слез','крич','кошмар','тоска','грусть','печал'];
+    const anticipationKeys = ['экзам','выступл','собесед','защит','проект','подготов','завтра','предсто','ожидан','волнен','презентац','поездк','путешеств','нов','работа','интервью'];
+    const memoryKeys = ['вчера','сегодня','работ','школ','универ','дом','квартир','улиц','друг','подруг','родител','коллег','город'];
+
+    const eCount = countMatches(emotionKeys);
+    const aCount = countMatches(anticipationKeys);
+    const mCount = countMatches(memoryKeys);
+
+    // Base scores if nothing detected
+    let e = eCount > 0 ? Math.min(1, eCount / 3) : 0;
+    let a = aCount > 0 ? Math.min(1, aCount / 3) : 0;
+    let m = mCount > 0 ? Math.min(1, 0.5 + mCount / 5) : 0;
+
+    if (e === 0 && a === 0 && m === 0) {
+      // Neutral default leaning to memory
+      m = 0.6; e = 0.2; a = 0.2;
+    }
+
+    const scores = { memory: round2(clamp01(m)), emotion: round2(clamp01(e)), anticipation: round2(clamp01(a)) };
+    const { dominant, confidence } = deriveDominant(scores);
+    return { schema: 'dream_type_v1', scores, dominant, confidence };
+  } catch (_) {
+    return null;
+  }
+}
+
 async function computeDreamType({ dreamText }) {
   try {
     const raw = await geminiService.analyzeDream(dreamText, 'dream_type_json');
@@ -36,7 +68,10 @@ async function computeDreamType({ dreamText }) {
         try { obj = JSON.parse(s.slice(a, b+1)); } catch (_) {}
       }
     }
-    if (!obj || typeof obj !== 'object') return null;
+    if (!obj || typeof obj !== 'object') {
+      // Fallback to heuristic classification
+      return heuristicClassify(dreamText);
+    }
     const scores = {
       memory: round2(clamp01(obj?.scores?.memory ?? 0)),
       emotion: round2(clamp01(obj?.scores?.emotion ?? 0)),
@@ -45,7 +80,8 @@ async function computeDreamType({ dreamText }) {
     const { dominant, confidence } = deriveDominant(scores);
     return { schema: 'dream_type_v1', scores, dominant, confidence };
   } catch (_) {
-    return null;
+    // Heuristic fallback on any failure
+    return heuristicClassify(dreamText);
   }
 }
 
