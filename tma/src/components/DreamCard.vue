@@ -276,11 +276,17 @@ function toSentenceCase(s){
 const displayTitle = computed(() => {
   const deepTitle = refineTitle(props.dream?.deep_source?.title)
   if (deepTitle) return toSentenceCase(deepTitle)
-  const tags = (props.dream?.deep_source?.tags || []).filter(Boolean)
+  const raw = (props.dream?.deep_source?.tags || []).filter(Boolean)
+  const normalizeTag = (s:string)=>{
+    let t = String(s||'').trim()
+    t = t.split(/[\\/,(;:—–-]/)[0]?.trim() || ''
+    if (!t) return ''
+    return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
+  }
+  const tags = raw.map(normalizeTag).filter(Boolean)
   if (tags.length) {
-    const a = String(tags[0]||'').trim()
-    const b = String(tags[1]||'').trim()
-    return toSentenceCase((a && b) ? `${a} и ${b}` : (a || b) || 'Без названия')
+    const title = tags.slice(0,2).join(' и ')
+    return toSentenceCase(title || 'Без названия')
   }
   const t = refineTitle(extractTitleFromText(props.dream?.dream_text))
   return toSentenceCase(t || 'Без названия')
@@ -291,10 +297,9 @@ const displayTags = computed(() => {
   if (!Array.isArray(tags)) return []
   const normalize = (s:string) => {
     let t = String(s||'').trim()
-    // отрезаем по первой скобке, запятой или тире
-    t = t.split(/[,(—-]/)[0]?.trim() || ''
+    // отрезаем по первой скобке/знаку: скобки, запятая, слэш, тире, двоеточие, точка с запятой
+    t = t.split(/[\\/,(;:—–-]/)[0]?.trim() || ''
     if (!t) return ''
-    // Капитализация первой буквы, остальное строчными
     return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
   }
   return tags.map(normalize).filter(Boolean).slice(0,5)
@@ -313,11 +318,39 @@ function sanitize(text:string){
     .replace(/[\u00B9\u00B2\u00B3\u2070-\u2079]/g, '')
 }
 
-const dreamType = computed(()=> props.dream?.deep_source?.dream_type || null)
+function heuristicDreamType(text:string|undefined|null){
+  try{
+    const s = String(text||'').toLowerCase()
+    const count = (arr:string[])=>arr.reduce((a,k)=>a+(s.includes(k)?1:0),0)
+    const emotion = ['страх','ужас','паник','тревог','стыд','гнев','плак','слез','кошмар','тоска','грусть']
+    const anticip = ['экзам','выступл','собесед','защит','проект','подготов','завтра','ожидан','волнен','поездк','путешеств','нов','интервью']
+    const memory  = ['вчера','сегодня','работ','школ','универ','дом','улиц','друг','родител','коллег','город']
+    const e=count(emotion), a=count(anticip), m=count(memory)
+    let es=e>0?Math.min(1,e/3):0, as=a>0?Math.min(1,a/3):0, ms=m>0?Math.min(1,0.5+m/5):0
+    if(es===0&&as===0&&ms===0){ ms=0.6; es=0.2; as=0.2 }
+    const pack={ schema:'dream_type_v1', scores:{ memory:+ms.toFixed(2), emotion:+es.toFixed(2), anticipation:+as.toFixed(2) } }
+    const arr=[['memory',pack.scores.memory],['emotion',pack.scores.emotion],['anticipation',pack.scores.anticipation]] as [string,number][]
+    arr.sort((x,y)=>y[1]-x[1])
+    const conf=+(Math.max(0,(arr[0][1]-arr[1][1])).toFixed(2))
+    return { ...pack, dominant:arr[0][0], confidence:conf }
+  }catch{return null}
+}
+
+const dreamType = computed(()=> props.dream?.deep_source?.dream_type || heuristicDreamType(props.dream?.dream_text) || null)
 
 function buildWorkHtml(){
   const dt = dreamType.value
-  if (!dt || !dt.dominant) return ''
+  if (!dt || !dt.dominant) {
+    return [
+      '<div class="space-y-2">',
+      '<div class="font-semibold">🛠 Небольшая работа со сном</div>',
+      '<ol class="list-decimal pl-5 space-y-1">',
+      '<li><span class="font-semibold">Заметь:</span> Какие 2–3 образа из сна самые сильные? Запиши их коротко.</li>',
+      '<li><span class="font-semibold">Шаг:</span> Выбери один маленький шаг в реальности, который поддержит тебя по теме сна.</li>',
+      '</ol>',
+      '</div>'
+    ].join('')
+  }
   const type = String(dt.dominant).toLowerCase()
   if (type === 'memory') {
     return [
