@@ -288,8 +288,16 @@ const displayTitle = computed(() => {
 
 const displayTags = computed(() => {
   const tags = props.dream?.deep_source?.tags
-  if (Array.isArray(tags)) return tags.slice(0, 5)
-  return []
+  if (!Array.isArray(tags)) return []
+  const normalize = (s:string) => {
+    let t = String(s||'').trim()
+    // отрезаем по первой скобке, запятой или тире
+    t = t.split(/[,(—-]/)[0]?.trim() || ''
+    if (!t) return ''
+    // Капитализация первой буквы, остальное строчными
+    return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
+  }
+  return tags.map(normalize).filter(Boolean).slice(0,5)
 })
 
 // Форматирование анализа с подзаголовками
