@@ -96,8 +96,10 @@
         Сменить тариф
       </button>
       <button
-        class="w-full bg-white/10 text-white/60 rounded-xl py-3 font-semibold cursor-not-allowed"
+        class="w-full bg-white/10 hover:bg-white/15 text-white/80 rounded-xl py-3 font-semibold cursor-pointer"
+        type="button"
         @click.stop="onSecretTap"
+        title="Скрытая настройка"
       >
         Получить токены
       </button>
