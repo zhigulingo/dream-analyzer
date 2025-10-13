@@ -97,7 +97,7 @@
       </button>
       <button
         class="w-full bg-white/10 text-white/60 rounded-xl py-3 font-semibold cursor-not-allowed"
-        disabled
+        @click.stop="onSecretTap"
       >
         Получить токены
       </button>
@@ -189,6 +189,29 @@ const openTariff = () => {
     window.triggerHaptic('medium')
   }
   props.userStore?.openSubscriptionModal()
+}
+
+// Secret debug toggle on the inactive button
+const dbgCount = ref(0)
+let dbgTimer: any = null
+function onSecretTap(){
+  // five taps within 1.5s to toggle debug flag
+  dbgCount.value++
+  if (dbgTimer) clearTimeout(dbgTimer)
+  dbgTimer = setTimeout(()=>{ dbgCount.value = 0 }, 1500)
+  if (dbgCount.value >= 5){
+    const next = (localStorage.getItem('da_debug') === '1') ? '0' : '1'
+    localStorage.setItem('da_debug', next)
+    dbgCount.value = 0
+    try { window.triggerHaptic && window.triggerHaptic('light') } catch(_) {}
+    try {
+      window.Telegram?.WebApp?.showPopup?.({
+        title: 'Debug',
+        message: next==='1' ? 'Debug: ON (перезагрузите приложение)' : 'Debug: OFF (перезагрузите приложение)',
+        buttons:[{id:'ok',type:'default',text:'OK'}]
+      })
+    } catch(_) {}
+  }
 }
 </script>
 
