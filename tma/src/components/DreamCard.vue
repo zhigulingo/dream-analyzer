@@ -98,6 +98,10 @@
         </button>
       </div>
 
+      <div v-if="debugEnabled && debugPayload" class="mt-3 text-xs bg-black/20 rounded-lg p-2 font-mono whitespace-pre-wrap break-words">
+        {{ JSON.stringify(debugPayload, null, 2) }}
+      </div>
+
       <Teleport to="body">
       <div v-if="showDemo" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70" @click.self="closeDemographics" @wheel.prevent @touchmove.prevent>
         <div class="w-[92vw] max-w-[440px] rounded-2xl bg-[var(--tg-theme-secondary-bg-color,#0c110c)] text-white p-4 shadow-2xl border border-white/10" @click.stop>
@@ -417,6 +421,10 @@ const sections = computed(() => {
     .replace(/\n/g, '<br>')
     .replace(/^(.+)$/, '<p>$1')
   const res = Object.values(map).map(s=>({ ...s, html: toHtml(s.text||'') }))
+  // Гарантируем наличие секции «Возможная функция сна», даже если парсинг не нашёл заголовок
+  if (!res.some(s=>s.key==='func')) {
+    res.push({ key:'func', title:'Возможная функция сна', text:'', html:'' } as any)
+  }
   // Вставляем таб «Контент анализ» (HVdC) сразу под архетипической историей
   const archIdx = res.findIndex(s=>s.key==='arch')
   if (archIdx !== -1) {
@@ -441,6 +449,34 @@ const sections = computed(() => {
 
 const expanded = reactive<Record<string,boolean>>({ arch:true, hvdc:false, func:false, freud:false, jung:false })
 function toggleSection(key:string){ expanded[key] = !expanded[key] }
+
+// Debug output helpers (visible when ?debug=1 or localStorage.da_debug=1)
+const debugEnabled = computed(() => {
+  try {
+    const q = new URLSearchParams(window.location.search)
+    return q.get('debug') === '1' || localStorage.getItem('da_debug') === '1'
+  } catch { return false }
+})
+function normalizeTagDebug(s:string){
+  let t = String(s||'').trim(); t = t.split(/[\\/,(;:—–-]/)[0]?.trim() || ''
+  if (!t) return ''
+  return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
+}
+const debugPayload = computed(()=>{
+  if (!debugEnabled.value) return null
+  const d:any = props.dream || {}
+  const tagsRaw = Array.isArray(d?.deep_source?.tags) ? d.deep_source.tags : []
+  return {
+    id: d.id,
+    created_at: d.created_at,
+    is_deep_analysis: !!d.is_deep_analysis,
+    title_raw: d?.deep_source?.title || null,
+    tags_raw: tagsRaw,
+    tags_norm: tagsRaw.map(normalizeTagDebug),
+    dream_type: d?.deep_source?.dream_type || null,
+    hvdc_present: !!d?.deep_source?.hvdc
+  }
+})
 
 // Demographics dialog
 const showDemo = ref(false)
