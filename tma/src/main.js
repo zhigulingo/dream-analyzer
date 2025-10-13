@@ -20,7 +20,7 @@ app.mount('#app') // Монтируем приложение в <div id="app"> �
 
 // --- Debug helpers (console) ---
 try {
-  const userStore = useUserStore()
+  const userStore = useUserStore(pinia)
 
   const normalizeTag = (s) => {
     let t = String(s || '').trim()
