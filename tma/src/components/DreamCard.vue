@@ -588,4 +588,3 @@ const relativeDate = computed(() => {
   overflow: hidden;
 }
 </style>
-</script>
