@@ -5,7 +5,7 @@
     @click="handleToggle"
   >
     <div class="flex justify-between items-center py-2 min-h-[2.5rem]">
-      <h3 class="truncate" @click.stop="secretTap">{{ displayTitle }}</h3>
+      <h3 class="truncate">{{ displayTitle }}</h3>
       <span class="bg-white/10 rounded-full px-2 py-1 text-sm min-w-[3rem] text-center whitespace-nowrap">
         {{ relativeDate }}
       </span>
@@ -167,8 +167,6 @@ import { useNotificationStore } from '@/stores/notifications.js'
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
 const dreamCollapsed = ref(true)
-const secretCount = ref(0)
-let secretTimer:any = null
 
 const localFeedback = computed({
   get: () => (props.dream?.user_feedback ?? props.dream?.deep_source?.user_feedback ?? 0),
@@ -470,17 +468,6 @@ function copyDebug(){
     notificationStore?.success?.('Скопировано')
   }catch(e){
     try{ window.Telegram?.WebApp?.showPopup?.({title:'Debug',message:'Скопируйте из блока ниже вручную',buttons:[{id:'ok',type:'default',text:'OK'}]}) }catch(_){ }
-  }
-}
-function secretTap(){
-  secretCount.value++
-  if (secretTimer) clearTimeout(secretTimer)
-  secretTimer = setTimeout(()=>{ secretCount.value = 0 }, 1500)
-  if (secretCount.value >= 5){
-    const next = (localStorage.getItem('da_debug') === '1') ? '0' : '1'
-    localStorage.setItem('da_debug', next)
-    secretCount.value = 0
-    try{ notificationStore?.info?.(next==='1'?'Debug: ON':'Debug: OFF') }catch(_){ }
   }
 }
 function normalizeTagDebug(s:string){
