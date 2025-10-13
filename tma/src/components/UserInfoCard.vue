@@ -103,6 +103,15 @@
       >
         Получить токены
       </button>
+      <button
+        class="w-full bg-white/10 hover:bg-white/15 text-white rounded-xl py-3 font-semibold"
+        type="button"
+        @click.stop="toggleDebug"
+        title="Debug режим"
+      >
+        {{ debugOn ? 'Debug: ON' : 'Debug: OFF' }}
+      </button>
+      <p class="text-center text-white/70 text-xs">После включения перезапустите приложение, чтобы увидеть Debug payload в карточке сна</p>
     </div>
   </article>
 </template>
@@ -215,6 +224,28 @@ function onSecretTap(){
     } catch(_) {}
   }
 }
+
+// Visible debug toggle button
+import { onMounted } from 'vue'
+const debugOn = ref(false)
+function readDebug(){
+  try { debugOn.value = (localStorage.getItem('da_debug') === '1') } catch { debugOn.value = false }
+}
+function toggleDebug(){
+  try {
+    const next = debugOn.value ? '0' : '1'
+    localStorage.setItem('da_debug', next)
+    readDebug()
+    try {
+      window.Telegram?.WebApp?.showPopup?.({
+        title: 'Debug',
+        message: debugOn.value ? 'Debug: ON. Перезапустите приложение.' : 'Debug: OFF. Перезапустите приложение.',
+        buttons:[{id:'ok',type:'default',text:'OK'}]
+      })
+    } catch (_) {}
+  } catch (_) { debugOn.value = false }
+}
+onMounted(readDebug)
 </script>
 
 <style scoped>
