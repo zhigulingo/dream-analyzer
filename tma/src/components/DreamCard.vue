@@ -441,7 +441,7 @@ const sections = computed(() => {
     if (funcIdx !== -1) {
       const wrapper = [
         '<div class="mt-3 pt-2 border-t border-white/10 space-y-1">',
-        '<div class="font-semibold">Поработай со сном</div>',
+        '<div class="font-semibold">Функциональное упражнение</div>',
         workHtml,
         '</div>'
       ].join('')
