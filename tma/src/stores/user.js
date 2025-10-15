@@ -38,7 +38,7 @@ export const useUserStore = defineStore('user', {
     profile: { tokens: null, subscription_type: 'free', subscription_end: null, channel_reward_claimed: false, deep_analysis_credits: 0, total_dreams_count: 0, deep_analyses_count: 0, onboarding_stage: null },
     history: [],
     isLoadingProfile: false,
-    isLoadingHistory: false,
+    isLoadingHistory: true,
     errorProfile: null,
     errorHistory: null,
     showSubscriptionModal: false,

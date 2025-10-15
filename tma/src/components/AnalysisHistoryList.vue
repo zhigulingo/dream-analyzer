@@ -18,8 +18,23 @@
       </h3>
     </div>
     <!-- Контент вкладок -->
-    <div v-if="userStore?.isLoadingHistory" class="text-center text-white/60 py-8">
-      Загрузка истории...
+    <div v-if="userStore?.isLoadingHistory" class="flex flex-col gap-4 pb-[5vh]">
+      <div v-for="i in 3" :key="i" class="rounded-xl bg-white/10 px-8 md:px-16 py-6">
+        <div class="flex justify-between items-center py-2 min-h-[2.5rem]">
+          <div class="shimmer h-4 w-32 rounded"></div>
+          <div class="shimmer h-4 w-12 rounded"></div>
+        </div>
+        <div class="mt-4 space-y-2">
+          <div class="shimmer h-3 w-full rounded"></div>
+          <div class="shimmer h-3 w-5/6 rounded"></div>
+          <div class="shimmer h-3 w-2/3 rounded"></div>
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <div class="shimmer h-6 rounded-full"></div>
+          <div class="shimmer h-6 rounded-full"></div>
+          <div class="shimmer h-6 rounded-full"></div>
+        </div>
+      </div>
     </div>
     <div v-else-if="userStore?.errorHistory" class="text-center text-red-400 py-8">
       Ошибка загрузки: {{ userStore.errorHistory }}
@@ -133,3 +148,12 @@ const switchTab = (tab) => {
   activeId.value = null // Сбрасываем активную карточку
 }
 </script>
+
+<style scoped>
+.shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.06) 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+@keyframes shimmer { 0% { background-position: 0% 0; } 100% { background-position: -200% 0; } }
+</style>

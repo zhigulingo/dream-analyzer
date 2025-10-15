@@ -27,8 +27,8 @@ const LoadingOverlay = defineAsyncComponent(() => import('./components/LoadingOv
 const onboardingVisible = ref(false)
 const userStore = useUserStore()
 // Готовность считаем по факту загрузки профиля (историю можно догрузить чуть позже, чтобы не зависать)
-const appReady = computed(() => !userStore.isLoadingProfile && !!userStore.profile)
-const isLoadingGlobal = computed(() => userStore.isLoadingProfile)
+const appReady = computed(() => !userStore.isLoadingProfile && !userStore.isLoadingHistory && !!userStore.profile)
+const isLoadingGlobal = computed(() => userStore.isLoadingProfile || userStore.isLoadingHistory)
 onMounted(async () => {
   // Глобальная загрузка данных, чтобы оверлей корректно скрывался даже при активном онбординге
   try {
