@@ -5,7 +5,7 @@
       <main class="flex flex-col gap-6 px-4 sm:px-6 md:px-8 items-center w-full">
         <!-- UserInfoCard -->
         <section class="account-block w-full max-w-72r">
-          <div class="rounded-xl shimmer px-8 md:px-16 py-6 min-h-[4.5rem] flex items-center justify-between">
+          <div class="rounded-xl shimmer px-8 md:px-16 py-4 min-h-[4.5rem] flex items-center justify-between">
             <div class="flex items-center">
               <div class="shimmer rounded-full w-10 h-10"></div>
               <div class="ml-4 shimmer h-4 w-40 rounded"></div>
@@ -17,7 +17,7 @@
         <section class="account-block w-full max-w-72r">
           <div class="w-full">
             <div class="flex justify-center">
-              <div class="fact-card shimmer w-[86%] sm:w-[82%] md:w-[78%] lg:w-[72%]"></div>
+              <div class="rounded-xl fact-card shimmer w-[86%] sm:w-[82%] md:w-[78%] lg:w-[72%]"></div>
             </div>
           </div>
         </section>
