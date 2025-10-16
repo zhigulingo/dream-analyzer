@@ -1,33 +1,22 @@
 <template>
   <div>
-    <!-- Переключатель вкладок с иконками: активная — иконка + текст, неактивная — только иконка (монохром, фейд) -->
-    <div class="flex items-center mb-4 gap-3 text-white">
-      <button
-        class="inline-flex items-center gap-2 cursor-pointer transition-opacity"
-        :class="activeTab === 'history' ? 'opacity-100' : 'opacity-60'"
-        @click="switchTab('history')"
-        aria-label="История снов"
-      >
-        <!-- Иконка истории: список/календарь -->
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M7 3a1 1 0 0 1 1 1v1h8V4a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1V4a1 1 0 0 1 1-1zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8zM5 9h14V7H5v2z"/>
+    <!-- Заголовок + селектор режима справа -->
+    <div class="flex items-center justify-between mb-4 text-white">
+      <h2 class="text-2xl font-semibold">История</h2>
+      <div class="inline-flex items-center gap-2 bg-white/10 rounded-full px-3 py-1">
+        <select
+          aria-label="Режим истории"
+          v-model="modeVal"
+          class="bg-transparent text-white focus:outline-none"
+        >
+          <option value="history">Дневник снов</option>
+          <option value="deep">Глубокий анализ</option>
+        </select>
+        <!-- Горизонтальный шеврон -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="opacity-80">
+          <path d="M9 6l6 6-6 6"/>
         </svg>
-        <span v-if="activeTab === 'history'" class="text-2xl font-semibold">История снов</span>
-      </button>
-
-      <button
-        class="inline-flex items-center gap-2 cursor-pointer transition-opacity ml-2"
-        :class="activeTab === 'deep' ? 'opacity-100' : 'opacity-60'"
-        @click="switchTab('deep')"
-        aria-label="Глубокий анализ"
-      >
-        <!-- Иконка глубокого анализа: граф/мозг/лупа (минималистично) -->
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M11 3a8 8 0 1 1 0 16 8 8 0 0 1 0-16zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12zm1 3a1 1 0 0 1 1 1v4.268l1.364.788a1 1 0 1 1-1 1.732l-1.732-1a1 1 0 0 1-.5-.866V9a1 1 0 0 1 1-1z"/>
-          <path d="M20.293 20.293l-2.086-2.086a1 1 0 1 1 1.414-1.414l2.086 2.086a1 1 0 1 1-1.414 1.414z"/>
-        </svg>
-        <span v-if="activeTab === 'deep'" class="text-lg font-medium">Глубокий анализ</span>
-      </button>
+      </div>
     </div>
     <!-- Контент вкладок -->
     <div v-if="userStore?.isLoadingHistory" class="flex flex-col gap-4 pb-[5vh]">
@@ -111,6 +100,12 @@ const regularPageSize = ref(5)
 const deepPageSize = ref(5)
 const activeTab = ref('history')
 
+// Привязка селектора к текущему режиму
+const modeVal = computed({
+  get: () => activeTab.value,
+  set: (v: string) => switchTab(v)
+})
+
 // Разделяем сны на обычные и глубокие анализы
 const regularDreams = computed(() => {
   if (!props.userStore?.history) return []
@@ -162,8 +157,8 @@ const switchTab = (tab) => {
 </script>
 
 <style scoped>
-/* Кнопки вкладок — без лишних рамок/фонов; цвет монохромный, непрозрачность управляется классами */
-button { background: transparent; }
+/* Минимальные стили: не ломаем нативный select, лишь обертка под бейдж */
+select { -webkit-appearance: auto; appearance: auto; }
 </style>
 
 <style scoped>
