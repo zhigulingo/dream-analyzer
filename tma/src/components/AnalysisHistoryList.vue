@@ -2,7 +2,7 @@
   <div>
     <!-- Заголовок + селектор режима справа -->
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-2xl font-semibold">История</h2>
+      <h2 class="text-3xl font-bold">История</h2>
       <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 themed-badge">
         <select
           aria-label="Режим истории"
@@ -156,8 +156,20 @@ const switchTab = (tab) => {
 /* Тематические бейджи и кнопки: слегка темнее на светлой теме и слегка светлее на тёмной */
 select { -webkit-appearance: auto; appearance: auto; }
 
-.themed-badge {
-  border: 1px solid transparent;
+.themed-badge { position: relative; border: 1px solid transparent; }
+.themed-select { color: var(--tg-theme-text-color); padding-right: 26px; -webkit-appearance: none; appearance: none; }
+/* Кастомная стрелка селектора, цвет = var(--tg-theme-text-color) */
+.themed-badge::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  width: 14px; height: 14px;
+  transform: translateY(-50%);
+  background-color: var(--tg-theme-text-color);
+  -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M7 10l5 5 5-5"/></svg>') no-repeat center / contain;
+          mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M7 10l5 5 5-5"/></svg>') no-repeat center / contain;
+  pointer-events: none;
 }
 
 @media (prefers-color-scheme: dark) {
