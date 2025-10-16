@@ -5,7 +5,7 @@
       <main class="flex flex-col gap-6 px-4 sm:px-6 md:px-8 items-center w-full">
         <!-- UserInfoCard -->
         <section class="account-block w-full max-w-72r">
-          <div class="rounded-xl shimmer px-8 md:px-16 py-4">
+          <div class="rounded-xl shimmer px-8 md:px-16 py-6 min-h-[4.5rem] flex items-center justify-between">
             <div class="flex items-center">
               <div class="shimmer rounded-full w-10 h-10"></div>
               <div class="ml-4 shimmer h-4 w-40 rounded"></div>
@@ -17,14 +17,14 @@
         <section class="account-block w-full max-w-72r">
           <div class="w-full">
             <div class="flex justify-center">
-              <div class="fact-card shimmer"></div>
+              <div class="fact-card shimmer w-[86%] sm:w-[82%] md:w-[78%] lg:w-[72%]"></div>
             </div>
           </div>
         </section>
 
         <!-- DeepAnalysisCard banner -->
         <section class="account-block w-full max-w-72r">
-          <div class="rounded-xl shimmer px-8 md:px-16 py-6 min-h-[8rem]">
+          <div class="rounded-xl shimmer px-8 md:px-16 py-6 min-h-[8rem] flex items-center">
             <div class="shimmer h-4 w-1/2 rounded"></div>
           </div>
         </section>
@@ -32,20 +32,10 @@
         <!-- AnalysisHistoryList: 3 DreamCard placeholders -->
         <section class="account-block w-full max-w-72r">
           <div class="flex flex-col gap-4 pb-[5vh]">
-            <div v-for="i in 3" :key="i" class="rounded-xl shimmer px-8 md:px-16 py-6 overflow-hidden">
+            <div v-for="i in 3" :key="i" class="rounded-xl shimmer px-8 md:px-16 py-6 overflow-hidden min-h-[4.5rem]">
               <div class="flex justify-between items-center py-2 min-h-[2.5rem]">
                 <div class="shimmer h-4 w-40 rounded"></div>
                 <div class="shimmer h-4 w-12 rounded"></div>
-              </div>
-              <div class="mt-4 space-y-2">
-                <div class="shimmer h-3 w-full rounded"></div>
-                <div class="shimmer h-3 w-5/6 rounded"></div>
-                <div class="shimmer h-3 w-2/3 rounded"></div>
-              </div>
-              <div class="mt-4 grid grid-cols-3 gap-2">
-                <div class="shimmer h-6 rounded-full"></div>
-                <div class="shimmer h-6 rounded-full"></div>
-                <div class="shimmer h-6 rounded-full"></div>
               </div>
             </div>
           </div>
@@ -75,7 +65,7 @@ const props = defineProps<{ visible: boolean }>()
 }
 .content { flex: 1; display: flex; flex-direction: column; gap: 16px; pointer-events: none; }
 /* размеры карточек в слайдере фактов — подгонка под FactsCarouselV2 */
-.fact-card { height: 224px; width: 100%; border-radius: 14px; }
+.fact-card { height: 224px; border-radius: 14px; }
 
 /* shimmer */
 .shimmer {
