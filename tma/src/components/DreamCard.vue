@@ -16,6 +16,69 @@
           {{ tag }}
         </span>
       </div>
+      
+      <!-- Deep analysis specific layout -->
+      <template v-if="isDeep">
+        <!-- Общий контекст серии снов + повторяющиеся символы -->
+        <div class="rounded-lg bg-white/10">
+          <div class="px-3 py-2 font-semibold">Общий контекст серии</div>
+          <div class="px-3 pb-3 text-white/90 leading-snug space-y-2">
+            <div v-html="deepContextHtml"></div>
+            <div v-if="displayTags.length" class="pt-2">
+              <div class="text-xs opacity-80 mb-1">Повторяющиеся символы</div>
+              <div class="flex flex-wrap gap-2">
+                <span v-for="tag in displayTags" :key="'deep-'+tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">{{ tag }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs: Динамика | Выводы -->
+        <div class="rounded-lg bg-white/10">
+          <div class="px-3 py-2 font-semibold flex items-center gap-2">
+            <button class="px-3 py-1 rounded bg-white/10" :class="deepTab==='trend'?'bg-white/20':''" @click.stop="deepTab='trend'">Динамика</button>
+            <button class="px-3 py-1 rounded bg-white/10" :class="deepTab==='insights'?'bg-white/20':''" @click.stop="deepTab='insights'">Выводы</button>
+          </div>
+          <div class="px-3 pb-3 text-white/90 leading-snug">
+            <!-- Trend chart -->
+            <div v-if="deepTab==='trend'">
+              <div v-if="trendReady" class="space-y-3">
+                <div v-for="row in trendRows" :key="row.key" class="space-y-1">
+                  <div class="text-xs opacity-80 flex justify-between"><span>{{ row.label }}</span><span>{{ row.values[row.values.length-1] }}%</span></div>
+                  <svg :viewBox="'0 0 '+chartW+' '+chartH" :width="'100%'" :height="chartH" class="block">
+                    <polyline :points="row.points" fill="none" stroke="white" :stroke-opacity="row.opacity" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+                    <template v-for="(p,idx) in row.pointList" :key="idx">
+                      <circle :cx="p.x" :cy="p.y" r="2.8" fill="white" :fill-opacity="row.opacity" />
+                    </template>
+                    <!-- grid -->
+                    <line v-for="g in 4" :key="'g'+g" :x1="0" :x2="chartW" :y1="(chartH/4)*g" :y2="(chartH/4)*g" stroke="white" stroke-opacity="0.08" stroke-width="1" />
+                  </svg>
+                </div>
+                <div class="text-xs opacity-70">Динамика по последним {{ trendCount }} снам.</div>
+              </div>
+              <div v-else class="text-xs opacity-80">Недостаточно данных по последним снам.</div>
+            </div>
+            <!-- Insights -->
+            <div v-else>
+              <div class="space-y-2">
+                <div class="font-semibold">Ключевые инсайты</div>
+                <ul class="list-disc pl-5">
+                  <li v-for="(it, i) in insights" :key="'in'+i">{{ it }}</li>
+                </ul>
+              </div>
+              <div class="mt-3 space-y-2">
+                <div class="font-semibold">Рекомендации</div>
+                <ul class="list-disc pl-5">
+                  <li v-for="(r, i) in recommendations" :key="'rec'+i">{{ r }}</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Single dream layout -->
+      <template v-else>
       <div class="rounded-lg bg-white/10 border-l-4 border-pink-400">
         <div class="px-3 py-2 font-semibold flex items-center justify-between">
           <span>Сон</span>
@@ -74,6 +137,7 @@
           </div>
         </template>
       </div>
+      </template>
 
       <div class="mt-4 flex gap-2">
         <button 
@@ -167,6 +231,7 @@ import { useNotificationStore } from '@/stores/notifications.js'
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
 const dreamCollapsed = ref(true)
+const isDeep = computed(()=> !!props.dream?.is_deep_analysis)
 
 const localFeedback = computed({
   get: () => (props.dream?.user_feedback ?? props.dream?.deep_source?.user_feedback ?? 0),
@@ -325,6 +390,93 @@ function sanitize(text:string){
     // удаляем надстрочные цифры ¹²³⁴…⁹
     .replace(/[\u00B9\u00B2\u00B3\u2070-\u2079]/g, '')
 }
+
+// Deep analysis helpers
+const deepTab = ref<'trend'|'insights'>('trend')
+const deepText = computed(()=> sanitize(props.dream?.analysis || ''))
+function highlightSymbols(text:string, tags:string[]){
+  try{
+    let t = text
+    const uniq = Array.from(new Set((tags||[]).filter(Boolean))).sort((a,b)=>b.length-a.length)
+    for(const raw of uniq){
+      const key = String(raw).split(/[\\/,(;:—–-]/)[0]?.trim()
+      if(!key) continue
+      const re = new RegExp(`(\b${key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\b)`, 'gi')
+      t = t.replace(re, '<mark class="bg-white/20 px-1 rounded">$1</mark>')
+    }
+    return t.replace(/\n\n+/g,'</p><p class="mt-2">').replace(/\n/g,'<br>').replace(/^(.+)$/,'<p>$1')
+  }catch{ return text }
+}
+const deepContextHtml = computed(()=> highlightSymbols(deepText.value, props.dream?.deep_source?.tags || []))
+
+// HVdC trend across last 5 regular dreams before this deep analysis
+function parseDate(s:string){ try{ return new Date(s).getTime()||0 }catch{ return 0 } }
+const regularWithHvdc = computed(()=> (userStore.history||[])
+  .filter((d:any)=>!d.is_deep_analysis && d?.deep_source?.hvdc && d?.created_at)
+  .sort((a:any,b:any)=> parseDate(a.created_at) > parseDate(b.created_at) ? -1 : 1))
+const trendSeries = computed(()=>{
+  const cutoff = parseDate(props.dream?.created_at||'')
+  const arr = regularWithHvdc.value.filter((d:any)=> !isDeep.value || (cutoff ? parseDate(d.created_at) <= cutoff : true)).slice(0,5).reverse()
+  const cat = ['characters','emotions','actions','settings'] as const
+  return arr.map((d:any)=> cat.map(k=> Number(d.deep_source.hvdc?.distribution?.[k]||0)))
+})
+const trendCount = computed(()=> trendSeries.value.length)
+const trendReady = computed(()=> trendCount.value >= 2)
+const chartH = 48
+const chartW = computed(()=> Math.max(60, (trendCount.value-1)*28 + 8))
+function toPoints(vals:number[]){
+  const n = vals.length; const w = chartW.value; const h = chartH
+  const step = n>1 ? (w-8)/ (n-1) : 0
+  const pts = [] as {x:number,y:number}[]
+  for(let i=0;i<n;i++){
+    const x = i*step
+    const y = h - Math.round((vals[i]/100)*h)
+    pts.push({x, y})
+  }
+  const str = pts.map(p=> `${p.x},${p.y}`).join(' ')
+  return { str, pts }
+}
+const trendRows = computed(()=>{
+  const cats = [
+    { key:'characters', label:'Персонажи', idx:0, opacity:0.95 },
+    { key:'emotions',   label:'Эмоции',    idx:1, opacity:0.75 },
+    { key:'actions',    label:'Действия',  idx:2, opacity:0.55 },
+    { key:'settings',   label:'Сцены',     idx:3, opacity:0.35 }
+  ] as const
+  const rows:any[] = []
+  const series = trendSeries.value
+  for(const c of cats){
+    const values = series.map(v=> v[c.idx] )
+    const { str, pts } = toPoints(values)
+    rows.push({ key:c.key, label:c.label, values, points:str, pointList:pts, opacity:c.opacity })
+  }
+  return rows
+})
+
+// Insights & recommendations
+function extractBullets(text:string){
+  const lines = text.split(/\n+/).map(s=>s.trim()).filter(Boolean)
+  const bullets = lines.filter(l=> /^\d+\./.test(l)).map(l=> l.replace(/^\d+\.\s*/,'')).slice(0,5)
+  if (bullets.length) return bullets
+  // fallback: first sentences
+  return text.split(/[.!?]\s+/).map(s=>s.trim()).filter(Boolean).slice(0,5)
+}
+const bullets = computed(()=> extractBullets(deepText.value))
+const insights = computed(()=> bullets.value.slice(0,3))
+const recommendations = computed(()=>{
+  const series = trendSeries.value
+  const avg = [0,0,0,0]
+  for(const v of series){ for(let i=0;i<4;i++) avg[i]+=v[i] }
+  const n = Math.max(1, series.length)
+  for(let i=0;i<4;i++) avg[i]=Math.round(avg[i]/n)
+  const pairs = [ ['Персонажи','Обрати внимание на отношения и роли; практикуй честную коммуникацию.'],
+                  ['Эмоции','Добавь ежедневную регуляцию эмоций (дыхание, дневник, прогулка).'],
+                  ['Действия','Определи 1 маленький шаг на неделю и заверши его.'],
+                  ['Сцены','Проверь границы и режим: место/время, где тебе спокойнее.'] ] as [string,string][]
+  const order = avg.map((v,i)=>({i,v})).sort((a,b)=>b.v-a.v).map(o=>o.i)
+  const recs = [pairs[order[0]][1], pairs[order[1]][1]]
+  return recs
+})
 
 function heuristicDreamType(text:string|undefined|null){
   try{
