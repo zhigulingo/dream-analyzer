@@ -1,7 +1,7 @@
 <template>
   <article
-    class="rounded-xl bg-gradient-to-br from-[#4A58FF] to-[#5664FF] text-white px-8 md:px-16 transition-all overflow-hidden cursor-pointer py-6"
-    :class="[active ? '' : 'min-h-[4.5rem]']"
+    class="rounded-xl bg-gradient-to-br text-white px-8 md:px-16 transition-all overflow-hidden cursor-pointer py-6"
+    :class="[active ? '' : 'min-h-[4.5rem]', gradientClass]"
     @click="handleToggle"
   >
     <div class="flex justify-between items-center py-2 min-h-[2.5rem]">
@@ -565,6 +565,11 @@ const relativeDate = computed(() => {
     return props.dream.created_at
   }
 })
+
+// Градиент карточки: обычные анализы — синие; глубокий анализ — как у баннера глубокого анализа
+const gradientClass = computed(() => (props.dream?.is_deep_analysis
+  ? 'from-[#9C41FF] to-[#C03AFF]'
+  : 'from-[#4A58FF] to-[#5664FF]'))
 </script>
 
 <style scoped>
