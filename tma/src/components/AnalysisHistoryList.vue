@@ -1,21 +1,33 @@
 <template>
   <div>
-    <!-- Переключатель вкладок -->
-    <div class="flex items-center mb-4 gap-4">
-      <h2 
-        class="text-2xl font-semibold text-white cursor-pointer transition-opacity"
-        :class="{ 'opacity-100': activeTab === 'history', 'opacity-60': activeTab !== 'history' }"
+    <!-- Переключатель вкладок с иконками: активная — иконка + текст, неактивная — только иконка (монохром, фейд) -->
+    <div class="flex items-center mb-4 gap-3 text-white">
+      <button
+        class="inline-flex items-center gap-2 cursor-pointer transition-opacity"
+        :class="activeTab === 'history' ? 'opacity-100' : 'opacity-60'"
         @click="switchTab('history')"
+        aria-label="История снов"
       >
-        История снов
-      </h2>
-      <h3 
-        class="text-lg font-medium text-white cursor-pointer transition-opacity"
-        :class="{ 'opacity-100': activeTab === 'deep', 'opacity-60': activeTab !== 'deep' }"
+        <!-- Иконка истории: список/календарь -->
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M7 3a1 1 0 0 1 1 1v1h8V4a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1V4a1 1 0 0 1 1-1zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8zM5 9h14V7H5v2z"/>
+        </svg>
+        <span v-if="activeTab === 'history'" class="text-2xl font-semibold">История снов</span>
+      </button>
+
+      <button
+        class="inline-flex items-center gap-2 cursor-pointer transition-opacity ml-2"
+        :class="activeTab === 'deep' ? 'opacity-100' : 'opacity-60'"
         @click="switchTab('deep')"
+        aria-label="Глубокий анализ"
       >
-        Глубокий анализ
-      </h3>
+        <!-- Иконка глубокого анализа: граф/мозг/лупа (минималистично) -->
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M11 3a8 8 0 1 1 0 16 8 8 0 0 1 0-16zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12zm1 3a1 1 0 0 1 1 1v4.268l1.364.788a1 1 0 1 1-1 1.732l-1.732-1a1 1 0 0 1-.5-.866V9a1 1 0 0 1 1-1z"/>
+          <path d="M20.293 20.293l-2.086-2.086a1 1 0 1 1 1.414-1.414l2.086 2.086a1 1 0 1 1-1.414 1.414z"/>
+        </svg>
+        <span v-if="activeTab === 'deep'" class="text-lg font-medium">Глубокий анализ</span>
+      </button>
     </div>
     <!-- Контент вкладок -->
     <div v-if="userStore?.isLoadingHistory" class="flex flex-col gap-4 pb-[5vh]">
@@ -148,6 +160,11 @@ const switchTab = (tab) => {
   activeId.value = null // Сбрасываем активную карточку
 }
 </script>
+
+<style scoped>
+/* Кнопки вкладок — без лишних рамок/фонов; цвет монохромный, непрозрачность управляется классами */
+button { background: transparent; }
+</style>
 
 <style scoped>
 .shimmer {
