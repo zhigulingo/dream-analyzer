@@ -20,7 +20,7 @@
         <section class="account-block w-full max-w-72r">
           <div class="w-full">
             <div class="flex justify-center">
-              <div class="rounded-xl fact-card shimmer w-[86%] sm:w-[82%] md:w-[78%] lg:w-[72%]"></div>
+              <div class="rounded-xl fact-card shimmer w-full"></div>
             </div>
           </div>
         </section>
@@ -64,7 +64,7 @@ const props = defineProps<{ visible: boolean }>()
   z-index: 2000;
   display: flex;
   flex-direction: column;
-  padding: var(--tma-safe-top, 56px) 16px 28px; /* учитываем safe-top как у основного контейнера */
+  padding: var(--tma-safe-top, 56px) 0 28px; /* только top/bottom как в приложении; горизонтальные отступы через main px-4 */
 }
 .content { flex: 1; display: flex; flex-direction: column; gap: 16px; pointer-events: none; }
 /* размеры карточек в слайдере фактов — подгонка под FactsCarouselV2 */
