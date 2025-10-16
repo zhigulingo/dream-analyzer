@@ -1,21 +1,18 @@
 <template>
   <div>
     <!-- Заголовок + селектор режима справа -->
-    <div class="flex items-center justify-between mb-4 text-white">
+    <div class="flex items-center justify-between mb-4">
       <h2 class="text-2xl font-semibold">История</h2>
-      <div class="inline-flex items-center gap-2 bg-white/10 rounded-full px-3 py-1">
+      <div class="inline-flex items-center gap-2 rounded-full px-3 py-1" style="background-color: var(--tg-theme-secondary-bg-color)">
         <select
           aria-label="Режим истории"
           v-model="modeVal"
-          class="bg-transparent text-white focus:outline-none"
+          class="bg-transparent focus:outline-none"
+          style="color: var(--tg-theme-text-color)"
         >
           <option value="history">Дневник снов</option>
           <option value="deep">Глубокий анализ</option>
         </select>
-        <!-- Горизонтальный шеврон -->
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="opacity-80">
-          <path d="M9 6l6 6-6 6"/>
-        </svg>
       </div>
     </div>
     <!-- Контент вкладок -->
@@ -56,7 +53,8 @@
         />
         <button
           v-if="canLoadMoreRegular"
-          class="self-center bg-white/10 rounded-full px-4 py-2 text-sm font-medium text-white hover:bg-white/20 transition-colors my-2"
+          class="self-center rounded-full px-4 py-2 text-sm font-medium transition-colors my-2"
+          style="background-color: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color)"
           @click="loadMoreRegular"
         >
           Загрузить ещё
@@ -79,7 +77,8 @@
         />
         <button
           v-if="canLoadMoreDeep"
-          class="self-center bg-white/10 rounded-full px-4 py-2 text-sm font-medium text-white hover:bg-white/20 transition-colors my-2"
+          class="self-center rounded-full px-4 py-2 text-sm font-medium transition-colors my-2"
+          style="background-color: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color)"
           @click="loadMoreDeep"
         >
           Загрузить ещё
