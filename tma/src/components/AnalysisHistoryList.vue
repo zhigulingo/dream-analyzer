@@ -3,12 +3,11 @@
     <!-- Заголовок + селектор режима справа -->
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-2xl font-semibold">История</h2>
-      <div class="inline-flex items-center gap-2 rounded-full px-3 py-1" style="background-color: var(--tg-theme-secondary-bg-color)">
+      <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 themed-badge">
         <select
           aria-label="Режим истории"
           v-model="modeVal"
-          class="bg-transparent focus:outline-none"
-          style="color: var(--tg-theme-text-color)"
+          class="bg-transparent focus:outline-none themed-select"
         >
           <option value="history">Дневник снов</option>
           <option value="deep">Глубокий анализ</option>
@@ -53,8 +52,7 @@
         />
         <button
           v-if="canLoadMoreRegular"
-          class="self-center rounded-full px-4 py-2 text-sm font-medium transition-colors my-2"
-          style="background-color: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color)"
+          class="self-center rounded-full px-4 py-2 text-sm font-medium transition-colors my-2 themed-button"
           @click="loadMoreRegular"
         >
           Загрузить ещё
@@ -77,8 +75,7 @@
         />
         <button
           v-if="canLoadMoreDeep"
-          class="self-center rounded-full px-4 py-2 text-sm font-medium transition-colors my-2"
-          style="background-color: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color)"
+          class="self-center rounded-full px-4 py-2 text-sm font-medium transition-colors my-2 themed-button"
           @click="loadMoreDeep"
         >
           Загрузить ещё
@@ -156,8 +153,26 @@ const switchTab = (tab) => {
 </script>
 
 <style scoped>
-/* Минимальные стили: не ломаем нативный select, лишь обертка под бейдж */
+/* Тематические бейджи и кнопки: слегка темнее на светлой теме и слегка светлее на тёмной */
 select { -webkit-appearance: auto; appearance: auto; }
+
+.themed-badge {
+  border: 1px solid transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  .themed-badge { background-color: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.12); }
+  .themed-select { color: var(--tg-theme-text-color, #fff); }
+  .themed-button { background-color: rgba(255, 255, 255, 0.12); color: var(--tg-theme-text-color, #fff); }
+  .themed-button:hover { background-color: rgba(255, 255, 255, 0.18); }
+}
+
+@media (prefers-color-scheme: light) {
+  .themed-badge { background-color: rgba(0, 0, 0, 0.06); border-color: rgba(0, 0, 0, 0.10); }
+  .themed-select { color: var(--tg-theme-text-color, #111); }
+  .themed-button { background-color: rgba(0, 0, 0, 0.08); color: var(--tg-theme-text-color, #111); }
+  .themed-button:hover { background-color: rgba(0, 0, 0, 0.12); }
+}
 </style>
 
 <style scoped>
