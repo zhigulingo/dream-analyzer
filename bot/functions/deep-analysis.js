@@ -200,8 +200,15 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         });
         
         try {
-            // Call background function asynchronously
-            const backgroundUrl = `${event.headers['x-forwarded-proto'] || 'https'}://${event.headers.host}/.netlify/functions/deep-analysis-background`;
+            // Build background function URL using same approach as analyze-dream-background
+            const siteUrl = process.env.FUNCTIONS_BASE_URL 
+                || process.env.URL 
+                || process.env.WEB_URL 
+                || process.env.TMA_URL 
+                || process.env.ALLOWED_TMA_ORIGIN
+                || `${event.headers['x-forwarded-proto'] || 'https'}://${event.headers.host}`;
+            
+            const backgroundUrl = new URL('/.netlify/functions/deep-analysis-background', siteUrl).toString();
             
             const backgroundPayload = {
                 tgUserId: verifiedUserId,
@@ -212,25 +219,26 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
                 usedFree: usedFree
             };
             
-            // Fire and forget - don't wait for response
-            fetch(backgroundUrl, {
+            requestLogger.info("Calling background function", {
+                userId: verifiedUserId,
+                backgroundUrl
+            });
+            
+            // Await the fetch to ensure function is triggered
+            await fetch(backgroundUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(backgroundPayload)
-            }).catch(err => {
-                requestLogger.error('Failed to trigger background function', {
-                    error: err?.message,
-                    userId: verifiedUserId
-                });
             });
             
-            requestLogger.info("Background deep analysis triggered", {
+            requestLogger.info("Background deep analysis triggered successfully", {
                 userId: verifiedUserId
             });
             
         } catch (triggerError) {
             requestLogger.error('Error triggering background function', {
                 error: triggerError?.message,
+                stack: triggerError?.stack,
                 userId: verifiedUserId
             });
             
