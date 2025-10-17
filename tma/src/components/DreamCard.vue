@@ -19,30 +19,91 @@
       
       <!-- Deep analysis specific layout -->
       <template v-if="isDeep">
-        <!-- Общий контекст серии снов + повторяющиеся символы -->
+        <!-- Tabs: Контекст | Динамика | Выводы | Рекомендации -->
         <div class="rounded-lg bg-white/10">
-          <div class="px-3 py-2 font-semibold">Общий контекст серии</div>
-          <div class="px-3 pb-3 text-white/90 leading-snug space-y-2">
-            <div v-html="deepContextHtml"></div>
-            <div v-if="displayTags.length" class="pt-2">
-              <div class="text-xs opacity-80 mb-1">Повторяющиеся символы</div>
-              <div class="flex flex-wrap gap-2">
-                <span v-for="tag in displayTags" :key="'deep-'+tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">{{ tag }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tabs: Динамика | Выводы -->
-        <div class="rounded-lg bg-white/10">
-          <div class="px-3 py-2 font-semibold flex items-center gap-2">
-            <button class="px-3 py-1 rounded bg-white/10" :class="deepTab==='trend'?'bg-white/20':''" @click.stop="deepTab='trend'">Динамика</button>
-            <button class="px-3 py-1 rounded bg-white/10" :class="deepTab==='insights'?'bg-white/20':''" @click.stop="deepTab='insights'">Выводы</button>
+          <div class="px-3 py-2 font-semibold flex items-center gap-2 flex-wrap">
+            <button 
+              class="px-3 py-1 rounded text-xs bg-white/10 transition-colors" 
+              :class="deepTab==='context'?'bg-white/25':''" 
+              @click.stop="deepTab='context'"
+            >
+              Контекст
+            </button>
+            <button 
+              class="px-3 py-1 rounded text-xs bg-white/10 transition-colors" 
+              :class="deepTab==='dynamics'?'bg-white/25':''" 
+              @click.stop="deepTab='dynamics'"
+              v-if="hasNewDynamics || trendReady"
+            >
+              Динамика
+            </button>
+            <button 
+              class="px-3 py-1 rounded text-xs bg-white/10 transition-colors" 
+              :class="deepTab==='conclusions'?'bg-white/25':''" 
+              @click.stop="deepTab='conclusions'"
+              v-if="hasConclusions"
+            >
+              Выводы
+            </button>
+            <button 
+              class="px-3 py-1 rounded text-xs bg-white/10 transition-colors" 
+              :class="deepTab==='recommendations'?'bg-white/25':''" 
+              @click.stop="deepTab='recommendations'"
+              v-if="hasRecommendations"
+            >
+              Рекомендации
+            </button>
           </div>
           <div class="px-3 pb-3 text-white/90 leading-snug">
-            <!-- Trend chart -->
-            <div v-if="deepTab==='trend'">
-              <div v-if="trendReady" class="space-y-3">
+            <!-- Context Tab -->
+            <div v-if="deepTab==='context'" class="space-y-3">
+              <!-- Overall Context -->
+              <div v-if="hasOverallContext" class="space-y-2">
+                <div v-if="overallContext.narrative" class="space-y-1">
+                  <div class="text-xs font-semibold opacity-90">История серии</div>
+                  <p class="text-xs opacity-80">{{ overallContext.narrative }}</p>
+                </div>
+                <div v-if="overallContext.psychologicalFunction" class="space-y-1">
+                  <div class="text-xs font-semibold opacity-90">Психологическая функция</div>
+                  <p class="text-xs opacity-80">{{ overallContext.psychologicalFunction }}</p>
+                </div>
+                <div v-if="overallContext.emotionalJourney" class="space-y-1">
+                  <div class="text-xs font-semibold opacity-90">Эмоциональное путешествие</div>
+                  <p class="text-xs opacity-80">{{ overallContext.emotionalJourney }}</p>
+                </div>
+              </div>
+              
+              <!-- Fallback to old analysis field -->
+              <div v-else-if="deepText" v-html="deepContextHtml"></div>
+              
+              <!-- Recurring Symbols -->
+              <div v-if="recurringSymbols.length" class="pt-2 space-y-2">
+                <div class="text-xs font-semibold opacity-90">Повторяющиеся символы</div>
+                <div v-for="symbol in recurringSymbols" :key="symbol.symbol" class="bg-white/10 rounded px-2 py-1.5 space-y-0.5">
+                  <div class="flex items-center justify-between">
+                    <span class="font-medium text-xs">{{ symbol.symbol }}</span>
+                    <span class="text-xs opacity-70">{{ symbol.occurrences }}×</span>
+                  </div>
+                  <p class="text-xs opacity-80">{{ symbol.interpretation }}</p>
+                </div>
+              </div>
+              
+              <!-- Fallback to tags if no recurringSymbols -->
+              <div v-else-if="displayTags.length" class="pt-2">
+                <div class="text-xs opacity-80 mb-1">Повторяющиеся символы</div>
+                <div class="flex flex-wrap gap-2">
+                  <span v-for="tag in displayTags" :key="'deep-'+tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">{{ tag }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamics Tab -->
+            <div v-else-if="deepTab==='dynamics'">
+              <!-- New structured dynamics with pagination -->
+              <DynamicsChart v-if="hasNewDynamics" :dynamics="newDynamics" />
+              
+              <!-- Fallback to old HVdC trend -->
+              <div v-else-if="trendReady" class="space-y-3">
                 <div v-for="row in trendRows" :key="row.key" class="space-y-1">
                   <div class="text-xs opacity-80 flex justify-between"><span>{{ row.label }}</span><span>{{ row.values[row.values.length-1] }}%</span></div>
                   <svg :viewBox="'0 0 '+chartW+' '+chartH" :width="'100%'" :height="chartH" class="block">
@@ -56,21 +117,30 @@
                 </div>
                 <div class="text-xs opacity-70">Динамика по последним {{ trendCount }} снам.</div>
               </div>
-              <div v-else class="text-xs opacity-80">Недостаточно данных по последним снам.</div>
+              <div v-else class="text-xs opacity-80">Недостаточно данных для отображения динамики.</div>
             </div>
-            <!-- Insights -->
-            <div v-else>
-              <div class="space-y-2">
-                <div class="font-semibold">Ключевые инсайты</div>
-                <ul class="list-disc pl-5">
-                  <li v-for="(it, i) in insights" :key="'in'+i">{{ it }}</li>
-                </ul>
+
+            <!-- Conclusions Tab -->
+            <div v-else-if="deepTab==='conclusions'" class="space-y-2">
+              <div v-for="(conclusion, idx) in conclusions" :key="'concl-'+idx" class="space-y-1">
+                <div class="flex items-start gap-2">
+                  <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/20 text-xs font-semibold shrink-0 mt-0.5">{{ idx + 1 }}</span>
+                  <p class="text-xs opacity-90 leading-relaxed">{{ conclusion }}</p>
+                </div>
               </div>
-              <div class="mt-3 space-y-2">
-                <div class="font-semibold">Рекомендации</div>
-                <ul class="list-disc pl-5">
-                  <li v-for="(r, i) in recommendations" :key="'rec'+i">{{ r }}</li>
-                </ul>
+            </div>
+
+            <!-- Recommendations Tab -->
+            <div v-else-if="deepTab==='recommendations'" class="space-y-3">
+              <div v-for="(rec, idx) in recommendations" :key="'rec-'+idx" class="bg-white/10 rounded px-2.5 py-2 space-y-1">
+                <div class="flex items-start gap-2">
+                  <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/25 text-xs font-semibold shrink-0">{{ idx + 1 }}</span>
+                  <div class="space-y-1">
+                    <div class="font-semibold text-xs">{{ rec.title }}</div>
+                    <p class="text-xs opacity-85 leading-relaxed">{{ rec.description }}</p>
+                    <p class="text-xs opacity-70 leading-relaxed italic">{{ rec.rationale }}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -228,6 +298,8 @@ const handleToggle = () => {
 import api from '@/services/api.js'
 import { useUserStore } from '@/stores/user.js'
 import { useNotificationStore } from '@/stores/notifications.js'
+import DynamicsChart from '@/components/DynamicsChart.vue'
+
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
 const dreamCollapsed = ref(true)
@@ -392,8 +464,67 @@ function sanitize(text:string){
 }
 
 // Deep analysis helpers
-const deepTab = ref<'trend'|'insights'>('trend')
+const deepTab = ref<'context'|'dynamics'|'conclusions'|'recommendations'>('context')
 const deepText = computed(()=> sanitize(props.dream?.analysis || ''))
+
+// New structured data accessors
+const overallContext = computed(() => props.dream?.deep_source?.overallContext || {})
+const hasOverallContext = computed(() => {
+  const ctx = overallContext.value
+  return !!(ctx?.narrative || ctx?.psychologicalFunction || ctx?.emotionalJourney)
+})
+
+const recurringSymbols = computed(() => {
+  const symbols = props.dream?.deep_source?.recurringSymbols
+  return Array.isArray(symbols) ? symbols : []
+})
+
+const newDynamics = computed(() => {
+  const dynamics = props.dream?.deep_source?.dynamics
+  return Array.isArray(dynamics) && dynamics.length > 0 ? dynamics : []
+})
+const hasNewDynamics = computed(() => newDynamics.value.length > 0)
+
+const conclusions = computed(() => {
+  const concl = props.dream?.deep_source?.conclusions
+  return Array.isArray(concl) && concl.length > 0 ? concl : []
+})
+const hasConclusions = computed(() => conclusions.value.length > 0)
+
+const recommendations = computed(() => {
+  const recs = props.dream?.deep_source?.recommendations
+  if (Array.isArray(recs) && recs.length > 0 && typeof recs[0] === 'object') {
+    // New structured format with title, description, rationale
+    return recs
+  }
+  // Fallback to old simple array format or HVdC-based recommendations
+  if (Array.isArray(recs) && recs.length > 0) {
+    return recs.map((r, idx) => ({
+      title: `Рекомендация ${idx + 1}`,
+      description: String(r),
+      rationale: ''
+    }))
+  }
+  // HVdC-based fallback
+  const series = trendSeries.value
+  if (series.length === 0) return []
+  const avg = [0,0,0,0]
+  for(const v of series){ for(let i=0;i<4;i++) avg[i]+=v[i] }
+  const n = Math.max(1, series.length)
+  for(let i=0;i<4;i++) avg[i]=Math.round(avg[i]/n)
+  const pairs = [
+    ['Персонажи','Обрати внимание на отношения и роли; практикуй честную коммуникацию.'],
+    ['Эмоции','Добавь ежедневную регуляцию эмоций (дыхание, дневник, прогулка).'],
+    ['Действия','Определи 1 маленький шаг на неделю и заверши его.'],
+    ['Сцены','Проверь границы и режим: место/время, где тебе спокойнее.']
+  ]
+  const order = avg.map((v,i)=>({i,v})).sort((a,b)=>b.v-a.v).map(o=>o.i)
+  return [
+    { title: pairs[order[0]][0], description: pairs[order[0]][1], rationale: '' },
+    { title: pairs[order[1]][0], description: pairs[order[1]][1], rationale: '' }
+  ]
+})
+const hasRecommendations = computed(() => recommendations.value.length > 0)
 function highlightSymbols(text:string, tags:string[]){
   try{
     let t = text
@@ -453,30 +584,8 @@ const trendRows = computed(()=>{
   return rows
 })
 
-// Insights & recommendations
-function extractBullets(text:string){
-  const lines = text.split(/\n+/).map(s=>s.trim()).filter(Boolean)
-  const bullets = lines.filter(l=> /^\d+\./.test(l)).map(l=> l.replace(/^\d+\.\s*/,'')).slice(0,5)
-  if (bullets.length) return bullets
-  // fallback: first sentences
-  return text.split(/[.!?]\s+/).map(s=>s.trim()).filter(Boolean).slice(0,5)
-}
-const bullets = computed(()=> extractBullets(deepText.value))
-const insights = computed(()=> bullets.value.slice(0,3))
-const recommendations = computed(()=>{
-  const series = trendSeries.value
-  const avg = [0,0,0,0]
-  for(const v of series){ for(let i=0;i<4;i++) avg[i]+=v[i] }
-  const n = Math.max(1, series.length)
-  for(let i=0;i<4;i++) avg[i]=Math.round(avg[i]/n)
-  const pairs = [ ['Персонажи','Обрати внимание на отношения и роли; практикуй честную коммуникацию.'],
-                  ['Эмоции','Добавь ежедневную регуляцию эмоций (дыхание, дневник, прогулка).'],
-                  ['Действия','Определи 1 маленький шаг на неделю и заверши его.'],
-                  ['Сцены','Проверь границы и режим: место/время, где тебе спокойнее.'] ] as [string,string][]
-  const order = avg.map((v,i)=>({i,v})).sort((a,b)=>b.v-a.v).map(o=>o.i)
-  const recs = [pairs[order[0]][1], pairs[order[1]][1]]
-  return recs
-})
+// Legacy insights & recommendations (kept for fallback compatibility)
+// Already handled by new structured data accessors above
 
 function heuristicDreamType(text:string|undefined|null){
   try{
