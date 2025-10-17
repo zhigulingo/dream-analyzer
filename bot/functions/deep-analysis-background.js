@@ -101,7 +101,7 @@ exports.handler = async (event) => {
                 ? deepAnalysisResultJson.tags 
                 : [];
             
-            // Prepare deep_source with all structured data
+            // Prepare deep_source with all structured data (new structure)
             const deepSource = { 
                 required_dreams: requiredDreams, 
                 title: deepShortTitle,
@@ -109,11 +109,19 @@ exports.handler = async (event) => {
             };
             
             // Add new structured fields if present
-            if (deepAnalysisResultJson.overallContext) {
-                deepSource.overallContext = deepAnalysisResultJson.overallContext;
-            }
             if (Array.isArray(deepAnalysisResultJson.recurringSymbols)) {
                 deepSource.recurringSymbols = deepAnalysisResultJson.recurringSymbols;
+            }
+            if (Array.isArray(deepAnalysisResultJson.dynamicsContext)) {
+                deepSource.dynamicsContext = deepAnalysisResultJson.dynamicsContext;
+            }
+            if (deepAnalysisResultJson.conclusion && typeof deepAnalysisResultJson.conclusion === 'object') {
+                deepSource.conclusion = deepAnalysisResultJson.conclusion;
+            }
+            
+            // Legacy support: if old structure exists, keep it for backward compatibility
+            if (deepAnalysisResultJson.overallContext) {
+                deepSource.overallContext = deepAnalysisResultJson.overallContext;
             }
             if (Array.isArray(deepAnalysisResultJson.dynamics)) {
                 deepSource.dynamics = deepAnalysisResultJson.dynamics;
