@@ -91,7 +91,26 @@ Rules:
 - Keep analysis supportive and non-clinical.`,
 
     /**
-     * JSON-structured output for deep analysis of multiple dreams
+     * JSON-structured output for deep analysis of multiple dreams (simplified for speed)
+     */
+    deep_json_fast: `Проанализируй серию снов КРАТКО и верни JSON:
+{
+  "title": string,   // 2-3 слова
+  "tags": string[],  // 3-5 тегов
+  "analysis": string, // Краткий анализ (2-3 абзаца)
+  "conclusions": string[],  // 3 инсайта (каждый 10-15 слов)
+  "recommendations": [{"title": string, "description": string, "rationale": string}]
+}
+
+Сны:
+"""
+[DREAM_TEXT]
+"""
+
+Верни ТОЛЬКО JSON, БЕЗ markdown.`,
+
+    /**
+     * JSON-structured output for deep analysis of multiple dreams (full version)
      */
     deep_json: `Ты — эмпатичный аналитик снов. Проанализируй серию из ${REQUIRED_DREAMS} снов и верни СТРОГО JSON с полями:
 {
