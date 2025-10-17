@@ -207,18 +207,42 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         try {
             const deepShortTitle = deepAnalysisResultJson.title && deepAnalysisResultJson.title.trim() ? deepAnalysisResultJson.title : 'Глубокий анализ';
             const deepTags = Array.isArray(deepAnalysisResultJson.tags) && deepAnalysisResultJson.tags.length > 0 ? deepAnalysisResultJson.tags : [];
+            
+            // Prepare deep_source with all new structured data
+            const deepSource = { 
+                required_dreams: REQUIRED_DREAMS, 
+                title: deepShortTitle,
+                tags: deepTags
+            };
+            
+            // Add new structured fields if present
+            if (deepAnalysisResultJson.overallContext) {
+                deepSource.overallContext = deepAnalysisResultJson.overallContext;
+            }
+            if (Array.isArray(deepAnalysisResultJson.recurringSymbols)) {
+                deepSource.recurringSymbols = deepAnalysisResultJson.recurringSymbols;
+            }
+            if (Array.isArray(deepAnalysisResultJson.dynamics)) {
+                deepSource.dynamics = deepAnalysisResultJson.dynamics;
+            }
+            if (Array.isArray(deepAnalysisResultJson.conclusions)) {
+                deepSource.conclusions = deepAnalysisResultJson.conclusions;
+            }
+            if (Array.isArray(deepAnalysisResultJson.recommendations)) {
+                deepSource.recommendations = deepAnalysisResultJson.recommendations;
+            }
+            
+            // Use analysis field or create fallback
+            const analysisText = deepAnalysisResultJson.analysis || 'Глубокий анализ выполнен';
+            
             const { error: insertDeepError } = await supabase
                 .from('analyses')
                 .insert({ 
                     user_id: userDbId, 
                     dream_text: '[DEEP_ANALYSIS_SOURCE]',
-                    analysis: deepAnalysisResultJson.analysis,
+                    analysis: analysisText,
                     is_deep_analysis: true,
-                    deep_source: { 
-                        required_dreams: REQUIRED_DREAMS, 
-                        title: deepShortTitle,
-                        tags: deepTags
-                    }
+                    deep_source: deepSource
                 });
             if (insertDeepError) {
                 requestLogger.dbError('INSERT', 'analyses', insertDeepError, { userDbId });
