@@ -28,10 +28,8 @@
             <div class="chart-svg-wrapper">
               <svg 
                 :viewBox="`0 0 ${chartWidth} ${chartHeight}`" 
-                :width="chartWidth" 
-                :height="chartHeight"
                 class="chart-svg"
-                preserveAspectRatio="none"
+                preserveAspectRatio="xMidYMid meet"
               >
                 <!-- Grid lines -->
                 <line 
@@ -64,6 +62,7 @@
                   :cy="point.y" 
                   r="4" 
                   fill="white"
+                  vector-effect="non-scaling-stroke"
                 />
               </svg>
             </div>
@@ -111,19 +110,23 @@ const transitionName = ref('slide-left')
 
 const chartWidth = 300
 const chartHeight = 80
+const padding = 6 // padding to prevent clipping circles
 
 const currentMetric = computed(() => props.dynamics[currentIndex.value] || { metric: '', values: [], interpretation: '' })
 const currentValues = computed(() => currentMetric.value.values || [])
 
-// Calculate line points for SVG
+// Calculate line points for SVG with padding
 const dataPoints = computed(() => {
   const values = currentValues.value
   if (values.length === 0) return []
   
-  const stepX = chartWidth / Math.max(1, values.length - 1)
+  const innerWidth = chartWidth - padding * 2
+  const innerHeight = chartHeight - padding * 2
+  const stepX = values.length > 1 ? innerWidth / (values.length - 1) : 0
+  
   return values.map((val, idx) => ({
-    x: idx * stepX,
-    y: chartHeight - (val / 10) * chartHeight
+    x: padding + idx * stepX,
+    y: padding + innerHeight - (val / 10) * innerHeight
   }))
 })
 
