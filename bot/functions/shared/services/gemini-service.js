@@ -192,9 +192,11 @@ class GeminiService {
         return await this._parseStructuredJson(raw, 'basic_json');
     }
 
-    async deepAnalyzeDreamsJSON(combinedDreams) {
-        const raw = await this.deepAnalyzeDreams(combinedDreams, 'deep_json', { attempts: 1 });
-        return await this._parseStructuredJson(raw, 'deep_json');
+    async deepAnalyzeDreamsJSON(combinedDreams, useFast = true) {
+        // Use simplified prompt for faster response to avoid timeouts
+        const promptKey = useFast ? 'deep_json_fast' : 'deep_json';
+        const raw = await this.deepAnalyzeDreams(combinedDreams, promptKey, { attempts: 1 });
+        return await this._parseStructuredJson(raw, promptKey);
     }
 
     async _parseStructuredJson(rawText, mode) {
