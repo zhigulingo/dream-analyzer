@@ -197,10 +197,37 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         let deepAnalysisResultJson;
         try {
             deepAnalysisResultJson = await geminiService.deepAnalyzeDreamsJSON(combinedDreamsText);
-        } catch (_) {
-            // Fallback to legacy text
-            const legacyText = await geminiService.deepAnalyzeDreams(combinedDreamsText, 'deep');
-            deepAnalysisResultJson = { title: '', tags: [], analysis: legacyText };
+        } catch (geminiError) {
+            requestLogger.error('Gemini analysis failed, rolling back credit', {
+                error: geminiError?.message,
+                userId: verifiedUserId
+            });
+            
+            // ROLLBACK: Возвращаем кредит пользователю
+            try {
+                if (usedFree) {
+                    // Если использовали бесплатный, восстанавливаем флаг
+                    await supabase.rpc('restore_free_deep_credit', { user_tg_id: verifiedUserId });
+                } else {
+                    // Если использовали платный, добавляем обратно
+                    await supabase.rpc('increment_deep_analysis_credits', { 
+                        user_tg_id: verifiedUserId,
+                        amount: 1
+                    });
+                }
+                requestLogger.info('Credit rolled back successfully', { userId: verifiedUserId });
+            } catch (rollbackError) {
+                requestLogger.error('Failed to rollback credit after Gemini error', {
+                    error: rollbackError?.message,
+                    userId: verifiedUserId
+                });
+            }
+            
+            // Пробрасываем ошибку дальше
+            throw createApiError(
+                'Не удалось выполнить глубокий анализ. Ваш токен возвращен. Пожалуйста, попробуйте позже.',
+                500
+            );
         }
 
         // 10. Сгенерировать короткий заголовок и сохранить результат в БД в основной истории с пометкой глубокого анализа
