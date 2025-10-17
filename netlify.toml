@@ -7,13 +7,15 @@
   # Ensure RAG knowledge file is bundled with functions that reference it
   included_files = ["docs/dream_symbols_archetypes.json"]
 
-# Configure specific function timeouts
-[[functions]]
-  path = "deep-analysis"
-  # Increase timeout for deep analysis (max 26s on Pro, but we'll request 60s)
+# Configure specific function: deep-analysis
+[functions."deep-analysis"]
+  # Increase timeout for deep analysis (will use background function instead)
   node_bundler = "esbuild"
-  [functions.environment]
-    FUNCTION_TIMEOUT = "60"
+
+# Configure specific function: deep-analysis-background
+[functions."deep-analysis-background"]
+  # Background function for long-running deep analysis (up to 15 minutes on Pro)
+  node_bundler = "esbuild"
 
 # Schedules removed per request; flow is DB-triggered and reactive
 
