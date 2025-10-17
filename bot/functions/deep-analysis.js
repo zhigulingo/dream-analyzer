@@ -192,111 +192,80 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             combinedTextLength: combinedDreamsText.length
         });
 
-        // 9. Вызвать Gemini для анализа
-        // Request JSON-structured deep analysis
-        let deepAnalysisResultJson;
+        // 9. Trigger background function for deep analysis
+        // Instead of running Gemini synchronously, we start a background job
+        requestLogger.info("Triggering background deep analysis", {
+            userId: verifiedUserId,
+            dreamsCount: dreams.length
+        });
+        
         try {
-            deepAnalysisResultJson = await geminiService.deepAnalyzeDreamsJSON(combinedDreamsText);
-        } catch (geminiError) {
-            requestLogger.error('Gemini analysis failed, rolling back credit', {
-                error: geminiError?.message,
+            // Call background function asynchronously
+            const backgroundUrl = `${event.headers['x-forwarded-proto'] || 'https'}://${event.headers.host}/.netlify/functions/deep-analysis-background`;
+            
+            const backgroundPayload = {
+                tgUserId: verifiedUserId,
+                userDbId: userDbId,
+                chatId: verifiedUserId, // Use Telegram user ID as chat ID for notifications
+                combinedDreamsText: combinedDreamsText,
+                requiredDreams: REQUIRED_DREAMS,
+                usedFree: usedFree
+            };
+            
+            // Fire and forget - don't wait for response
+            fetch(backgroundUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(backgroundPayload)
+            }).catch(err => {
+                requestLogger.error('Failed to trigger background function', {
+                    error: err?.message,
+                    userId: verifiedUserId
+                });
+            });
+            
+            requestLogger.info("Background deep analysis triggered", {
                 userId: verifiedUserId
             });
             
-            // ROLLBACK: Возвращаем кредит пользователю
+        } catch (triggerError) {
+            requestLogger.error('Error triggering background function', {
+                error: triggerError?.message,
+                userId: verifiedUserId
+            });
+            
+            // Rollback credit if we can't even start the background job
             try {
                 if (usedFree) {
-                    // Если использовали бесплатный, восстанавливаем флаг
                     await supabase.rpc('restore_free_deep_credit', { user_tg_id: verifiedUserId });
                 } else {
-                    // Если использовали платный, добавляем обратно
                     await supabase.rpc('increment_deep_analysis_credits', { 
                         user_tg_id: verifiedUserId,
                         amount: 1
                     });
                 }
-                requestLogger.info('Credit rolled back successfully', { userId: verifiedUserId });
+                requestLogger.info('Credit rolled back after trigger failure', { userId: verifiedUserId });
             } catch (rollbackError) {
-                requestLogger.error('Failed to rollback credit after Gemini error', {
+                requestLogger.error('Failed to rollback credit after trigger failure', {
                     error: rollbackError?.message,
                     userId: verifiedUserId
                 });
             }
             
-            // Пробрасываем ошибку дальше
             throw createApiError(
-                'Не удалось выполнить глубокий анализ. Ваш токен возвращен. Пожалуйста, попробуйте позже.',
+                'Не удалось запустить глубокий анализ. Ваш токен возвращен. Пожалуйста, попробуйте позже.',
                 500
             );
         }
 
-        // 10. Сгенерировать короткий заголовок и сохранить результат в БД в основной истории с пометкой глубокого анализа
-        try {
-            const deepShortTitle = deepAnalysisResultJson.title && deepAnalysisResultJson.title.trim() ? deepAnalysisResultJson.title : 'Глубокий анализ';
-            const deepTags = Array.isArray(deepAnalysisResultJson.tags) && deepAnalysisResultJson.tags.length > 0 ? deepAnalysisResultJson.tags : [];
-            
-            // Prepare deep_source with all new structured data
-            const deepSource = { 
-                required_dreams: REQUIRED_DREAMS, 
-                title: deepShortTitle,
-                tags: deepTags
-            };
-            
-            // Add new structured fields if present
-            if (deepAnalysisResultJson.overallContext) {
-                deepSource.overallContext = deepAnalysisResultJson.overallContext;
-            }
-            if (Array.isArray(deepAnalysisResultJson.recurringSymbols)) {
-                deepSource.recurringSymbols = deepAnalysisResultJson.recurringSymbols;
-            }
-            if (Array.isArray(deepAnalysisResultJson.dynamics)) {
-                deepSource.dynamics = deepAnalysisResultJson.dynamics;
-            }
-            if (Array.isArray(deepAnalysisResultJson.conclusions)) {
-                deepSource.conclusions = deepAnalysisResultJson.conclusions;
-            }
-            if (Array.isArray(deepAnalysisResultJson.recommendations)) {
-                deepSource.recommendations = deepAnalysisResultJson.recommendations;
-            }
-            
-            // Use analysis field or create fallback
-            const analysisText = deepAnalysisResultJson.analysis || 'Глубокий анализ выполнен';
-            
-            const { error: insertDeepError } = await supabase
-                .from('analyses')
-                .insert({ 
-                    user_id: userDbId, 
-                    dream_text: '[DEEP_ANALYSIS_SOURCE]',
-                    analysis: analysisText,
-                    is_deep_analysis: true,
-                    deep_source: deepSource
-                });
-            if (insertDeepError) {
-                requestLogger.dbError('INSERT', 'analyses', insertDeepError, { userDbId });
-            }
-        } catch (insErr) {
-            requestLogger.warn('Failed to persist deep analysis result', { error: insErr?.message, userDbId });
-        }
-
-        // 11. Вернуть успешный результат
-        requestLogger.info("Deep analysis completed successfully", {
-            userId: verifiedUserId,
-            analysisLength: deepAnalysisResultJson?.analysis ? deepAnalysisResultJson.analysis.length : 0
+        // 10. Return immediate response indicating analysis is in progress
+        requestLogger.info("Deep analysis request accepted", {
+            userId: verifiedUserId
         });
-        // Попытаться уведомить пользователя через бота (не критично при ошибке)
-        try {
-            if (BOT_TOKEN) {
-                const { Api } = require('grammy');
-                const botApi = new Api(BOT_TOKEN);
-                await botApi.sendMessage(verifiedUserId, 'Ваш глубокий анализ готов! Откройте приложение, вкладка «Глубокий анализ».');
-            }
-        } catch (notifyErr) {
-            requestLogger.warn('Failed to notify user via bot about deep analysis completion', { error: notifyErr?.message });
-        }
+        
         return createSuccessResponse({ 
-            analysis: deepAnalysisResultJson.analysis,
-            title: deepAnalysisResultJson.title || null,
-            tags: Array.isArray(deepAnalysisResultJson.tags) ? deepAnalysisResultJson.tags : []
+            status: 'processing',
+            message: 'Глубокий анализ запущен. Вы получите уведомление в Telegram когда результат будет готов (обычно 1-2 минуты).'
         }, corsHeaders);
         
     } catch (error) {

@@ -192,8 +192,9 @@ class GeminiService {
         return await this._parseStructuredJson(raw, 'basic_json');
     }
 
-    async deepAnalyzeDreamsJSON(combinedDreams, useFast = true) {
-        // Use simplified prompt for faster response to avoid timeouts
+    async deepAnalyzeDreamsJSON(combinedDreams, useFast = false) {
+        // Use full prompt by default for background functions (no timeout concerns)
+        // Set useFast=true only if called from synchronous endpoint with strict time limits
         const promptKey = useFast ? 'deep_json_fast' : 'deep_json';
         const raw = await this.deepAnalyzeDreams(combinedDreams, promptKey, { attempts: 1 });
         return await this._parseStructuredJson(raw, promptKey);
