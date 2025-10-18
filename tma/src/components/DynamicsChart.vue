@@ -148,27 +148,9 @@ const padding = 6 // padding to prevent clipping circles
 const currentMetric = computed(() => props.dynamics[currentIndex.value] || { metric: '', values: [], interpretation: '' })
 const currentValues = computed(() => currentMetric.value.values || [])
 
-// Calculate dynamic Y-axis scale from actual data
+// Fixed Y-axis scale 0-10 for all metrics
 const yAxisScale = computed(() => {
-  const values = currentValues.value
-  if (values.length === 0) return { min: 0, max: 10, labels: [10, 5, 0] }
-  
-  const min = Math.floor(Math.min(...values))
-  const max = Math.ceil(Math.max(...values))
-  const range = max - min
-  
-  // If range is too small, expand it
-  const effectiveMin = range < 2 ? Math.max(0, min - 1) : min
-  const effectiveMax = range < 2 ? Math.min(10, max + 1) : max
-  
-  // Calculate 3 labels (top, middle, bottom)
-  const labels = [
-    effectiveMax,
-    Math.round((effectiveMax + effectiveMin) / 2),
-    effectiveMin
-  ]
-  
-  return { min: effectiveMin, max: effectiveMax, labels }
+  return { min: 0, max: 10, labels: [10, 5, 0] }
 })
 
 // Demographic norms (approximate averages by age/gender)

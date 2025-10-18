@@ -19,13 +19,13 @@
       
       <!-- Deep analysis specific layout -->
       <template v-if="isDeep">
-        <!-- Повторяющиеся символы (новый формат с карточками) -->
-        <div v-if="hasRecurringSymbols">
-          <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between rounded-t-lg bg-white/10" @click.stop="toggleSection('symbols')">
+        <!-- Повторяющиеся символы (новый формат списком) -->
+        <div v-if="hasRecurringSymbols" class="rounded-lg bg-white/10">
+          <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection('symbols')">
             <span>Повторяющиеся символы</span>
             <span class="opacity-80 inline-block" :style="{ fontSize: '130%' }">{{ expanded.symbols ? '−' : '+' }}</span>
           </button>
-          <div v-if="expanded.symbols" class="px-3 pb-3 pt-3 space-y-4 rounded-b-lg bg-white/10">
+          <div v-if="expanded.symbols" class="px-3 pb-3 text-white/90 leading-snug space-y-4">
             <div v-for="(symbol, idx) in recurringSymbols" :key="`symbol-${idx}`" class="space-y-1">
               <div class="flex items-baseline gap-2">
                 <h4 class="font-semibold text-sm">{{ symbol.symbol }}</h4>
@@ -40,12 +40,12 @@
         </div>
 
         <!-- Динамика контекста (новый формат с анализом) -->
-        <div v-if="hasDynamicsContext">
-          <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between rounded-t-lg bg-white/10" @click.stop="toggleSection('dynamics')">
+        <div v-if="hasDynamicsContext" class="rounded-lg bg-white/10">
+          <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection('dynamics')">
             <span>Динамика контекста</span>
             <span class="opacity-80 inline-block" :style="{ fontSize: '130%' }">{{ expanded.dynamics ? '−' : '+' }}</span>
           </button>
-          <div v-if="expanded.dynamics" class="px-3 pb-3 pt-3 text-white/90 leading-snug rounded-b-lg bg-white/10">
+          <div v-if="expanded.dynamics" class="px-3 pb-3 text-white/90 leading-snug">
             <DynamicsChart 
               :dynamics="dynamicsContext" 
               :userAge="userStore.profile?.age_range"
@@ -55,12 +55,12 @@
         </div>
 
         <!-- Заключение (новый формат без подзаголовков) -->
-        <div v-if="hasConclusion">
-          <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between rounded-t-lg bg-white/10" @click.stop="toggleSection('conclusion')">
+        <div v-if="hasConclusion" class="rounded-lg bg-white/10">
+          <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection('conclusion')">
             <span>Заключение</span>
             <span class="opacity-80 inline-block" :style="{ fontSize: '130%' }">{{ expanded.conclusion ? '−' : '+' }}</span>
           </button>
-          <div v-if="expanded.conclusion" class="px-3 pb-3 pt-3 text-white/90 leading-snug space-y-3 rounded-b-lg bg-white/10">
+          <div v-if="expanded.conclusion" class="px-3 pb-3 text-white/90 leading-snug space-y-3">
             <p v-if="conclusion.periodThemes" class="text-sm opacity-90 leading-relaxed">{{ conclusion.periodThemes }}</p>
             <p v-if="conclusion.dreamFunctionsAnalysis" class="text-sm opacity-90 leading-relaxed">{{ conclusion.dreamFunctionsAnalysis }}</p>
             <p v-if="conclusion.psychologicalSupport" class="text-sm opacity-90 leading-relaxed">{{ conclusion.psychologicalSupport }}</p>
