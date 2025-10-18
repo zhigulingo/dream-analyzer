@@ -93,9 +93,36 @@
               />
             </div>
           </div>
+          
+          <!-- Инсайты и рекомендации для старого формата -->
+          <div v-if="insights.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Ключевые инсайты</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <ol class="list-decimal pl-5 space-y-2">
+                <li v-for="(it, i) in insights" :key="'in'+i" class="text-xs leading-relaxed">{{ it }}</li>
+              </ol>
+            </div>
+          </div>
+
+          <div v-if="recommendations.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Рекомендации</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <ol class="list-decimal pl-5 space-y-3">
+                <li v-for="(r, i) in recommendations" :key="'rec'+i" class="text-xs leading-relaxed">
+                  <div v-if="typeof r === 'object' && r.title">
+                    <div class="font-semibold mb-1">{{ r.title }}</div>
+                    <div class="opacity-90">{{ r.description }}</div>
+                    <div v-if="r.rationale" class="opacity-80 mt-1 italic">{{ r.rationale }}</div>
+                  </div>
+                  <div v-else>{{ typeof r === 'string' ? r : r.title }}</div>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </template>
         
-        <!-- Fallback: старый формат инсайтов и рекомендаций если нет новой структуры -->
-        <template v-if="!hasConclusion">
+        <!-- Fallback инсайты и рекомендации если есть новая структура символов/динамики но нет заключения -->
+        <template v-if="(hasRecurringSymbols || hasDynamicsContext) && !hasConclusion">
           <div v-if="insights.length" class="rounded-lg bg-white/10">
             <div class="px-3 py-2 font-semibold">Ключевые инсайты</div>
             <div class="px-3 pb-3 text-white/90 leading-snug">
