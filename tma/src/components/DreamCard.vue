@@ -19,14 +19,6 @@
       
       <!-- Deep analysis specific layout -->
       <template v-if="isDeep">
-        <!-- Общий контекст серии -->
-        <div class="rounded-lg bg-white/10">
-          <div class="px-3 py-2 font-semibold">Общий контекст серии</div>
-          <div class="px-3 pb-3 text-white/90 leading-snug space-y-2">
-            <div v-html="deepContextHtml"></div>
-          </div>
-        </div>
-
         <!-- Повторяющиеся символы (новый формат с карточками) -->
         <div v-if="hasRecurringSymbols" class="rounded-lg bg-white/10">
           <div class="px-3 py-2 font-semibold">Повторяющиеся символы</div>
@@ -38,49 +30,28 @@
             />
           </div>
         </div>
-        
-        <!-- Fallback: старый формат тегов если нет новой структуры -->
-        <div v-else-if="displayTags.length" class="rounded-lg bg-white/10">
-          <div class="px-3 py-2 font-semibold">Повторяющиеся символы</div>
-          <div class="px-3 pb-3">
-            <div class="flex flex-wrap gap-2">
-              <span v-for="tag in displayTags" :key="'deep-'+tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">{{ tag }}</span>
-            </div>
-          </div>
-        </div>
 
-        <!-- Динамика (новый формат с анализом или HVdC fallback) -->
-        <div v-if="hasDynamicsContext || trendReady" class="rounded-lg bg-white/10">
-          <div class="px-3 py-2 font-semibold">Динамика</div>
+        <!-- Динамика контекста (новый формат с анализом) -->
+        <div v-if="hasDynamicsContext" class="rounded-lg bg-white/10">
+          <div class="px-3 py-2 font-semibold">Динамика контекста</div>
           <div class="px-3 pb-3 text-white/90 leading-snug">
             <DynamicsChart 
-              :dynamics="hasDynamicsContext ? dynamicsContext : hvdcDynamics" 
+              :dynamics="dynamicsContext" 
               :userAge="userStore.profile?.age_range"
               :userGender="userStore.profile?.gender"
             />
           </div>
         </div>
 
-        <!-- Заключение (новый формат) -->
+        <!-- Заключение (новый формат без подзаголовков) -->
         <div v-if="hasConclusion" class="rounded-lg bg-white/10">
           <div class="px-3 py-2 font-semibold">Заключение</div>
-          <div class="px-3 pb-3 text-white/90 leading-snug space-y-4">
-            <div v-if="conclusion.periodThemes" class="space-y-1">
-              <h4 class="font-semibold opacity-90">Темы периода</h4>
-              <p class="text-sm opacity-90 leading-relaxed">{{ conclusion.periodThemes }}</p>
-            </div>
+          <div class="px-3 pb-3 text-white/90 leading-snug space-y-3">
+            <p v-if="conclusion.periodThemes" class="text-sm opacity-90 leading-relaxed">{{ conclusion.periodThemes }}</p>
+            <p v-if="conclusion.dreamFunctionsAnalysis" class="text-sm opacity-90 leading-relaxed">{{ conclusion.dreamFunctionsAnalysis }}</p>
+            <p v-if="conclusion.psychologicalSupport" class="text-sm opacity-90 leading-relaxed">{{ conclusion.psychologicalSupport }}</p>
             
-            <div v-if="conclusion.dreamFunctionsAnalysis" class="space-y-1">
-              <h4 class="font-semibold opacity-90">Функции снов</h4>
-              <p class="text-sm opacity-90 leading-relaxed">{{ conclusion.dreamFunctionsAnalysis }}</p>
-            </div>
-            
-            <div v-if="conclusion.psychologicalSupport" class="space-y-1">
-              <h4 class="font-semibold opacity-90">Поддержка</h4>
-              <p class="text-sm opacity-90 leading-relaxed">{{ conclusion.psychologicalSupport }}</p>
-            </div>
-            
-            <div v-if="conclusion.integrationExercise" class="bg-white/10 rounded-lg p-3 space-y-2">
+            <div v-if="conclusion.integrationExercise" class="bg-white/10 rounded-lg p-3 space-y-2 mt-4">
               <h4 class="font-semibold opacity-95 flex items-center gap-2">
                 <span>💫</span>
                 <span>{{ conclusion.integrationExercise.title || 'Практическое упражнение' }}</span>
@@ -90,6 +61,38 @@
             </div>
           </div>
         </div>
+        
+        <!-- FALLBACK: старый формат для обратной совместимости -->
+        <template v-if="!hasRecurringSymbols && !hasDynamicsContext && !hasConclusion">
+          <!-- Общий контекст серии -->
+          <div class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Общий контекст серии</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug space-y-2">
+              <div v-html="deepContextHtml"></div>
+            </div>
+          </div>
+          
+          <!-- Старый формат тегов -->
+          <div v-if="displayTags.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Повторяющиеся символы</div>
+            <div class="px-3 pb-3">
+              <div class="flex flex-wrap gap-2">
+                <span v-for="tag in displayTags" :key="'deep-'+tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">{{ tag }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Динамика HVdC -->
+          <div v-if="trendReady" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Динамика</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <DynamicsChart 
+                :dynamics="hvdcDynamics" 
+                :userAge="userStore.profile?.age_range"
+                :userGender="userStore.profile?.gender"
+              />
+            </div>
+          </div>
         
         <!-- Fallback: старый формат инсайтов и рекомендаций если нет новой структуры -->
         <template v-if="!hasConclusion">
