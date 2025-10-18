@@ -148,9 +148,35 @@ const padding = 6 // padding to prevent clipping circles
 const currentMetric = computed(() => props.dynamics[currentIndex.value] || { metric: '', values: [], interpretation: '' })
 const currentValues = computed(() => currentMetric.value.values || [])
 
-// Fixed Y-axis scale 0-10 for all metrics
+// Dynamic Y-axis scale based on ALL data across all metrics
 const yAxisScale = computed(() => {
-  return { min: 0, max: 10, labels: [10, 5, 0] }
+  if (!props.dynamics || props.dynamics.length === 0) {
+    return { min: 0, max: 10, labels: [10, 5, 0] }
+  }
+  
+  // Collect all values from all metrics
+  const allValues: number[] = []
+  props.dynamics.forEach(metric => {
+    if (Array.isArray(metric.values)) {
+      allValues.push(...metric.values)
+    }
+  })
+  
+  if (allValues.length === 0) {
+    return { min: 0, max: 10, labels: [10, 5, 0] }
+  }
+  
+  const min = Math.floor(Math.min(...allValues))
+  const max = Math.ceil(Math.max(...allValues))
+  
+  // Calculate 3 labels (top, middle, bottom)
+  const labels = [
+    max,
+    Math.round((max + min) / 2),
+    min
+  ]
+  
+  return { min, max, labels }
 })
 
 // Demographic norms (approximate averages by age/gender)
