@@ -31,6 +31,7 @@ export const useUserStore = defineStore('user', {
     isInitiatingDeepPayment: false, // Флаг инициации платежа
     deepPaymentError: null,         // Ошибка инициации платежа
     isDoingDeepAnalysis: false,     // Флаг выполнения анализа (ПОСЛЕ оплаты)
+    deepAnalysisProcessing: false,  // Флаг фонового выполнения анализа (для баннера)
     deepAnalysisResult: null,
     deepAnalysisError: null,
     deepAnalysisSuccess: false,
@@ -56,6 +57,7 @@ export const useUserStore = defineStore('user', {
         !state.isLoadingProfile && // Профиль загружен
         !state.isInitiatingDeepPayment && // Не идет оплата
         !state.isDoingDeepAnalysis &&    // Не идет анализ
+        !state.deepAnalysisProcessing && // Не идет фоновая обработка
         !state.isLoadingHistory &&
         state.history && state.history.length >= 5, // Есть 5 или больше записей
     // >>>--- КОНЕЦ ИЗМЕНЕНИЯ ГЕТТЕРА ---
@@ -334,12 +336,15 @@ export const useUserStore = defineStore('user', {
         this.deepAnalysisResult = null;
         this.deepAnalysisError = null;
         this.deepAnalysisSuccess = false;
+        
+        // Устанавливаем состояние "запущен"
+        this.deepAnalysisProcessing = true;
 
       // Проверка initData (на всякий случай)
      const tg = window.Telegram?.WebApp; const initDataHeader = tg?.initData;
         if (!initDataHeader) { 
           this.deepAnalysisError = "Telegram InitData не найден."; 
-          this.notificationStore?.error("Telegram InitData не найден.");
+          this.deepAnalysisProcessing = false;
           return; 
         }
 
@@ -350,25 +355,23 @@ export const useUserStore = defineStore('user', {
             console.log("[UserStore:performDeepAnalysis] Response received:", response.data);
 
             if (response.data.processing || response.data.message) {
-                // Анализ запущен в фоновом режиме
-                this.notificationStore?.success("Анализ запущен! Вы получите уведомление в боте, когда анализ будет готов.");
+                // Анализ запущен в фоновом режиме - НЕ обновляем страницу!
+                console.log("[UserStore:performDeepAnalysis] Analysis started in background");
                 
-                // Обновляем профиль для отображения списания кредита
-                await this.fetchProfile();
-                
-                // Запускаем проверку готовности анализа
+                // Запускаем проверку готовности анализа (без немедленного обновления)
                 this.startDeepAnalysisPolling();
             } else if (response.data.success) {
                 // Старый формат ответа (не должно происходить с background функцией)
                 this.deepAnalysisResult = response.data.analysis;
                 try { localStorage.setItem('latest_deep_analysis', this.deepAnalysisResult); } catch (_) {}
                 this.deepAnalysisSuccess = true;
+                this.deepAnalysisProcessing = false;
                 await this.fetchProfile();
                 await this.fetchHistory();
             } else {
                 // Ошибка от бэкенда (мало снов и т.д.)
                 this.deepAnalysisError = response.data.error || "Не удалось выполнить глубокий анализ.";
-                this.notificationStore?.error(this.deepAnalysisError);
+                this.deepAnalysisProcessing = false;
             }
         } catch (err) {
             console.error("[UserStore:performDeepAnalysis] API Error:", err);
@@ -376,7 +379,7 @@ export const useUserStore = defineStore('user', {
             if (err.response?.data?.error) { errorMsg = err.response.data.error; }
             else if (err.message) { errorMsg = err.message; }
             this.deepAnalysisError = errorMsg;
-            this.notificationStore?.error(errorMsg);
+            this.deepAnalysisProcessing = false;
             // Если ошибка связана с отсутствием кредитов — показываем путь покупки сразу
             if (/кредитов/i.test(errorMsg) || /Недостаточно/i.test(errorMsg)) {
               this.profile.deep_analysis_credits = 0;
@@ -389,24 +392,31 @@ export const useUserStore = defineStore('user', {
         // Сохраняем текущее количество анализов
         const initialCount = this.profile.deep_analyses_count || 0;
         
+        console.log("[UserStore:polling] Starting polling, initial count:", initialCount);
+        
         // Проверяем каждые 10 секунд
         const pollInterval = setInterval(async () => {
             try {
-                await this.fetchProfile();
+                // Тихо обновляем только профиль (без перезагрузки истории)
+                const { data: freshProfile } = await api.getUserProfileFresh();
+                if (freshProfile) {
+                    this.profile = { ...this.profile, ...freshProfile };
+                }
+                
+                const currentCount = this.profile.deep_analyses_count || 0;
+                console.log("[UserStore:polling] Check - current count:", currentCount, "initial:", initialCount);
                 
                 // Если количество анализов увеличилось - анализ готов
-                if ((this.profile.deep_analyses_count || 0) > initialCount) {
+                if (currentCount > initialCount) {
                     clearInterval(pollInterval);
+                    console.log("[UserStore:polling] New analysis detected! Updating history...");
                     
-                    // Обновляем историю для отображения нового анализа
+                    // Обновляем историю ОДИН РАЗ для отображения нового анализа
                     await this.fetchHistory();
                     
-                    this.notificationStore?.success("Глубокий анализ готов! Обновляем данные...");
-                    
-                    // Небольшая задержка перед показом результата
-                    setTimeout(() => {
-                        this.deepAnalysisSuccess = true;
-                    }, 500);
+                    // Устанавливаем флаг успеха для показа в баннере
+                    this.deepAnalysisSuccess = true;
+                    this.deepAnalysisProcessing = false;
                 }
             } catch (error) {
                 console.error("[UserStore:polling] Error checking analysis status:", error);
@@ -416,6 +426,10 @@ export const useUserStore = defineStore('user', {
         // Останавливаем проверку через 5 минут (на случай если пользователь закрыл приложение)
         setTimeout(() => {
             clearInterval(pollInterval);
+            if (this.deepAnalysisProcessing) {
+                this.deepAnalysisProcessing = false;
+                console.log("[UserStore:polling] Timeout reached, stopping polling");
+            }
         }, 300000); // 5 минут
     },
     // >>>--- КОНЕЦ ЭКШЕНА ЗАПУСКА АНАЛИЗА ---
