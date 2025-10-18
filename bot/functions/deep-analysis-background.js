@@ -120,6 +120,9 @@ exports.handler = async (event) => {
             };
             
             // Add new structured fields if present
+            if (deepAnalysisResultJson.symbolsIntro) {
+                deepSource.symbolsIntro = deepAnalysisResultJson.symbolsIntro;
+            }
             if (Array.isArray(deepAnalysisResultJson.recurringSymbols)) {
                 deepSource.recurringSymbols = deepAnalysisResultJson.recurringSymbols;
             }

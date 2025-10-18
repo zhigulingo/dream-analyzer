@@ -26,7 +26,11 @@
             <span class="opacity-80 inline-block" :style="{ fontSize: '130%' }">{{ expanded.symbols ? '−' : '+' }}</span>
           </button>
           <div v-if="expanded.symbols" class="px-3 pb-3 text-white/90 leading-snug space-y-4">
-            <div v-for="(symbol, idx) in recurringSymbols" :key="`symbol-${idx}`" class="space-y-1">
+            <!-- Вводный текст о значении повторений -->
+            <p v-if="symbolsIntro" class="text-sm opacity-90 leading-relaxed pb-2 border-b border-white/10">{{ symbolsIntro }}</p>
+            
+            <!-- Список символов (только с частотой >= 2) -->
+            <div v-for="(symbol, idx) in filteredRecurringSymbols" :key="`symbol-${idx}`" class="space-y-1">
               <div class="flex items-baseline gap-2">
                 <h4 class="font-semibold text-sm">{{ symbol.symbol }}</h4>
                 <span class="text-xs opacity-70 bg-white/15 px-2 py-0.5 rounded-full">×{{ symbol.frequency }}</span>
@@ -491,11 +495,19 @@ const hasOverallContext = computed(() => {
   return !!(ctx?.narrative || ctx?.psychologicalFunction || ctx?.emotionalJourney)
 })
 
+const symbolsIntro = computed(() => props.dream?.deep_source?.symbolsIntro || '')
+
 const recurringSymbols = computed(() => {
   const symbols = props.dream?.deep_source?.recurringSymbols
   return Array.isArray(symbols) ? symbols : []
 })
-const hasRecurringSymbols = computed(() => recurringSymbols.value.length > 0)
+
+// Filter symbols to show only those appearing in 2+ dreams
+const filteredRecurringSymbols = computed(() => {
+  return recurringSymbols.value.filter(s => s.frequency >= 2)
+})
+
+const hasRecurringSymbols = computed(() => filteredRecurringSymbols.value.length > 0)
 
 // New dynamics context with analysis and insights
 const dynamicsContext = computed(() => {
@@ -620,6 +632,17 @@ const trendRows = computed(()=>{
 const hvdcDynamics = computed(() => {
   if (!trendReady.value) return []
   
+  // Use dynamicsContext if available (new format with analysis/insight)
+  if (hasDynamicsContext.value) {
+    return dynamicsContext.value.map(d => ({
+      metric: d.category || d.metric,
+      values: d.values || [],
+      interpretation: d.analysis || d.interpretation || '',
+      insight: d.insight || ''
+    }))
+  }
+  
+  // Fallback to HVdC data (old format)
   const cats = [
     { key: 'characters', label: 'Персонажи', idx: 0 },
     { key: 'emotions', label: 'Эмоции', idx: 1 },
