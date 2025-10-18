@@ -12,24 +12,12 @@
       <div v-if="userStore?.isInitiatingDeepPayment" class="mt-4">
         <LoadingSpinner size="xs" variant="white" label="Создаем счёт..." />
       </div>
-      <div v-else-if="userStore?.isDoingDeepAnalysis" class="mt-4">
-        <ProgressBar 
-          :progress="analysisProgress" 
-          label="Глубокий анализ"
-          :steps="analysisSteps"
-          :currentStep="currentStep"
-          variant="white"
-          size="sm"
-          showPercentage
-          animated
-        />
-      </div>
       <!-- Сообщения внутри баннера -->
       <div v-if="userStore?.deepAnalysisError" class="mt-4 p-4 bg-red-500/20 rounded-lg text-sm">
         ⚠️ {{ userStore.deepAnalysisError }}
       </div>
       <div v-else-if="userStore?.deepAnalysisSuccess" class="mt-4 p-4 bg-green-500/20 rounded-lg text-sm">
-        ✅ Глубокий анализ выполнен! Результат доступен во вкладке «Глубокий анализ» ниже.
+        ✅ Глубокий анализ готов! Результат доступен во вкладке «Глубокий анализ» ниже.
       </div>
     </div>
     <div
