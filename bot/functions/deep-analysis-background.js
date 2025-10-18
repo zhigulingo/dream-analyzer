@@ -101,7 +101,18 @@ exports.handler = async (event) => {
                 ? deepAnalysisResultJson.tags 
                 : [];
             
-            // Prepare deep_source with all structured data
+            // Log response structure for debugging
+            console.log('[deep-analysis-background] Gemini response structure:', {
+                hasRecurringSymbols: Array.isArray(deepAnalysisResultJson.recurringSymbols),
+                recurringSymbolsCount: deepAnalysisResultJson.recurringSymbols?.length || 0,
+                hasDynamicsContext: Array.isArray(deepAnalysisResultJson.dynamicsContext),
+                dynamicsContextCount: deepAnalysisResultJson.dynamicsContext?.length || 0,
+                hasConclusion: !!deepAnalysisResultJson.conclusion,
+                conclusionKeys: deepAnalysisResultJson.conclusion ? Object.keys(deepAnalysisResultJson.conclusion) : [],
+                allKeys: Object.keys(deepAnalysisResultJson)
+            });
+            
+            // Prepare deep_source with all structured data (new structure)
             const deepSource = { 
                 required_dreams: requiredDreams, 
                 title: deepShortTitle,
@@ -109,11 +120,19 @@ exports.handler = async (event) => {
             };
             
             // Add new structured fields if present
-            if (deepAnalysisResultJson.overallContext) {
-                deepSource.overallContext = deepAnalysisResultJson.overallContext;
-            }
             if (Array.isArray(deepAnalysisResultJson.recurringSymbols)) {
                 deepSource.recurringSymbols = deepAnalysisResultJson.recurringSymbols;
+            }
+            if (Array.isArray(deepAnalysisResultJson.dynamicsContext)) {
+                deepSource.dynamicsContext = deepAnalysisResultJson.dynamicsContext;
+            }
+            if (deepAnalysisResultJson.conclusion && typeof deepAnalysisResultJson.conclusion === 'object') {
+                deepSource.conclusion = deepAnalysisResultJson.conclusion;
+            }
+            
+            // Legacy support: if old structure exists, keep it for backward compatibility
+            if (deepAnalysisResultJson.overallContext) {
+                deepSource.overallContext = deepAnalysisResultJson.overallContext;
             }
             if (Array.isArray(deepAnalysisResultJson.dynamics)) {
                 deepSource.dynamics = deepAnalysisResultJson.dynamics;

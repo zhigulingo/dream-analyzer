@@ -19,58 +19,135 @@
       
       <!-- Deep analysis specific layout -->
       <template v-if="isDeep">
-        <!-- Контекст серии -->
-        <div class="rounded-lg bg-white/10">
-          <div class="px-3 py-2 font-semibold">Общий контекст серии</div>
-          <div class="px-3 pb-3 text-white/90 leading-snug space-y-2">
-            <div v-html="deepContextHtml"></div>
-            <div v-if="displayTags.length" class="pt-2">
-              <div class="text-xs opacity-80 mb-1">Повторяющиеся символы</div>
+        <!-- Повторяющиеся символы (новый формат с карточками) -->
+        <div v-if="hasRecurringSymbols" class="rounded-lg bg-white/10">
+          <div class="px-3 py-2 font-semibold">Повторяющиеся символы</div>
+          <div class="px-3 pb-3 space-y-3">
+            <SymbolCard 
+              v-for="(symbol, idx) in recurringSymbols" 
+              :key="`symbol-${idx}`"
+              :symbol="symbol"
+            />
+          </div>
+        </div>
+
+        <!-- Динамика контекста (новый формат с анализом) -->
+        <div v-if="hasDynamicsContext" class="rounded-lg bg-white/10">
+          <div class="px-3 py-2 font-semibold">Динамика контекста</div>
+          <div class="px-3 pb-3 text-white/90 leading-snug">
+            <DynamicsChart 
+              :dynamics="dynamicsContext" 
+              :userAge="userStore.profile?.age_range"
+              :userGender="userStore.profile?.gender"
+            />
+          </div>
+        </div>
+
+        <!-- Заключение (новый формат без подзаголовков) -->
+        <div v-if="hasConclusion" class="rounded-lg bg-white/10">
+          <div class="px-3 py-2 font-semibold">Заключение</div>
+          <div class="px-3 pb-3 text-white/90 leading-snug space-y-3">
+            <p v-if="conclusion.periodThemes" class="text-sm opacity-90 leading-relaxed">{{ conclusion.periodThemes }}</p>
+            <p v-if="conclusion.dreamFunctionsAnalysis" class="text-sm opacity-90 leading-relaxed">{{ conclusion.dreamFunctionsAnalysis }}</p>
+            <p v-if="conclusion.psychologicalSupport" class="text-sm opacity-90 leading-relaxed">{{ conclusion.psychologicalSupport }}</p>
+            
+            <div v-if="conclusion.integrationExercise" class="bg-white/10 rounded-lg p-3 space-y-2 mt-4">
+              <h4 class="font-semibold opacity-95 flex items-center gap-2">
+                <span>💫</span>
+                <span>{{ conclusion.integrationExercise.title || 'Практическое упражнение' }}</span>
+              </h4>
+              <p class="text-sm opacity-90 leading-relaxed">{{ conclusion.integrationExercise.description }}</p>
+              <p v-if="conclusion.integrationExercise.rationale" class="text-xs opacity-75 italic leading-relaxed">{{ conclusion.integrationExercise.rationale }}</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- FALLBACK: старый формат для обратной совместимости -->
+        <template v-if="!hasRecurringSymbols && !hasDynamicsContext && !hasConclusion">
+          <!-- Общий контекст серии -->
+          <div class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Общий контекст серии</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug space-y-2">
+              <div v-html="deepContextHtml"></div>
+            </div>
+          </div>
+          
+          <!-- Старый формат тегов -->
+          <div v-if="displayTags.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Повторяющиеся символы</div>
+            <div class="px-3 pb-3">
               <div class="flex flex-wrap gap-2">
                 <span v-for="tag in displayTags" :key="'deep-'+tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">{{ tag }}</span>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Динамика (HVdC) -->
-        <div v-if="trendReady" class="rounded-lg bg-white/10">
-          <div class="px-3 py-2 font-semibold">Динамика</div>
-          <div class="px-3 pb-3 text-white/90 leading-snug">
-            <DynamicsChart 
-              :dynamics="hvdcDynamics" 
-              :userAge="userStore.user?.age_range"
-              :userGender="userStore.user?.gender"
-            />
+          <!-- Динамика HVdC -->
+          <div v-if="trendReady" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Динамика</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <DynamicsChart 
+                :dynamics="hvdcDynamics" 
+                :userAge="userStore.profile?.age_range"
+                :userGender="userStore.profile?.gender"
+              />
+            </div>
           </div>
-        </div>
+          
+          <!-- Инсайты и рекомендации для старого формата -->
+          <div v-if="insights.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Ключевые инсайты</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <ol class="list-decimal pl-5 space-y-2">
+                <li v-for="(it, i) in insights" :key="'in'+i" class="text-xs leading-relaxed">{{ it }}</li>
+              </ol>
+            </div>
+          </div>
 
-        <!-- Выводы -->
-        <div v-if="insights.length" class="rounded-lg bg-white/10">
-          <div class="px-3 py-2 font-semibold">Ключевые инсайты</div>
-          <div class="px-3 pb-3 text-white/90 leading-snug">
-            <ol class="list-decimal pl-5 space-y-2">
-              <li v-for="(it, i) in insights" :key="'in'+i" class="text-xs leading-relaxed">{{ it }}</li>
-            </ol>
+          <div v-if="recommendations.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Рекомендации</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <ol class="list-decimal pl-5 space-y-3">
+                <li v-for="(r, i) in recommendations" :key="'rec'+i" class="text-xs leading-relaxed">
+                  <div v-if="typeof r === 'object' && r.title">
+                    <div class="font-semibold mb-1">{{ r.title }}</div>
+                    <div class="opacity-90">{{ r.description }}</div>
+                    <div v-if="r.rationale" class="opacity-80 mt-1 italic">{{ r.rationale }}</div>
+                  </div>
+                  <div v-else>{{ typeof r === 'string' ? r : r.title }}</div>
+                </li>
+              </ol>
+            </div>
           </div>
-        </div>
+        </template>
+        
+        <!-- Fallback инсайты и рекомендации если есть новая структура символов/динамики но нет заключения -->
+        <template v-if="(hasRecurringSymbols || hasDynamicsContext) && !hasConclusion">
+          <div v-if="insights.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Ключевые инсайты</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <ol class="list-decimal pl-5 space-y-2">
+                <li v-for="(it, i) in insights" :key="'in'+i" class="text-xs leading-relaxed">{{ it }}</li>
+              </ol>
+            </div>
+          </div>
 
-        <!-- Рекомендации -->
-        <div v-if="recommendations.length" class="rounded-lg bg-white/10">
-          <div class="px-3 py-2 font-semibold">Рекомендации</div>
-          <div class="px-3 pb-3 text-white/90 leading-snug">
-            <ol class="list-decimal pl-5 space-y-3">
-              <li v-for="(r, i) in recommendations" :key="'rec'+i" class="text-xs leading-relaxed">
-                <div v-if="typeof r === 'object' && r.title">
-                  <div class="font-semibold mb-1">{{ r.title }}</div>
-                  <div class="opacity-90">{{ r.description }}</div>
-                  <div v-if="r.rationale" class="opacity-80 mt-1 italic">{{ r.rationale }}</div>
-                </div>
-                <div v-else>{{ typeof r === 'string' ? r : r.title }}</div>
-              </li>
-            </ol>
+          <div v-if="recommendations.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Рекомендации</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <ol class="list-decimal pl-5 space-y-3">
+                <li v-for="(r, i) in recommendations" :key="'rec'+i" class="text-xs leading-relaxed">
+                  <div v-if="typeof r === 'object' && r.title">
+                    <div class="font-semibold mb-1">{{ r.title }}</div>
+                    <div class="opacity-90">{{ r.description }}</div>
+                    <div v-if="r.rationale" class="opacity-80 mt-1 italic">{{ r.rationale }}</div>
+                  </div>
+                  <div v-else>{{ typeof r === 'string' ? r : r.title }}</div>
+                </li>
+              </ol>
+            </div>
           </div>
-        </div>
+        </template>
       </template>
 
       <!-- Single dream layout -->
@@ -225,6 +302,7 @@ import api from '@/services/api.js'
 import { useUserStore } from '@/stores/user.js'
 import { useNotificationStore } from '@/stores/notifications.js'
 import DynamicsChart from '@/components/DynamicsChart.vue'
+import SymbolCard from '@/components/SymbolCard.vue'
 
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
@@ -403,6 +481,21 @@ const hasOverallContext = computed(() => {
 const recurringSymbols = computed(() => {
   const symbols = props.dream?.deep_source?.recurringSymbols
   return Array.isArray(symbols) ? symbols : []
+})
+const hasRecurringSymbols = computed(() => recurringSymbols.value.length > 0)
+
+// New dynamics context with analysis and insights
+const dynamicsContext = computed(() => {
+  const dynamics = props.dream?.deep_source?.dynamicsContext
+  return Array.isArray(dynamics) ? dynamics : []
+})
+const hasDynamicsContext = computed(() => dynamicsContext.value.length > 0)
+
+// New conclusion structure
+const conclusion = computed(() => props.dream?.deep_source?.conclusion || {})
+const hasConclusion = computed(() => {
+  const c = conclusion.value
+  return !!(c?.periodThemes || c?.dreamFunctionsAnalysis || c?.psychologicalSupport || c?.integrationExercise)
 })
 
 const newDynamics = computed(() => {

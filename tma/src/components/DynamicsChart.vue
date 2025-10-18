@@ -11,7 +11,7 @@
         <div :key="currentIndex" class="chart-content">
           <!-- Chart Title -->
           <div class="text-sm font-semibold mb-2 flex items-center justify-between">
-            <span>{{ currentMetric.metric }}</span>
+            <span>{{ currentMetric.category || currentMetric.metric }}</span>
             <span class="text-xs opacity-70">{{ currentValues[currentValues.length - 1] }}</span>
           </div>
           
@@ -90,8 +90,17 @@
             </div>
           </div>
           
-          <!-- Interpretation -->
-          <div class="mt-3 text-xs opacity-80 leading-relaxed">
+          <!-- Analysis (new format) or Interpretation (legacy) -->
+          <div v-if="currentMetric.analysis" class="mt-4">
+            <div class="dynamics-analysis">
+              <p class="analysis-text">{{ currentMetric.analysis }}</p>
+              <div v-if="currentMetric.insight" class="insight-box">
+                <span class="insight-icon">💡</span>
+                <p class="insight-text">{{ currentMetric.insight }}</p>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="currentMetric.interpretation" class="mt-3 text-xs opacity-80 leading-relaxed">
             {{ currentMetric.interpretation }}
           </div>
         </div>
@@ -383,5 +392,42 @@ function triggerHaptic() {
 .slide-right-leave-to {
   transform: translateX(100%);
   opacity: 0;
+}
+
+/* Dynamics Analysis Styles */
+.dynamics-analysis {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.analysis-text {
+  font-size: 13px;
+  line-height: 1.6;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.insight-box {
+  display: flex;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border-left: 3px solid rgba(255, 223, 0, 0.6);
+}
+
+.insight-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.insight-text {
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.95;
+  margin: 0;
+  font-style: italic;
 }
 </style>
