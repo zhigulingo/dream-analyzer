@@ -176,11 +176,6 @@
                   </div>
                 </div>
               </template>
-              
-              <!-- Default HTML content -->
-              <template v-else>
-                <div v-html="sec.html"></div>
-              </template>
             </div>
           </div>
         </template>
