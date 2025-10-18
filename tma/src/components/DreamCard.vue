@@ -25,12 +25,17 @@
             <span>Повторяющиеся символы</span>
             <span class="opacity-80 inline-block" :style="{ fontSize: '130%' }">{{ expanded.symbols ? '−' : '+' }}</span>
           </button>
-          <div v-if="expanded.symbols" class="px-3 pb-3 pt-3 space-y-3 rounded-b-lg bg-white/10">
-            <SymbolCard 
-              v-for="(symbol, idx) in recurringSymbols" 
-              :key="`symbol-${idx}`"
-              :symbol="symbol"
-            />
+          <div v-if="expanded.symbols" class="px-3 pb-3 pt-3 space-y-4 rounded-b-lg bg-white/10">
+            <div v-for="(symbol, idx) in recurringSymbols" :key="`symbol-${idx}`" class="space-y-1">
+              <div class="flex items-baseline gap-2">
+                <h4 class="font-semibold text-sm">{{ symbol.symbol }}</h4>
+                <span class="text-xs opacity-70 bg-white/15 px-2 py-0.5 rounded-full">×{{ symbol.frequency }}</span>
+              </div>
+              <p class="text-xs opacity-90 leading-relaxed">{{ symbol.description }}</p>
+              <div class="text-xs opacity-75 italic leading-relaxed bg-white/5 rounded px-2 py-1">
+                <span class="font-medium">В ваших снах:</span> {{ symbol.userContext }}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -311,7 +316,6 @@ import api from '@/services/api.js'
 import { useUserStore } from '@/stores/user.js'
 import { useNotificationStore } from '@/stores/notifications.js'
 import DynamicsChart from '@/components/DynamicsChart.vue'
-import SymbolCard from '@/components/SymbolCard.vue'
 
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
