@@ -101,6 +101,17 @@ exports.handler = async (event) => {
                 ? deepAnalysisResultJson.tags 
                 : [];
             
+            // Log response structure for debugging
+            console.log('[deep-analysis-background] Gemini response structure:', {
+                hasRecurringSymbols: Array.isArray(deepAnalysisResultJson.recurringSymbols),
+                recurringSymbolsCount: deepAnalysisResultJson.recurringSymbols?.length || 0,
+                hasDynamicsContext: Array.isArray(deepAnalysisResultJson.dynamicsContext),
+                dynamicsContextCount: deepAnalysisResultJson.dynamicsContext?.length || 0,
+                hasConclusion: !!deepAnalysisResultJson.conclusion,
+                conclusionKeys: deepAnalysisResultJson.conclusion ? Object.keys(deepAnalysisResultJson.conclusion) : [],
+                allKeys: Object.keys(deepAnalysisResultJson)
+            });
+            
             // Prepare deep_source with all structured data (new structure)
             const deepSource = { 
                 required_dreams: requiredDreams, 
