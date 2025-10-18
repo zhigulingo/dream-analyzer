@@ -13,7 +13,11 @@
         <LoadingSpinner size="xs" variant="white" label="Создаем счёт..." />
       </div>
       <!-- Сообщения внутри баннера -->
-      <div v-if="userStore?.deepAnalysisError" class="mt-4 p-4 bg-red-500/20 rounded-lg text-sm">
+      <div v-if="userStore?.deepAnalysisProcessing" class="mt-4 p-4 bg-blue-500/20 rounded-lg text-sm flex items-center gap-2">
+        <LoadingSpinner size="xs" variant="white" />
+        <span>Анализ запущен! Вы получите уведомление в боте, когда анализ будет готов. Обычно это занимает 1-2 минуты.</span>
+      </div>
+      <div v-else-if="userStore?.deepAnalysisError" class="mt-4 p-4 bg-red-500/20 rounded-lg text-sm">
         ⚠️ {{ userStore.deepAnalysisError }}
       </div>
       <div v-else-if="userStore?.deepAnalysisSuccess" class="mt-4 p-4 bg-green-500/20 rounded-lg text-sm">
