@@ -156,13 +156,12 @@ if (initTelegram()) {
             requestFullscreen();
         }
         
-        // Устанавливаем размеры viewport
+        // Пробрасываем высоту viewport в CSS‑переменную (для адаптивных отступов),
+        // но НЕ фиксируем высоту документа — чтобы работал скролл на главной
         if (tg.viewportHeight) {
-            document.documentElement.style.height = tg.viewportHeight + 'px';
-            document.body.style.height = tg.viewportHeight + 'px';
+            document.documentElement.style.setProperty('--tg-viewport-height', tg.viewportHeight + 'px');
         }
-        
-        // Убираем возможность скролла за пределы приложения
+        // Не запрещаем скролл документа; только отключаем резиновые перетяжки
         document.body.style.overscrollBehavior = 'none';
         document.documentElement.style.overscrollBehavior = 'none';
         
