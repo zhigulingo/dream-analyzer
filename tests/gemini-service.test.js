@@ -66,7 +66,12 @@ describe('GeminiService', () => {
 
       expect(GoogleGenerativeAI).toHaveBeenCalledWith('test-api-key');
       expect(mockGenAI.getGenerativeModel).toHaveBeenCalledWith({ 
-        model: 'gemini-1.5-flash-latest' 
+        model: 'gemini-2.5-flash',
+        generationConfig: {
+          temperature: 0,
+          topK: 1,
+          topP: 0.1,
+        }
       });
       expect(model).toBe(mockModel);
       expect(GeminiService.isInitialized).toBe(true);
@@ -76,7 +81,7 @@ describe('GeminiService', () => {
       delete process.env.GEMINI_API_KEY;
 
       await expect(GeminiService.initialize()).rejects.toThrow(
-        'Failed to initialize Gemini service: GEMINI_API_KEY environment variable is not set'
+        'GEMINI_API_KEY environment variable is not set'
       );
     });
 
@@ -184,7 +189,8 @@ describe('GeminiService', () => {
         'Error communicating with analysis service: Network error'
       );
       
-      expect(mockGenerateContent).toHaveBeenCalledTimes(3);
+      // maxRetries = 2, so we expect 2 attempts total
+      expect(mockGenerateContent).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -257,7 +263,7 @@ describe('GeminiService', () => {
       expect(stats).toHaveProperty('size');
       expect(stats).toHaveProperty('isInitialized');
       expect(stats).toHaveProperty('modelName');
-      expect(stats.modelName).toBe('gemini-1.5-flash-latest');
+      expect(stats.modelName).toBe('gemini-2.5-flash');
     });
 
     test('should clear cache', () => {
