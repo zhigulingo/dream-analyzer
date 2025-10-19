@@ -45,6 +45,8 @@ onMounted(async () => {
     const tg = window?.Telegram?.WebApp
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
     if (tg && isMobile) {
+      // На главной по умолчанию должна быть кнопка Close (BackButton скрыт)
+      try { tg.BackButton?.hide?.() } catch (_) {}
       // Установим безопасный верхний отступ для основного контейнера и обновляем при изменениях safe area
       const updateSafeTop = () => {
         try {
@@ -146,5 +148,7 @@ body {
   padding: 0;
   padding-top: var(--tma-safe-top, 56px);
   box-sizing: border-box;
+  min-height: 100vh;
+  overflow-y: auto;
 }
 </style>

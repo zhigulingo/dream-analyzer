@@ -1,0 +1,1 @@
+import{d as t,a as n,o,i as s}from"./main-CvAWfYyg.js";const a={class:"inline-flex bg-white/10 rounded-full px-3 py-1 text-sm font-medium w-fit"},p=t({__name:"Badge",setup(r){return(e,l)=>(o(),n("span",a,[s(e.$slots,"default")]))}});export{p as _};
