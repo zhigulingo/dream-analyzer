@@ -15,7 +15,7 @@
     </div>
 
     <main class="flex flex-col gap-6 px-4 sm:px-6 md:px-8 pb-safe-area items-center">
-      <section class="account-block w-full max-w-72r">
+      <section class="account-block w-full max-w-72r" data-user-anchor>
         <UserInfoCard :user-store="userStore" />
       </section>
       <section class="account-block w-full max-w-72r mb-0">

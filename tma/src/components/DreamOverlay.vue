@@ -2,7 +2,7 @@
   <Teleport to="body">
     <div v-if="dream" class="fixed inset-0 z-[9998] bg-black/70">
       <div class="absolute inset-0 overflow-y-auto">
-        <div class="pt-4 pb-6">
+        <div class="pb-6" :style="{ paddingTop: paddingTop + 'px' }">
           <DreamCard :dream="dream" :active="true" :overlayMode="true" />
         </div>
       </div>
@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, nextTick } from 'vue'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import utc from 'dayjs/plugin/utc'
@@ -105,11 +105,21 @@ function handleBack(){
 onMounted(() => {
   try { document.body.style.overflow = 'hidden' } catch {}
   showBackButton()
+  try {
+    // Рассчитываем верхний отступ: от верхнего края до блока пользователя + 20px
+    nextTick(() => {
+      const anchor = document.querySelector('[data-user-anchor]') as HTMLElement | null
+      const top = anchor ? Math.max(0, Math.round(anchor.getBoundingClientRect().top)) : 0
+      paddingTop.value = Math.max(0, top + 20)
+    })
+  } catch {}
 })
 onBeforeUnmount(() => {
   hideBackButton()
   try { document.body.style.overflow = '' } catch {}
 })
+
+const paddingTop = ref(16)
 </script>
 
 <style scoped>

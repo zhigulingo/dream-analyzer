@@ -29,7 +29,7 @@
           @open="openOverlay(asDream(item))"
         />
       </div>
-      <DreamOverlay :dream="selected" @close="selected=null" />
+      <DreamOverlay :dream="selected" @close="closeOverlay" />
     </div>
   </section>
 </template>
@@ -63,7 +63,21 @@ const asDream = (item) => ({
   is_deep_analysis: true
 })
 
-const openOverlay = (dream) => { selected.value = dream }
+const openOverlay = (dream) => {
+  selected.value = dream
+  try {
+    const tg = (window)?.Telegram?.WebApp
+    tg?.BackButton?.onClick?.(() => closeOverlay())
+    tg?.BackButton?.show?.()
+  } catch {}
+}
+const closeOverlay = () => {
+  try {
+    const tg = (window)?.Telegram?.WebApp
+    tg?.BackButton?.hide?.()
+  } catch {}
+  selected.value = null
+}
 
 const runDeepAnalysis = async () => {
   await userStore.performDeepAnalysis()

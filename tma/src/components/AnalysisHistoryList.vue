@@ -166,8 +166,18 @@ const switchTab = (tab) => {
 
 const openOverlay = (dream:any) => {
   selectedItem.value = dream
+  try {
+    const tg = (window as any)?.Telegram?.WebApp
+    tg?.BackButton?.onClick?.(() => closeOverlay())
+    tg?.BackButton?.show?.()
+  } catch {}
 }
 const closeOverlay = () => {
+  try {
+    const tg = (window as any)?.Telegram?.WebApp
+    tg?.BackButton?.hide?.()
+    // offClick без ссылки на исходный коллбек может быть проигнорирован; hide достаточно для UI
+  } catch {}
   selectedItem.value = null
 }
 </script>
