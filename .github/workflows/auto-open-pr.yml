@@ -32,6 +32,16 @@ jobs:
             });
             if (prs.length > 0) {
               core.info(`PR already exists: #${prs[0].number}`);
+              // Ensure automerge label exists
+              try {
+                await github.rest.issues.addLabels({
+                  ...context.repo,
+                  issue_number: prs[0].number,
+                  labels: ['automerge']
+                });
+              } catch (e) {
+                core.warning(`Failed to add label to existing PR: ${e.message}`);
+              }
               return;
             }
 
