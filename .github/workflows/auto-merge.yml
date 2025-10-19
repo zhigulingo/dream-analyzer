@@ -22,6 +22,6 @@ jobs:
           commit-message: pull-request-title
           required-labels: automerge
           delete-branch: true
-          wait-for-checks: true
-          wait-for-reviews: true
+          wait-for-checks: false
+          wait-for-reviews: false
           draft: false
