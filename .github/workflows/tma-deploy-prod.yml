@@ -1,0 +1,40 @@
+name: TMA Deploy Production
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'tma/**'
+      - '!tma/dist/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tma
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: tma/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Netlify (Production)
+        if: ${{ secrets.NETLIFY_AUTH_TOKEN && secrets.NETLIFY_TMA_SITE_ID }}
+        uses: netlify/actions/cli@v4
+        with:
+          args: deploy --dir=dist --site ${{ secrets.NETLIFY_TMA_SITE_ID }} --auth ${{ secrets.NETLIFY_AUTH_TOKEN }} --prod --message "Main deploy ${{ github.sha }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}

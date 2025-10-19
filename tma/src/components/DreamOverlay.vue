@@ -1,15 +1,9 @@
 <template>
   <Teleport to="body">
-    <div v-if="dream" class="fixed inset-0 z-[9998] bg-black/70" @wheel.prevent @touchmove.prevent>
+    <div v-if="dream" class="fixed inset-0 z-[9998] bg-black/70">
       <div class="absolute inset-0 overflow-y-auto">
-        <div class="w-[92vw] max-w-[720px] mx-auto my-4 md:my-6 rounded-2xl bg-[var(--tg-theme-secondary-bg-color,#0c110c)] text-white shadow-2xl border border-white/10">
-          <div class="px-8 md:px-16 py-5">
-            <h2 class="text-2xl font-semibold leading-tight">{{ displayTitle }}</h2>
-            <div class="text-sm opacity-80 mt-1">{{ fullDate }}</div>
-          </div>
-          <div class="px-8 md:px-16 pb-6">
-            <DreamCard :dream="dream" :active="true" :overlayMode="true" />
-          </div>
+        <div class="pt-4 pb-6">
+          <DreamCard :dream="dream" :active="true" :overlayMode="true" />
         </div>
       </div>
     </div>
