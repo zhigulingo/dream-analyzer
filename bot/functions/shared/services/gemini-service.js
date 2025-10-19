@@ -65,13 +65,20 @@ class GeminiService {
             const candidate = this.modelFallbacks[i];
             try {
                 console.log(`[GeminiService] Trying model: ${candidate}`);
-                const model = this.genAI.getGenerativeModel({ model: candidate });
+                const model = this.genAI.getGenerativeModel({ 
+                    model: candidate,
+                    generationConfig: {
+                        temperature: 0,     // Детерминированный вывод для стабильных результатов
+                        topK: 1,           // Выбираем только самый вероятный токен
+                        topP: 0.1,         // Минимальная случайность в выборке
+                    }
+                });
                 // Быстрая проверка доступности: запросим минимальный токен limit через empty prompt
                 // (Некоторые SDK не позволяют пустой запрос — тогда просто примем как валидно и пойдём дальше)
                 this.model = model;
                 this.MODEL_NAME = candidate;
                 this.isInitialized = true;
-                console.log("[GeminiService] Initialization completed successfully", { model: candidate });
+                console.log("[GeminiService] Initialization completed successfully", { model: candidate, deterministic: true });
                 return this.model;
             } catch (err) {
                 lastErr = err;
@@ -137,7 +144,14 @@ class GeminiService {
                         // Переинициализируем модель на лету
                         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
                         this.genAI = new (require('@google/generative-ai').GoogleGenerativeAI)(GEMINI_API_KEY);
-                        this.model = this.genAI.getGenerativeModel({ model: this.MODEL_NAME });
+                        this.model = this.genAI.getGenerativeModel({ 
+                            model: this.MODEL_NAME,
+                            generationConfig: {
+                                temperature: 0,
+                                topK: 1,
+                                topP: 0.1,
+                            }
+                        });
                         return await this.analyzeDream(dreamText, promptKey);
                     }
                 }
