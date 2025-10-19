@@ -1,18 +1,37 @@
 <template>
   <div>
-    <!-- Заголовок + селектор режима справа -->
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-3xl font-bold">История</h2>
-      <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 themed-badge">
-        <select
-          aria-label="Режим истории"
-          v-model="modeVal"
-          class="bg-transparent focus:outline-none themed-select"
-        >
-          <option value="history">Дневник снов</option>
-          <option value="deep">Глубокий анализ</option>
-        </select>
-      </div>
+    <!-- Табы для переключения режима -->
+    <div class="flex items-center gap-8 mb-6 border-b border-white/10">
+      <button
+        @click="switchTab('history')"
+        class="relative pb-3 text-lg font-semibold transition-all duration-200"
+        :class="[
+          activeTab === 'history' 
+            ? 'text-white' 
+            : 'text-white/40 hover:text-white/60'
+        ]"
+      >
+        Дневник снов
+        <div
+          v-if="activeTab === 'history'"
+          class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"
+        ></div>
+      </button>
+      <button
+        @click="switchTab('deep')"
+        class="relative pb-3 text-lg font-semibold transition-all duration-200"
+        :class="[
+          activeTab === 'deep' 
+            ? 'text-white' 
+            : 'text-white/40 hover:text-white/60'
+        ]"
+      >
+        Глубокий анализ
+        <div
+          v-if="activeTab === 'deep'"
+          class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"
+        ></div>
+      </button>
     </div>
     <!-- Контент вкладок -->
     <div v-if="userStore?.isLoadingHistory" class="flex flex-col gap-4 pb-[5vh]">
@@ -95,12 +114,6 @@ const activeId = ref(null)
 const regularPageSize = ref(5)
 const deepPageSize = ref(5)
 const activeTab = ref('history')
-
-// Привязка селектора к текущему режиму
-const modeVal = computed({
-  get: () => activeTab.value,
-  set: (v: string) => switchTab(v)
-})
 
 // Разделяем сны на обычные и глубокие анализы
 const regularDreams = computed(() => {
