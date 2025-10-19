@@ -61,17 +61,12 @@ onMounted(async () => {
       tg.onEvent?.('contentSafeAreaChanged', updateSafeTop)
       window.__tma_onSafeAreaChanged = updateSafeTop
 
-      // Отключаем вертикальные свайпы внутри Telegram WebApp на мобильных
-      try { tg.disableVerticalSwipes?.() } catch (_) {}
-
       // Подписываемся на изменение фуллскрина, чтобы при выходе пробовать снова
       const onFsChanged = () => {
         // Если вышли из полноэкрана, попробуем включить снова (мягко)
         if (!tg.isFullscreen) {
           try { tg.requestFullscreen?.() } catch (_) {}
         }
-        // Повторно отключаем вертикальные свайпы на случай, если клиент их вернул
-        try { tg.disableVerticalSwipes?.() } catch (_) {}
       }
       tg.onEvent?.('fullscreenChanged', onFsChanged)
       // Сохраним, чтобы отписаться при размонтировании

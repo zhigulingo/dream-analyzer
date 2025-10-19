@@ -131,6 +131,11 @@ if (initTelegram()) {
     
     // Включаем полноэкранный режим
     tg.expand();
+    // На старте гарантированно прячем BackButton, чтобы Telegram показал Close
+    try {
+        tg.BackButton?.hide?.();
+        tg.BackButton?.offClick?.(() => {});
+    } catch (_) {}
     
     // Запрашиваем полноэкранный режим браузера
     const requestFullscreen = () => {
