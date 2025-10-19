@@ -1,8 +1,8 @@
 <template>
   <Teleport to="body">
     <div v-if="dream" class="fixed inset-0 z-[9998] bg-black/70">
-      <div class="absolute inset-0 overflow-y-auto">
-        <div class="pb-6" :style="{ paddingTop: paddingTop + 'px' }">
+      <div class="absolute inset-0 overflow-y-auto" @click.self="emit('close')">
+        <div class="pb-6" :style="{ paddingTop: paddingTop + 'px' }" @click.stop>
           <DreamCard :dream="dream" :active="true" :overlayMode="true" />
         </div>
       </div>
