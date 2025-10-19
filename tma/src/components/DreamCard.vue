@@ -1,15 +1,25 @@
 <template>
   <article
-    class="rounded-xl bg-gradient-to-br text-white px-8 md:px-16 transition-all overflow-hidden cursor-pointer py-6"
-    :class="[active ? '' : 'min-h-[4.5rem]', gradientClass]"
-    @click="handleToggle"
+    class="rounded-xl bg-gradient-to-br text-white px-8 md:px-16 transition-all overflow-hidden py-4"
+    :class="[gradientClass, overlayMode ? '' : 'cursor-pointer min-h-[4.5rem]']"
+    @click="handleOpen"
   >
-    <div class="flex justify-between items-center py-2 min-h-[2.5rem]">
-      <h3 class="truncate">{{ displayTitle }}</h3>
-      <span class="bg-white/10 rounded-full px-2 py-1 text-sm min-w-[3rem] text-center whitespace-nowrap">
-        {{ relativeDate }}
-      </span>
+    <!-- Collapsed header (card list view) -->
+    <div v-if="!overlayMode" class="flex items-center gap-3 py-1 min-h-[2.5rem]">
+      <div class="text-2xl shrink-0">{{ emoji }}</div>
+      <div class="flex-1 min-w-0">
+        <div class="truncate font-semibold leading-tight">{{ displayTitle }}</div>
+        <div class="text-xs opacity-80 leading-tight">{{ relativeDate }}</div>
+      </div>
+      <button class="shrink-0 w-6 h-6 opacity-80 hover:opacity-100"
+              @click.stop="emit('open')"
+              aria-label="Открыть">
+        <span class="inline-block w-6 h-6"
+              :style="chevronMaskStyle"></span>
+      </button>
     </div>
+
+    <!-- Expanded content (used by overlay mode) -->
     <div v-if="active" class="mt-4 space-y-4 text-sm fade-seq is-open">
       <div v-if="displayTags.length && !isDeep" class="flex flex-wrap gap-2">
         <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">
@@ -306,25 +316,33 @@ dayjs.locale('ru')
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
-const props = defineProps<{ dream: any; active: boolean }>()
-const emit = defineEmits(['toggle'])
+const props = defineProps<{ dream: any; active?: boolean; overlayMode?: boolean }>()
+const emit = defineEmits(['toggle','open'])
 
-const handleToggle = () => {
-  emit('toggle')
-  if (window.triggerHaptic) {
-    window.triggerHaptic('light')
-  }
+const handleOpen = () => {
+  if (props.overlayMode) return
+  emit('open')
+  if (window.triggerHaptic) window.triggerHaptic('light')
 }
 
 import api from '@/services/api.js'
 import { useUserStore } from '@/stores/user.js'
 import { useNotificationStore } from '@/stores/notifications.js'
 import DynamicsChart from '@/components/DynamicsChart.vue'
+import { emojiForTitle } from '@/services/emoji.js'
 
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
 const dreamCollapsed = ref(true)
 const isDeep = computed(()=> !!props.dream?.is_deep_analysis)
+
+const emoji = computed(()=> emojiForTitle(displayTitle.value))
+
+const chevronMaskStyle = computed(() => ({
+  backgroundColor: 'currentColor',
+  WebkitMask: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path fill=\"black\" d=\"M9 6l6 6-6 6\"/></svg>') no-repeat center / contain",
+  mask: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path fill=\"black\" d=\"M9 6l6 6-6 6\"/></svg>') no-repeat center / contain"
+}))
 
 const localFeedback = computed({
   get: () => (props.dream?.user_feedback ?? props.dream?.deep_source?.user_feedback ?? 0),

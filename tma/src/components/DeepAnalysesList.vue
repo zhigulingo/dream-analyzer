@@ -26,10 +26,10 @@
           v-for="(item, idx) in items"
           :key="item.id || idx"
           :dream="asDream(item)"
-          :active="activeIndex === idx"
-          @toggle="toggle(idx)"
+          @open="openOverlay(asDream(item))"
         />
       </div>
+      <DreamOverlay :dream="selected" @close="selected=null" />
     </div>
   </section>
 </template>
@@ -40,13 +40,14 @@ import { useUserStore } from '@/stores/user.js'
 import api from '@/services/api'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import DreamCard from '@/components/DreamCard.vue'
+import DreamOverlay from '@/components/DreamOverlay.vue'
 
 const userStore = useUserStore()
 
 const items = ref([])
 const isLoading = ref(false)
 const error = ref(null)
-const activeIndex = ref(-1)
+const selected = ref(null)
 
 const hasAnyCredits = computed(() => {
   const p = userStore.profile || {}
@@ -58,12 +59,11 @@ const canShowAction = computed(() => (userStore.history?.length || 0) >= 5)
 const asDream = (item) => ({
   dream_text: 'Глубокий анализ последних 5 снов',
   analysis: item.analysis,
-  created_at: item.created_at
+  created_at: item.created_at,
+  is_deep_analysis: true
 })
 
-const toggle = (idx) => {
-  activeIndex.value = activeIndex.value === idx ? -1 : idx
-}
+const openOverlay = (dream) => { selected.value = dream }
 
 const runDeepAnalysis = async () => {
   await userStore.performDeepAnalysis()

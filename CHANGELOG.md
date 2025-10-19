@@ -6,6 +6,13 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 ## [Unreleased]
 
+### Added
+- Emoji mapping for dream titles to show semantic icon on cards (TMA).
+- Full-screen overlay for opening dream and deep analysis cards with Telegram BackButton integration.
+
+### Changed
+- Dream and deep analysis card UX in TMA: collapsed view now shows title above relative time (no badge), emoji on the left, and chevron on the right; opening no longer expands inline but uses a bottom-full-screen overlay.
+
 ## [1.0.0] - 2025-10-19
 
 ### Added
