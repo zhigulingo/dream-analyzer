@@ -1,0 +1,27 @@
+name: Auto Merge
+
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  statuses: read
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge when labeled and checks pass
+        uses: peter-evans/merge-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          merge-method: squash
+          commit-message: pull-request-title
+          required-labels: automerge
+          delete-branch: true
+          wait-for-checks: true
+          wait-for-reviews: true
+          draft: false

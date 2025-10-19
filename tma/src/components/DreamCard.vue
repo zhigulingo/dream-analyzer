@@ -21,6 +21,11 @@
 
     <!-- Expanded content (used by overlay mode) -->
     <div v-if="active" class="mt-4 space-y-4 text-sm fade-seq is-open">
+      <!-- Title and full date inside the opened card (only in overlay) -->
+      <div v-if="overlayMode" class="space-y-1">
+        <h2 class="text-2xl font-semibold leading-tight">{{ displayTitle }}</h2>
+        <div class="text-sm opacity-80">{{ fullDate }}</div>
+      </div>
       <div v-if="displayTags.length && !isDeep" class="flex flex-wrap gap-2">
         <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">
           {{ tag }}
@@ -910,6 +915,14 @@ const hvdcLegend = computed(()=>{
   return tail ? `общая статистика* для ${tail}` : 'общая статистика'
 })
 
+function ruPlural(n:number, forms:[string,string,string]){
+  const nAbs = Math.abs(n) % 100
+  const n1 = nAbs % 10
+  if (nAbs > 10 && nAbs < 20) return forms[2]
+  if (n1 > 1 && n1 < 5) return forms[1]
+  if (n1 === 1) return forms[0]
+  return forms[2]
+}
 const relativeDate = computed(() => {
   if (!props.dream.created_at) return ''
   try {
@@ -917,19 +930,38 @@ const relativeDate = computed(() => {
     const date = dayjs.utc(props.dream.created_at).tz(userTz).startOf('day')
     const now = dayjs().tz(userTz).startOf('day')
     const diffDays = now.diff(date, 'day')
-    const diffWeeks = Math.floor(diffDays / 7)
-    const diffMonths = Math.floor(diffDays / 30)
-    const diffYears = Math.floor(diffDays / 365)
-
     if (diffDays === 0) return 'сегодня'
     if (diffDays === 1) return 'вчера'
-    if (diffDays < 7) return `${diffDays} д`
-    if (diffDays < 30) return `${diffWeeks} н`
-    if (diffDays < 365) return `${diffMonths} м`
-    return `${diffYears} г`
+
+    if (diffDays < 7) {
+      const unit = ruPlural(diffDays, ['день','дня','дней'])
+      return `${diffDays} ${unit} назад`
+    }
+    const diffWeeks = Math.floor(diffDays / 7)
+    if (diffDays < 30) {
+      const unit = ruPlural(diffWeeks, ['неделя','недели','недель'])
+      return `${diffWeeks} ${unit} назад`
+    }
+    const diffMonths = Math.floor(diffDays / 30)
+    if (diffDays < 365) {
+      const unit = ruPlural(diffMonths, ['месяц','месяца','месяцев'])
+      return `${diffMonths} ${unit} назад`
+    }
+    const diffYears = Math.floor(diffDays / 365)
+    const unit = ruPlural(diffYears, ['год','года','лет'])
+    return `${diffYears} ${unit} назад`
   } catch (e) {
     return props.dream.created_at
   }
+})
+
+const fullDate = computed(() => {
+  const created = props.dream?.created_at
+  if (!created) return ''
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || dayjs.tz.guess()
+    return dayjs.utc(created).tz(tz).format('D MMMM YYYY, HH:mm')
+  } catch { return created }
 })
 
 // Градиент карточки: обычные анализы — синие; глубокий анализ — как у баннера глубокого анализа
