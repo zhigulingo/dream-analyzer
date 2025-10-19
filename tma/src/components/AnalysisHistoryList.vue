@@ -66,8 +66,7 @@
           v-for="dream in visibleRegularDreams"
           :key="dream.id"
           :dream="dream"
-          :active="activeId === dream.id"
-          @toggle="activeId = activeId === dream.id ? null : dream.id"
+          @open="openOverlay(dream)"
         />
         <button
           v-if="canLoadMoreRegular"
@@ -89,8 +88,7 @@
           v-for="dream in visibleDeepAnalyses"
           :key="dream.id"
           :dream="dream"
-          :active="activeId === dream.id"
-          @toggle="activeId = activeId === dream.id ? null : dream.id"
+          @open="openOverlay(dream)"
         />
         <button
           v-if="canLoadMoreDeep"
@@ -101,16 +99,18 @@
         </button>
       </div>
     </div>
+    <DreamOverlay :dream="selectedItem" @close="closeOverlay" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import DreamCard from '@/components/DreamCard.vue'
+import DreamOverlay from '@/components/DreamOverlay.vue'
 
 const props = defineProps(['userStore'])
 
-const activeId = ref(null)
+const selectedItem = ref<any|null>(null)
 const regularPageSize = ref(5)
 const deepPageSize = ref(5)
 const activeTab = ref('history')
@@ -161,7 +161,14 @@ const switchTab = (tab) => {
     window.triggerHaptic('light')
   }
   activeTab.value = tab
-  activeId.value = null // Сбрасываем активную карточку
+  selectedItem.value = null // Закрываем оверлей
+}
+
+const openOverlay = (dream:any) => {
+  selectedItem.value = dream
+}
+const closeOverlay = () => {
+  selectedItem.value = null
 }
 </script>
 
