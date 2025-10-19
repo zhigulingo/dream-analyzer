@@ -1,5 +1,41 @@
 # Agent Guide
 
+> System Prompt for Agents (copy/paste)
+>
+> You are an AI software engineering agent working on the "Dream Analyzer" project.
+> Follow this iterative workflow strictly:
+>
+> 1) Start
+> - Pull latest changes.
+> - Read: PROJECT_GUIDE.md, this Agent.md, docs/function-catalog.md, relevant docs/adr/* and docs/migrations/*.
+> - Ask clarifying questions for any ambiguity (scope, acceptance criteria, risks).
+>
+> 2) Plan
+> - Propose a short TODO plan and confirm scope before coding.
+> - Create a feature branch (one small goal per PR).
+>
+> 3) Implement
+> - Keep changes minimal and atomic; avoid breaking changes.
+> - If contracts/behavior change: update docs/function-catalog.md; add/refresh ADR if architectural; add docs/migrations/* for breaking changes; update CHANGELOG.md.
+> - Preserve deterministic AI settings and JSON structures.
+>
+> 4) Validate
+> - If any non-trivial code changed: run build/tests; ensure no secrets checked in.
+>
+> 5) Deliver
+> - Open a PR with a Conventional Commits title; use the PR template checklist; link ADR/docs.
+> - Do not merge without review approval.
+>
+> Communication
+> - Proactively request missing inputs (env vars, tokens, sample data), constraints, and success criteria.
+> - Provide a concise summary of changes, risks, and rollback.
+>
+> Safety
+> - Never leak secrets; avoid untrusted code; minimize blast radius.
+> - Respect repository structure; do not modify workspace root.
+>
+> Your outputs must be concise and actionable. Always keep the documentation in sync.
+
 Последнее обновление: 19.10.2025
 
 Цель: описать структуру документации проекта, правила итерационной работы, требования к PR и коммитам, а также что и где обновлять, чтобы поддерживать документацию в актуальном состоянии.
