@@ -26,10 +26,10 @@
           v-for="(item, idx) in items"
           :key="item.id || idx"
           :dream="asDream(item)"
-          @open="openOverlay(asDream(item))"
+          @open="(payload) => openOverlay(asDream(item), payload)"
         />
       </div>
-      <DreamOverlay :dream="selected" @close="closeOverlay" />
+      <DreamOverlay :dream="selected" :anchor-y="anchorY" @close="closeOverlay" />
     </div>
   </section>
 </template>
@@ -48,6 +48,7 @@ const items = ref([])
 const isLoading = ref(false)
 const error = ref(null)
 const selected = ref(null)
+const anchorY = ref<number|null>(null)
 
 const hasAnyCredits = computed(() => {
   const p = userStore.profile || {}
@@ -63,8 +64,9 @@ const asDream = (item) => ({
   is_deep_analysis: true
 })
 
-const openOverlay = (dream) => {
+const openOverlay = (dream, payload) => {
   selected.value = dream
+  anchorY.value = typeof payload?.y === 'number' ? Math.max(0, Math.round(payload.y)) : null
   try {
     const tg = (window)?.Telegram?.WebApp
     tg?.BackButton?.onClick?.(() => closeOverlay())
@@ -77,6 +79,7 @@ const closeOverlay = () => {
     tg?.BackButton?.hide?.()
   } catch {}
   selected.value = null
+  anchorY.value = null
 }
 
 const runDeepAnalysis = async () => {

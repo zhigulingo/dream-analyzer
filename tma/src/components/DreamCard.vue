@@ -1,5 +1,6 @@
 <template>
   <article
+    ref="rootRef"
     class="rounded-xl bg-gradient-to-br text-white px-8 md:px-16 transition-all overflow-hidden py-4"
     :class="[gradientClass, overlayMode ? '' : 'cursor-pointer min-h-[4.5rem]']"
     @click="handleOpen"
@@ -12,7 +13,7 @@
         <div class="text-xs opacity-80 leading-tight">{{ relativeDate }}</div>
       </div>
       <button class="shrink-0 w-6 h-6 opacity-80 hover:opacity-100"
-              @click.stop="emit('open')"
+              @click.stop="emitOpen()"
               aria-label="Открыть">
         <span class="inline-block w-6 h-6"
               :style="chevronMaskStyle"></span>
@@ -324,9 +325,17 @@ dayjs.extend(timezone)
 const props = defineProps<{ dream: any; active?: boolean; overlayMode?: boolean }>()
 const emit = defineEmits(['toggle','open'])
 
+const rootRef = ref<HTMLElement | null>(null)
+const emitOpen = () => {
+  const y = (() => {
+    try { return Math.round(rootRef.value?.getBoundingClientRect().top ?? 0) } catch { return 0 }
+  })()
+  emit('open', { y })
+}
+
 const handleOpen = () => {
   if (props.overlayMode) return
-  emit('open')
+  emitOpen()
   if (window.triggerHaptic) window.triggerHaptic('light')
 }
 
