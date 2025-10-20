@@ -1,9 +1,11 @@
 <template>
   <Teleport to="body">
-    <div v-if="dream" class="fixed inset-0 z-[9998] bg-black/70">
-      <div class="absolute inset-0 overflow-y-auto" @click.self="emit('close')">
-        <div class="pb-6" :style="{ paddingTop: paddingTop + 'px' }" @click.stop>
-          <DreamCard :dream="dream" :active="true" :overlayMode="true" />
+    <div v-if="dream" class="fixed inset-0 z-[9998] bg-black/70" @click="onBackdropClick">
+      <div class="absolute inset-0 overflow-y-auto">
+        <div class="pb-6" :style="{ paddingTop: paddingTop + 'px' }">
+          <div ref="cardRef" @click.stop>
+            <DreamCard :dream="dream" :active="true" :overlayMode="true" />
+          </div>
         </div>
       </div>
     </div>
@@ -11,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref, nextTick } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, nextTick, watch } from 'vue'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import utc from 'dayjs/plugin/utc'
@@ -102,17 +104,32 @@ function handleBack(){
   emit('close')
 }
 
+const cardRef = ref<HTMLElement | null>(null)
+
+function onBackdropClick(e: MouseEvent) {
+  const el = cardRef.value
+  if (el && el.contains(e.target as Node)) return
+  emit('close')
+}
+
 onMounted(() => {
-  try { document.body.style.overflow = 'hidden' } catch {}
-  showBackButton()
-  try {
-    // Рассчитываем верхний отступ: от верхнего края до блока пользователя + 20px
-    nextTick(() => {
-      const anchor = document.querySelector('[data-user-anchor]') as HTMLElement | null
-      const top = anchor ? Math.max(0, Math.round(anchor.getBoundingClientRect().top)) : 0
-      paddingTop.value = Math.max(0, top + 20)
-    })
-  } catch {}
+  // Следим за появлением/скрытием оверлея через prop
+  watch(() => props.dream, (val) => {
+    if (val) {
+      try { document.body.style.overflow = 'hidden' } catch {}
+      showBackButton()
+      try {
+        nextTick(() => {
+          const anchor = document.querySelector('[data-user-anchor]') as HTMLElement | null
+          const top = anchor ? Math.max(0, Math.round(anchor.getBoundingClientRect().top)) : 0
+          paddingTop.value = Math.max(0, top + 20)
+        })
+      } catch {}
+    } else {
+      hideBackButton()
+      try { document.body.style.overflow = '' } catch {}
+    }
+  }, { immediate: true })
 })
 onBeforeUnmount(() => {
   hideBackButton()
