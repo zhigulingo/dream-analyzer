@@ -1,7 +1,13 @@
 <template>
   <Teleport to="body">
     <div v-if="dream" class="fixed inset-0 z-[9998] bg-black/70" @click="onBackdropClick">
-      <div class="absolute inset-0 overflow-y-auto">
+      <div
+        class="absolute inset-0 overflow-y-auto"
+        ref="scrollerRef"
+        @touchstart="onTouchStart"
+        @touchmove="onTouchMove"
+        @touchend="onTouchEnd"
+      >
         <div class="pb-6" :style="{ paddingTop: paddingTop + 'px' }">
           <div ref="cardRef" @click.stop>
             <DreamCard :dream="dream" :active="true" :overlayMode="true" />
@@ -24,7 +30,7 @@ dayjs.locale('ru')
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
-const props = defineProps<{ dream: any | null }>()
+const props = defineProps<{ dream: any | null, anchorY?: number | null }>()
 const emit = defineEmits(['close'])
 
 // Title derivation (aligned with DreamCard)
@@ -114,15 +120,19 @@ function onBackdropClick(e: MouseEvent) {
 
 onMounted(() => {
   // Следим за появлением/скрытием оверлея через prop
-  watch(() => props.dream, (val) => {
+  watch([() => props.dream, () => props.anchorY], ([val, y]) => {
     if (val) {
       try { document.body.style.overflow = 'hidden' } catch {}
       showBackButton()
       try {
         nextTick(() => {
-          const anchor = document.querySelector('[data-user-anchor]') as HTMLElement | null
-          const top = anchor ? Math.max(0, Math.round(anchor.getBoundingClientRect().top)) : 0
-          paddingTop.value = Math.max(0, top + 20)
+          if (typeof y === 'number' && y >= 0) {
+            paddingTop.value = Math.max(0, Math.round(y) + 20)
+          } else {
+            const anchor = document.querySelector('[data-user-anchor]') as HTMLElement | null
+            const top = anchor ? Math.max(0, Math.round(anchor.getBoundingClientRect().top)) : 0
+            paddingTop.value = Math.max(0, top + 20)
+          }
         })
       } catch {}
     } else {
@@ -137,6 +147,47 @@ onBeforeUnmount(() => {
 })
 
 const paddingTop = ref(16)
+
+// Pull-down to close (gesture)
+const scrollerRef = ref<HTMLElement | null>(null)
+let startY = 0
+let dragging = false
+let startedAtTop = false
+let dragDelta = 0
+
+function onTouchStart(e: TouchEvent) {
+  try {
+    const scroller = scrollerRef.value
+    if (!scroller) return
+    startedAtTop = scroller.scrollTop <= 0
+    if (!startedAtTop) return
+    startY = e.touches[0].clientY
+    dragDelta = 0
+    dragging = true
+  } catch {}
+}
+function onTouchMove(e: TouchEvent) {
+  if (!dragging || !startedAtTop) return
+  const y = e.touches[0].clientY
+  dragDelta = Math.max(0, y - startY)
+  if (dragDelta > 0) {
+    e.preventDefault()
+    const el = cardRef.value as HTMLElement | null
+    if (el) el.style.transform = `translateY(${Math.min(120, dragDelta)}px)`
+  }
+}
+function onTouchEnd() {
+  if (dragging && startedAtTop && dragDelta >= 120) {
+    emit('close')
+  } else {
+    const el = cardRef.value as HTMLElement | null
+    if (el) el.style.transform = ''
+  }
+  dragging = false
+  startedAtTop = false
+  startY = 0
+  dragDelta = 0
+}
 </script>
 
 <style scoped>

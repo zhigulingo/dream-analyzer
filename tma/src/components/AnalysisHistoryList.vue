@@ -66,7 +66,7 @@
           v-for="dream in visibleRegularDreams"
           :key="dream.id"
           :dream="dream"
-          @open="openOverlay(dream)"
+          @open="(payload) => openOverlay(dream, payload)"
         />
         <button
           v-if="canLoadMoreRegular"
@@ -88,7 +88,7 @@
           v-for="dream in visibleDeepAnalyses"
           :key="dream.id"
           :dream="dream"
-          @open="openOverlay(dream)"
+          @open="(payload) => openOverlay(dream, payload)"
         />
         <button
           v-if="canLoadMoreDeep"
@@ -99,7 +99,7 @@
         </button>
       </div>
     </div>
-    <DreamOverlay :dream="selectedItem" @close="closeOverlay" />
+    <DreamOverlay :dream="selectedItem" :anchor-y="anchorY" @close="closeOverlay" />
   </div>
 </template>
 
@@ -111,6 +111,7 @@ import DreamOverlay from '@/components/DreamOverlay.vue'
 const props = defineProps(['userStore'])
 
 const selectedItem = ref<any|null>(null)
+const anchorY = ref<number|null>(null)
 const regularPageSize = ref(5)
 const deepPageSize = ref(5)
 const activeTab = ref('history')
@@ -164,8 +165,9 @@ const switchTab = (tab) => {
   selectedItem.value = null // Закрываем оверлей
 }
 
-const openOverlay = (dream:any) => {
+const openOverlay = (dream:any, payload?: any) => {
   selectedItem.value = dream
+  anchorY.value = typeof payload?.y === 'number' ? Math.max(0, Math.round(payload.y)) : null
   try {
     const tg = (window as any)?.Telegram?.WebApp
     tg?.BackButton?.onClick?.(() => closeOverlay())
@@ -179,6 +181,7 @@ const closeOverlay = () => {
     // offClick без ссылки на исходный коллбек может быть проигнорирован; hide достаточно для UI
   } catch {}
   selectedItem.value = null
+  anchorY.value = null
 }
 </script>
 
