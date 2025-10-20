@@ -119,22 +119,12 @@ function onBackdropClick(e: MouseEvent) {
 }
 
 onMounted(() => {
-  // Следим за появлением/скрытием оверлея через prop
-  watch([() => props.dream, () => props.anchorY], ([val, y]) => {
+  // Следим за появлением/скрытием оверлея через prop, фиксированный верхний отступ
+  watch(() => props.dream, (val) => {
     if (val) {
       try { document.body.style.overflow = 'hidden' } catch {}
       showBackButton()
-      try {
-        nextTick(() => {
-          if (typeof y === 'number' && y >= 0) {
-            paddingTop.value = Math.max(0, Math.round(y) + 20)
-          } else {
-            const anchor = document.querySelector('[data-user-anchor]') as HTMLElement | null
-            const top = anchor ? Math.max(0, Math.round(anchor.getBoundingClientRect().top)) : 0
-            paddingTop.value = Math.max(0, top + 20)
-          }
-        })
-      } catch {}
+      try { nextTick(() => { paddingTop.value = FIXED_PADDING }) } catch {}
     } else {
       hideBackButton()
       try { document.body.style.overflow = '' } catch {}
@@ -146,7 +136,8 @@ onBeforeUnmount(() => {
   try { document.body.style.overflow = '' } catch {}
 })
 
-const paddingTop = ref(16)
+const FIXED_PADDING = 20
+const paddingTop = ref(FIXED_PADDING)
 
 // Pull-down to close (gesture)
 const scrollerRef = ref<HTMLElement | null>(null)
