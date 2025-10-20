@@ -48,7 +48,7 @@ const items = ref([])
 const isLoading = ref(false)
 const error = ref(null)
 const selected = ref(null)
-const anchorY = ref<number|null>(null)
+const anchorY = ref(null)
 
 const hasAnyCredits = computed(() => {
   const p = userStore.profile || {}
