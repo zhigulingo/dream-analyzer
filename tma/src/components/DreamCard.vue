@@ -10,13 +10,12 @@
       <div class="text-2xl shrink-0">{{ emoji }}</div>
       <div class="flex-1 min-w-0">
         <div class="truncate font-semibold leading-tight">{{ displayTitle }}</div>
-        <div class="text-xs opacity-80 leading-tight">{{ relativeDate }}</div>
+        <div class="text-xs opacity-80 leading-tight mt-1">{{ relativeDate }}</div>
       </div>
-      <button class="shrink-0 w-6 h-6 opacity-80 hover:opacity-100"
+      <button class="shrink-0 w-6 h-6 opacity-80 hover:opacity-100 flex items-center justify-center"
               @click.stop="emitOpen()"
               aria-label="Открыть">
-        <span class="inline-block w-6 h-6"
-              :style="chevronMaskStyle"></span>
+        <span class="text-lg font-semibold leading-none select-none">&gt;</span>
       </button>
     </div>
 
@@ -352,11 +351,7 @@ const isDeep = computed(()=> !!props.dream?.is_deep_analysis)
 
 const emoji = computed(()=> emojiForTitle(displayTitle.value))
 
-const chevronMaskStyle = computed(() => ({
-  backgroundColor: 'currentColor',
-  WebkitMask: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path fill=\"black\" d=\"M9 6l6 6-6 6\"/></svg>') no-repeat center / contain",
-  mask: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path fill=\"black\" d=\"M9 6l6 6-6 6\"/></svg>') no-repeat center / contain"
-}))
+// removed chevron mask icon in favor of classic '>' glyph
 
 const localFeedback = computed({
   get: () => (props.dream?.user_feedback ?? props.dream?.deep_source?.user_feedback ?? 0),
