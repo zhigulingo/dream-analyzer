@@ -182,7 +182,9 @@ function onTouchEnd() {
 <style scoped>
 /* Ensure visible top gap on devices with notches/status bar */
 .overlay-pad {
-  padding-top: 20px;
-  padding-top: calc(env(safe-area-inset-top, 0px) + 20px);
+  /* Fixed gap so header never hides under Telegram UI */
+  padding-top: 64px;
+  /* If we know safe area (via CSS var or env()), add it on top of fixed gap */
+  padding-top: calc(var(--tg-safe-top, env(safe-area-inset-top, 0px)) + 64px);
 }
 </style>
