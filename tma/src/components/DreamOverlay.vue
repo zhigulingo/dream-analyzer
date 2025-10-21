@@ -8,7 +8,7 @@
         @touchmove="onTouchMove"
         @touchend="onTouchEnd"
       >
-        <div class="pb-6" :style="{ paddingTop: paddingTop + 'px' }">
+        <div class="pb-6 overlay-pad">
           <div ref="cardRef" @click.stop>
             <DreamCard :dream="dream" :active="true" :overlayMode="true" />
           </div>
@@ -124,7 +124,6 @@ onMounted(() => {
     if (val) {
       try { document.body.style.overflow = 'hidden' } catch {}
       showBackButton()
-      try { nextTick(() => { paddingTop.value = FIXED_PADDING }) } catch {}
     } else {
       hideBackButton()
       try { document.body.style.overflow = '' } catch {}
@@ -136,8 +135,7 @@ onBeforeUnmount(() => {
   try { document.body.style.overflow = '' } catch {}
 })
 
-const FIXED_PADDING = 20
-const paddingTop = ref(FIXED_PADDING)
+// Fixed padding handled via CSS (.overlay-pad)
 
 // Pull-down to close (gesture)
 const scrollerRef = ref<HTMLElement | null>(null)
@@ -182,4 +180,9 @@ function onTouchEnd() {
 </script>
 
 <style scoped>
+/* Ensure visible top gap on devices with notches/status bar */
+.overlay-pad {
+  padding-top: 20px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 20px);
+}
 </style>
