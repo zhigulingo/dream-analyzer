@@ -166,6 +166,9 @@ if (initTelegram()) {
         if (tg.viewportHeight) {
             document.documentElement.style.setProperty('--tg-viewport-height', tg.viewportHeight + 'px');
         }
+        // Expose safe area top for CSS (used by overlay padding)
+        const safeTop = (tg.safeAreaInset && typeof tg.safeAreaInset.top === 'number') ? tg.safeAreaInset.top : 0;
+        document.documentElement.style.setProperty('--tg-safe-top', safeTop + 'px');
         // Не запрещаем скролл документа; только отключаем резиновые перетяжки
         document.body.style.overscrollBehavior = 'none';
         document.documentElement.style.overscrollBehavior = 'none';
@@ -197,6 +200,14 @@ if (initTelegram()) {
                     tg.expand();
                 }
             }
+            // Update CSS vars on viewport changes
+            try {
+                if (tg.viewportHeight) {
+                    document.documentElement.style.setProperty('--tg-viewport-height', tg.viewportHeight + 'px');
+                }
+                const safeTop = (tg.safeAreaInset && typeof tg.safeAreaInset.top === 'number') ? tg.safeAreaInset.top : 0;
+                document.documentElement.style.setProperty('--tg-safe-top', safeTop + 'px');
+            } catch (e) {}
         });
     }
     
