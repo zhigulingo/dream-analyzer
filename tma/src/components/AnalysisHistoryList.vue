@@ -15,7 +15,7 @@
         <div
           v-if="activeTab === 'history'"
           class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-          style="background-color: var(--tg-theme-button-color, #ffffff)"
+          style="background-color: var(--tg-theme-text-color, #ffffff)"
         ></div>
       </button>
       <button
@@ -31,7 +31,7 @@
         <div
           v-if="activeTab === 'deep'"
           class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-          style="background-color: var(--tg-theme-button-color, #ffffff)"
+          style="background-color: var(--tg-theme-text-color, #ffffff)"
         ></div>
       </button>
     </div>
