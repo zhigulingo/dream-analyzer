@@ -35,30 +35,30 @@
       <!-- Deep analysis specific layout -->
       <template v-if="isDeep">
         <!-- Повторяющиеся символы -->
-        <div v-if="hasRecurringSymbols" class="space-y-3">
-          <h3 class="text-xl font-semibold">Повторяющиеся символы</h3>
-          <div class="text-white/90 leading-snug space-y-4">
+        <div v-if="hasRecurringSymbols" class="space-y-4">
+          <h3 class="text-2xl font-bold">Повторяющиеся символы</h3>
+          <div class="text-white/90 space-y-5">
             <!-- Вводный текст о значении повторений -->
-            <p v-if="symbolsIntro" class="text-base opacity-90 leading-relaxed pb-3 border-b border-white/10">{{ symbolsIntro }}</p>
+            <p v-if="symbolsIntro" class="text-lg opacity-90 leading-relaxed pb-4 border-b border-white/10">{{ symbolsIntro }}</p>
             
             <!-- Список символов (только с частотой >= 2) -->
-            <div v-for="(symbol, idx) in filteredRecurringSymbols" :key="`symbol-${idx}`" class="space-y-2">
+            <div v-for="(symbol, idx) in filteredRecurringSymbols" :key="`symbol-${idx}`" class="space-y-3">
               <div class="flex items-baseline gap-2">
-                <h4 class="font-semibold text-lg">{{ symbol.symbol }}</h4>
-                <span class="text-sm opacity-70 bg-white/15 px-2 py-0.5 rounded-full">×{{ symbol.frequency }}</span>
+                <h4 class="font-bold text-xl">{{ symbol.symbol }}</h4>
+                <span class="text-xs opacity-60 bg-white/15 px-2 py-0.5 rounded-full">×{{ symbol.frequency }}</span>
               </div>
-              <p class="text-base opacity-90 leading-relaxed">{{ symbol.description }}</p>
-              <div class="text-base opacity-75 italic leading-relaxed bg-white/5 rounded-lg px-3 py-2">
-                <span class="font-medium">В ваших снах:</span> {{ symbol.userContext }}
+              <p class="text-lg opacity-90 leading-relaxed">{{ symbol.description }}</p>
+              <div class="text-sm opacity-60 leading-relaxed bg-white/5 rounded-lg px-3 py-2">
+                <span class="font-medium opacity-80">В ваших снах:</span> {{ symbol.userContext }}
               </div>
             </div>
           </div>
         </div>
 
         <!-- Динамика контекста -->
-        <div v-if="hasDynamicsContext" class="space-y-3">
-          <h3 class="text-xl font-semibold">Динамика контекста</h3>
-          <div class="text-white/90 leading-snug">
+        <div v-if="hasDynamicsContext" class="space-y-4">
+          <h3 class="text-2xl font-bold">Динамика контекста</h3>
+          <div class="text-white/90">
             <DynamicsChart 
               :dynamics="dynamicsContext" 
               :userAge="userStore.profile?.age_range"
@@ -68,20 +68,20 @@
         </div>
 
         <!-- Заключение -->
-        <div v-if="hasConclusion" class="space-y-3">
-          <h3 class="text-xl font-semibold">Заключение</h3>
-          <div class="text-white/90 leading-snug space-y-4">
-            <p v-if="conclusion.periodThemes" class="text-base opacity-90 leading-relaxed">{{ conclusion.periodThemes }}</p>
-            <p v-if="conclusion.dreamFunctionsAnalysis" class="text-base opacity-90 leading-relaxed">{{ conclusion.dreamFunctionsAnalysis }}</p>
-            <p v-if="conclusion.psychologicalSupport" class="text-base opacity-90 leading-relaxed">{{ conclusion.psychologicalSupport }}</p>
+        <div v-if="hasConclusion" class="space-y-4">
+          <h3 class="text-2xl font-bold">Заключение</h3>
+          <div class="text-white/90 space-y-5">
+            <p v-if="conclusion.periodThemes" class="text-lg opacity-90 leading-relaxed">{{ conclusion.periodThemes }}</p>
+            <p v-if="conclusion.dreamFunctionsAnalysis" class="text-lg opacity-90 leading-relaxed">{{ conclusion.dreamFunctionsAnalysis }}</p>
+            <p v-if="conclusion.psychologicalSupport" class="text-lg opacity-90 leading-relaxed">{{ conclusion.psychologicalSupport }}</p>
             
-            <div v-if="conclusion.integrationExercise" class="bg-white/10 rounded-lg p-4 space-y-3 mt-4">
-              <h4 class="font-semibold text-lg opacity-95 flex items-center gap-2">
+            <div v-if="conclusion.integrationExercise" class="bg-white/10 rounded-lg p-4 space-y-3 mt-5">
+              <h4 class="font-bold text-xl opacity-95 flex items-center gap-2">
                 <span>💫</span>
                 <span>{{ conclusion.integrationExercise.title || 'Практическое упражнение' }}</span>
               </h4>
-              <p class="text-base opacity-90 leading-relaxed">{{ conclusion.integrationExercise.description }}</p>
-              <p v-if="conclusion.integrationExercise.rationale" class="text-base opacity-75 italic leading-relaxed">{{ conclusion.integrationExercise.rationale }}</p>
+              <p class="text-lg opacity-90 leading-relaxed">{{ conclusion.integrationExercise.description }}</p>
+              <p v-if="conclusion.integrationExercise.rationale" class="text-sm opacity-60 leading-relaxed">{{ conclusion.integrationExercise.rationale }}</p>
             </div>
           </div>
         </div>
@@ -181,18 +181,18 @@
           <span>Сон</span>
           <span class="opacity-80 text-pink-400" style="font-size:130%; font-family: ui-rounded, -apple-system, system-ui, 'SF Pro Rounded', 'Segoe UI', Roboto, Arial;">“</span>
         </h3>
-        <div class="px-3 pb-3 text-white/90 leading-relaxed">
-          <p class="text-base opacity-90">{{ dream.dream_text }}</p>
+        <div class="px-4 pb-4 text-white/90 leading-relaxed space-y-3">
+          <p class="text-lg opacity-90">{{ dream.dream_text }}</p>
         </div>
       </div>
 
-      <div class="space-y-2">
+      <div class="space-y-3">
         <template v-for="(sec, idx) in sections" :key="sec.key">
           <div class="rounded-lg bg-white/10">
-            <h3 class="text-xl font-semibold px-3 py-2">{{ sec.title }}</h3>
-            <div class="px-3 pb-3 text-white/90 leading-snug space-y-2">
+            <h3 class="text-xl font-semibold px-4 py-3">{{ sec.title }}</h3>
+            <div class="px-4 pb-4 text-white/90 space-y-3">
               <template v-if="sec.key !== 'hvdc'">
-                <div v-html="sec.html" class="text-base space-y-2 leading-relaxed"></div>
+                <div v-html="sec.html" class="text-lg leading-relaxed"></div>
               </template>
               <template v-else>
                 <div v-if="hvdc" class="space-y-3">
