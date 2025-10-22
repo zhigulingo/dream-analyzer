@@ -1064,4 +1064,15 @@ const gradientClass = computed(() => {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Force white text on gradient backgrounds - overrides theme */
+article.bg-gradient-to-br h2,
+article.bg-gradient-to-br h3,
+article.bg-gradient-to-br h4,
+article.bg-gradient-to-br p,
+article.bg-gradient-to-br div,
+article.bg-gradient-to-br span,
+article.bg-gradient-to-br button {
+  color: white !important;
+}
 </style>

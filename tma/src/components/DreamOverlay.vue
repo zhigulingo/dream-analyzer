@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div v-if="dream" class="fixed inset-0 z-[9998] bg-black/70" @click="onBackdropClick">
+    <div v-if="dream" class="fixed inset-0 z-[9998] bg-black/70 backdrop-blur-sm" @click="onBackdropClick">
       <div
         class="absolute inset-0 overflow-y-auto"
         ref="scrollerRef"
