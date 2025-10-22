@@ -23,11 +23,11 @@
     <div v-if="active" class="mt-4 space-y-6 fade-seq is-open">
       <!-- Title and full date inside the opened card (only in overlay) -->
       <div v-if="overlayMode" class="space-y-2">
-        <h2 class="text-3xl font-bold leading-tight">{{ displayTitle }}</h2>
+        <h2 class="text-[32px] font-bold leading-tight">{{ displayTitle }}</h2>
         <div class="text-base opacity-80">{{ fullDate }}</div>
         <!-- Tags badges for regular dreams (placed here, under title/date) -->
         <div v-if="displayTags.length && !isDeep" class="flex flex-wrap gap-2 pt-2">
-          <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white">
+          <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-base font-medium bg-white/20 text-white">
             {{ tag }}
           </span>
         </div>
@@ -40,16 +40,16 @@
           <h3 class="text-2xl font-bold">Повторяющиеся символы</h3>
           <div class="text-white/90 space-y-5">
             <!-- Вводный текст о значении повторений -->
-            <p v-if="symbolsIntro" class="text-lg opacity-90 leading-relaxed pb-4 border-b border-white/10">{{ symbolsIntro }}</p>
+            <p v-if="symbolsIntro" class="text-lg opacity-90 leading-normal pb-4 border-b border-white/10">{{ symbolsIntro }}</p>
             
             <!-- Список символов (только с частотой >= 2) -->
             <div v-for="(symbol, idx) in filteredRecurringSymbols" :key="`symbol-${idx}`" class="space-y-3">
               <div class="flex items-baseline gap-2">
                 <h4 class="font-bold text-xl">{{ symbol.symbol }}</h4>
-                <span class="text-xs opacity-60 bg-white/15 px-2 py-0.5 rounded-full">×{{ symbol.frequency }}</span>
+                <span class="text-base opacity-60 bg-white/15 px-2 py-0.5 rounded-full">×{{ symbol.frequency }}</span>
               </div>
-              <p class="text-lg opacity-90 leading-relaxed">{{ symbol.description }}</p>
-              <div class="text-sm opacity-60 leading-relaxed bg-white/5 rounded-lg px-3 py-2">
+              <p class="text-lg opacity-90 leading-normal">{{ symbol.description }}</p>
+              <div class="text-base opacity-60 leading-normal bg-white/5 rounded-lg px-3 py-2">
                 <span class="font-medium opacity-80">В ваших снах:</span> {{ symbol.userContext }}
               </div>
             </div>
@@ -72,17 +72,17 @@
         <div v-if="hasConclusion" class="space-y-4">
           <h3 class="text-2xl font-bold">Заключение</h3>
           <div class="text-white/90 space-y-5">
-            <p v-if="conclusion.periodThemes" class="text-lg opacity-90 leading-relaxed">{{ conclusion.periodThemes }}</p>
-            <p v-if="conclusion.dreamFunctionsAnalysis" class="text-lg opacity-90 leading-relaxed">{{ conclusion.dreamFunctionsAnalysis }}</p>
-            <p v-if="conclusion.psychologicalSupport" class="text-lg opacity-90 leading-relaxed">{{ conclusion.psychologicalSupport }}</p>
+            <p v-if="conclusion.periodThemes" class="text-lg opacity-90 leading-normal">{{ conclusion.periodThemes }}</p>
+            <p v-if="conclusion.dreamFunctionsAnalysis" class="text-lg opacity-90 leading-normal">{{ conclusion.dreamFunctionsAnalysis }}</p>
+            <p v-if="conclusion.psychologicalSupport" class="text-lg opacity-90 leading-normal">{{ conclusion.psychologicalSupport }}</p>
             
             <div v-if="conclusion.integrationExercise" class="bg-white/10 rounded-lg p-4 space-y-3 mt-5">
               <h4 class="font-bold text-xl opacity-95 flex items-center gap-2">
                 <span>💫</span>
                 <span>{{ conclusion.integrationExercise.title || 'Практическое упражнение' }}</span>
               </h4>
-              <p class="text-lg opacity-90 leading-relaxed">{{ conclusion.integrationExercise.description }}</p>
-              <p v-if="conclusion.integrationExercise.rationale" class="text-sm opacity-60 leading-relaxed">{{ conclusion.integrationExercise.rationale }}</p>
+              <p class="text-lg opacity-90 leading-normal">{{ conclusion.integrationExercise.description }}</p>
+              <p v-if="conclusion.integrationExercise.rationale" class="text-base opacity-60 leading-normal">{{ conclusion.integrationExercise.rationale }}</p>
             </div>
           </div>
         </div>
@@ -185,7 +185,7 @@
         </div>
         <div class="text-white/90">
           <p 
-            class="text-lg leading-relaxed transition-all"
+            class="text-lg leading-normal transition-all"
             :class="expanded.dreamText ? '' : 'line-clamp-3'"
           >
             {{ dream.dream_text }}
@@ -194,7 +194,7 @@
         <div class="flex justify-end pt-1">
           <button 
             @click.stop="toggleSection('dreamText')"
-            class="text-sm opacity-70 hover:opacity-100 transition-opacity"
+            class="text-base opacity-70 hover:opacity-100 transition-opacity"
           >
             {{ expanded.dreamText ? 'Свернуть ↑' : 'Развернуть ↓' }}
           </button>
@@ -207,11 +207,11 @@
         
         <!-- HVdC Content Analysis -->
         <div v-if="hvdc" class="rounded-lg bg-white/10">
-          <h3 class="text-lg font-semibold px-4 py-3">Контент анализ</h3>
+          <h3 class="text-xl font-semibold px-4 py-3">Контент анализ</h3>
           <div class="px-4 pb-4 text-white/90 space-y-4">
             <div class="space-y-4">
               <div v-for="row in hvdcRows" :key="row.key" class="space-y-1">
-                <div class="flex justify-between text-base leading-normal">
+                <div class="flex justify-between text-lg leading-snug">
                   <span class="font-medium">{{ row.label }}</span>
                   <span class="opacity-90">
                     {{ row.value }}%
@@ -228,11 +228,11 @@
                   <div class="relative h-full bg-white/70" :style="{ width: row.value+'%' }"></div>
                 </div>
               </div>
-              <div class="pt-1 text-sm opacity-80 flex flex-wrap items-center gap-3">
-                <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block bg-white/70 shrink-0"></span> <span class="leading-normal">ваш сон</span></span>
-                <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block bg-white/20 shrink-0"></span> <span class="leading-normal">{{ hvdcLegend }}</span></span>
+              <div class="pt-1 text-base opacity-80 flex flex-wrap items-center gap-3">
+                <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block bg-white/70 shrink-0"></span> <span class="leading-snug">ваш сон</span></span>
+                <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block bg-white/20 shrink-0"></span> <span class="leading-snug">{{ hvdcLegend }}</span></span>
               </div>
-              <div class="text-sm opacity-70 flex items-start gap-2 leading-relaxed">
+              <div class="text-base opacity-70 flex items-start gap-2 leading-normal">
                 <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px] shrink-0 aspect-square mt-0.5">i</span>
                 <span>Контент‑анализ по схеме HVdC; сравнение с демографическими нормами (DreamBank, SDDB).</span>
               </div>
@@ -243,9 +243,9 @@
         <!-- Dream Function -->
         <template v-for="(sec, idx) in sections" :key="sec.key">
           <div v-if="sec.key === 'func'" class="rounded-lg bg-white/10">
-            <h3 class="text-lg font-semibold px-4 py-3">{{ sec.title }}</h3>
+            <h3 class="text-xl font-semibold px-4 py-3">{{ sec.title }}</h3>
             <div class="px-4 pb-4 text-white/90 space-y-3">
-              <div v-html="sanitizeFuncHtml(sec.html)" class="text-base leading-relaxed"></div>
+              <div v-html="sanitizeFuncHtml(sec.html)" class="text-lg leading-normal"></div>
               
               <!-- Functional Exercise - collapsible -->
               <div v-if="getFuncExercise(sec.html)" class="mt-3 pt-3 border-t border-white/10">
@@ -269,9 +269,9 @@
         
         <template v-for="(sec, idx) in sections" :key="`psycho-${sec.key}`">
           <div v-if="['arch', 'freud', 'jung'].includes(sec.key)" class="rounded-lg bg-white/10">
-            <h3 class="text-lg font-semibold px-4 py-3">{{ sec.title }}</h3>
+            <h3 class="text-xl font-semibold px-4 py-3">{{ sec.title }}</h3>
             <div class="px-4 pb-4 text-white/90">
-              <div v-html="sec.html" class="text-base leading-relaxed space-y-2"></div>
+              <div v-html="sec.html" class="text-lg leading-normal space-y-2"></div>
             </div>
           </div>
         </template>
