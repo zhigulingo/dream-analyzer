@@ -6,16 +6,18 @@
     @click="handleOpen"
   >
     <!-- Collapsed header (card list view) -->
-    <div v-if="!overlayMode" class="flex items-center gap-3 py-1 min-h-[2.5rem]">
-      <div class="text-2xl shrink-0">{{ emoji }}</div>
+    <div v-if="!overlayMode" class="flex items-center gap-4 py-2 min-h-[3.5rem]">
+      <div class="text-3xl shrink-0">{{ emoji }}</div>
       <div class="flex-1 min-w-0">
-        <div class="truncate font-semibold leading-tight">{{ displayTitle }}</div>
-        <div class="text-xs opacity-80 leading-tight mt-1">{{ relativeDate }}</div>
+        <div class="truncate font-semibold leading-tight text-base">{{ displayTitle }}</div>
+        <div class="text-sm opacity-80 leading-tight mt-0.5">{{ relativeDate }}</div>
       </div>
-      <button class="shrink-0 w-6 h-6 opacity-80 hover:opacity-100 flex items-center justify-center"
+      <button class="shrink-0 w-5 h-5 opacity-60 hover:opacity-100 flex items-center justify-center transition-opacity"
               @click.stop="emitOpen()"
               aria-label="Открыть">
-        <span class="text-lg font-semibold leading-none select-none">&gt;</span>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </button>
     </div>
 
@@ -1019,10 +1021,40 @@ const fullDate = computed(() => {
   } catch { return created }
 })
 
-// Градиент карточки: обычные анализы — синие; глубокий анализ — как у баннера глубокого анализа
-const gradientClass = computed(() => (props.dream?.is_deep_analysis
-  ? 'from-[#9C41FF] to-[#C03AFF]'
-  : 'from-[#4A58FF] to-[#5664FF]'))
+// Градиент карточки с цветовой кодировкой по типу сна
+const gradientClass = computed(() => {
+  // Deep analysis: purple (as before)
+  if (props.dream?.is_deep_analysis) {
+    return 'from-[#9C41FF] to-[#C03AFF]'
+  }
+  
+  // Regular dreams: color-coded by dream type
+  const dt = dreamType.value
+  if (!dt || !dt.dominant) {
+    // Default blue for unknown type
+    return 'from-[#4A58FF] to-[#5664FF]'
+  }
+  
+  const type = String(dt.dominant).toLowerCase()
+  
+  // Emotion dreams: red gradient (fading to right)
+  if (type === 'emotion') {
+    return 'from-[#FF4A4A] via-[#FF6B6B]/80 to-[#FF8A8A]/40'
+  }
+  
+  // Memory dreams: yellow/amber gradient (fading to right)
+  if (type === 'memory') {
+    return 'from-[#FFB84A] via-[#FFC966]/80 to-[#FFDA82]/40'
+  }
+  
+  // Anticipation dreams: blue gradient (fading to right)
+  if (type === 'anticipation') {
+    return 'from-[#4A9FFF] via-[#6BB3FF]/80 to-[#8AC7FF]/40'
+  }
+  
+  // Fallback to default blue
+  return 'from-[#4A58FF] to-[#5664FF]'
+})
 </script>
 
 <style scoped>
