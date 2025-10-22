@@ -176,54 +176,102 @@
 
       <!-- Single dream layout -->
       <template v-else>
-      <div class="rounded-lg bg-white/10 border-l-4 border-pink-400">
-        <h3 class="px-3 py-2 text-xl font-semibold flex items-center justify-between">
-          <span>Сон</span>
-          <span class="opacity-80 text-pink-400" style="font-size:130%; font-family: ui-rounded, -apple-system, system-ui, 'SF Pro Rounded', 'Segoe UI', Roboto, Arial;">“</span>
-        </h3>
-        <div class="px-4 pb-4 text-white/90 leading-relaxed space-y-3">
-          <p class="text-lg opacity-90">{{ dream.dream_text }}</p>
+      <!-- Dream text - collapsible, with left border quote style -->
+      <div class="border-l-4 border-pink-400 pl-4 space-y-2">
+        <div class="text-white/90 leading-relaxed">
+          <p 
+            class="text-lg opacity-90 transition-all"
+            :class="expanded.dreamText ? '' : 'line-clamp-3'"
+          >
+            {{ dream.dream_text }}
+          </p>
         </div>
+        <button 
+          @click.stop="toggleSection('dreamText')"
+          class="text-sm opacity-70 hover:opacity-100 transition-opacity"
+        >
+          {{ expanded.dreamText ? '↑ Свернуть' : '↓ Развернуть' }}
+        </button>
       </div>
 
+      <!-- Tags badges (bigger for better visibility) -->
+      <div v-if="displayTags.length" class="flex flex-wrap gap-2">
+        <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white">
+          {{ tag }}
+        </span>
+      </div>
+
+      <!-- Scientific Approach Section -->
       <div class="space-y-3">
-        <template v-for="(sec, idx) in sections" :key="sec.key">
-          <div class="rounded-lg bg-white/10">
-            <h3 class="text-xl font-semibold px-4 py-3">{{ sec.title }}</h3>
-            <div class="px-4 pb-4 text-white/90 space-y-3">
-              <template v-if="sec.key !== 'hvdc'">
-                <div v-html="sec.html" class="text-lg leading-relaxed"></div>
-              </template>
-              <template v-else>
-                <div v-if="hvdc" class="space-y-3">
-                  <div v-for="row in hvdcRows" :key="row.key">
-                    <div class="flex justify-between text-base opacity-80">
-                      <span>{{ row.label }}</span>
-                      <span>
-                        {{ row.value }}%
-                        <template v-if="row.norm !== null"> / {{ row.norm }}%</template>
-                        <template v-if="row.delta !== null">
-                          <span :class="row.delta>0 ? 'text-green-300' : (row.delta<0 ? 'text-red-300' : 'text-white/70')">
-                            ({{ row.delta>0? '+'+row.delta : row.delta }}pp)
-                          </span>
-                        </template>
+        <h2 class="text-xl font-bold">Научный подход</h2>
+        
+        <!-- HVdC Content Analysis -->
+        <div v-if="hvdc" class="rounded-lg bg-white/10">
+          <h3 class="text-lg font-semibold px-4 py-3">Контент анализ</h3>
+          <div class="px-4 pb-4 text-white/90 space-y-3">
+            <div class="space-y-3">
+              <div v-for="row in hvdcRows" :key="row.key">
+                <div class="flex justify-between text-base opacity-80">
+                  <span>{{ row.label }}</span>
+                  <span>
+                    {{ row.value }}%
+                    <template v-if="row.norm !== null"> / {{ row.norm }}%</template>
+                    <template v-if="row.delta !== null">
+                      <span :class="row.delta>0 ? 'text-green-300' : (row.delta<0 ? 'text-red-300' : 'text-white/70')">
+                        ({{ row.delta>0? '+'+row.delta : row.delta }}pp)
                       </span>
-                    </div>
-                    <div class="relative h-2 w-full bg-white/10 rounded overflow-hidden">
-                      <div v-if="row.norm !== null" class="absolute inset-y-0 left-0 bg-white/20" :style="{ width: row.norm+'%' }"></div>
-                      <div class="relative h-full bg-white/70" :style="{ width: row.value+'%' }"></div>
-                    </div>
-                  </div>
-                  <div class="pt-2 text-sm opacity-80 flex flex-wrap items-center gap-4">
-                    <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/70 shrink-0"></span> ваш сон</span>
-                    <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/20 shrink-0"></span> {{ hvdcLegend }}</span>
-                  </div>
-                  <div class="text-sm opacity-70 flex items-start gap-2">
-                    <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px]">i</span>
-                    <span>Контент‑анализ по схеме HVdC; сравнение с демографическими нормами (DreamBank, SDDB).</span>
-                  </div>
+                    </template>
+                  </span>
                 </div>
-              </template>
+                <div class="relative h-2 w-full bg-white/10 rounded overflow-hidden">
+                  <div v-if="row.norm !== null" class="absolute inset-y-0 left-0 bg-white/20" :style="{ width: row.norm+'%' }"></div>
+                  <div class="relative h-full bg-white/70" :style="{ width: row.value+'%' }"></div>
+                </div>
+              </div>
+              <div class="pt-2 text-sm opacity-80 flex flex-wrap items-center gap-2">
+                <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/70 shrink-0"></span> ваш сон</span>
+                <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/20 shrink-0"></span> {{ hvdcLegend }}</span>
+              </div>
+              <div class="text-sm opacity-70 flex items-start gap-2">
+                <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px] shrink-0 aspect-square">i</span>
+                <span>Контент‑анализ по схеме HVdC; сравнение с демографическими нормами (DreamBank, SDDB).</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dream Function -->
+        <template v-for="(sec, idx) in sections" :key="sec.key">
+          <div v-if="sec.key === 'func'" class="rounded-lg bg-white/10">
+            <h3 class="text-lg font-semibold px-4 py-3">{{ sec.title }}</h3>
+            <div class="px-4 pb-4 text-white/90 space-y-3">
+              <div v-html="sanitizeFuncHtml(sec.html)" class="text-lg leading-relaxed"></div>
+              
+              <!-- Functional Exercise - collapsible -->
+              <div v-if="getFuncExercise(sec.html)" class="mt-3 pt-3 border-t border-white/10">
+                <button 
+                  @click.stop="toggleSection('funcExercise')"
+                  class="w-full flex items-center justify-between text-left font-semibold hover:opacity-80 transition-opacity"
+                >
+                  <span>Функциональное упражнение</span>
+                  <span class="text-xl">{{ expanded.funcExercise ? '−' : '+' }}</span>
+                </button>
+                <div v-show="expanded.funcExercise" class="mt-3" v-html="getFuncExercise(sec.html)"></div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Psychoanalytic Approach Section -->
+      <div class="space-y-3">
+        <h2 class="text-xl font-bold">Психоаналитический подход</h2>
+        
+        <template v-for="(sec, idx) in sections" :key="`psycho-${sec.key}`">
+          <div v-if="['arch', 'freud', 'jung'].includes(sec.key)" class="rounded-lg bg-white/10">
+            <h3 class="text-lg font-semibold px-4 py-3">{{ sec.title }}</h3>
+            <div class="px-4 pb-4 text-white/90 space-y-3">
+              <div v-html="sec.html" class="text-lg leading-relaxed"></div>
             </div>
           </div>
         </template>
@@ -809,9 +857,27 @@ const sections = computed(() => {
 
 const expanded = reactive<Record<string,boolean>>({ 
   arch:true, hvdc:false, func:false, freud:false, jung:false,
-  symbols:true, dynamics:true, conclusion:true  // New deep analysis blocks - open by default
+  symbols:true, dynamics:true, conclusion:true,  // New deep analysis blocks - open by default
+  dreamText: false,  // Dream text collapsed by default (show 3 lines)
+  funcExercise: false  // Functional exercise collapsed by default
 })
 function toggleSection(key:string){ expanded[key] = !expanded[key] }
+
+// Helper functions for restructured analysis
+function sanitizeFuncHtml(html: string): string {
+  // Remove functional exercise block from func html (we show it separately)
+  const exerciseStart = html.indexOf('<div class="mt-3 pt-2 border-t')
+  if (exerciseStart === -1) return html
+  return html.substring(0, exerciseStart)
+}
+
+function getFuncExercise(html: string): string {
+  // Extract functional exercise block from func html
+  const exerciseStart = html.indexOf('<div class="mt-3 pt-2 border-t')
+  if (exerciseStart === -1) return ''
+  const exerciseEnd = html.lastIndexOf('</div>')
+  return html.substring(exerciseStart, exerciseEnd + 6)
+}
 
 // Debug output helpers (visible when ?debug=1 or localStorage.da_debug=1)
 const debugEnabled = computed(() => {
