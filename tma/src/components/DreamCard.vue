@@ -176,8 +176,19 @@
 
       <!-- Single dream layout -->
       <template v-else>
-      <!-- Dream text - collapsible, with left border quote style -->
-      <div class="border-l-4 border-pink-400 pl-4 space-y-2">
+      <!-- Tags badges (only one place, under date) -->
+      <div v-if="displayTags.length" class="flex flex-wrap gap-2">
+        <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white">
+          {{ tag }}
+        </span>
+      </div>
+
+      <!-- Dream text - collapsible, with left border quote style and quote mark -->
+      <div class="relative border-l-4 border-pink-400 pl-3 space-y-1">
+        <div class="flex items-start justify-between gap-2">
+          <h3 class="text-base font-semibold">Сон</h3>
+          <span class="opacity-80 text-pink-400 text-2xl leading-none" style="font-family: ui-rounded, -apple-system, system-ui, 'SF Pro Rounded', 'Segoe UI', Roboto, Arial;">"</span>
+        </div>
         <div class="text-white/90 leading-relaxed">
           <p 
             class="text-lg opacity-90 transition-all"
@@ -186,24 +197,19 @@
             {{ dream.dream_text }}
           </p>
         </div>
-        <button 
-          @click.stop="toggleSection('dreamText')"
-          class="text-sm opacity-70 hover:opacity-100 transition-opacity"
-        >
-          {{ expanded.dreamText ? '↑ Свернуть' : '↓ Развернуть' }}
-        </button>
-      </div>
-
-      <!-- Tags badges (bigger for better visibility) -->
-      <div v-if="displayTags.length" class="flex flex-wrap gap-2">
-        <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white">
-          {{ tag }}
-        </span>
+        <div class="flex justify-end">
+          <button 
+            @click.stop="toggleSection('dreamText')"
+            class="text-sm opacity-70 hover:opacity-100 transition-opacity"
+          >
+            {{ expanded.dreamText ? 'Свернуть ↑' : 'Развернуть ↓' }}
+          </button>
+        </div>
       </div>
 
       <!-- Scientific Approach Section -->
-      <div class="space-y-3">
-        <h2 class="text-xl font-bold">Научный подход</h2>
+      <div class="space-y-2">
+        <h2 class="text-lg font-bold px-4">Научный подход</h2>
         
         <!-- HVdC Content Analysis -->
         <div v-if="hvdc" class="rounded-lg bg-white/10">
@@ -264,8 +270,8 @@
       </div>
 
       <!-- Psychoanalytic Approach Section -->
-      <div class="space-y-3">
-        <h2 class="text-xl font-bold">Психоаналитический подход</h2>
+      <div class="space-y-2">
+        <h2 class="text-lg font-bold px-4">Психоаналитический подход</h2>
         
         <template v-for="(sec, idx) in sections" :key="`psycho-${sec.key}`">
           <div v-if="['arch', 'freud', 'jung'].includes(sec.key)" class="rounded-lg bg-white/10">
@@ -754,49 +760,48 @@ function buildWorkHtml(){
   const dt = dreamType.value
   if (!dt || !dt.dominant) {
     return [
-      '<div class="space-y-2">',
-      '<div class="font-semibold">🛠 Небольшая работа со сном</div>',
-      '<ol class="list-decimal pl-5 space-y-1">',
+      '<div class="space-y-2 text-lg">',
+      '<ul class="list-disc pl-5 space-y-2">',
       '<li><span class="font-semibold">Заметь:</span> Какие 2–3 образа из сна самые сильные? Запиши их коротко.</li>',
       '<li><span class="font-semibold">Шаг:</span> Выбери один маленький шаг в реальности, который поддержит тебя по теме сна.</li>',
-      '</ol>',
+      '</ul>',
       '</div>'
     ].join('')
   }
   const type = String(dt.dominant).toLowerCase()
   if (type === 'memory') {
     return [
-      '<div class="space-y-2">',
+      '<div class="space-y-2 text-lg">',
       '<div class="font-semibold">🌙 Сон-Память</div>',
       '<p class="opacity-90">Переработка недавнего опыта, соединение нового с прошлым.</p>',
-      '<ol class="list-decimal pl-5 space-y-1">',
+      '<ul class="list-disc pl-5 space-y-2">',
       '<li><span class="font-semibold">Отрази:</span> Вспомни, что происходило последние 1–2 дня. Какие события могли попасть в сон?</li>',
       '<li><span class="font-semibold">Соедини:</span> Отметь, какие элементы сна перекликаются с реальностью — это завершает «архивацию» опыта.</li>',
-      '</ol>',
+      '</ul>',
       '</div>'
     ].join('')
   }
   if (type === 'emotion') {
     return [
-      '<div class="space-y-2">',
+      '<div class="space-y-2 text-lg">',
       '<div class="font-semibold">⚡️ Сон-Эмоция</div>',
       '<p class="opacity-90">Проживание и нейтрализация сильных чувств.</p>',
-      '<ol class="list-decimal pl-5 space-y-1">',
+      '<ul class="list-disc pl-5 space-y-2">',
       '<li><span class="font-semibold">Почувствуй:</span> Определи, какая эмоция была самой сильной во сне. Где она чувствуется в теле сейчас?</li>',
       '<li><span class="font-semibold">Услышь:</span> Представь, что главный персонаж сна говорит тебе что-то. Что он хочет, чтобы ты понял?</li>',
-      '</ol>',
+      '</ul>',
       '</div>'
     ].join('')
   }
   // anticipation
   return [
-    '<div class="space-y-2">',
+    '<div class="space-y-2 text-lg">',
     '<div class="font-semibold">🔮 Сон-Предвосхищение</div>',
     '<p class="opacity-90">Тренировка будущих ситуаций и реакций.</p>',
-    '<ol class="list-decimal pl-5 space-y-1">',
+    '<ul class="list-disc pl-5 space-y-2">',
     '<li><span class="font-semibold">Представь:</span> Как бы ты хотел повести себя, если бы это произошло в реальности?</li>',
     '<li><span class="font-semibold">Расшифруй:</span> Какой символ кажется ключевым? Что он может говорить о твоих страхах или намерениях?</li>',
-    '</ol>',
+    '</ul>',
     '</div>'
   ].join('')
 }
@@ -872,11 +877,13 @@ function sanitizeFuncHtml(html: string): string {
 }
 
 function getFuncExercise(html: string): string {
-  // Extract functional exercise block from func html
+  // Extract functional exercise block from func html, removing title
   const exerciseStart = html.indexOf('<div class="mt-3 pt-2 border-t')
   if (exerciseStart === -1) return ''
-  const exerciseEnd = html.lastIndexOf('</div>')
-  return html.substring(exerciseStart, exerciseEnd + 6)
+  let content = html.substring(exerciseStart, html.lastIndexOf('</div>') + 6)
+  // Remove the repeated "Функциональное упражнение" title inside
+  content = content.replace(/<div class="font-semibold">Функциональное упражнение<\/div>/g, '')
+  return content
 }
 
 // Debug output helpers (visible when ?debug=1 or localStorage.da_debug=1)
