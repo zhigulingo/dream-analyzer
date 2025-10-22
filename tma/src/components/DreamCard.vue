@@ -20,16 +20,17 @@
     </div>
 
     <!-- Expanded content (used by overlay mode) -->
-    <div v-if="active" class="mt-4 space-y-4 text-sm fade-seq is-open">
+    <div v-if="active" class="mt-4 space-y-6 fade-seq is-open">
       <!-- Title and full date inside the opened card (only in overlay) -->
-      <div v-if="overlayMode" class="space-y-1">
-        <h2 class="text-2xl font-semibold leading-tight">{{ displayTitle }}</h2>
-        <div class="text-sm opacity-80">{{ fullDate }}</div>
-      </div>
-      <div v-if="displayTags.length && !isDeep" class="flex flex-wrap gap-2">
-        <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">
-          {{ tag }}
-        </span>
+      <div v-if="overlayMode" class="space-y-2">
+        <h2 class="text-3xl font-bold leading-tight">{{ displayTitle }}</h2>
+        <div class="text-base opacity-80">{{ fullDate }}</div>
+        <!-- Tags badges for regular dreams (placed here, under title/date) -->
+        <div v-if="displayTags.length && !isDeep" class="flex flex-wrap gap-2 pt-2">
+          <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white">
+            {{ tag }}
+          </span>
+        </div>
       </div>
       
       <!-- Deep analysis specific layout -->
@@ -176,28 +177,21 @@
 
       <!-- Single dream layout -->
       <template v-else>
-      <!-- Tags badges (only one place, under date) -->
-      <div v-if="displayTags.length" class="flex flex-wrap gap-2">
-        <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white">
-          {{ tag }}
-        </span>
-      </div>
-
       <!-- Dream text - collapsible, with left border quote style and quote mark -->
-      <div class="relative border-l-4 border-pink-400 pl-3 space-y-1">
-        <div class="flex items-start justify-between gap-2">
-          <h3 class="text-base font-semibold">Сон</h3>
-          <span class="opacity-80 text-pink-400 text-2xl leading-none" style="font-family: ui-rounded, -apple-system, system-ui, 'SF Pro Rounded', 'Segoe UI', Roboto, Arial;">"</span>
+      <div class="relative border-l-4 border-pink-400 pl-4 space-y-2">
+        <div class="flex items-start justify-between gap-3">
+          <h3 class="text-2xl font-bold leading-tight">Сон</h3>
+          <span class="opacity-70 text-pink-300 text-4xl leading-none" style="font-family: Georgia, ui-serif;">"</span>
         </div>
-        <div class="text-white/90 leading-relaxed">
+        <div class="text-white/90">
           <p 
-            class="text-lg opacity-90 transition-all"
+            class="text-lg leading-relaxed transition-all"
             :class="expanded.dreamText ? '' : 'line-clamp-3'"
           >
             {{ dream.dream_text }}
           </p>
         </div>
-        <div class="flex justify-end">
+        <div class="flex justify-end pt-1">
           <button 
             @click.stop="toggleSection('dreamText')"
             class="text-sm opacity-70 hover:opacity-100 transition-opacity"
@@ -208,18 +202,18 @@
       </div>
 
       <!-- Scientific Approach Section -->
-      <div class="space-y-2">
-        <h2 class="text-lg font-bold px-4">Научный подход</h2>
+      <div class="space-y-3">
+        <h2 class="text-2xl font-bold">Научный подход</h2>
         
         <!-- HVdC Content Analysis -->
         <div v-if="hvdc" class="rounded-lg bg-white/10">
           <h3 class="text-lg font-semibold px-4 py-3">Контент анализ</h3>
-          <div class="px-4 pb-4 text-white/90 space-y-3">
-            <div class="space-y-3">
-              <div v-for="row in hvdcRows" :key="row.key">
-                <div class="flex justify-between text-base opacity-80">
-                  <span>{{ row.label }}</span>
-                  <span>
+          <div class="px-4 pb-4 text-white/90 space-y-4">
+            <div class="space-y-4">
+              <div v-for="row in hvdcRows" :key="row.key" class="space-y-1">
+                <div class="flex justify-between text-base leading-normal">
+                  <span class="font-medium">{{ row.label }}</span>
+                  <span class="opacity-90">
                     {{ row.value }}%
                     <template v-if="row.norm !== null"> / {{ row.norm }}%</template>
                     <template v-if="row.delta !== null">
@@ -234,12 +228,12 @@
                   <div class="relative h-full bg-white/70" :style="{ width: row.value+'%' }"></div>
                 </div>
               </div>
-              <div class="pt-2 text-sm opacity-80 flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/70 shrink-0"></span> ваш сон</span>
-                <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/20 shrink-0"></span> {{ hvdcLegend }}</span>
+              <div class="pt-1 text-sm opacity-80 flex flex-wrap items-center gap-3">
+                <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block bg-white/70 shrink-0"></span> <span class="leading-normal">ваш сон</span></span>
+                <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block bg-white/20 shrink-0"></span> <span class="leading-normal">{{ hvdcLegend }}</span></span>
               </div>
-              <div class="text-sm opacity-70 flex items-start gap-2">
-                <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px] shrink-0 aspect-square">i</span>
+              <div class="text-sm opacity-70 flex items-start gap-2 leading-relaxed">
+                <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px] shrink-0 aspect-square mt-0.5">i</span>
                 <span>Контент‑анализ по схеме HVdC; сравнение с демографическими нормами (DreamBank, SDDB).</span>
               </div>
             </div>
@@ -251,7 +245,7 @@
           <div v-if="sec.key === 'func'" class="rounded-lg bg-white/10">
             <h3 class="text-lg font-semibold px-4 py-3">{{ sec.title }}</h3>
             <div class="px-4 pb-4 text-white/90 space-y-3">
-              <div v-html="sanitizeFuncHtml(sec.html)" class="text-lg leading-relaxed"></div>
+              <div v-html="sanitizeFuncHtml(sec.html)" class="text-base leading-relaxed"></div>
               
               <!-- Functional Exercise - collapsible -->
               <div v-if="getFuncExercise(sec.html)" class="mt-3 pt-3 border-t border-white/10">
@@ -270,14 +264,14 @@
       </div>
 
       <!-- Psychoanalytic Approach Section -->
-      <div class="space-y-2">
-        <h2 class="text-lg font-bold px-4">Психоаналитический подход</h2>
+      <div class="space-y-3">
+        <h2 class="text-2xl font-bold">Психоаналитический подход</h2>
         
         <template v-for="(sec, idx) in sections" :key="`psycho-${sec.key}`">
           <div v-if="['arch', 'freud', 'jung'].includes(sec.key)" class="rounded-lg bg-white/10">
             <h3 class="text-lg font-semibold px-4 py-3">{{ sec.title }}</h3>
-            <div class="px-4 pb-4 text-white/90 space-y-3">
-              <div v-html="sec.html" class="text-lg leading-relaxed"></div>
+            <div class="px-4 pb-4 text-white/90">
+              <div v-html="sec.html" class="text-base leading-relaxed space-y-2"></div>
             </div>
           </div>
         </template>
