@@ -1,20 +1,21 @@
 <template>
   <div>
     <!-- Табы для переключения режима -->
-    <div class="flex items-center gap-8 mb-6 border-b border-white/10">
+    <div class="flex items-center gap-8 mb-6 border-b" style="border-color: var(--tg-theme-hint-color, rgba(255,255,255,0.1))">
       <button
         @click="switchTab('history')"
         class="relative pb-3 text-lg font-semibold transition-all duration-200"
         :class="[
           activeTab === 'history' 
-            ? 'text-white' 
-            : 'text-white/40 hover:text-white/60'
+            ? 'tab-active' 
+            : 'tab-inactive'
         ]"
       >
         Дневник снов
         <div
           v-if="activeTab === 'history'"
-          class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"
+          class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+          style="background-color: var(--tg-theme-button-color, #ffffff)"
         ></div>
       </button>
       <button
@@ -22,14 +23,15 @@
         class="relative pb-3 text-lg font-semibold transition-all duration-200"
         :class="[
           activeTab === 'deep' 
-            ? 'text-white' 
-            : 'text-white/40 hover:text-white/60'
+            ? 'tab-active' 
+            : 'tab-inactive'
         ]"
       >
         Глубокий анализ
         <div
           v-if="activeTab === 'deep'"
-          class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"
+          class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+          style="background-color: var(--tg-theme-button-color, #ffffff)"
         ></div>
       </button>
     </div>
@@ -188,6 +190,18 @@ const closeOverlay = () => {
 <style scoped>
 /* Тематические бейджи и кнопки: слегка темнее на светлой теме и слегка светлее на тёмной */
 select { -webkit-appearance: auto; appearance: auto; }
+
+/* Tab styles that adapt to user theme */
+.tab-active {
+  color: var(--tg-theme-text-color, #ffffff);
+}
+.tab-inactive {
+  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.4));
+}
+.tab-inactive:hover {
+  color: var(--tg-theme-text-color, rgba(255, 255, 255, 0.6));
+  opacity: 0.8;
+}
 
 .themed-badge { position: relative; border: 1px solid transparent; }
 .themed-select { color: var(--tg-theme-text-color); padding-right: 26px; -webkit-appearance: none; appearance: none; }
