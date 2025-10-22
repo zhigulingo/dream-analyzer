@@ -34,37 +34,31 @@
       
       <!-- Deep analysis specific layout -->
       <template v-if="isDeep">
-        <!-- Повторяющиеся символы (новый формат списком) -->
-        <div v-if="hasRecurringSymbols" class="rounded-lg bg-white/10">
-          <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection('symbols')">
-            <span>Повторяющиеся символы</span>
-            <span class="opacity-80 inline-block" :style="{ fontSize: '130%' }">{{ expanded.symbols ? '−' : '+' }}</span>
-          </button>
-          <div v-if="expanded.symbols" class="px-3 pb-3 text-white/90 leading-snug space-y-4">
+        <!-- Повторяющиеся символы -->
+        <div v-if="hasRecurringSymbols" class="space-y-3">
+          <h3 class="text-xl font-semibold">Повторяющиеся символы</h3>
+          <div class="text-white/90 leading-snug space-y-4">
             <!-- Вводный текст о значении повторений -->
-            <p v-if="symbolsIntro" class="text-sm opacity-90 leading-relaxed pb-2 border-b border-white/10">{{ symbolsIntro }}</p>
+            <p v-if="symbolsIntro" class="text-base opacity-90 leading-relaxed pb-3 border-b border-white/10">{{ symbolsIntro }}</p>
             
             <!-- Список символов (только с частотой >= 2) -->
-            <div v-for="(symbol, idx) in filteredRecurringSymbols" :key="`symbol-${idx}`" class="space-y-1">
+            <div v-for="(symbol, idx) in filteredRecurringSymbols" :key="`symbol-${idx}`" class="space-y-2">
               <div class="flex items-baseline gap-2">
-                <h4 class="font-semibold text-sm">{{ symbol.symbol }}</h4>
-                <span class="text-xs opacity-70 bg-white/15 px-2 py-0.5 rounded-full">×{{ symbol.frequency }}</span>
+                <h4 class="font-semibold text-lg">{{ symbol.symbol }}</h4>
+                <span class="text-sm opacity-70 bg-white/15 px-2 py-0.5 rounded-full">×{{ symbol.frequency }}</span>
               </div>
-              <p class="text-xs opacity-90 leading-relaxed">{{ symbol.description }}</p>
-              <div class="text-xs opacity-75 italic leading-relaxed bg-white/5 rounded px-2 py-1">
+              <p class="text-base opacity-90 leading-relaxed">{{ symbol.description }}</p>
+              <div class="text-base opacity-75 italic leading-relaxed bg-white/5 rounded-lg px-3 py-2">
                 <span class="font-medium">В ваших снах:</span> {{ symbol.userContext }}
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Динамика контекста (новый формат с анализом) -->
-        <div v-if="hasDynamicsContext" class="rounded-lg bg-white/10">
-          <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection('dynamics')">
-            <span>Динамика контекста</span>
-            <span class="opacity-80 inline-block" :style="{ fontSize: '130%' }">{{ expanded.dynamics ? '−' : '+' }}</span>
-          </button>
-          <div v-if="expanded.dynamics" class="px-3 pb-3 text-white/90 leading-snug">
+        <!-- Динамика контекста -->
+        <div v-if="hasDynamicsContext" class="space-y-3">
+          <h3 class="text-xl font-semibold">Динамика контекста</h3>
+          <div class="text-white/90 leading-snug">
             <DynamicsChart 
               :dynamics="dynamicsContext" 
               :userAge="userStore.profile?.age_range"
@@ -73,24 +67,21 @@
           </div>
         </div>
 
-        <!-- Заключение (новый формат без подзаголовков) -->
-        <div v-if="hasConclusion" class="rounded-lg bg-white/10">
-          <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection('conclusion')">
-            <span>Заключение</span>
-            <span class="opacity-80 inline-block" :style="{ fontSize: '130%' }">{{ expanded.conclusion ? '−' : '+' }}</span>
-          </button>
-          <div v-if="expanded.conclusion" class="px-3 pb-3 text-white/90 leading-snug space-y-3">
-            <p v-if="conclusion.periodThemes" class="text-sm opacity-90 leading-relaxed">{{ conclusion.periodThemes }}</p>
-            <p v-if="conclusion.dreamFunctionsAnalysis" class="text-sm opacity-90 leading-relaxed">{{ conclusion.dreamFunctionsAnalysis }}</p>
-            <p v-if="conclusion.psychologicalSupport" class="text-sm opacity-90 leading-relaxed">{{ conclusion.psychologicalSupport }}</p>
+        <!-- Заключение -->
+        <div v-if="hasConclusion" class="space-y-3">
+          <h3 class="text-xl font-semibold">Заключение</h3>
+          <div class="text-white/90 leading-snug space-y-4">
+            <p v-if="conclusion.periodThemes" class="text-base opacity-90 leading-relaxed">{{ conclusion.periodThemes }}</p>
+            <p v-if="conclusion.dreamFunctionsAnalysis" class="text-base opacity-90 leading-relaxed">{{ conclusion.dreamFunctionsAnalysis }}</p>
+            <p v-if="conclusion.psychologicalSupport" class="text-base opacity-90 leading-relaxed">{{ conclusion.psychologicalSupport }}</p>
             
-            <div v-if="conclusion.integrationExercise" class="bg-white/10 rounded-lg p-3 space-y-2 mt-4">
-              <h4 class="font-semibold opacity-95 flex items-center gap-2">
+            <div v-if="conclusion.integrationExercise" class="bg-white/10 rounded-lg p-4 space-y-3 mt-4">
+              <h4 class="font-semibold text-lg opacity-95 flex items-center gap-2">
                 <span>💫</span>
                 <span>{{ conclusion.integrationExercise.title || 'Практическое упражнение' }}</span>
               </h4>
-              <p class="text-sm opacity-90 leading-relaxed">{{ conclusion.integrationExercise.description }}</p>
-              <p v-if="conclusion.integrationExercise.rationale" class="text-xs opacity-75 italic leading-relaxed">{{ conclusion.integrationExercise.rationale }}</p>
+              <p class="text-base opacity-90 leading-relaxed">{{ conclusion.integrationExercise.description }}</p>
+              <p v-if="conclusion.integrationExercise.rationale" class="text-base opacity-75 italic leading-relaxed">{{ conclusion.integrationExercise.rationale }}</p>
             </div>
           </div>
         </div>
@@ -186,33 +177,27 @@
       <!-- Single dream layout -->
       <template v-else>
       <div class="rounded-lg bg-white/10 border-l-4 border-pink-400">
-        <div class="px-3 py-2 font-semibold flex items-center justify-between">
+        <h3 class="px-3 py-2 text-xl font-semibold flex items-center justify-between">
           <span>Сон</span>
           <span class="opacity-80 text-pink-400" style="font-size:130%; font-family: ui-rounded, -apple-system, system-ui, 'SF Pro Rounded', 'Segoe UI', Roboto, Arial;">“</span>
-        </div>
-        <div class="px-3 pb-3 text-white/90 leading-snug">
-          <p :class="['opacity-90', dreamCollapsed ? 'clamp-5' : '']">{{ dream.dream_text }}</p>
-          <div class="mt-2 flex justify-end">
-            <button class="text-sm font-semibold opacity-80 hover:opacity-100" @click.stop="dreamCollapsed = !dreamCollapsed">{{ dreamCollapsed ? '+' : '−' }}</button>
-          </div>
+        </h3>
+        <div class="px-3 pb-3 text-white/90 leading-relaxed">
+          <p class="text-base opacity-90">{{ dream.dream_text }}</p>
         </div>
       </div>
 
       <div class="space-y-2">
         <template v-for="(sec, idx) in sections" :key="sec.key">
           <div class="rounded-lg bg-white/10">
-            <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection(sec.key)">
-              <span>{{ sec.title }}</span>
-              <span class="opacity-80 inline-block" :style="{ fontSize: '130%' }">{{ expanded[sec.key] ? '−' : '+' }}</span>
-            </button>
-            <div v-if="expanded[sec.key]" class="px-3 pb-3 text-white/90 leading-snug space-y-2">
+            <h3 class="text-xl font-semibold px-3 py-2">{{ sec.title }}</h3>
+            <div class="px-3 pb-3 text-white/90 leading-snug space-y-2">
               <template v-if="sec.key !== 'hvdc'">
-                <div v-html="sec.html"></div>
+                <div v-html="sec.html" class="text-base space-y-2 leading-relaxed"></div>
               </template>
               <template v-else>
-                <div v-if="hvdc" class="space-y-2">
+                <div v-if="hvdc" class="space-y-3">
                   <div v-for="row in hvdcRows" :key="row.key">
-                    <div class="flex justify-between text-xs opacity-80">
+                    <div class="flex justify-between text-base opacity-80">
                       <span>{{ row.label }}</span>
                       <span>
                         {{ row.value }}%
@@ -229,11 +214,11 @@
                       <div class="relative h-full bg-white/70" :style="{ width: row.value+'%' }"></div>
                     </div>
                   </div>
-                  <div class="pt-2 text-xs opacity-80 flex flex-wrap items-center gap-4">
+                  <div class="pt-2 text-sm opacity-80 flex flex-wrap items-center gap-4">
                     <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/70 shrink-0"></span> ваш сон</span>
                     <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/20 shrink-0"></span> {{ hvdcLegend }}</span>
                   </div>
-                  <div class="text-xs opacity-70 flex items-start gap-2">
+                  <div class="text-sm opacity-70 flex items-start gap-2">
                     <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px]">i</span>
                     <span>Контент‑анализ по схеме HVdC; сравнение с демографическими нормами (DreamBank, SDDB).</span>
                   </div>
@@ -346,7 +331,6 @@ import { emojiForTitle } from '@/services/emoji.js'
 
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
-const dreamCollapsed = ref(true)
 const isDeep = computed(()=> !!props.dream?.is_deep_analysis)
 
 const emoji = computed(()=> emojiForTitle(displayTitle.value))
