@@ -83,7 +83,7 @@
     <div class="absolute left-4 right-4 space-y-2 transition-all duration-300"
          :class="isOpen ? 'bottom-4 opacity-100' : '-bottom-24 opacity-0 pointer-events-none'">
       <button
-        class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors flex items-center justify-center"
+        class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-all flex items-center justify-center fade-seq is-open seq-offset-500"
         @click.stop="openTariff"
         :disabled="userStore?.isLoadingProfile"
       >
@@ -96,7 +96,7 @@
         Сменить тариф
       </button>
       <button
-        class="w-full bg-white/10 text-white/60 rounded-xl py-3 font-semibold cursor-not-allowed"
+        class="w-full bg-white/10 text-white/60 rounded-xl py-3 font-semibold cursor-not-allowed transition-all fade-seq is-open seq-offset-600"
         disabled
       >
         Получить токены

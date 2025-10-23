@@ -1,8 +1,7 @@
 <template>
-  <div class="modal-overlay" @click.self="closeModal">
-    <div class="modal-content rounded-xl bg-gradient-to-br from-[#5461FF] to-[#4857FF] text-white">
-      <button class="close-button" @click="closeModal">×</button>
-      <h2 class="text-2xl font-bold mb-6">Выберите план подписки</h2>
+  <div class="modal-container">
+    <div class="modal-content">
+      <h2 class="text-[32px] font-bold mb-6 text-center">Выберите план подписки</h2>
 
       <!-- Табы Basic/Premium -->
       <div class="tabs">
@@ -20,7 +19,7 @@
         </button>
       </div>
 
-      <!-- Опции длительности -->
+      <!-- Опции длительности в одну строку -->
       <div class="duration-options">
         <label v-for="duration in [1, 3, 12]" :key="duration" class="duration-label">
           <input
@@ -32,17 +31,14 @@
             @change="userStore.selectDuration(duration)"
           />
           <div class="duration-card" :class="{ disabled: !getPlanDetails(userStore.selectedPlan, duration).price }">
-             <span class="months">{{ duration }} {{ duration > 1 ? (duration < 5 ? 'месяца' : 'месяцев') : 'месяц' }}</span>
+             <span class="months">{{ duration }} {{ duration > 1 ? (duration < 5 ? 'мес' : 'мес') : 'мес' }}</span>
              <template v-if="getPlanDetails(userStore.selectedPlan, duration).price">
                <span class="price">
-                 {{ (getPlanDetails(userStore.selectedPlan, duration).price / duration).toFixed(0) }} / мес
-               </span>
-               <span class="total-price">
-                 Всего: {{ getPlanDetails(userStore.selectedPlan, duration).price }} <span class="stars-icon">⭐</span>
+                 {{ (getPlanDetails(userStore.selectedPlan, duration).price / duration).toFixed(0) }}⭐/мес
                </span>
              </template>
              <template v-else>
-               <span class="price">Не настроено</span>
+               <span class="price-disabled">—</span>
              </template>
           </div>
         </label>
@@ -50,34 +46,37 @@
 
        <!-- Описание фич -->
       <div class="features-list">
-        <h3>Что вы получаете:</h3>
+        <h3 class="text-2xl font-bold mb-4">Что вы получаете:</h3>
         <ul>
           <li v-for="(feature, index) in getPlanDetails(userStore.selectedPlan, userStore.selectedDuration).features" :key="index">
-            ✔️ {{ feature }}
+            <span class="checkmark">✔️</span> {{ feature }}
           </li>
         </ul>
       </div>
-
-      <!-- HTML Кнопка оплаты убрана -->
-
     </div>
   </div>
 </template>
 
 <script setup>
 import { useUserStore } from '@/stores/user';
-import { watchEffect, onUnmounted, ref, onMounted } from 'vue'; // Импортируем все нужное
+import { watchEffect, onUnmounted, ref, onMounted } from 'vue';
 
 const userStore = useUserStore();
-const { getPlanDetails } = userStore; // Это геттер, его можно использовать напрямую
+const { getPlanDetails } = userStore;
 const tg = window.Telegram?.WebApp;
 const emit = defineEmits(['close']);
 
-// Флаг монтирования компонента
 const isMounted = ref(false);
+
 onMounted(() => {
     isMounted.value = true;
     console.log("[SubscriptionModal] Component mounted");
+    
+    // Setup Telegram Back Button
+    if (tg?.BackButton) {
+        tg.BackButton.show();
+        tg.BackButton.onClick(closeModal);
+    }
 });
 
 const closeModal = () => {
@@ -88,29 +87,26 @@ const closeModal = () => {
 const handleMainButtonClick = () => {
     console.log("[SubscriptionModal] Main Button clicked!");
     if (tg?.MainButton?.isActive) {
-        userStore.initiatePayment(); // Вызываем action
+        userStore.initiatePayment();
     } else {
         console.warn("[SubscriptionModal] Main Button clicked but it was inactive.");
     }
 };
 
-// Следим за изменениями и монтированием для управления Main Button
+// Следим за изменениями для управления Main Button
 watchEffect(() => {
   if (!tg || !isMounted.value) {
-      // Если компонент не смонтирован или нет API TG
       if (tg?.MainButton?.isVisible) {
           console.log("[SubscriptionModal] Hiding Main Button (not mounted or no tg)");
            tg.MainButton.hide();
-           tg.MainButton.offClick(handleMainButtonClick); // Снимаем обработчик на всякий случай
+           tg.MainButton.offClick(handleMainButtonClick);
       }
-      return; // Выходим
+      return;
   }
 
-  // Компонент смонтирован, API есть
-  const amount = userStore.selectedInvoiceAmount; // Получаем актуальную цену
+  const amount = userStore.selectedInvoiceAmount;
 
   if (amount) {
-    // Настраиваем и показываем кнопку
     console.log(`[SubscriptionModal] Setting Main Button: Pay ${amount} Stars`);
     tg.MainButton.setParams({
       text: `Оплатить ${amount} ⭐`,
@@ -119,76 +115,56 @@ watchEffect(() => {
       is_active: true,
       is_visible: true,
     });
-    // ВАЖНО: Переназначаем обработчик каждый раз при обновлении кнопки
     tg.MainButton.offClick(handleMainButtonClick);
     tg.MainButton.onClick(handleMainButtonClick);
   } else {
-    // Если цена не выбрана (ошибка в логике цен?)
      console.log("[SubscriptionModal] Setting Main Button: Inactive (no amount)");
     tg.MainButton.setParams({
         text: 'Выберите план',
         is_active: false,
-        is_visible: true // Оставляем видимой, но неактивной
+        is_visible: true
     });
-     tg.MainButton.offClick(handleMainButtonClick); // Снимаем обработчик
+     tg.MainButton.offClick(handleMainButtonClick);
   }
 });
 
-// При размонтировании компонента (закрытии модалки)
 onUnmounted(() => {
+  // Hide and cleanup Main Button
   if (tg?.MainButton?.isVisible) {
     tg.MainButton.hide();
-    tg.MainButton.offClick(handleMainButtonClick); // Обязательно снимаем обработчик
+    tg.MainButton.offClick(handleMainButtonClick);
      console.log("[SubscriptionModal] Main Button hidden on modal unmount.");
   }
-  isMounted.value = false; // Сбрасываем флаг монтирования
+  
+  // Hide and cleanup Back Button
+  if (tg?.BackButton?.isVisible) {
+    tg.BackButton.hide();
+    tg.BackButton.offClick(closeModal);
+    console.log("[SubscriptionModal] Back Button hidden on modal unmount.");
+  }
+  
+  isMounted.value = false;
 });
 </script>
 
 <style scoped>
-.modal-overlay {
+/* Full-screen container like dream card */
+.modal-container {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
   z-index: 1000;
+  overflow-y: auto;
+  background: linear-gradient(to bottom right, #5461FF, #4857FF);
 }
 
 .modal-content {
-  padding: 32px 24px 24px;
-  width: 90%;
-  max-width: 400px;
-  position: relative;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  /* No overflow-y - content should fit without scroll */
-}
-
-.close-button {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-size: 1.5em;
+  width: 100%;
+  min-height: 100%;
+  padding: 24px 32px 100px;
   color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s;
-}
-
-.close-button:hover {
-  background: rgba(255, 255, 255, 0.3);
 }
 
 h2 {
@@ -224,15 +200,15 @@ h2 {
   font-weight: 600;
 }
 
+/* Compact single-line duration options */
 .duration-options {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   margin-bottom: 24px;
 }
 
 .duration-label {
-  display: block;
+  flex: 1;
 }
 
 .duration-label input[type="radio"] {
@@ -242,13 +218,16 @@ h2 {
 .duration-card {
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  padding: 16px;
+  padding: 12px 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   background-color: rgba(255, 255, 255, 0.05);
+  min-height: 70px;
 }
 
 .duration-card:hover {
@@ -267,34 +246,28 @@ h2 {
 
 .months {
   font-weight: 600;
-  font-size: 1.1em;
+  font-size: 1em;
   color: white;
+  text-align: center;
 }
 
 .price {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.95em;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.85em;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.total-price {
-  font-weight: 600;
-  color: white;
-  font-size: 1.05em;
-}
-
-.stars-icon {
-  vertical-align: middle;
+.price-disabled {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.2em;
 }
 
 .features-list {
   margin-bottom: 0;
-  font-size: 0.95em;
 }
 
 .features-list h3 {
-  font-size: 1.1em;
-  margin-bottom: 12px;
-  font-weight: 600;
   color: white;
 }
 
@@ -305,8 +278,13 @@ h2 {
 }
 
 .features-list li {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   color: rgba(255, 255, 255, 0.9);
-  line-height: 1.5;
+  line-height: 1.6;
+  font-size: 1.125rem;
+}
+
+.checkmark {
+  margin-right: 8px;
 }
 </style>
