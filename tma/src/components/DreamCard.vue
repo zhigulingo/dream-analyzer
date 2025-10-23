@@ -765,29 +765,38 @@ function buildWorkHtml(){
   let exercise2Title = 'Шаг'
   let exercise2Text = 'Выбери один маленький шаг в реальности, который поддержит тебя по теме сна.'
   
+  let exercise1Emoji = '✏️'
+  let exercise2Emoji = '🎯'
+  
   if (type === 'memory') {
     emoji = '🌙'
     title = 'Сон-Память'
     description = 'Переработка недавнего опыта, соединение нового с прошлым'
     exercise1Title = 'Отрази'
+    exercise1Emoji = '💭'
     exercise1Text = 'Вспомни, что происходило последние 1–2 дня. Какие события могли попасть в сон?'
     exercise2Title = 'Соедини'
+    exercise2Emoji = '🔗'
     exercise2Text = 'Отметь, какие элементы сна перекликаются с реальностью — это завершает «архивацию» опыта.'
   } else if (type === 'emotion') {
     emoji = '⚡️'
     title = 'Сон-Эмоция'
     description = 'Проживание и нейтрализация сильных чувств'
     exercise1Title = 'Почувствуй'
+    exercise1Emoji = '✋'
     exercise1Text = 'Определи, какая эмоция была самой сильной во сне. Где она чувствуется в теле сейчас?'
     exercise2Title = 'Услышь'
+    exercise2Emoji = '💬'
     exercise2Text = 'Представь, что главный персонаж сна говорит тебе что-то. Что он хочет, чтобы ты понял?'
   } else if (type === 'anticipation') {
     emoji = '🔮'
     title = 'Сон-Предвосхищение'
     description = 'Тренировка будущих ситуаций и реакций'
     exercise1Title = 'Представь'
+    exercise1Emoji = '⚡'
     exercise1Text = 'Как бы ты хотел повести себя, если бы это произошло в реальности?'
     exercise2Title = 'Расшифруй'
+    exercise2Emoji = '⭐'
     exercise2Text = 'Какой символ кажется ключевым? Что он может говорить о твоих страхах или намерениях?'
   }
   
@@ -801,12 +810,12 @@ function buildWorkHtml(){
     '</div>',
     // Блок 2: Первое упражнение
     '<div class="bg-white/10 rounded-xl p-4 space-y-2">',
-    `<div class="flex items-center gap-2"><span class="text-2xl">✏️</span><span class="font-bold text-xl">${exercise1Title}</span></div>`,
+    `<div class="flex items-center gap-2"><span class="text-2xl">${exercise1Emoji}</span><span class="font-bold text-xl">${exercise1Title}</span></div>`,
     `<p class="text-base opacity-90 leading-snug">${exercise1Text}</p>`,
     '</div>',
     // Блок 3: Второе упражнение
     '<div class="bg-white/10 rounded-xl p-4 space-y-2">',
-    `<div class="flex items-center gap-2"><span class="text-2xl">🎯</span><span class="font-bold text-xl">${exercise2Title}</span></div>`,
+    `<div class="flex items-center gap-2"><span class="text-2xl">${exercise2Emoji}</span><span class="font-bold text-xl">${exercise2Title}</span></div>`,
     `<p class="text-base opacity-90 leading-snug">${exercise2Text}</p>`,
     '</div>',
     '</div>'
