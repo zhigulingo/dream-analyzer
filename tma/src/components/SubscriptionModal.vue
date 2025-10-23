@@ -1,8 +1,8 @@
 <template>
   <div class="modal-overlay" @click.self="closeModal">
-    <div class="modal-content">
+    <div class="modal-content rounded-xl bg-gradient-to-br from-[#5461FF] to-[#4857FF] text-white">
       <button class="close-button" @click="closeModal">×</button>
-      <h2>Выберите план подписки</h2>
+      <h2 class="text-2xl font-bold mb-6">Выберите план подписки</h2>
 
       <!-- Табы Basic/Premium -->
       <div class="tabs">
@@ -146,54 +146,167 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Стили остаются прежними */
 .modal-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background-color: rgba(0, 0, 0, 0.6); display: flex;
-  justify-content: center; align-items: center; z-index: 1000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
+
 .modal-content {
-  background-color: var(--tg-theme-secondary-bg-color); padding: 20px;
-  border-radius: 12px; width: 90%; max-width: 400px; position: relative;
-  color: var(--tg-theme-text-color); max-height: 80vh; overflow-y: auto;
+  padding: 32px 24px 24px;
+  width: 90%;
+  max-width: 400px;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  /* No overflow-y - content should fit without scroll */
 }
+
 .close-button {
-  position: absolute; top: 10px; right: 10px; background: none; border: none;
-  font-size: 1.8em; color: var(--tg-theme-hint-color); cursor: pointer;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.5em;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
 }
-h2 { text-align: center; margin-bottom: 15px; }
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+h2 {
+  text-align: center;
+  color: white !important;
+}
+
 .tabs {
-  display: flex; justify-content: center; margin-bottom: 15px;
-  background-color: var(--tg-theme-bg-color); border-radius: 8px; padding: 5px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 6px;
 }
+
 .tabs button {
-  flex: 1; padding: 10px; border: none; background-color: transparent;
-  color: var(--tg-theme-text-color); cursor: pointer; border-radius: 6px;
-  font-size: 1em; transition: background-color 0.2s ease;
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 1em;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
+
 .tabs button.active {
-  background-color: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color);
-  font-weight: bold;
+  background-color: rgba(255, 255, 255, 0.25);
+  color: white;
+  font-weight: 600;
 }
-.duration-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-.duration-label { display: block; }
-.duration-label input[type="radio"] { display: none; }
+
+.duration-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.duration-label {
+  display: block;
+}
+
+.duration-label input[type="radio"] {
+  display: none;
+}
+
 .duration-card {
-  border: 2px solid var(--tg-theme-hint-color); border-radius: 8px; padding: 12px 15px;
-  display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: rgba(255, 255, 255, 0.05);
 }
-.duration-card.disabled { opacity: 0.6; cursor: not-allowed; }
+
+.duration-card:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.duration-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .duration-label input[type="radio"]:checked + .duration-card {
-  border-color: var(--tg-theme-button-color);
-  background-color: rgba(var(--tg-theme-button-rgb-color, 82, 179, 244), 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.15);
 }
-.months { font-weight: 500; }
-.price { color: var(--tg-theme-hint-color); font-size: 0.9em; }
-.total-price { font-weight: bold; }
-.stars-icon { vertical-align: middle; }
-.features-list { margin-bottom: 20px; font-size: 0.95em; padding-left: 10px; }
-.features-list h3 { font-size: 1.1em; margin-bottom: 8px; }
-.features-list ul { list-style: none; padding: 0; margin: 0; }
-.features-list li { margin-bottom: 5px; }
+
+.months {
+  font-weight: 600;
+  font-size: 1.1em;
+  color: white;
+}
+
+.price {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95em;
+}
+
+.total-price {
+  font-weight: 600;
+  color: white;
+  font-size: 1.05em;
+}
+
+.stars-icon {
+  vertical-align: middle;
+}
+
+.features-list {
+  margin-bottom: 0;
+  font-size: 0.95em;
+}
+
+.features-list h3 {
+  font-size: 1.1em;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.features-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.features-list li {
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+}
 </style>
