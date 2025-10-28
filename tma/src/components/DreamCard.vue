@@ -238,6 +238,10 @@
                 <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px] shrink-0 aspect-square mt-0.5">i</span>
                 <span>Контент‑анализ по схеме HVdC; сравнение с демографическими нормами (DreamBank, SDDB).</span>
               </div>
+              <div v-if="!hasDemographics" class="mt-3 bg-white/10 rounded-lg p-3 text-sm flex items-center gap-3">
+                <span class="opacity-90 flex-1">Укажите возраст и пол, чтобы будущие анализы сравнивались с вашими нормами.</span>
+                <button class="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 shrink-0" @click.stop="openDemographics">Указать</button>
+              </div>
             </div>
           </div>
         </div>
