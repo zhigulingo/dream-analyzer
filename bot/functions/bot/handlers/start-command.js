@@ -64,7 +64,7 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
                     if (updated) {
                         try {
                             await messageService.sendReply(ctx, 'Бета-доступ открыт! Нажмите кнопку, чтобы открыть приложение.', {
-                                reply_markup: messageService.createWebAppButton('Открыть Личный кабинет', TMA_URL)
+                                reply_markup: messageService.createWebAppButton('Открыть приложение', TMA_URL)
                             });
                         } catch (_) {}
                     }
@@ -78,34 +78,37 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
                 await messageService.deleteMessage(chatId, userData.lastMessageId);
             }
             
+            // For guests (not claimed) without explicit weblogin param — stay silent after cleanup
+            if (!userData.claimed && startParam !== 'weblogin') {
+                console.log('[StartCommandHandler] Guest user: no message will be sent.');
+                return;
+            }
+
             // Determine message text and button based on user state
             let messageText, buttonText, buttonUrl;
-            
+
             if (userData.claimed) {
                 messageText = messages.get('start.returning');
                 buttonText = messages.get('buttons.open_account');
                 buttonUrl = TMA_URL;
-            } else if (startParam === 'weblogin') {
+            } else {
+                // weblogin path for guests
                 messageText = messages.get('start.weblogin');
                 buttonText = messages.get('buttons.open_web');
                 buttonUrl = `${TMA_URL}/login`;
-            } else {
-                messageText = messages.get('start.new_user');
-                buttonText = messages.get('buttons.claim_reward');
-                buttonUrl = `${TMA_URL}?action=claim_reward`;
             }
-            
+
             // Send new message
             console.log(`[StartCommandHandler] Sending new message (Claimed: ${userData.claimed})`);
             const sentMessage = await messageService.sendReply(ctx, messageText, {
                 parse_mode: 'HTML',
                 reply_markup: messageService.createWebAppButton(buttonText, buttonUrl)
             });
-            
+
             if (!sentMessage) {
                 throw new Error("Failed to send start message");
             }
-            
+
             // Save new message ID
             await userService.updateLastStartMessageId(userData.id, sentMessage.message_id);
             console.log(`[StartCommandHandler] Updated last_start_message_id to ${sentMessage.message_id}.`);
