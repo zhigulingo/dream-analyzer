@@ -1,6 +1,6 @@
 <template>
   <article
-    class="relative rounded-xl bg-gradient-to-br from-[#9C41FF] to-[#C03AFF] text-white overflow-hidden transition-all cursor-pointer py-6"
+    class="relative rounded-xl overflow-hidden transition-all cursor-pointer py-6 deep-card"
     :class="[isOpen ? 'pb-20' : 'min-h-[8rem]']"
     @click="toggle"
   >
@@ -29,7 +29,7 @@
       :class="isOpen && userStore?.canAttemptDeepAnalysis ? 'bottom-4 opacity-100' : '-bottom-24 opacity-0 pointer-events-none'"
     >
       <button
-        class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors"
+        class="w-full rounded-xl py-3 font-semibold transition-colors cta-btn"
         @click.stop="requestAnalysis"
       >
         {{ ((userStore?.profile?.deep_analysis_credits || 0) > 0) || ((userStore?.profile?.free_deep_analysis || 0) > 0) ? 'Выполнить анализ' : 'Получить анализ (1 ⭐️)' }}
@@ -120,6 +120,29 @@ const requestAnalysis = () => {
 </script>
 
 <style scoped>
+.deep-card {
+  /* Светлая тема по умолчанию: мягкий фон и читаемый текст */
+  background: linear-gradient(135deg, rgba(156, 65, 255, 0.12), rgba(192, 58, 255, 0.10));
+  color: var(--tg-theme-text-color, #111);
+  border: 1px solid var(--tg-theme-hint-color, rgba(0,0,0,0.12));
+}
+
+.cta-btn {
+  background-color: var(--tg-theme-button-color, #2481cc);
+  color: var(--tg-theme-button-text-color, #fff);
+}
+.cta-btn:hover { filter: brightness(1.05); }
+
+@media (prefers-color-scheme: dark) {
+  .deep-card {
+    background: linear-gradient(135deg, #9C41FF, #C03AFF);
+    color: #fff;
+    border-color: transparent;
+  }
+  .cta-btn { background-color: rgba(255,255,255,0.2); color: #fff; }
+  .cta-btn:hover { background-color: rgba(255,255,255,0.3); filter: none; }
+}
+
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.3s ease;
 }
