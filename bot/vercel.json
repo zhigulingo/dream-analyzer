@@ -27,11 +27,13 @@
     { "source": "/api/logout", "destination": "/api/logout" },
     { "source": "/api/create-invoice", "destination": "/api/create-invoice" },
     { "source": "/api/claim-channel-token", "destination": "/api/claim-channel-token" }
-  ],
-  "crons": [
-    {
-      "path": "/api/beta-access-notifier",
-      "schedule": "*/15 * * * *"
-    }
   ]
+  // Cron jobs temporarily disabled for Hobby plan (limited to 1 per day)
+  // To enable: upgrade to Pro plan or use external cron service
+  // "crons": [
+  //   {
+  //     "path": "/api/beta-access-notifier",
+  //     "schedule": "*/15 * * * *"
+  //   }
+  // ]
 }
