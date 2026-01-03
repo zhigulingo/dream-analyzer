@@ -1,25 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/cache/:path*", "destination": "/api/cache-monitoring" },
-    { "source": "/api/health", "destination": "/api/health-check" },
-    { "source": "/api/metrics", "destination": "/api/performance-metrics" },
-    { "source": "/api/errors", "destination": "/api/error-monitoring" },
-    { "source": "/api/business", "destination": "/api/business-metrics" },
-    { "source": "/api/dashboard", "destination": "/api/monitoring-dashboard" },
-    { "source": "/bot", "destination": "/api/bot" },
-    { "source": "/api/analyze-dream-background", "destination": "/api/analyze-dream-background" },
-    { "source": "/api/ingest-knowledge", "destination": "/api/ingest-knowledge" },
-    { "source": "/api/ingest-knowledge-background", "destination": "/api/ingest-knowledge-background" },
-    { "source": "/api/set-demographics", "destination": "/api/set-demographics" },
-    { "source": "/api/tg-sticker", "destination": "/api/tg-sticker" },
-    { "source": "/api/user-profile", "destination": "/api/user-profile" },
-    { "source": "/api/analyses-history", "destination": "/api/analyses-history" },
-    { "source": "/api/analyze-dream", "destination": "/api/analyze-dream" },
-    { "source": "/api/deep-analysis", "destination": "/api/deep-analysis" },
-    { "source": "/api/web-login", "destination": "/api/web-login" },
-    { "source": "/api/refresh-token", "destination": "/api/refresh-token" },
-    { "source": "/api/logout", "destination": "/api/logout" },
-    { "source": "/api/create-invoice", "destination": "/api/create-invoice" },
-    { "source": "/api/claim-channel-token", "destination": "/api/claim-channel-token" }
+    { "source": "/api/:path*", "destination": "/api" },
+    { "source": "/bot", "destination": "/api" }
   ]
 }
