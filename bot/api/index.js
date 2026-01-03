@@ -68,13 +68,14 @@ const routes = {
  * Main handler that routes requests to appropriate functions
  */
 async function routerHandler(req, res) {
+  console.log(`[Router] Request received: ${req.method} ${req.url}`);
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
-  
+
   // Find matching route
   let handler = null;
   let matchedRoute = null;
-  
+
   // Try exact match first
   if (routes[pathname]) {
     handler = routes[pathname];
@@ -86,7 +87,7 @@ async function routerHandler(req, res) {
       matchedRoute = '/api/cache-monitoring';
     }
   }
-  
+
   if (!handler) {
     return res.status(404).json({
       error: 'Not Found',
@@ -94,7 +95,7 @@ async function routerHandler(req, res) {
       availableRoutes: Object.keys(routes)
     });
   }
-  
+
   // Wrap the Netlify handler and call it
   const wrappedHandler = wrapNetlifyFunction(handler.handler);
   return wrappedHandler(req, res);

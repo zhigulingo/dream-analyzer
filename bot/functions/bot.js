@@ -17,9 +17,9 @@ const createStartCommandHandler = require("./bot/handlers/start-command");
 const createSetPasswordCommandHandler = require("./bot/handlers/setpassword-command");
 const createTextMessageHandler = require("./bot/handlers/text-message");
 const createGoLiveCommandHandler = require("./bot/handlers/golive-command");
-const { 
-    createPreCheckoutQueryHandler, 
-    createSuccessfulPaymentHandler 
+const {
+    createPreCheckoutQueryHandler,
+    createSuccessfulPaymentHandler
 } = require("./bot/handlers/payment-handlers");
 
 // --- Environment Variables ---
@@ -46,12 +46,12 @@ const logger = createLogger({ module: 'telegram-bot' });
 try {
     // Генерируем correlation ID для инициализации
     const correlationId = logger.generateCorrelationId();
-    
-    logger.info("Bot initialization started", { 
+
+    logger.info("Bot initialization started", {
         correlationId,
         environment: process.env.NODE_ENV || 'development'
     });
-    
+
     // Validate environment variables
     if (!BOT_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_KEY || !GEMINI_API_KEY) {
         throw new Error("FATAL: Missing one or more critical environment variables! (BOT_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY)");
@@ -62,22 +62,22 @@ try {
         auth: { autoRefreshToken: false, persistSession: false }
     });
     bot = new Bot(BOT_TOKEN);
-    
-    logger.info("Bot clients and instance created", { 
+
+    logger.info("Bot clients and instance created", {
         botToken: BOT_TOKEN ? 'configured' : 'missing',
         supabaseUrl: SUPABASE_URL ? 'configured' : 'missing'
     });
 
     // Resolve TMA app URL (fallback to allowed origin if TMA_URL is not set)
-    // Updated fallback to current production TMA domain
-    const TMA_APP_URL = TMA_URL || ALLOWED_TMA_ORIGIN || 'https://dream-analyzer.netlify.app';
+    // Updated fallback to use ALLOWED_TMA_ORIGIN or empty string instead of netlify
+    const TMA_APP_URL = TMA_URL || ALLOWED_TMA_ORIGIN || '';
     logger.info("Resolved TMA app URL", { TMA_APP_URL, hasExplicitTmaUrl: !!TMA_URL, allowedOrigin: ALLOWED_TMA_ORIGIN });
 
     // Initialize services
     userService = new UserService(supabaseAdmin);
     messageService = new MessageService(bot.api);
     analysisService = new AnalysisService(supabaseAdmin);
-    
+
     logger.info("Bot services initialized", {
         services: ['UserService', 'MessageService', 'AnalysisService']
     });
@@ -95,7 +95,7 @@ try {
                 const msgTs = Number(ctx.message?.date || 0);
                 const ageSec = Math.floor(Date.now() / 1000) - msgTs;
                 if (ageSec > 60) return; // silent ignore
-            } catch (_) {}
+            } catch (_) { }
 
             // Resolve user type to customize message for guests
             let isGuest = true;
@@ -182,7 +182,7 @@ try {
                 if (ageSec > 60) {
                     return; // silent ignore
                 }
-            } catch (_) {}
+            } catch (_) { }
 
             // Idempotency by update_id (1 hour)
             const idemKey = `bot:idem:update:${updateId}`;
@@ -204,7 +204,7 @@ try {
             if (!siteUrl) {
                 throw new Error('Site URL is not configured');
             }
-            const url = new URL('/.netlify/functions/ingest-knowledge-background', siteUrl).toString();
+            const url = new URL('/api/ingest-knowledge-background', siteUrl).toString();
             const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -213,11 +213,11 @@ try {
             const txt = await res.text();
             await ctx.reply(`Инжест запущен. Ответ функции: ${txt.slice(0, 100)}`);
         } catch (e) {
-            try { cache.delete('bot:ingest:lock'); } catch (_) {}
+            try { cache.delete('bot:ingest:lock'); } catch (_) { }
             await ctx.reply(`Ошибка инжеста: ${e?.message || 'неизвестная ошибка'}`);
         } finally {
             // Release lock after short delay to avoid immediate re-entry
-            setTimeout(() => { try { cache.delete('bot:ingest:lock'); } catch (_) {} }, 5 * 1000);
+            setTimeout(() => { try { cache.delete('bot:ingest:lock'); } catch (_) { } }, 5 * 1000);
         }
     });
 
@@ -235,7 +235,7 @@ try {
         const updateId = ctx?.update?.update_id;
         const userId = ctx?.from?.id;
         const chatId = ctx?.chat?.id;
-        
+
         if (e instanceof GrammyError) {
             logger.botError("grammy_error", e, userId, chatId, {
                 updateId,
@@ -265,7 +265,11 @@ try {
     botInitializedAndHandlersSet = true;
 
 } catch (error) {
-    logger.error("Critical bot initialization error", {}, error);
+    logger.error("Critical bot initialization error", {
+        botTokenSet: !!BOT_TOKEN,
+        supabaseSet: !!SUPABASE_URL,
+        geminiSet: !!GEMINI_API_KEY
+    }, error);
     initializationError = error;
     bot = null;
     botInitializedAndHandlersSet = false;
@@ -280,41 +284,58 @@ if (botInitializedAndHandlersSet && bot) {
         // Используем async-режим AWS Lambda, совместимый с нашей обёрткой
         netlifyWebhookHandler = webhookCallback(bot, 'aws-lambda-async');
         logger.info("Webhook callback created successfully");
-    } catch (callbackError) { 
-        logger.error("Failed to create webhook callback", {}, callbackError); 
-        initializationError = callbackError; 
+    } catch (callbackError) {
+        logger.error("Failed to create webhook callback", {}, callbackError);
+        initializationError = callbackError;
     }
-} else { 
+} else {
     logger.error("Skipping webhook callback creation due to initialization errors", {
         botInitialized: botInitializedAndHandlersSet,
         botExists: !!bot,
         initError: initializationError?.message
-    }); 
+    });
 }
 
 exports.handler = async (event, context) => {
     // Не ждём очистки event loop, чтобы ускорить возврат ответа
-    try { context.callbackWaitsForEmptyEventLoop = false; } catch (_) {}
+    try { context.callbackWaitsForEmptyEventLoop = false; } catch (_) { }
     const handlerLogger = logger.child({ handler: 'netlify-webhook' });
     handlerLogger.generateCorrelationId();
-    
+
     handlerLogger.info("Netlify handler invoked", {
         method: event.httpMethod,
-        path: event.path
+        path: event.path,
+        hasBody: !!event.body,
+        bodyType: typeof event.body,
+        botTokenSet: !!process.env.BOT_TOKEN,
+        botPaused: process.env.BOT_PAUSED
     });
-    
-    if (initializationError || !netlifyWebhookHandler) { 
+
+    if (event.body) {
+        try {
+            const parsedBody = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+            handlerLogger.info("Update received", {
+                update_id: parsedBody.update_id,
+                message_text: parsedBody.message?.text,
+                from_id: parsedBody.message?.from?.id
+            });
+        } catch (e) {
+            handlerLogger.warn("Failed to parse body for logging", { error: e.message });
+        }
+    }
+
+    if (initializationError || !netlifyWebhookHandler) {
         handlerLogger.error("Handler failed due to initialization errors", {
             hasInitError: !!initializationError,
             hasWebhookHandler: !!netlifyWebhookHandler,
             initErrorMessage: initializationError?.message
         }, initializationError);
-        return { 
-            statusCode: 500, 
+        return {
+            statusCode: 500,
             body: JSON.stringify({ error: "Internal Server Error: Bot failed to initialize." })
-        }; 
+        };
     }
-    
+
     handlerLogger.info("Calling webhook callback handler");
     return netlifyWebhookHandler(event, context);
 };
