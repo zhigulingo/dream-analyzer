@@ -1,5 +1,5 @@
 // bot/functions/set-webhook.js
-// One-off helper to (re)configure Telegram webhook to point to this Netlify site
+// One-off helper to (re)configure Telegram webhook to point to this site
 
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
 
@@ -24,10 +24,10 @@ exports.handler = async (event) => {
       return { statusCode: 500, headers, body: JSON.stringify({ error: 'BOT_TOKEN is not configured' }) };
     }
 
-    // Prefer explicit WEBHOOK_URL (if set), else Netlify provided site URL
-    const baseUrl = process.env.WEBHOOK_URL || process.env.URL;
+    // Prefer explicit WEBHOOK_URL (if set), else Vercel/Netlify provided site URL
+    const baseUrl = process.env.WEBHOOK_URL || process.env.URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
     if (!baseUrl) {
-      return { statusCode: 500, headers, body: JSON.stringify({ error: 'Unable to resolve site URL. Set WEBHOOK_URL env or rely on Netlify URL.' }) };
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'Unable to resolve site URL. Set WEBHOOK_URL env variable.' }) };
     }
 
     const webhookUrl = `${baseUrl.replace(/\/$/, '')}/bot`;

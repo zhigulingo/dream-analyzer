@@ -31,9 +31,9 @@ function createGoLiveCommandHandler(userService, messageService, adminIds = [], 
       // Notify target user via bot
       try {
         await messageService.api.sendMessage(targetId, 'Бета-доступ открыт администратором. Нажмите кнопку, чтобы открыть приложение.', {
-          reply_markup: messageService.createWebAppButton('Открыть приложение', tmaUrl || 'https://dream-analyzer.netlify.app')
+          reply_markup: messageService.createWebAppButton('Открыть приложение', tmaUrl)
         });
-      } catch (_) {}
+      } catch (_) { }
 
       await messageService.sendReply(ctx, `Открыт доступ для ${targetId}.`);
     } catch (e) {
