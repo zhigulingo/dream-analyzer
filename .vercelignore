@@ -1,5 +1,3 @@
-# Ignore these from Vercel function detection
+# Ignore these from Vercel function detection to avoid huge deployments
 bot/api-backup/
-bot/functions/
 bot/coverage/
-bot/api/shared/
