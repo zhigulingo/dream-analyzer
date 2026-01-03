@@ -15,11 +15,14 @@
     </div>
 
     <main class="flex flex-col gap-6 px-4 sm:px-6 md:px-8 pb-safe-area items-center">
-      <section class="account-block w-full max-w-72r">
+      <section class="account-block w-full max-w-72r" data-user-anchor>
         <UserInfoCard :user-store="userStore" />
       </section>
       <section class="account-block w-full max-w-72r mb-0">
         <FactsCarouselV2 />
+      </section>
+      <section v-if="showDemographicsBanner" class="account-block w-full max-w-72r">
+        <DemographicsBanner @dismiss="dismissedDemo = true" />
       </section>
       <section v-if="showDeepAnalysisBanner" class="account-block w-full max-w-72r">
         <DeepAnalysisCard :user-store="userStore" />
@@ -38,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useUserStore } from '@/stores/user.js'
 import { useOfflineDetection } from '@/composables/useOfflineDetection.js'
 import { errorService } from '@/services/errorService.js'
@@ -54,11 +57,17 @@ const FactsCarouselV2 = defineAsyncComponent(() => import('@/components/FactsCar
 const DeepAnalysisCard = defineAsyncComponent(() => import('@/components/DeepAnalysisCard.vue'))
 const AnalysisHistoryList = defineAsyncComponent(() => import('@/components/AnalysisHistoryList.vue'))
 const SubscriptionModal = defineAsyncComponent(() => import('@/components/SubscriptionModal.vue'))
+const DemographicsBanner = defineAsyncComponent(() => import('@/components/DemographicsBanner.vue'))
 
 const userStore = useUserStore()
 const { isOnline, pendingOperations } = useOfflineDetection()
 
 const showDeepAnalysisBanner = computed(() => userStore.history && userStore.history.length >= 5)
+const dismissedDemo = ref(false)
+const showDemographicsBanner = computed(() => {
+  const p: any = userStore.profile || {}
+  return !dismissedDemo.value && (!p.age_range || !p.gender)
+})
 // Global error handlers for ErrorBoundary
 const handleError = (errorEvent) => {
   console.error('PersonalAccount error caught by ErrorBoundary:', errorEvent);

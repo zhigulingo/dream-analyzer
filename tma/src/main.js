@@ -131,6 +131,11 @@ if (initTelegram()) {
     
     // Включаем полноэкранный режим
     tg.expand();
+    // На старте гарантированно прячем BackButton, чтобы Telegram показал Close
+    try {
+        tg.BackButton?.hide?.();
+        tg.BackButton?.offClick?.(() => {});
+    } catch (_) {}
     
     // Запрашиваем полноэкранный режим браузера
     const requestFullscreen = () => {
@@ -156,13 +161,15 @@ if (initTelegram()) {
             requestFullscreen();
         }
         
-        // Устанавливаем размеры viewport
+        // Пробрасываем высоту viewport в CSS‑переменную (для адаптивных отступов),
+        // но НЕ фиксируем высоту документа — чтобы работал скролл на главной
         if (tg.viewportHeight) {
-            document.documentElement.style.height = tg.viewportHeight + 'px';
-            document.body.style.height = tg.viewportHeight + 'px';
+            document.documentElement.style.setProperty('--tg-viewport-height', tg.viewportHeight + 'px');
         }
-        
-        // Убираем возможность скролла за пределы приложения
+        // Expose safe area top for CSS (used by overlay padding)
+        const safeTop = (tg.safeAreaInset && typeof tg.safeAreaInset.top === 'number') ? tg.safeAreaInset.top : 0;
+        document.documentElement.style.setProperty('--tg-safe-top', safeTop + 'px');
+        // Не запрещаем скролл документа; только отключаем резиновые перетяжки
         document.body.style.overscrollBehavior = 'none';
         document.documentElement.style.overscrollBehavior = 'none';
         
@@ -193,6 +200,14 @@ if (initTelegram()) {
                     tg.expand();
                 }
             }
+            // Update CSS vars on viewport changes
+            try {
+                if (tg.viewportHeight) {
+                    document.documentElement.style.setProperty('--tg-viewport-height', tg.viewportHeight + 'px');
+                }
+                const safeTop = (tg.safeAreaInset && typeof tg.safeAreaInset.top === 'number') ? tg.safeAreaInset.top : 0;
+                document.documentElement.style.setProperty('--tg-safe-top', safeTop + 'px');
+            } catch (e) {}
         });
     }
     

@@ -1,138 +1,283 @@
 <template>
   <article
-    class="rounded-xl bg-gradient-to-br text-white px-8 md:px-16 transition-all overflow-hidden cursor-pointer py-6"
-    :class="[active ? '' : 'min-h-[4.5rem]', gradientClass]"
-    @click="handleToggle"
+    ref="rootRef"
+    class="rounded-xl bg-gradient-to-br text-white px-8 md:px-16 transition-all overflow-hidden py-4"
+    :class="[gradientClass, overlayMode ? '' : 'cursor-pointer min-h-[4.5rem]']"
+    @click="handleOpen"
   >
-    <div class="flex justify-between items-center py-2 min-h-[2.5rem]">
-      <h3 class="truncate">{{ displayTitle }}</h3>
-      <span class="bg-white/10 rounded-full px-2 py-1 text-sm min-w-[3rem] text-center whitespace-nowrap">
-        {{ relativeDate }}
-      </span>
+    <!-- Collapsed header (card list view) -->
+    <div v-if="!overlayMode" class="flex items-center gap-4 py-2 min-h-[3.5rem]">
+      <div class="text-3xl shrink-0">{{ emoji }}</div>
+      <div class="flex-1 min-w-0">
+        <div class="truncate font-semibold leading-tight text-base">{{ displayTitle }}</div>
+        <div class="text-sm opacity-80 leading-tight mt-0.5">{{ relativeDate }}</div>
+      </div>
+      <button class="shrink-0 w-5 h-5 opacity-60 hover:opacity-100 flex items-center justify-center transition-opacity"
+              @click.stop="emitOpen()"
+              aria-label="Открыть">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </div>
-    <div v-if="active" class="mt-4 space-y-4 text-sm fade-seq is-open">
-      <div v-if="displayTags.length" class="flex flex-wrap gap-2">
-        <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">
-          {{ tag }}
-        </span>
+
+    <!-- Expanded content (used by overlay mode) -->
+    <div v-if="active" class="mt-4 space-y-6 fade-seq is-open">
+      <!-- Title and full date inside the opened card (only in overlay) -->
+      <div v-if="overlayMode" class="space-y-2">
+        <h2 class="text-[32px] font-bold leading-tight">{{ displayTitle }}</h2>
+        <div class="text-base opacity-80">{{ fullDate }}</div>
+        <!-- Tags badges for regular dreams (placed here, under title/date) -->
+        <div v-if="displayTags.length && !isDeep" class="flex flex-wrap gap-2 pt-2">
+          <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-base font-medium bg-white/20 text-white">
+            {{ tag }}
+          </span>
+        </div>
       </div>
       
       <!-- Deep analysis specific layout -->
       <template v-if="isDeep">
-        <!-- Общий контекст серии снов + повторяющиеся символы -->
-        <div class="rounded-lg bg-white/10">
-          <div class="px-3 py-2 font-semibold">Общий контекст серии</div>
-          <div class="px-3 pb-3 text-white/90 leading-snug space-y-2">
-            <div v-html="deepContextHtml"></div>
-            <div v-if="displayTags.length" class="pt-2">
-              <div class="text-xs opacity-80 mb-1">Повторяющиеся символы</div>
+        <!-- Повторяющиеся символы -->
+        <div v-if="hasRecurringSymbols" class="space-y-4">
+          <h3 class="text-2xl font-bold">Повторяющиеся символы</h3>
+          <div class="text-white/90 space-y-5">
+            <!-- Вводный текст о значении повторений -->
+            <p v-if="symbolsIntro" class="text-lg opacity-90 leading-snug pb-4 border-b border-white/10">{{ symbolsIntro }}</p>
+            
+            <!-- Список символов (только с частотой >= 2) -->
+            <div v-for="(symbol, idx) in filteredRecurringSymbols" :key="`symbol-${idx}`" class="space-y-3">
+              <div class="flex items-baseline gap-2">
+                <h4 class="font-bold text-xl">{{ symbol.symbol }}</h4>
+                <span class="text-base opacity-60 bg-white/15 px-2 py-0.5 rounded-full">×{{ symbol.frequency }}</span>
+              </div>
+              <p class="text-lg opacity-90 leading-snug">{{ symbol.description }}</p>
+              <div class="text-base opacity-60 leading-tight bg-white/5 rounded-lg px-3 py-2">
+                <span class="font-medium opacity-80">В ваших снах:</span> {{ symbol.userContext }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Динамика контекста -->
+        <div v-if="hasDynamicsContext" class="space-y-4">
+          <h3 class="text-2xl font-bold">Динамика контекста</h3>
+          <div class="text-white/90">
+            <DynamicsChart 
+              :dynamics="dynamicsContext" 
+              :userAge="userStore.profile?.age_range"
+              :userGender="userStore.profile?.gender"
+            />
+          </div>
+        </div>
+
+        <!-- Заключение -->
+        <div v-if="hasConclusion" class="space-y-4">
+          <h3 class="text-2xl font-bold">Заключение</h3>
+          <div class="text-white/90 space-y-5">
+            <p v-if="conclusion.periodThemes" class="text-lg opacity-90 leading-snug">{{ conclusion.periodThemes }}</p>
+            <p v-if="conclusion.dreamFunctionsAnalysis" class="text-lg opacity-90 leading-snug">{{ conclusion.dreamFunctionsAnalysis }}</p>
+            <p v-if="conclusion.psychologicalSupport" class="text-lg opacity-90 leading-snug">{{ conclusion.psychologicalSupport }}</p>
+            
+            <div v-if="conclusion.integrationExercise" class="bg-white/10 rounded-lg p-4 space-y-3 mt-5">
+              <h4 class="font-bold text-xl opacity-95 flex items-center gap-2">
+                <span>💫</span>
+                <span>{{ conclusion.integrationExercise.title || 'Практическое упражнение' }}</span>
+              </h4>
+              <p class="text-lg opacity-90 leading-snug">{{ conclusion.integrationExercise.description }}</p>
+              <p v-if="conclusion.integrationExercise.rationale" class="text-base opacity-60 leading-tight">{{ conclusion.integrationExercise.rationale }}</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- FALLBACK: старый формат для обратной совместимости -->
+        <template v-if="!hasRecurringSymbols && !hasDynamicsContext && !hasConclusion">
+          <!-- Общий контекст серии -->
+          <div class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Общий контекст серии</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug space-y-2">
+              <div v-html="deepContextHtml"></div>
+            </div>
+          </div>
+          
+          <!-- Старый формат тегов -->
+          <div v-if="displayTags.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Повторяющиеся символы</div>
+            <div class="px-3 pb-3">
               <div class="flex flex-wrap gap-2">
                 <span v-for="tag in displayTags" :key="'deep-'+tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">{{ tag }}</span>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Tabs: Динамика | Выводы -->
-        <div class="rounded-lg bg-white/10">
-          <div class="px-3 py-2 font-semibold flex items-center gap-2">
-            <button class="px-3 py-1 rounded bg-white/10" :class="deepTab==='trend'?'bg-white/20':''" @click.stop="deepTab='trend'">Динамика</button>
-            <button class="px-3 py-1 rounded bg-white/10" :class="deepTab==='insights'?'bg-white/20':''" @click.stop="deepTab='insights'">Выводы</button>
-          </div>
-          <div class="px-3 pb-3 text-white/90 leading-snug">
-            <!-- Trend chart -->
-            <div v-if="deepTab==='trend'">
-              <div v-if="trendReady" class="space-y-3">
-                <div v-for="row in trendRows" :key="row.key" class="space-y-1">
-                  <div class="text-xs opacity-80 flex justify-between"><span>{{ row.label }}</span><span>{{ row.values[row.values.length-1] }}%</span></div>
-                  <svg :viewBox="'0 0 '+chartW+' '+chartH" :width="'100%'" :height="chartH" class="block">
-                    <polyline :points="row.points" fill="none" stroke="white" :stroke-opacity="row.opacity" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
-                    <template v-for="(p,idx) in row.pointList" :key="idx">
-                      <circle :cx="p.x" :cy="p.y" r="2.8" fill="white" :fill-opacity="row.opacity" />
-                    </template>
-                    <!-- grid -->
-                    <line v-for="g in 4" :key="'g'+g" :x1="0" :x2="chartW" :y1="(chartH/4)*g" :y2="(chartH/4)*g" stroke="white" stroke-opacity="0.08" stroke-width="1" />
-                  </svg>
-                </div>
-                <div class="text-xs opacity-70">Динамика по последним {{ trendCount }} снам.</div>
-              </div>
-              <div v-else class="text-xs opacity-80">Недостаточно данных по последним снам.</div>
-            </div>
-            <!-- Insights -->
-            <div v-else>
-              <div class="space-y-2">
-                <div class="font-semibold">Ключевые инсайты</div>
-                <ul class="list-disc pl-5">
-                  <li v-for="(it, i) in insights" :key="'in'+i">{{ it }}</li>
-                </ul>
-              </div>
-              <div class="mt-3 space-y-2">
-                <div class="font-semibold">Рекомендации</div>
-                <ul class="list-disc pl-5">
-                  <li v-for="(r, i) in recommendations" :key="'rec'+i">{{ r }}</li>
-                </ul>
-              </div>
+          <!-- Динамика HVdC -->
+          <div v-if="trendReady" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Динамика</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <DynamicsChart 
+                :dynamics="hvdcDynamics" 
+                :userAge="userStore.profile?.age_range"
+                :userGender="userStore.profile?.gender"
+              />
             </div>
           </div>
-        </div>
+          
+          <!-- Инсайты и рекомендации для старого формата -->
+          <div v-if="insights.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Ключевые инсайты</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <ol class="list-decimal pl-5 space-y-2">
+                <li v-for="(it, i) in insights" :key="'in'+i" class="text-xs leading-relaxed">{{ it }}</li>
+              </ol>
+            </div>
+          </div>
+
+          <div v-if="recommendations.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Рекомендации</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <ol class="list-decimal pl-5 space-y-3">
+                <li v-for="(r, i) in recommendations" :key="'rec'+i" class="text-xs leading-relaxed">
+                  <div v-if="typeof r === 'object' && r.title">
+                    <div class="font-semibold mb-1">{{ r.title }}</div>
+                    <div class="opacity-90">{{ r.description }}</div>
+                    <div v-if="r.rationale" class="opacity-80 mt-1 italic">{{ r.rationale }}</div>
+                  </div>
+                  <div v-else>{{ typeof r === 'string' ? r : r.title }}</div>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </template>
+        
+        <!-- Fallback инсайты и рекомендации если есть новая структура символов/динамики но нет заключения -->
+        <template v-if="(hasRecurringSymbols || hasDynamicsContext) && !hasConclusion">
+          <div v-if="insights.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Ключевые инсайты</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <ol class="list-decimal pl-5 space-y-2">
+                <li v-for="(it, i) in insights" :key="'in'+i" class="text-xs leading-relaxed">{{ it }}</li>
+              </ol>
+            </div>
+          </div>
+
+          <div v-if="recommendations.length" class="rounded-lg bg-white/10">
+            <div class="px-3 py-2 font-semibold">Рекомендации</div>
+            <div class="px-3 pb-3 text-white/90 leading-snug">
+              <ol class="list-decimal pl-5 space-y-3">
+                <li v-for="(r, i) in recommendations" :key="'rec'+i" class="text-xs leading-relaxed">
+                  <div v-if="typeof r === 'object' && r.title">
+                    <div class="font-semibold mb-1">{{ r.title }}</div>
+                    <div class="opacity-90">{{ r.description }}</div>
+                    <div v-if="r.rationale" class="opacity-80 mt-1 italic">{{ r.rationale }}</div>
+                  </div>
+                  <div v-else>{{ typeof r === 'string' ? r : r.title }}</div>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </template>
       </template>
 
       <!-- Single dream layout -->
       <template v-else>
-      <div class="rounded-lg bg-white/10 border-l-4 border-pink-400">
-        <div class="px-3 py-2 font-semibold flex items-center justify-between">
-          <span>Сон</span>
-          <span class="opacity-80 text-pink-400" style="font-size:130%; font-family: ui-rounded, -apple-system, system-ui, 'SF Pro Rounded', 'Segoe UI', Roboto, Arial;">“</span>
+      <!-- Dream text - collapsible, with left border quote style and quote mark -->
+      <div class="relative border-l-4 border-pink-400 pl-4 space-y-2">
+        <div class="flex items-start justify-between gap-3">
+          <h3 class="text-2xl font-bold leading-tight">Сон</h3>
+          <span class="opacity-70 text-pink-300 text-4xl leading-none" style="font-family: Georgia, ui-serif;">"</span>
         </div>
-        <div class="px-3 pb-3 text-white/90 leading-snug">
-          <p :class="['opacity-90', dreamCollapsed ? 'clamp-5' : '']">{{ dream.dream_text }}</p>
-          <div class="mt-2 flex justify-end">
-            <button class="text-sm font-semibold opacity-80 hover:opacity-100" @click.stop="dreamCollapsed = !dreamCollapsed">{{ dreamCollapsed ? '+' : '−' }}</button>
-          </div>
+        <div class="text-white/90">
+          <p 
+            class="text-lg leading-snug transition-all"
+            :class="expanded.dreamText ? '' : 'line-clamp-3'"
+          >
+            {{ dream.dream_text }}
+          </p>
+        </div>
+        <div class="flex justify-end pt-1">
+          <button 
+            @click.stop="toggleSection('dreamText')"
+            class="text-base opacity-70 hover:opacity-100 transition-opacity"
+          >
+            {{ expanded.dreamText ? 'Свернуть ↑' : 'Развернуть ↓' }}
+          </button>
         </div>
       </div>
 
-      <div class="space-y-2">
-        <template v-for="(sec, idx) in sections" :key="sec.key">
-          <div class="rounded-lg bg-white/10">
-            <button class="w-full text-left px-3 py-2 font-semibold flex items-center justify-between" @click.stop="toggleSection(sec.key)">
-              <span>{{ sec.title }}</span>
-              <span class="opacity-80 inline-block" :style="{ fontSize: '130%' }">{{ expanded[sec.key] ? '−' : '+' }}</span>
-            </button>
-            <div v-if="expanded[sec.key]" class="px-3 pb-3 text-white/90 leading-snug space-y-2">
-              <template v-if="sec.key !== 'hvdc'">
-                <div v-html="sec.html"></div>
-              </template>
-              <template v-else>
-                <div v-if="hvdc" class="space-y-2">
-                  <div v-for="row in hvdcRows" :key="row.key">
-                    <div class="flex justify-between text-xs opacity-80">
-                      <span>{{ row.label }}</span>
-                      <span>
-                        {{ row.value }}%
-                        <template v-if="row.norm !== null"> / {{ row.norm }}%</template>
-                        <template v-if="row.delta !== null">
-                          <span :class="row.delta>0 ? 'text-green-300' : (row.delta<0 ? 'text-red-300' : 'text-white/70')">
-                            ({{ row.delta>0? '+'+row.delta : row.delta }}pp)
-                          </span>
-                        </template>
+      <!-- Scientific Approach Section -->
+      <div class="space-y-3">
+        <h2 class="text-2xl font-bold">Научный подход</h2>
+        
+        <!-- HVdC Content Analysis -->
+        <div v-if="hvdc" class="rounded-lg bg-white/10">
+          <h3 class="text-xl font-semibold px-4 py-3">Контент анализ</h3>
+          <div class="px-4 pb-4 text-white/90 space-y-4">
+            <div class="space-y-4">
+              <div v-for="row in hvdcRows" :key="row.key" class="space-y-1">
+                <div class="flex justify-between text-lg leading-tight">
+                  <span class="font-medium">{{ row.label }}</span>
+                  <span class="opacity-90">
+                    {{ row.value }}%
+                    <template v-if="row.norm !== null"> / {{ row.norm }}%</template>
+                    <template v-if="row.delta !== null">
+                      <span :class="row.delta>0 ? 'text-green-300' : (row.delta<0 ? 'text-red-300' : 'text-white/70')">
+                        ({{ row.delta>0? '+'+row.delta : row.delta }}pp)
                       </span>
-                    </div>
-                    <div class="relative h-2 w-full bg-white/10 rounded overflow-hidden">
-                      <div v-if="row.norm !== null" class="absolute inset-y-0 left-0 bg-white/20" :style="{ width: row.norm+'%' }"></div>
-                      <div class="relative h-full bg-white/70" :style="{ width: row.value+'%' }"></div>
-                    </div>
-                  </div>
-                  <div class="pt-2 text-xs opacity-80 flex flex-wrap items-center gap-4">
-                    <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/70 shrink-0"></span> ваш сон</span>
-                    <span class="inline-flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block bg-white/20 shrink-0"></span> {{ hvdcLegend }}</span>
-                  </div>
-                  <div class="text-xs opacity-70 flex items-start gap-2">
-                    <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px]">i</span>
-                    <span>Контент‑анализ по схеме HVdC; сравнение с демографическими нормами (DreamBank, SDDB).</span>
-                  </div>
+                    </template>
+                  </span>
                 </div>
-              </template>
+                <div class="relative h-2 w-full bg-white/10 rounded overflow-hidden">
+                  <div v-if="row.norm !== null" class="absolute inset-y-0 left-0 bg-white/20" :style="{ width: row.norm+'%' }"></div>
+                  <div class="relative h-full bg-white/70" :style="{ width: row.value+'%' }"></div>
+                </div>
+              </div>
+              <div class="pt-1 text-base opacity-80 flex flex-wrap items-center gap-3">
+                <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block bg-white/70 shrink-0"></span> <span class="leading-tight">ваш сон</span></span>
+                <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block bg-white/20 shrink-0"></span> <span class="leading-tight">{{ hvdcLegend }}</span></span>
+              </div>
+              <div class="text-base opacity-70 flex items-start gap-2 leading-tight">
+                <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px] shrink-0 aspect-square mt-0.5">i</span>
+                <span>Контент‑анализ по схеме HVdC; сравнение с демографическими нормами (DreamBank, SDDB).</span>
+              </div>
+              <div v-if="!hasDemographics" class="mt-3 bg-white/10 rounded-lg p-3 text-sm flex items-center gap-3">
+                <span class="opacity-90 flex-1">Укажите возраст и пол, чтобы будущие анализы сравнивались с вашими нормами.</span>
+                <button class="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 shrink-0" @click.stop="openDemographics">Указать</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dream Function -->
+        <template v-for="(sec, idx) in sections" :key="sec.key">
+          <div v-if="sec.key === 'func'" class="rounded-lg bg-white/10">
+            <h3 class="text-xl font-semibold px-4 py-3">{{ sec.title }}</h3>
+            <div class="px-4 pb-4 text-white/90 space-y-3">
+              <div v-html="sanitizeFuncHtml(sec.html)" class="text-lg leading-snug"></div>
+              
+              <!-- Functional Exercise - collapsible -->
+              <div v-if="getFuncExercise(sec.html)" class="mt-3 pt-3 border-t border-white/10">
+                <button 
+                  @click.stop="toggleSection('funcExercise')"
+                  class="w-full flex items-center justify-between text-left font-semibold hover:opacity-80 transition-opacity"
+                >
+                  <span>Функциональное упражнение</span>
+                  <span class="text-xl">{{ expanded.funcExercise ? '−' : '+' }}</span>
+                </button>
+                <div v-show="expanded.funcExercise" class="mt-3" v-html="getFuncExercise(sec.html)"></div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Psychoanalytic Approach Section -->
+      <div class="space-y-3">
+        <h2 class="text-2xl font-bold">Психоаналитический подход</h2>
+        
+        <template v-for="(sec, idx) in sections" :key="`psycho-${sec.key}`">
+          <div v-if="['arch', 'freud', 'jung'].includes(sec.key)" class="rounded-lg bg-white/10">
+            <h3 class="text-xl font-semibold px-4 py-3">{{ sec.title }}</h3>
+            <div class="px-4 pb-4 text-white/90">
+              <div v-html="sec.html" class="text-lg leading-snug space-y-2"></div>
             </div>
           </div>
         </template>
@@ -215,23 +360,36 @@ dayjs.locale('ru')
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
-const props = defineProps<{ dream: any; active: boolean }>()
-const emit = defineEmits(['toggle'])
+const props = defineProps<{ dream: any; active?: boolean; overlayMode?: boolean }>()
+const emit = defineEmits(['toggle','open'])
 
-const handleToggle = () => {
-  emit('toggle')
-  if (window.triggerHaptic) {
-    window.triggerHaptic('light')
-  }
+const rootRef = ref<HTMLElement | null>(null)
+const emitOpen = () => {
+  const y = (() => {
+    try { return Math.round(rootRef.value?.getBoundingClientRect().top ?? 0) } catch { return 0 }
+  })()
+  emit('open', { y })
+}
+
+const handleOpen = () => {
+  if (props.overlayMode) return
+  emitOpen()
+  if (window.triggerHaptic) window.triggerHaptic('light')
 }
 
 import api from '@/services/api.js'
 import { useUserStore } from '@/stores/user.js'
 import { useNotificationStore } from '@/stores/notifications.js'
+import DynamicsChart from '@/components/DynamicsChart.vue'
+import { emojiForTitle } from '@/services/emoji.js'
+
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
-const dreamCollapsed = ref(true)
 const isDeep = computed(()=> !!props.dream?.is_deep_analysis)
+
+const emoji = computed(()=> emojiForTitle(displayTitle.value))
+
+// removed chevron mask icon in favor of classic '>' glyph
 
 const localFeedback = computed({
   get: () => (props.dream?.user_feedback ?? props.dream?.deep_source?.user_feedback ?? 0),
@@ -392,8 +550,90 @@ function sanitize(text:string){
 }
 
 // Deep analysis helpers
-const deepTab = ref<'trend'|'insights'>('trend')
+const deepTab = ref<'context'|'dynamics'|'conclusions'|'recommendations'>('context')
 const deepText = computed(()=> sanitize(props.dream?.analysis || ''))
+
+// New structured data accessors
+const overallContext = computed(() => props.dream?.deep_source?.overallContext || {})
+const hasOverallContext = computed(() => {
+  const ctx = overallContext.value
+  return !!(ctx?.narrative || ctx?.psychologicalFunction || ctx?.emotionalJourney)
+})
+
+const symbolsIntro = computed(() => props.dream?.deep_source?.symbolsIntro || '')
+
+const recurringSymbols = computed(() => {
+  const symbols = props.dream?.deep_source?.recurringSymbols
+  return Array.isArray(symbols) ? symbols : []
+})
+
+// Filter symbols to show only those appearing in 2+ dreams
+const filteredRecurringSymbols = computed(() => {
+  return recurringSymbols.value.filter(s => s.frequency >= 2)
+})
+
+const hasRecurringSymbols = computed(() => filteredRecurringSymbols.value.length > 0)
+
+// New dynamics context with analysis and insights
+const dynamicsContext = computed(() => {
+  const dynamics = props.dream?.deep_source?.dynamicsContext
+  return Array.isArray(dynamics) ? dynamics : []
+})
+const hasDynamicsContext = computed(() => dynamicsContext.value.length > 0)
+
+// New conclusion structure
+const conclusion = computed(() => props.dream?.deep_source?.conclusion || {})
+const hasConclusion = computed(() => {
+  const c = conclusion.value
+  return !!(c?.periodThemes || c?.dreamFunctionsAnalysis || c?.psychologicalSupport || c?.integrationExercise)
+})
+
+const newDynamics = computed(() => {
+  const dynamics = props.dream?.deep_source?.dynamics
+  return Array.isArray(dynamics) && dynamics.length > 0 ? dynamics : []
+})
+const hasNewDynamics = computed(() => newDynamics.value.length > 0)
+
+const conclusions = computed(() => {
+  const concl = props.dream?.deep_source?.conclusions
+  return Array.isArray(concl) && concl.length > 0 ? concl : []
+})
+const hasConclusions = computed(() => conclusions.value.length > 0)
+
+const recommendations = computed(() => {
+  const recs = props.dream?.deep_source?.recommendations
+  if (Array.isArray(recs) && recs.length > 0 && typeof recs[0] === 'object') {
+    // New structured format with title, description, rationale
+    return recs
+  }
+  // Fallback to old simple array format or HVdC-based recommendations
+  if (Array.isArray(recs) && recs.length > 0) {
+    return recs.map((r, idx) => ({
+      title: `Рекомендация ${idx + 1}`,
+      description: String(r),
+      rationale: ''
+    }))
+  }
+  // HVdC-based fallback
+  const series = trendSeries.value
+  if (series.length === 0) return []
+  const avg = [0,0,0,0]
+  for(const v of series){ for(let i=0;i<4;i++) avg[i]+=v[i] }
+  const n = Math.max(1, series.length)
+  for(let i=0;i<4;i++) avg[i]=Math.round(avg[i]/n)
+  const pairs = [
+    ['Персонажи','Обрати внимание на отношения и роли; практикуй честную коммуникацию.'],
+    ['Эмоции','Добавь ежедневную регуляцию эмоций (дыхание, дневник, прогулка).'],
+    ['Действия','Определи 1 маленький шаг на неделю и заверши его.'],
+    ['Сцены','Проверь границы и режим: место/время, где тебе спокойнее.']
+  ]
+  const order = avg.map((v,i)=>({i,v})).sort((a,b)=>b.v-a.v).map(o=>o.i)
+  return [
+    { title: pairs[order[0]][0], description: pairs[order[0]][1], rationale: '' },
+    { title: pairs[order[1]][0], description: pairs[order[1]][1], rationale: '' }
+  ]
+})
+const hasRecommendations = computed(() => recommendations.value.length > 0)
 function highlightSymbols(text:string, tags:string[]){
   try{
     let t = text
@@ -453,30 +693,48 @@ const trendRows = computed(()=>{
   return rows
 })
 
-// Insights & recommendations
-function extractBullets(text:string){
-  const lines = text.split(/\n+/).map(s=>s.trim()).filter(Boolean)
-  const bullets = lines.filter(l=> /^\d+\./.test(l)).map(l=> l.replace(/^\d+\.\s*/,'')).slice(0,5)
+// HVdC dynamics converted to DynamicsChart format
+const hvdcDynamics = computed(() => {
+  if (!trendReady.value) return []
+  
+  // Use dynamicsContext if available (new format with analysis/insight)
+  if (hasDynamicsContext.value) {
+    return dynamicsContext.value.map(d => ({
+      metric: d.category || d.metric,
+      values: d.values || [],
+      interpretation: d.analysis || d.interpretation || '',
+      insight: d.insight || ''
+    }))
+  }
+  
+  // Fallback to HVdC data (old format)
+  const cats = [
+    { key: 'characters', label: 'Персонажи', idx: 0 },
+    { key: 'emotions', label: 'Эмоции', idx: 1 },
+    { key: 'actions', label: 'Действия', idx: 2 },
+    { key: 'settings', label: 'Сцены', idx: 3 }
+  ]
+  
+  const series = trendSeries.value
+  return cats.map(cat => ({
+    metric: cat.label,
+    values: series.map(v => v[cat.idx]),
+    interpretation: `Динамика "${cat.label}" по последним ${trendCount.value} снам`
+  }))
+})
+
+// Extract insights from deep analysis text
+function extractBullets(text: string) {
+  const lines = text.split(/\n+/).map(s => s.trim()).filter(Boolean)
+  const bullets = lines.filter(l => /^\d+\./.test(l)).map(l => l.replace(/^\d+\.\s*/, '')).slice(0, 3)
   if (bullets.length) return bullets
   // fallback: first sentences
-  return text.split(/[.!?]\s+/).map(s=>s.trim()).filter(Boolean).slice(0,5)
+  return text.split(/[.!?]\s+/).map(s => s.trim()).filter(Boolean).slice(0, 3)
 }
-const bullets = computed(()=> extractBullets(deepText.value))
-const insights = computed(()=> bullets.value.slice(0,3))
-const recommendations = computed(()=>{
-  const series = trendSeries.value
-  const avg = [0,0,0,0]
-  for(const v of series){ for(let i=0;i<4;i++) avg[i]+=v[i] }
-  const n = Math.max(1, series.length)
-  for(let i=0;i<4;i++) avg[i]=Math.round(avg[i]/n)
-  const pairs = [ ['Персонажи','Обрати внимание на отношения и роли; практикуй честную коммуникацию.'],
-                  ['Эмоции','Добавь ежедневную регуляцию эмоций (дыхание, дневник, прогулка).'],
-                  ['Действия','Определи 1 маленький шаг на неделю и заверши его.'],
-                  ['Сцены','Проверь границы и режим: место/время, где тебе спокойнее.'] ] as [string,string][]
-  const order = avg.map((v,i)=>({i,v})).sort((a,b)=>b.v-a.v).map(o=>o.i)
-  const recs = [pairs[order[0]][1], pairs[order[1]][1]]
-  return recs
-})
+const insights = computed(() => extractBullets(deepText.value))
+
+// Legacy recommendations (already handled by structured data above)
+// Fallback to HVdC-based recommendations if no structured data
 
 function heuristicDreamType(text:string|undefined|null){
   try{
@@ -500,51 +758,70 @@ const dreamType = computed(()=> props.dream?.deep_source?.dream_type || heuristi
 
 function buildWorkHtml(){
   const dt = dreamType.value
-  if (!dt || !dt.dominant) {
-    return [
-      '<div class="space-y-2">',
-      '<div class="font-semibold">🛠 Небольшая работа со сном</div>',
-      '<ol class="list-decimal pl-5 space-y-1">',
-      '<li><span class="font-semibold">Заметь:</span> Какие 2–3 образа из сна самые сильные? Запиши их коротко.</li>',
-      '<li><span class="font-semibold">Шаг:</span> Выбери один маленький шаг в реальности, который поддержит тебя по теме сна.</li>',
-      '</ol>',
-      '</div>'
-    ].join('')
-  }
-  const type = String(dt.dominant).toLowerCase()
+  const type = dt?.dominant ? String(dt.dominant).toLowerCase() : null
+  
+  // Определяем контент в зависимости от типа сна
+  let emoji = '💭'
+  let title = 'Функциональное упражнение'
+  let description = 'Работа со сном для интеграции опыта'
+  let exercise1Title = 'Заметь'
+  let exercise1Text = 'Какие 2–3 образа из сна самые сильные? Запиши их коротко.'
+  let exercise2Title = 'Шаг'
+  let exercise2Text = 'Выбери один маленький шаг в реальности, который поддержит тебя по теме сна.'
+  
+  let exercise1Emoji = '✏️'
+  let exercise2Emoji = '🎯'
+  
   if (type === 'memory') {
-    return [
-      '<div class="space-y-2">',
-      '<div class="font-semibold">🌙 Сон-Память</div>',
-      '<p class="opacity-90">Переработка недавнего опыта, соединение нового с прошлым.</p>',
-      '<ol class="list-decimal pl-5 space-y-1">',
-      '<li><span class="font-semibold">Отрази:</span> Вспомни, что происходило последние 1–2 дня. Какие события могли попасть в сон?</li>',
-      '<li><span class="font-semibold">Соедини:</span> Отметь, какие элементы сна перекликаются с реальностью — это завершает «архивацию» опыта.</li>',
-      '</ol>',
-      '</div>'
-    ].join('')
+    emoji = '🌙'
+    title = 'Сон-Память'
+    description = 'Переработка недавнего опыта, соединение нового с прошлым'
+    exercise1Title = 'Отрази'
+    exercise1Emoji = '💭'
+    exercise1Text = 'Вспомни, что происходило последние 1–2 дня. Какие события могли попасть в сон?'
+    exercise2Title = 'Соедини'
+    exercise2Emoji = '🔗'
+    exercise2Text = 'Отметь, какие элементы сна перекликаются с реальностью — это завершает «архивацию» опыта.'
+  } else if (type === 'emotion') {
+    emoji = '⚡️'
+    title = 'Сон-Эмоция'
+    description = 'Проживание и нейтрализация сильных чувств'
+    exercise1Title = 'Почувствуй'
+    exercise1Emoji = '✋'
+    exercise1Text = 'Определи, какая эмоция была самой сильной во сне. Где она чувствуется в теле сейчас?'
+    exercise2Title = 'Услышь'
+    exercise2Emoji = '💬'
+    exercise2Text = 'Представь, что главный персонаж сна говорит тебе что-то. Что он хочет, чтобы ты понял?'
+  } else if (type === 'anticipation') {
+    emoji = '🔮'
+    title = 'Сон-Предвосхищение'
+    description = 'Тренировка будущих ситуаций и реакций'
+    exercise1Title = 'Представь'
+    exercise1Emoji = '⚡'
+    exercise1Text = 'Как бы ты хотел повести себя, если бы это произошло в реальности?'
+    exercise2Title = 'Расшифруй'
+    exercise2Emoji = '⭐'
+    exercise2Text = 'Какой символ кажется ключевым? Что он может говорить о твоих страхах или намерениях?'
   }
-  if (type === 'emotion') {
-    return [
-      '<div class="space-y-2">',
-      '<div class="font-semibold">⚡️ Сон-Эмоция</div>',
-      '<p class="opacity-90">Проживание и нейтрализация сильных чувств.</p>',
-      '<ol class="list-decimal pl-5 space-y-1">',
-      '<li><span class="font-semibold">Почувствуй:</span> Определи, какая эмоция была самой сильной во сне. Где она чувствуется в теле сейчас?</li>',
-      '<li><span class="font-semibold">Услышь:</span> Представь, что главный персонаж сна говорит тебе что-то. Что он хочет, чтобы ты понял?</li>',
-      '</ol>',
-      '</div>'
-    ].join('')
-  }
-  // anticipation
+  
+  // Генерируем HTML со структурой из трёх блоков
   return [
-    '<div class="space-y-2">',
-    '<div class="font-semibold">🔮 Сон-Предвосхищение</div>',
-    '<p class="opacity-90">Тренировка будущих ситуаций и реакций.</p>',
-    '<ol class="list-decimal pl-5 space-y-1">',
-    '<li><span class="font-semibold">Представь:</span> Как бы ты хотел повести себя, если бы это произошло в реальности?</li>',
-    '<li><span class="font-semibold">Расшифруй:</span> Какой символ кажется ключевым? Что он может говорить о твоих страхах или намерениях?</li>',
-    '</ol>',
+    '<div class="space-y-4">',
+    // Блок 1: Описание
+    '<div class="bg-white/10 rounded-xl p-4 space-y-2">',
+    `<div class="flex items-center gap-2"><span class="text-2xl">${emoji}</span><span class="font-bold text-xl">${title}</span></div>`,
+    `<p class="text-base opacity-90 leading-snug">${description}</p>`,
+    '</div>',
+    // Блок 2: Первое упражнение
+    '<div class="bg-white/10 rounded-xl p-4 space-y-2">',
+    `<div class="flex items-center gap-2"><span class="text-2xl">${exercise1Emoji}</span><span class="font-bold text-xl">${exercise1Title}</span></div>`,
+    `<p class="text-base opacity-90 leading-snug">${exercise1Text}</p>`,
+    '</div>',
+    // Блок 3: Второе упражнение
+    '<div class="bg-white/10 rounded-xl p-4 space-y-2">',
+    `<div class="flex items-center gap-2"><span class="text-2xl">${exercise2Emoji}</span><span class="font-bold text-xl">${exercise2Title}</span></div>`,
+    `<p class="text-base opacity-90 leading-snug">${exercise2Text}</p>`,
+    '</div>',
     '</div>'
   ].join('')
 }
@@ -603,8 +880,31 @@ const sections = computed(() => {
   return res
 })
 
-const expanded = reactive<Record<string,boolean>>({ arch:true, hvdc:false, func:false, freud:false, jung:false })
+const expanded = reactive<Record<string,boolean>>({ 
+  arch:true, hvdc:false, func:false, freud:false, jung:false,
+  symbols:true, dynamics:true, conclusion:true,  // New deep analysis blocks - open by default
+  dreamText: false,  // Dream text collapsed by default (show 3 lines)
+  funcExercise: false  // Functional exercise collapsed by default
+})
 function toggleSection(key:string){ expanded[key] = !expanded[key] }
+
+// Helper functions for restructured analysis
+function sanitizeFuncHtml(html: string): string {
+  // Remove functional exercise block from func html (we show it separately)
+  const exerciseStart = html.indexOf('<div class="mt-3 pt-2 border-t')
+  if (exerciseStart === -1) return html
+  return html.substring(0, exerciseStart)
+}
+
+function getFuncExercise(html: string): string {
+  // Extract functional exercise block from func html, removing title
+  const exerciseStart = html.indexOf('<div class="mt-3 pt-2 border-t')
+  if (exerciseStart === -1) return ''
+  let content = html.substring(exerciseStart, html.lastIndexOf('</div>') + 6)
+  // Remove the repeated "Функциональное упражнение" title inside
+  content = content.replace(/<div class="font-semibold">Функциональное упражнение<\/div>/g, '')
+  return content
+}
 
 // Debug output helpers (visible when ?debug=1 or localStorage.da_debug=1)
 const debugEnabled = computed(() => {
@@ -696,6 +996,14 @@ const hvdcLegend = computed(()=>{
   return tail ? `общая статистика* для ${tail}` : 'общая статистика'
 })
 
+function ruPlural(n:number, forms:[string,string,string]){
+  const nAbs = Math.abs(n) % 100
+  const n1 = nAbs % 10
+  if (nAbs > 10 && nAbs < 20) return forms[2]
+  if (n1 > 1 && n1 < 5) return forms[1]
+  if (n1 === 1) return forms[0]
+  return forms[2]
+}
 const relativeDate = computed(() => {
   if (!props.dream.created_at) return ''
   try {
@@ -703,25 +1011,74 @@ const relativeDate = computed(() => {
     const date = dayjs.utc(props.dream.created_at).tz(userTz).startOf('day')
     const now = dayjs().tz(userTz).startOf('day')
     const diffDays = now.diff(date, 'day')
-    const diffWeeks = Math.floor(diffDays / 7)
-    const diffMonths = Math.floor(diffDays / 30)
-    const diffYears = Math.floor(diffDays / 365)
-
     if (diffDays === 0) return 'сегодня'
     if (diffDays === 1) return 'вчера'
-    if (diffDays < 7) return `${diffDays} д`
-    if (diffDays < 30) return `${diffWeeks} н`
-    if (diffDays < 365) return `${diffMonths} м`
-    return `${diffYears} г`
+
+    if (diffDays < 7) {
+      const unit = ruPlural(diffDays, ['день','дня','дней'])
+      return `${diffDays} ${unit} назад`
+    }
+    const diffWeeks = Math.floor(diffDays / 7)
+    if (diffDays < 30) {
+      const unit = ruPlural(diffWeeks, ['неделя','недели','недель'])
+      return `${diffWeeks} ${unit} назад`
+    }
+    const diffMonths = Math.floor(diffDays / 30)
+    if (diffDays < 365) {
+      const unit = ruPlural(diffMonths, ['месяц','месяца','месяцев'])
+      return `${diffMonths} ${unit} назад`
+    }
+    const diffYears = Math.floor(diffDays / 365)
+    const unit = ruPlural(diffYears, ['год','года','лет'])
+    return `${diffYears} ${unit} назад`
   } catch (e) {
     return props.dream.created_at
   }
 })
 
-// Градиент карточки: обычные анализы — синие; глубокий анализ — как у баннера глубокого анализа
-const gradientClass = computed(() => (props.dream?.is_deep_analysis
-  ? 'from-[#9C41FF] to-[#C03AFF]'
-  : 'from-[#4A58FF] to-[#5664FF]'))
+const fullDate = computed(() => {
+  const created = props.dream?.created_at
+  if (!created) return ''
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || dayjs.tz.guess()
+    return dayjs.utc(created).tz(tz).format('D MMMM YYYY, HH:mm')
+  } catch { return created }
+})
+
+// Градиент карточки с цветовой кодировкой по типу сна
+const gradientClass = computed(() => {
+  // Deep analysis: purple (as before)
+  if (props.dream?.is_deep_analysis) {
+    return 'from-[#9C41FF] to-[#C03AFF]'
+  }
+  
+  // Regular dreams: color-coded by dream type
+  const dt = dreamType.value
+  if (!dt || !dt.dominant) {
+    // Default blue for unknown type
+    return 'from-[#4A58FF] to-[#5664FF]'
+  }
+  
+  const type = String(dt.dominant).toLowerCase()
+  
+  // Emotion dreams: red gradient (fading to right)
+  if (type === 'emotion') {
+    return 'from-[#FF4A4A] via-[#FF6B6B]/80 to-[#FF8A8A]/40'
+  }
+  
+  // Memory dreams: yellow/amber gradient (fading to right)
+  if (type === 'memory') {
+    return 'from-[#FFB84A] via-[#FFC966]/80 to-[#FFDA82]/40'
+  }
+  
+  // Anticipation dreams: blue gradient (fading to right)
+  if (type === 'anticipation') {
+    return 'from-[#4A9FFF] via-[#6BB3FF]/80 to-[#8AC7FF]/40'
+  }
+  
+  // Fallback to default blue
+  return 'from-[#4A58FF] to-[#5664FF]'
+})
 </script>
 
 <style scoped>
@@ -730,5 +1087,16 @@ const gradientClass = computed(() => (props.dream?.is_deep_analysis
   -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Force white text on gradient backgrounds - overrides theme */
+article.bg-gradient-to-br h2,
+article.bg-gradient-to-br h3,
+article.bg-gradient-to-br h4,
+article.bg-gradient-to-br p,
+article.bg-gradient-to-br div,
+article.bg-gradient-to-br span,
+article.bg-gradient-to-br button {
+  color: white !important;
 }
 </style>

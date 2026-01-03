@@ -45,6 +45,10 @@ onMounted(async () => {
     const tg = window?.Telegram?.WebApp
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
     if (tg && isMobile) {
+      // На главной по умолчанию должна быть кнопка Close (BackButton скрыт)
+      try { tg.BackButton?.hide?.() } catch (_) {}
+      // Блокируем системный вертикальный свайп Telegram, чтобы не мешал работе со скроллом внутри приложения
+      try { tg.disableVerticalSwipes?.() } catch (_) {}
       // Установим безопасный верхний отступ для основного контейнера и обновляем при изменениях safe area
       const updateSafeTop = () => {
         try {
@@ -59,16 +63,13 @@ onMounted(async () => {
       tg.onEvent?.('contentSafeAreaChanged', updateSafeTop)
       window.__tma_onSafeAreaChanged = updateSafeTop
 
-      // Отключаем вертикальные свайпы внутри Telegram WebApp на мобильных
-      try { tg.disableVerticalSwipes?.() } catch (_) {}
-
       // Подписываемся на изменение фуллскрина, чтобы при выходе пробовать снова
       const onFsChanged = () => {
         // Если вышли из полноэкрана, попробуем включить снова (мягко)
         if (!tg.isFullscreen) {
           try { tg.requestFullscreen?.() } catch (_) {}
         }
-        // Повторно отключаем вертикальные свайпы на случай, если клиент их вернул
+        // Повторно блокируем системные вертикальные свайпы
         try { tg.disableVerticalSwipes?.() } catch (_) {}
       }
       tg.onEvent?.('fullscreenChanged', onFsChanged)
@@ -97,7 +98,7 @@ onBeforeUnmount(() => {
       tg.offEvent?.('contentSafeAreaChanged', safeHandler)
       window.__tma_onSafeAreaChanged = null
     }
-    // Возвращаем поведение свайпов по умолчанию
+    // Возвращаем поведение системных свайпов по умолчанию при размонтировании
     try { tg?.enableVerticalSwipes?.() } catch (_) {}
   } catch (_) {}
 })
@@ -146,5 +147,7 @@ body {
   padding: 0;
   padding-top: var(--tma-safe-top, 56px);
   box-sizing: border-box;
+  min-height: 100vh;
+  overflow-y: auto;
 }
 </style>

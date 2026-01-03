@@ -15,6 +15,12 @@ function createTextMessageHandler(userService, messageService, analysisService, 
         if (v === undefined) return true; // По умолчанию ставим на паузу, чтобы мгновенно остановить
         return String(v).toLowerCase() === 'true';
     })();
+    // HTML escaping for safe quoting of user text
+    const escapeHtml = (s) => String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    const makeHtmlWithQuote = (prefix, quotedText) => `${escapeHtml(prefix)}\n\n<i>«${escapeHtml(quotedText)}»</i>`;
     // Локальный helper для таймаутов операций
     function withTimeout(promise, ms, label = 'operation') {
         return new Promise((resolve, reject) => {
@@ -83,7 +89,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 if (sub === 'beta') {
                     try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
                     const txt = 'Ваша заявка на участие в бета-тесте принята. Пожалуйста, дождитесь одобрения — мы уведомим вас.';
-                    await messageService.sendReply(ctx, `${txt}\n\n${back}`);
+                    await messageService.sendReply(ctx, makeHtmlWithQuote(txt, back), { parse_mode: 'HTML' });
                     return;
                 }
             }
@@ -111,17 +117,20 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                         // удалим прошлое "soon" если было
                         const prevSoonId = status.soon?.message_id;
                         if (prevSoonId) { try { await messageService.deleteMessage(chatId, prevSoonId); } catch (_) {} }
-                        const sentSoon = await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.\n\n${back}`);
+                        const soonTxt = `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`;
+                        const sentSoon = await messageService.sendReply(ctx, makeHtmlWithQuote(soonTxt, back), { parse_mode: 'HTML' });
                         const newStatus = { ...status, approved: undefined, soon: { message_id: sentSoon?.message_id, chat_id: chatId, updated_at: new Date().toISOString() } };
                         await supabase
                             .from('beta_survey_responses')
                             .update({ answers: { ...ans, _status: newStatus } })
                             .eq('tg_id', userId);
                     } else {
-                        await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.\n\n${back}`);
+                        const soonTxt = `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`;
+                        await messageService.sendReply(ctx, makeHtmlWithQuote(soonTxt, back), { parse_mode: 'HTML' });
                     }
                 } catch (_) {
-                    await messageService.sendReply(ctx, `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.\n\n${back}`);
+                    const soonTxt = `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`;
+                    await messageService.sendReply(ctx, makeHtmlWithQuote(soonTxt, back), { parse_mode: 'HTML' });
                 }
                 return;
             }
@@ -135,7 +144,8 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                     const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
                     let sentOnb;
                     if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
-                        sentOnb = await messageService.sendReply(ctx, `Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).\n\n${back}`);
+                        const onbTxt = 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).';
+                        sentOnb = await messageService.sendReply(ctx, makeHtmlWithQuote(onbTxt, back), { parse_mode: 'HTML' });
                         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
                         const { data: rows } = await supabase
                             .from('beta_survey_responses')
@@ -153,17 +163,20 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                             .update({ answers: { ...ans, _status: newStatus } })
                             .eq('tg_id', userId);
                     } else {
-                        await messageService.sendReply(ctx, `Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).\n\n${back}`);
+                        const onbTxt = 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).';
+                        await messageService.sendReply(ctx, makeHtmlWithQuote(onbTxt, back), { parse_mode: 'HTML' });
                     }
                 } catch (_) {
-                    await messageService.sendReply(ctx, `Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).\n\n${back}`);
+                    const onbTxt = 'Перед анализом пройдите короткий онбординг — откройте мини‑приложение (кнопка в /start).';
+                    await messageService.sendReply(ctx, makeHtmlWithQuote(onbTxt, back), { parse_mode: 'HTML' });
                 }
                 return;
             }
         } catch (e) {
             console.warn('[TextMessageHandler] Whitelist check failed:', e?.message);
             try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
-            await messageService.sendReply(ctx, `Техническая ошибка. Попробуйте позже.\n\n${back}`);
+            const errTxt = 'Техническая ошибка. Попробуйте позже.';
+            await messageService.sendReply(ctx, makeHtmlWithQuote(errTxt, back), { parse_mode: 'HTML' });
             return;
         }
 
@@ -277,7 +290,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             const back = (dreamText || '').toString().slice(0, 3000) + ((dreamText || '').length > 3000 ? '…' : '');
             const isTokens = /Insufficient tokens/i.test(error?.message || '');
             const prefix = isTokens ? messages.get('analysis.insufficient_tokens') : 'Ошибка приложения. Ваш сон не проанализирован:';
-            await messageService.sendReply(ctx, `${prefix}\n\n${back}`);
+            await messageService.sendReply(ctx, makeHtmlWithQuote(prefix, back), { parse_mode: 'HTML' });
         }
         finally {
             try {
