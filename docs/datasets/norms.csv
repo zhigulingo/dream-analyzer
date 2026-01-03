@@ -1,0 +1,11 @@
+sex,age_group,characters_pct,emotions_pct,actions_pct,scenes_pct
+male,0-20,16,27,41,16
+male,20-30,16,25,44,15
+male,30-40,16,25,43,16
+male,40-50,16,25,42,17
+male,50+,16,25,41,18
+female,0-20,16,30,35,19
+female,20-30,16,28,38,18
+female,30-40,16,28,37,19
+female,40-50,16,28,36,20
+female,50+,16,28,35,21

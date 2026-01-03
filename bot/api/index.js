@@ -82,8 +82,8 @@ async function routerHandler(req, res) {
   } else {
     // Try pattern matching for /api/cache/:path*
     if (pathname.startsWith('/api/cache/')) {
-      handler = routes['/api/cache'];
-      matchedRoute = '/api/cache';
+      handler = routes['/api/cache-monitoring'];
+      matchedRoute = '/api/cache-monitoring';
     }
   }
   
