@@ -1,6 +1,4 @@
-# Ignore these directories from Vercel function detection
+# Ignore these from Vercel function detection to avoid huge deployments
 api-backup/
-functions/
 coverage/
-shared/
 *.test.js
