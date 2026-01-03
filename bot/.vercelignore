@@ -1,0 +1,4 @@
+# Ignore these directories from Vercel function detection
+api-backup/
+functions/
+coverage/
