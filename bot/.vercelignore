@@ -2,3 +2,5 @@
 api-backup/
 functions/
 coverage/
+api/shared/
+api/_netlify-adapter.js
