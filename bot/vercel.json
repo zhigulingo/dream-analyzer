@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/**/*.js": {
-      "maxDuration": 30
-    }
-  },
   "rewrites": [
     { "source": "/api/cache/:path*", "destination": "/api/cache-monitoring" },
     { "source": "/api/health", "destination": "/api/health-check" },
