@@ -1,0 +1,5 @@
+# Ignore these from Vercel function detection
+bot/api-backup/
+bot/functions/
+bot/coverage/
+bot/api/shared/
