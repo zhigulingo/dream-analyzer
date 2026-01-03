@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "functions": {
     "api/index.js": {
       "includeFiles": "{functions,api-internal-shared}/**"
@@ -7,11 +8,15 @@
   "rewrites": [
     {
       "source": "/bot",
-      "destination": "/api"
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.js"
     },
     {
       "source": "/",
-      "destination": "/api"
+      "destination": "/api/index.js"
     }
   ]
 }

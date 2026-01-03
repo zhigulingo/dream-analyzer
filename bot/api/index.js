@@ -2,6 +2,7 @@
  * Main router for all API endpoints
  * This single function handles all routes to stay within Hobby plan limit (12 functions)
  */
+console.log("[Router] Module initialization started...");
 
 const { wrapNetlifyFunction } = require('../api-internal-shared/_netlify-adapter');
 
