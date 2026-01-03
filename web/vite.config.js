@@ -12,16 +12,16 @@ export default defineConfig({
   define: {
     // Set environment variables for web application
     'import.meta.env.VITE_API_BASE_URL': JSON.stringify(
-      process.env.VITE_API_BASE_URL || 'https://sparkling-cupcake-940504.netlify.app/.netlify/functions'
+      process.env.VITE_API_BASE_URL || '/api'
     ),
     'import.meta.env.VITE_WEB_LOGIN_API_URL': JSON.stringify(
-      process.env.VITE_WEB_LOGIN_API_URL || 'https://sparkling-cupcake-940504.netlify.app/.netlify/functions/web-login'
+      process.env.VITE_WEB_LOGIN_API_URL || '/api/web-login'
     ),
     'import.meta.env.VITE_REFRESH_TOKEN_API_URL': JSON.stringify(
-      process.env.VITE_REFRESH_TOKEN_API_URL || 'https://sparkling-cupcake-940504.netlify.app/.netlify/functions/refresh-token'
+      process.env.VITE_REFRESH_TOKEN_API_URL || '/api/refresh-token'
     ),
     'import.meta.env.VITE_LOGOUT_API_URL': JSON.stringify(
-      process.env.VITE_LOGOUT_API_URL || 'https://sparkling-cupcake-940504.netlify.app/.netlify/functions/logout'
+      process.env.VITE_LOGOUT_API_URL || '/api/logout'
     ),
   },
   build: {
