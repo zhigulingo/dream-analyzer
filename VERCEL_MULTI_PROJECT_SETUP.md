@@ -118,12 +118,15 @@
 
 1. **Settings → Git → Production Branch:**
    - Для всех проектов: `vercel-export` (или `main` - как вам удобнее)
+   - **Как изменить:** Settings → Git → Production Branch → Edit → выбрать ветку → Save
 
 2. **Settings → General → Root Directory:**
    - Bot: `bot`
    - TMA: `tma`
    - Web: `web`
    - Survey: `survey`
+
+**Важно:** Production Branch можно задать при создании проекта или изменить позже в Settings. По умолчанию Vercel использует `main`, но вы можете выбрать любую ветку.
 
 ---
 
