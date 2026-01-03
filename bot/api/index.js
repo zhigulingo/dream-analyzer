@@ -62,6 +62,8 @@ const routes = {
   '/api/tg-sticker': tgStickerHandler,
   '/api/set-webhook': setWebhookHandler,
   '/api/beta-access-notifier': betaAccessNotifierHandler,
+  '/api': botHandler,
+  '/': botHandler,
 };
 
 /**

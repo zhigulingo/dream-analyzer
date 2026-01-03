@@ -7,7 +7,11 @@
   "rewrites": [
     {
       "source": "/bot",
-      "destination": "/api/index.js"
+      "destination": "/api"
+    },
+    {
+      "source": "/",
+      "destination": "/api"
     }
   ]
 }
