@@ -1,26 +1,26 @@
 {
   "version": 2,
   "functions": {
-    "api/webhook.js": {
-      "includeFiles": "functions/**,api-internal-shared/**"
+    "api/index.js": {
+      "includeFiles": "lib/**"
     }
   },
   "rewrites": [
     {
       "source": "/bot",
-      "destination": "/api/webhook"
+      "destination": "/api"
     },
     {
       "source": "/api/set-webhook",
-      "destination": "/api/webhook"
+      "destination": "/api"
     },
     {
       "source": "/api/health",
-      "destination": "/api/webhook"
+      "destination": "/api"
     },
     {
-      "source": "/",
-      "destination": "/api/webhook"
+      "source": "/(.*)",
+      "destination": "/api"
     }
   ]
 }

@@ -1,0 +1,107 @@
+/**
+ * Main router for all API endpoints
+ * This single function handles all routes to stay within Hobby plan limit (12 functions)
+ */
+console.log("[Router] Module initialization started...");
+
+const { wrapNetlifyFunction } = require('../lib/shared/_netlify-adapter');
+
+// Import all handlers from lib/logic
+const healthCheckHandler = require('../lib/logic/health-check');
+const userProfileHandler = require('../lib/logic/user-profile');
+const analysesHistoryHandler = require('../lib/logic/analyses-history');
+const analyzeDreamHandler = require('../lib/logic/analyze-dream');
+const deepAnalysisHandler = require('../lib/logic/deep-analysis');
+const webLoginHandler = require('../lib/logic/web-login');
+const refreshTokenHandler = require('../lib/logic/refresh-token');
+const logoutHandler = require('../lib/logic/logout');
+const createInvoiceHandler = require('../lib/logic/create-invoice');
+const claimChannelTokenHandler = require('../lib/logic/claim-channel-token');
+const botHandler = require('../lib/logic/bot');
+const cacheMonitoringHandler = require('../lib/logic/cache-monitoring');
+const performanceMetricsHandler = require('../lib/logic/performance-metrics');
+const errorMonitoringHandler = require('../lib/logic/error-monitoring');
+const businessMetricsHandler = require('../lib/logic/business-metrics');
+const monitoringDashboardHandler = require('../lib/logic/monitoring-dashboard');
+const analyzeDreamBackgroundHandler = require('../lib/logic/analyze-dream-background');
+const ingestKnowledgeHandler = require('../lib/logic/ingest-knowledge');
+const ingestKnowledgeBackgroundHandler = require('../lib/logic/ingest-knowledge-background');
+const setDemographicsHandler = require('../lib/logic/set-demographics');
+const tgStickerHandler = require('../lib/logic/tg-sticker');
+const setWebhookHandler = require('../lib/logic/set-webhook');
+const betaAccessNotifierHandler = require('../lib/logic/beta-access-notifier');
+
+// Route mapping
+const routes = {
+  '/api/health-check': healthCheckHandler,
+  '/api/health': healthCheckHandler,
+  '/api/user-profile': userProfileHandler,
+  '/api/analyses-history': analysesHistoryHandler,
+  '/api/analyze-dream': analyzeDreamHandler,
+  '/api/deep-analysis': deepAnalysisHandler,
+  '/api/web-login': webLoginHandler,
+  '/api/refresh-token': refreshTokenHandler,
+  '/api/logout': logoutHandler,
+  '/api/create-invoice': createInvoiceHandler,
+  '/api/claim-channel-token': claimChannelTokenHandler,
+  '/api/bot': botHandler,
+  '/bot': botHandler,
+  '/api/cache-monitoring': cacheMonitoringHandler,
+  '/api/cache': cacheMonitoringHandler,
+  '/api/performance-metrics': performanceMetricsHandler,
+  '/api/metrics': performanceMetricsHandler,
+  '/api/error-monitoring': errorMonitoringHandler,
+  '/api/errors': errorMonitoringHandler,
+  '/api/business-metrics': businessMetricsHandler,
+  '/api/business': businessMetricsHandler,
+  '/api/monitoring-dashboard': monitoringDashboardHandler,
+  '/api/dashboard': monitoringDashboardHandler,
+  '/api/analyze-dream-background': analyzeDreamBackgroundHandler,
+  '/api/ingest-knowledge': ingestKnowledgeHandler,
+  '/api/ingest-knowledge-background': ingestKnowledgeBackgroundHandler,
+  '/api/set-demographics': setDemographicsHandler,
+  '/api/tg-sticker': tgStickerHandler,
+  '/api/set-webhook': setWebhookHandler,
+  '/api/beta-access-notifier': betaAccessNotifierHandler,
+  '/api': botHandler,
+  '/': botHandler,
+};
+
+/**
+ * Main handler that routes requests to appropriate functions
+ */
+async function routerHandler(req, res) {
+  console.log(`[Router] Request received: ${req.method} ${req.url}`);
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = url.pathname;
+
+  // Find matching route
+  let handler = null;
+  let matchedRoute = null;
+
+  // Try exact match first
+  if (routes[pathname]) {
+    handler = routes[pathname];
+    matchedRoute = pathname;
+  } else {
+    // Try pattern matching for /api/cache/:path*
+    if (pathname.startsWith('/api/cache/')) {
+      handler = routes['/api/cache-monitoring'];
+      matchedRoute = '/api/cache-monitoring';
+    }
+  }
+
+  if (!handler) {
+    return res.status(404).json({
+      error: 'Not Found',
+      message: `Route ${pathname} not found`,
+      availableRoutes: Object.keys(routes)
+    });
+  }
+
+  // Wrap the Netlify handler and call it
+  const wrappedHandler = wrapNetlifyFunction(handler.handler);
+  return wrappedHandler(req, res);
+}
+
+module.exports = routerHandler;

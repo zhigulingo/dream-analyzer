@@ -1,0 +1,25 @@
+– Приложение опроса `survey/` (Vue 3 + Vite) + сервер (Netlify Functions).
+– БД: таблица `beta_survey_responses` (id | tg_id | client_id | answers(jsonb) | submitted_at | updated_at | approved). Триггер `updated_at`.
+– API:
+  – `survey-status` (GET) — статус окна.
+  – `submit-survey` (POST) — приём ответов.
+    • partial: `{ answerKey, answerValue, index, completed, sessionId }`
+    • final: `{ answers, sessionId }`
+    • Авторизация TMA через `X‑Telegram‑Init‑Data` (проверка по `BOT_TOKEN`). Фолбэк: `initData` из тела; локально — `client_id`.
+– Клиент/интеграция TMA:
+  – Подключён скрипт `https://telegram.org/js/telegram-web-app.js`.
+  – Источники InitData: WebApp.initData, URL (`tgWebAppData`/`initData`), hash, localStorage (`tma_init_data`).
+  – Отправка initData в заголовке и в теле. Используется `fetch(keepalive)` + `navigator.sendBeacon` + очередь `survey_pending_queue` с авто‑флашем.
+– UI/UX:
+  – WebApp.MainButton вместо локальных кнопок: Start («Начать опрос»), Finish («Закрыть»). BackButton/tg:// fallback на десктопе.
+  – Блокировка скролла (`overflow: hidden` на html/body), высоты на `dvh`, Swiper вертикальный, peeking, sticky‑шапка, прогресс‑бар.
+  – Старт/финал выровнены по ширине с карточками опроса.
+– Логика ответов:
+  – Пер‑вопросные сохранения (partial) + финальная отправка в фоне.
+  – Каждая попытка опроса имеет `sessionId`; сервер создаёт новую строку и обновляет её только в рамках `answers._session` (не перезаписывает старые ответы).
+  – Прогресс хранится в `answers._progress { last_index, completed }`.
+– Диагностика:
+  – Логи функции: наличие/длина initData, результат валидации, insert/update success, источник initData (header/body).
+– Запуск:
+  – Использовать запуск из TMA (кнопка меню/клавиатуры или deep‑link `?startapp=<short_name>`). При открытии как обычный URL MainButton и `tg_id` недоступны.
+– Деплой: задеплоено; тестировать в Telegram Mini App и на `beta-survey.netlify.app`.

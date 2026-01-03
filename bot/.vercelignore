@@ -1,4 +1,10 @@
-# Ignore these from Vercel function detection to avoid huge deployments
+# Only include what's necessary for the function to run
 api-backup/
 coverage/
 *.test.js
+tests/
+scripts/
+docs/
+# We want to ignore any .js files that are not in api/ to avoid them being treated as functions
+# But we need them to be uploaded as part of the bundle.
+# Vercel handles this automatically if Root Directory is used correctly.
