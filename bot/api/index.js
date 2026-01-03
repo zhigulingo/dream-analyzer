@@ -3,7 +3,7 @@
  * This single function handles all routes to stay within Hobby plan limit (12 functions)
  */
 
-const { wrapNetlifyFunction } = require('./shared/_netlify-adapter');
+const { wrapNetlifyFunction } = require('../api-internal-shared/_netlify-adapter');
 
 // Import all handlers
 const healthCheckHandler = require('../functions/health-check');
