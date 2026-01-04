@@ -109,8 +109,9 @@ try {
                         .single();
                     subType = String(u?.subscription_type || 'guest').toLowerCase();
                     isGuest = (subType === 'guest');
+                    console.log(`[Bot Stub] User ${userId} status: ${subType}, isGuest: ${isGuest}`);
                 }
-            } catch (_) { /* default to guest */ }
+            } catch (e) { console.warn('[Bot Stub] DB check failed:', e.message); /* default to guest */ }
 
             // For any non-guest user types (beta, whitelisted, onboarding, free, paid): skip stub and allow normal handlers
             if (subType !== 'guest') {
