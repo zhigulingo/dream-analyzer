@@ -309,7 +309,7 @@ exports.handler = async (event, context) => {
         hasBody: !!event.body,
         bodyType: typeof event.body,
         botTokenSet: !!process.env.BOT_TOKEN,
-        botPaused: process.env.BOT_PAUSED
+        botPaused: process.env.BOT_PAUSED === 'true' ? 'true' : 'false'
     });
 
     if (event.body) {
