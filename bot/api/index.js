@@ -81,7 +81,8 @@ const routes = {
  * Main handler that routes requests to appropriate functions
  */
 async function routerHandler(req, res) {
-  console.log(`[Router] Request received: ${req.method} ${req.url}`);
+  console.log(`[Router] 📥 Incoming request: ${req.method} ${req.url}`);
+  console.log(`[Router] Headers: init-data=${!!req.headers['x-telegram-init-data']}, auth=${!!req.headers['authorization']}, origin=${req.headers['origin']}`);
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
 
