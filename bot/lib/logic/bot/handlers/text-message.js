@@ -262,6 +262,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             const siteUrl = process.env.FUNCTIONS_BASE_URL || process.env.URL || process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN;
             if (!siteUrl) throw new Error('Site URL is not configured');
             const backgroundUrl = new URL('/api/analyze-dream-background', siteUrl).toString();
+            console.log(`[TextMessageHandler] 🚀 Triggering background analysis: ${backgroundUrl}`);
             const payload = {
                 tgUserId: userId,
                 userDbId: userData.id,
@@ -269,7 +270,11 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 statusMessageId: statusMessage?.message_id || null,
                 dreamText
             };
-            await fetch(backgroundUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            fetch(backgroundUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(e => console.error(`[TextMessageHandler] ❌ Background fetch failed:`, e.message));
 
             // NOTE: Background function will handle:
             // - Deleting status message
