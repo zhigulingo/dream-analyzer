@@ -84,7 +84,7 @@ async function routerHandler(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
 
-  console.log(`[Router] 📣 REQ: ${req.method} ${pathname} | Host: ${req.headers.host} | Origin: ${req.headers.origin}`);
+  console.log(`[Router v3] 📣 REQ: ${req.method} ${pathname} | Host: ${req.headers.host}`);
 
   let handler = null;
   let matchedPath = pathname;
