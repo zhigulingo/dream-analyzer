@@ -86,6 +86,9 @@ async function routerHandler(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
 
+  let handler = null;
+  let matchedPath = pathname;
+
   if (routes[pathname]) {
     handler = routes[pathname];
   } else if (pathname.startsWith('/api') && routes[pathname.replace('/api', '')]) {
