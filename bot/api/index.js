@@ -88,31 +88,26 @@ async function routerHandler(req, res) {
 
   // Find matching route
   let handler = null;
-  let matchedRoute = null;
+  let matchedPath = pathname;
 
-  // Try exact match first
   if (routes[pathname]) {
     handler = routes[pathname];
-    matchedRoute = pathname;
-  } else {
-    // Try pattern matching for /api/cache/:path*
-    if (pathname.startsWith('/api/cache/')) {
-      handler = routes['/api/cache-monitoring'];
-      matchedRoute = '/api/cache-monitoring';
-    }
+  } else if (pathname.startsWith('/api') && routes[pathname.replace('/api', '')]) {
+    handler = routes[pathname.replace('/api', '')];
+  } else if (!pathname.startsWith('/api') && routes['/api' + pathname]) {
+    handler = routes['/api' + pathname];
   }
 
-  if (!handler) {
-    return res.status(404).json({
-      error: 'Not Found',
-      message: `Route ${pathname} not found`,
-      availableRoutes: Object.keys(routes)
-    });
+  if (handler) {
+    console.log(`[Router] ✅ Matched route: ${pathname} -> ${handler === botHandler ? 'botHandler' : 'specializedHandler'}`);
+    const wrappedHandler = wrapNetlifyFunction(handler.handler || handler);
+    return wrappedHandler(req, res);
   }
 
-  // Wrap the Netlify handler and call it
-  const wrappedHandler = wrapNetlifyFunction(handler.handler);
-  return wrappedHandler(req, res);
+  // Default to bot handler for everything else (webhook, unknown paths)
+  console.log(`[Router] 🤖 Defaulting to botHandler for: ${pathname}`);
+  const wrappedBotHandler = wrapNetlifyFunction(botHandler.handler || botHandler);
+  return wrappedBotHandler(req, res);
 }
 
 module.exports = routerHandler;
