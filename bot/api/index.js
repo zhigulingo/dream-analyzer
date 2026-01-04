@@ -86,10 +86,6 @@ async function routerHandler(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
 
-  // Find matching route
-  let handler = null;
-  let matchedPath = pathname;
-
   if (routes[pathname]) {
     handler = routes[pathname];
   } else if (pathname.startsWith('/api') && routes[pathname.replace('/api', '')]) {
@@ -99,13 +95,13 @@ async function routerHandler(req, res) {
   }
 
   if (handler) {
-    console.log(`[Router] ✅ Matched route: ${pathname} -> ${handler === botHandler ? 'botHandler' : 'specializedHandler'}`);
+    console.log(`[Router] ✅ Matched path: ${pathname}. Method: ${req.method}`);
     const wrappedHandler = wrapNetlifyFunction(handler.handler || handler);
     return wrappedHandler(req, res);
   }
 
   // Default to bot handler for everything else (webhook, unknown paths)
-  console.log(`[Router] 🤖 Defaulting to botHandler for: ${pathname}`);
+  console.log(`[Router] 🤖 Route ${pathname} not in map, defaulting to botHandler`);
   const wrappedBotHandler = wrapNetlifyFunction(botHandler.handler || botHandler);
   return wrappedBotHandler(req, res);
 }

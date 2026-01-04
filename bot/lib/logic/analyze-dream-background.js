@@ -25,7 +25,7 @@ async function sendTelegramMessage(chatId, text, replyMarkup) {
 async function deleteTelegramMessage(chatId, messageId) {
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`;
     const body = { chat_id: chatId, message_id: messageId };
-    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => {});
+    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => { });
 }
 
 function parseAnalysisWithMeta(rawText, originalDreamText) {
@@ -38,12 +38,12 @@ function parseAnalysisWithMeta(rawText, originalDreamText) {
         if (!line) continue;
         if (!tags.length && /^Теги\s*:/i.test(line)) {
             const after = line.replace(/^Теги\s*:/i, '').trim();
-            tags = after.split(',').map(s => s.trim()).filter(Boolean).slice(0,5);
+            tags = after.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5);
             lines.splice(i, 1);
             continue;
         }
         if (!title && /^Заголовок\s*:/i.test(line)) {
-            title = line.replace(/^Заголовок\s*:/i, '').trim().replace(/[\p{P}\p{S}]/gu, '').slice(0,60);
+            title = line.replace(/^Заголовок\s*:/i, '').trim().replace(/[\p{P}\p{S}]/gu, '').slice(0, 60);
             lines.splice(i, 1);
             continue;
         }
@@ -57,11 +57,11 @@ function parseAnalysisWithMeta(rawText, originalDreamText) {
 }
 
 async function embed(text) {
-    try { 
-        return await embeddingService.embed(text); 
-    } catch (err) { 
+    try {
+        return await embeddingService.embed(text);
+    } catch (err) {
         console.warn('[analyze-dream-background] Embedding failed:', err?.message);
-        return null; 
+        return null;
     }
 }
 
@@ -74,12 +74,15 @@ function truncateDream(text, maxLen = 3000) {
 }
 
 exports.handler = async (event) => {
-    if (String(process.env.BOT_PAUSED || 'true').toLowerCase() === 'true') {
+    console.log('[analyze-dream-background] 🚀 Background function started');
+    const isPaused = String(process.env.BOT_PAUSED || 'false').toLowerCase() === 'true';
+    if (isPaused) {
+        console.log('[analyze-dream-background] ⏸️ Analysis is paused via BOT_PAUSED env');
         return { statusCode: 202, body: 'Paused' };
     }
     try {
         if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
-            console.error('[analyze-dream-background] Missing required env vars');
+            console.error('[analyze-dream-background] ❌ Missing required env vars');
             return { statusCode: 500, body: 'Missing env' };
         }
 
@@ -161,6 +164,7 @@ exports.handler = async (event) => {
         // Run Gemini
         let analysisText;
         try {
+            console.log('[analyze-dream-background] 🤖 Calling Gemini...');
             analysisText = await geminiService.analyzeDream(augmented, 'basic_meta');
         } catch (e) {
             console.error('[analyze-dream-background] Gemini error', e?.message);
@@ -174,25 +178,25 @@ exports.handler = async (event) => {
         // Prefer DB symbols from knowledge matches (fallback to wider search)
         try {
             let dbSymbols = (knowledgeMatches || [])
-              .filter(it => String(it.category || '').toLowerCase() === 'symbols')
-              .map(it => it.title).filter(Boolean);
-            if (!dbSymbols.length) {
-              const { data: more } = await supabase.rpc('match_knowledge', { query_embedding: await embed(dreamText), match_limit: 20, min_similarity: 0.55 });
-              dbSymbols = (Array.isArray(more) ? more : [])
                 .filter(it => String(it.category || '').toLowerCase() === 'symbols')
                 .map(it => it.title).filter(Boolean);
+            if (!dbSymbols.length) {
+                const { data: more } = await supabase.rpc('match_knowledge', { query_embedding: await embed(dreamText), match_limit: 20, min_similarity: 0.55 });
+                dbSymbols = (Array.isArray(more) ? more : [])
+                    .filter(it => String(it.category || '').toLowerCase() === 'symbols')
+                    .map(it => it.title).filter(Boolean);
             }
             if (dbSymbols.length) parsed.tags = Array.from(new Set(dbSymbols)).slice(0, 5);
-        } catch (_) {}
+        } catch (_) { }
         // HVdC computation (non-blocking)
         let hvdcResult = null;
         let dreamType = null;
         try {
             const { data: demoRow } = await supabase
-              .from('users')
-              .select('age_range, gender')
-              .eq('id', userDbId)
-              .single();
+                .from('users')
+                .select('age_range, gender')
+                .eq('id', userDbId)
+                .single();
             hvdcResult = await hvdcService.computeHVDC({ supabase, dreamText, age_range: demoRow?.age_range, gender: demoRow?.gender });
         } catch (_) { hvdcResult = null; }
         try {
@@ -201,6 +205,7 @@ exports.handler = async (event) => {
 
         // Save to DB
         try {
+            console.log('[analyze-dream-background] 💾 Saving to DB...');
             await supabase.from('analyses').insert({
                 user_id: userDbId,
                 dream_text: dreamText,
@@ -217,24 +222,23 @@ exports.handler = async (event) => {
         // Notify user
         try {
             if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
-        } catch (_) {}
+        } catch (_) { }
         const replyMarkup = {
             inline_keyboard: [[{ text: 'Открыть Личный кабинет', web_app: { url: TMA_URL } }]]
         };
         await sendTelegramMessage(chatId, 'Анализ готов и сохранён! ✨\n\nПосмотрите его в разделе «Личный кабинет».', replyMarkup);
 
+        console.log('[analyze-dream-background] ✅ Done');
         return { statusCode: 202, body: 'OK' };
     } catch (e) {
-        console.error('[analyze-dream-background] Fatal error', e?.message);
+        console.error('[analyze-dream-background] ❌ Fatal error', e?.message);
         try {
             const body = JSON.parse(event.body || '{}');
             const { chatId, statusMessageId, dreamText } = body;
             if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
             const back = truncateDream(dreamText);
             await sendTelegramMessage(chatId, `Ошибка приложения. Ваш сон не проанализирован:\n\n${back}`);
-        } catch (_) {}
+        } catch (_) { }
         return { statusCode: 202, body: 'Error' };
     }
 };
-
-
