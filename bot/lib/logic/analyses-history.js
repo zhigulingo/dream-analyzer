@@ -37,7 +37,6 @@ exports.handler = async (event) => {
 
     const corsHeaders = {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Credentials': 'true',
     };
 
     if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: corsHeaders, body: '' };

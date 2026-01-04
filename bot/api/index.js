@@ -100,6 +100,28 @@ async function routerHandler(req, res) {
   if (handler) {
     console.log(`[Router] ✅ Matched path: ${pathname}. Method: ${req.method}`);
     const wrappedHandler = wrapNetlifyFunction(handler.handler || handler);
+
+    // Dynamically handle CORS for the response
+    const origin = req.headers.origin || req.headers.Origin || '*';
+    const originalResEnd = res.end;
+    const originalResWriteHead = res.writeHead;
+
+    res.writeHead = (statusCode, statusMessage, headers) => {
+      const extraHeaders = {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Credentials': 'true',
+      };
+      if (headers) {
+        Object.assign(headers, extraHeaders);
+      } else {
+        // If only status and headers object is provided
+        if (typeof statusMessage === 'object') {
+          Object.assign(statusMessage, extraHeaders);
+        }
+      }
+      return originalResWriteHead.call(res, statusCode, statusMessage, headers);
+    };
+
     return wrappedHandler(req, res);
   }
 
