@@ -47,11 +47,11 @@ async function getDeepGeminiAnalysis(geminiModel, combinedDreams) {
 
 // --- Internal Handler Function ---
 async function handleDeepAnalysis(event, context, corsHeaders) {
-    const requestLogger = logger.child({ 
+    const requestLogger = logger.child({
         requestId: context.awsRequestId || crypto.randomBytes(8).toString('hex')
     });
     requestLogger.generateCorrelationId();
-    
+
     requestLogger.apiRequest(event.httpMethod, event.path, null, null, null, {
         headers: Object.keys(event.headers)
     });
@@ -84,26 +84,26 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             userId: verifiedUserId
         });
         const userProfile = await dbQueries.getUserProfile(verifiedUserId);
-        
+
         if (!userProfile) {
             requestLogger.dbError('SELECT', 'user_profile', new Error('User profile not found'), {
                 userId: verifiedUserId
             });
             throw createApiError('Профиль пользователя не найден в базе данных.', 404);
         }
-        
+
         const userDbId = userProfile.id;
-        
+
         // 2. Получить количество снов пользователя
         requestLogger.dbOperation('SELECT', 'count_user_dreams', null, null, {
             userDbId
         });
         const dreamCountResult = await dbQueries.getUserDreamCount(userDbId);
         const actualDreamCount = dreamCountResult || 0;
-        
+
         // 3. Получить текущие кредиты глубокого анализа
         const currentCredits = userProfile.deep_analysis_credits || 0;
-        
+
         requestLogger.info("User profile retrieved", {
             userDbId,
             currentCredits,
@@ -123,44 +123,44 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         // Попытаться выдать бесплатный кредит, если пользователь уже достиг 5 снов, но кредит ранее не выдавался
         try {
             await supabase.rpc('grant_free_deep_if_eligible', { user_tg_id: verifiedUserId });
-        } catch (_) {}
+        } catch (_) { }
 
         // 5. Если доступен бесплатный кредит – списать его, иначе – платный кредит
         requestLogger.dbOperation('UPDATE', 'decrement_credits', null, null, {
             userId: verifiedUserId
         });
-        
+
         // Сначала пытаемся списать бесплатный кредит
         let usedFree = false;
         try {
             const { data: freeUsed, error: freeErr } = await supabase
-              .rpc('consume_free_deep_if_available', { user_tg_id: verifiedUserId });
+                .rpc('consume_free_deep_if_available', { user_tg_id: verifiedUserId });
             if (freeErr) {
-              requestLogger.warn('consume_free_deep_if_available error', { error: freeErr?.message });
+                requestLogger.warn('consume_free_deep_if_available error', { error: freeErr?.message });
             } else if (freeUsed === true) {
-              usedFree = true;
-              requestLogger.info('Consumed free deep analysis credit');
+                usedFree = true;
+                requestLogger.info('Consumed free deep analysis credit');
             }
-        } catch (_) {}
+        } catch (_) { }
 
         let rpcRow = null;
         if (!usedFree) {
-          // Используем RPC функцию для безопасного списания ПЛАТНОГО кредита
-          const { data: decrementResult, error: decrementError } = await supabase
-              .rpc('decrement_deep_analysis_credits_safe', { user_tg_id: verifiedUserId });
-          if (decrementError) {
-              requestLogger.dbError('UPDATE', 'decrement_credits', new Error('Failed to decrement credits: ' + (decrementError?.message || 'Unknown error')), {
-                  userId: verifiedUserId
-              });
-              throw createApiError('Ошибка при списании кредита глубокого анализа.', 500);
-          }
-          rpcRow = Array.isArray(decrementResult) ? decrementResult[0] : decrementResult;
-          if (!rpcRow?.success) {
-              requestLogger.dbError('UPDATE', 'decrement_credits', new Error('No credits available'));
-              throw createApiError('Недостаточно кредитов для глубокого анализа. Необходимо приобрести кредиты.', 400);
-          }
+            // Используем RPC функцию для безопасного списания ПЛАТНОГО кредита
+            const { data: decrementResult, error: decrementError } = await supabase
+                .rpc('decrement_deep_analysis_credits_safe', { user_tg_id: verifiedUserId });
+            if (decrementError) {
+                requestLogger.dbError('UPDATE', 'decrement_credits', new Error('Failed to decrement credits: ' + (decrementError?.message || 'Unknown error')), {
+                    userId: verifiedUserId
+                });
+                throw createApiError('Ошибка при списании кредита глубокого анализа.', 500);
+            }
+            rpcRow = Array.isArray(decrementResult) ? decrementResult[0] : decrementResult;
+            if (!rpcRow?.success) {
+                requestLogger.dbError('UPDATE', 'decrement_credits', new Error('No credits available'));
+                throw createApiError('Недостаточно кредитов для глубокого анализа. Необходимо приобрести кредиты.', 400);
+            }
         }
-        
+
         requestLogger.info("Deep analysis credit decremented", {
             userId: verifiedUserId,
             remainingCredits: rpcRow?.remaining_credits,
@@ -186,7 +186,7 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             .map(d => d.dream_text.trim()) // Убираем лишние пробелы
             .reverse() // Переворачиваем, чтобы были от старого к новому для анализа динамики
             .join('\n\n--- СОН ---\n\n'); // Разделяем сны
-        
+
         requestLogger.info("Dreams fetched and combined", {
             dreamsCount: dreams.length,
             combinedTextLength: combinedDreamsText.length
@@ -198,18 +198,18 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             userId: verifiedUserId,
             dreamsCount: dreams.length
         });
-        
+
         try {
             // Build background function URL using same approach as analyze-dream-background
-            const siteUrl = process.env.FUNCTIONS_BASE_URL 
-                || process.env.URL 
-                || process.env.WEB_URL 
-                || process.env.TMA_URL 
+            const siteUrl = process.env.FUNCTIONS_BASE_URL
+                || process.env.URL
+                || process.env.WEB_URL
+                || process.env.TMA_URL
                 || process.env.ALLOWED_TMA_ORIGIN
                 || `${event.headers['x-forwarded-proto'] || 'https'}://${event.headers.host}`;
-            
-            const backgroundUrl = new URL('/.netlify/functions/deep-analysis-background', siteUrl).toString();
-            
+
+            const backgroundUrl = new URL('/api/deep-analysis-background', siteUrl).toString();
+
             const backgroundPayload = {
                 tgUserId: verifiedUserId,
                 userDbId: userDbId,
@@ -218,36 +218,36 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
                 requiredDreams: REQUIRED_DREAMS,
                 usedFree: usedFree
             };
-            
+
             requestLogger.info("Calling background function", {
                 userId: verifiedUserId,
                 backgroundUrl
             });
-            
+
             // Await the fetch to ensure function is triggered
             await fetch(backgroundUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(backgroundPayload)
             });
-            
+
             requestLogger.info("Background deep analysis triggered successfully", {
                 userId: verifiedUserId
             });
-            
+
         } catch (triggerError) {
             requestLogger.error('Error triggering background function', {
                 error: triggerError?.message,
                 stack: triggerError?.stack,
                 userId: verifiedUserId
             });
-            
+
             // Rollback credit if we can't even start the background job
             try {
                 if (usedFree) {
                     await supabase.rpc('restore_free_deep_credit', { user_tg_id: verifiedUserId });
                 } else {
-                    await supabase.rpc('increment_deep_analysis_credits', { 
+                    await supabase.rpc('increment_deep_analysis_credits', {
                         user_tg_id: verifiedUserId,
                         amount: 1
                     });
@@ -259,7 +259,7 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
                     userId: verifiedUserId
                 });
             }
-            
+
             throw createApiError(
                 'Не удалось запустить глубокий анализ. Ваш токен возвращен. Пожалуйста, попробуйте позже.',
                 500
@@ -270,12 +270,12 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
         requestLogger.info("Deep analysis request accepted", {
             userId: verifiedUserId
         });
-        
-        return createSuccessResponse({ 
+
+        return createSuccessResponse({
             status: 'processing',
             message: 'Глубокий анализ запущен. Вы получите уведомление в Telegram когда результат будет готов (обычно 1-2 минуты).'
         }, corsHeaders);
-        
+
     } catch (error) {
         requestLogger.error("Deep analysis failed", {
             error: error.message,

@@ -13,10 +13,10 @@ async function sendTelegramMessage(chatId, text, replyMarkup) {
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
     const body = { chat_id: chatId, text, parse_mode: 'HTML' };
     if (replyMarkup) body.reply_markup = replyMarkup;
-    const res = await fetch(url, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(body) 
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
     });
     if (!res.ok) {
         const t = await res.text().catch(() => '');
@@ -25,7 +25,7 @@ async function sendTelegramMessage(chatId, text, replyMarkup) {
 }
 
 exports.handler = async (event) => {
-    if (String(process.env.BOT_PAUSED || 'true').toLowerCase() === 'true') {
+    if (String(process.env.BOT_PAUSED || 'false').toLowerCase() === 'true') {
         return { statusCode: 202, body: 'Paused' };
     }
 
@@ -36,7 +36,7 @@ exports.handler = async (event) => {
         }
 
         const { tgUserId, userDbId, chatId, combinedDreamsText, requiredDreams, usedFree } = JSON.parse(event.body || '{}');
-        
+
         if (!tgUserId || !userDbId || !chatId || !combinedDreamsText) {
             console.error('[deep-analysis-background] Missing required parameters');
             return { statusCode: 400, body: 'Bad request' };
@@ -49,8 +49,8 @@ exports.handler = async (event) => {
             requiredDreams
         });
 
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { 
-            auth: { autoRefreshToken: false, persistSession: false } 
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+            auth: { autoRefreshToken: false, persistSession: false }
         });
 
         // Run Gemini deep analysis with full deep_json prompt
@@ -64,13 +64,13 @@ exports.handler = async (event) => {
                 error: geminiError?.message,
                 userId: tgUserId
             });
-            
+
             // ROLLBACK: Return credit to user
             try {
                 if (usedFree) {
                     await supabase.rpc('restore_free_deep_credit', { user_tg_id: tgUserId });
                 } else {
-                    await supabase.rpc('increment_deep_analysis_credits', { 
+                    await supabase.rpc('increment_deep_analysis_credits', {
                         user_tg_id: tgUserId,
                         amount: 1
                     });
@@ -82,25 +82,25 @@ exports.handler = async (event) => {
                     userId: tgUserId
                 });
             }
-            
+
             // Notify user about error
             await sendTelegramMessage(
-                chatId, 
+                chatId,
                 '❌ <b>Ошибка глубокого анализа</b>\n\nНе удалось выполнить анализ. Ваш токен возвращен. Пожалуйста, попробуйте позже.'
             );
-            
+
             return { statusCode: 202, body: 'Gemini error, credit rolled back' };
         }
 
         // Save deep analysis result to database
         try {
-            const deepShortTitle = deepAnalysisResultJson.title && deepAnalysisResultJson.title.trim() 
-                ? deepAnalysisResultJson.title 
+            const deepShortTitle = deepAnalysisResultJson.title && deepAnalysisResultJson.title.trim()
+                ? deepAnalysisResultJson.title
                 : 'Глубокий анализ';
-            const deepTags = Array.isArray(deepAnalysisResultJson.tags) && deepAnalysisResultJson.tags.length > 0 
-                ? deepAnalysisResultJson.tags 
+            const deepTags = Array.isArray(deepAnalysisResultJson.tags) && deepAnalysisResultJson.tags.length > 0
+                ? deepAnalysisResultJson.tags
                 : [];
-            
+
             // Log response structure for debugging
             console.log('[deep-analysis-background] Gemini response structure:', {
                 hasRecurringSymbols: Array.isArray(deepAnalysisResultJson.recurringSymbols),
@@ -111,14 +111,14 @@ exports.handler = async (event) => {
                 conclusionKeys: deepAnalysisResultJson.conclusion ? Object.keys(deepAnalysisResultJson.conclusion) : [],
                 allKeys: Object.keys(deepAnalysisResultJson)
             });
-            
+
             // Prepare deep_source with all structured data (new structure)
-            const deepSource = { 
-                required_dreams: requiredDreams, 
+            const deepSource = {
+                required_dreams: requiredDreams,
                 title: deepShortTitle,
                 tags: deepTags
             };
-            
+
             // Add new structured fields if present
             if (deepAnalysisResultJson.symbolsIntro) {
                 deepSource.symbolsIntro = deepAnalysisResultJson.symbolsIntro;
@@ -132,7 +132,7 @@ exports.handler = async (event) => {
             if (deepAnalysisResultJson.conclusion && typeof deepAnalysisResultJson.conclusion === 'object') {
                 deepSource.conclusion = deepAnalysisResultJson.conclusion;
             }
-            
+
             // Legacy support: if old structure exists, keep it for backward compatibility
             if (deepAnalysisResultJson.overallContext) {
                 deepSource.overallContext = deepAnalysisResultJson.overallContext;
@@ -146,20 +146,20 @@ exports.handler = async (event) => {
             if (Array.isArray(deepAnalysisResultJson.recommendations)) {
                 deepSource.recommendations = deepAnalysisResultJson.recommendations;
             }
-            
+
             // Use analysis field or create fallback
             const analysisText = deepAnalysisResultJson.analysis || 'Глубокий анализ выполнен';
-            
+
             const { error: insertDeepError } = await supabase
                 .from('analyses')
-                .insert({ 
-                    user_id: userDbId, 
+                .insert({
+                    user_id: userDbId,
                     dream_text: '[DEEP_ANALYSIS_SOURCE]',
                     analysis: analysisText,
                     is_deep_analysis: true,
                     deep_source: deepSource
                 });
-                
+
             if (insertDeepError) {
                 console.error('[deep-analysis-background] Failed to save analysis', {
                     error: insertDeepError?.message,
@@ -167,20 +167,20 @@ exports.handler = async (event) => {
                 });
                 throw insertDeepError;
             }
-            
+
             console.log('[deep-analysis-background] Deep analysis saved successfully', { userDbId });
         } catch (saveError) {
             console.error('[deep-analysis-background] Error saving analysis', {
                 error: saveError?.message,
                 userDbId
             });
-            
+
             // Notify user about save error
             await sendTelegramMessage(
-                chatId, 
+                chatId,
                 '❌ <b>Ошибка сохранения</b>\n\nАнализ выполнен, но не удалось сохранить результат. Пожалуйста, обратитесь в поддержку.'
             );
-            
+
             return { statusCode: 202, body: 'Save error' };
         }
 
@@ -191,13 +191,13 @@ exports.handler = async (event) => {
                     { text: '✨ Открыть глубокий анализ', web_app: { url: `${TMA_URL}#deep-analysis` } }
                 ]]
             };
-            
+
             await sendTelegramMessage(
-                chatId, 
+                chatId,
                 '✨ <b>Глубокий анализ готов!</b>\n\nВаш персональный анализ успешно выполнен. Откройте приложение для просмотра результатов.',
                 replyMarkup
             );
-            
+
             console.log('[deep-analysis-background] User notified successfully', { tgUserId });
         } catch (notifyError) {
             console.warn('[deep-analysis-background] Failed to notify user', {
@@ -207,25 +207,25 @@ exports.handler = async (event) => {
         }
 
         return { statusCode: 202, body: 'Deep analysis completed successfully' };
-        
+
     } catch (error) {
         console.error('[deep-analysis-background] Fatal error', {
             error: error.message,
             stack: error.stack
         });
-        
+
         // Try to notify user about fatal error
         try {
             const body = JSON.parse(event.body || '{}');
             const { chatId } = body;
             if (chatId) {
                 await sendTelegramMessage(
-                    chatId, 
+                    chatId,
                     '❌ <b>Системная ошибка</b>\n\nПроизошла непредвиденная ошибка. Пожалуйста, обратитесь в поддержку.'
                 );
             }
-        } catch (_) {}
-        
+        } catch (_) { }
+
         return { statusCode: 202, body: 'Fatal error' };
     }
 };
