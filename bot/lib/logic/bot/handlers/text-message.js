@@ -12,7 +12,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
     // Глобальный переключатель паузы бота
     const isPaused = (() => {
         const v = process.env.BOT_PAUSED;
-        if (v === undefined) return true; // По умолчанию ставим на паузу, чтобы мгновенно остановить
+        if (v === undefined) return false;
         return String(v).toLowerCase() === 'true';
     })();
     // HTML escaping for safe quoting of user text
@@ -45,10 +45,10 @@ function createTextMessageHandler(userService, messageService, analysisService, 
         if (isPaused) {
             try {
                 await messageService.sendReply(ctx, 'Анализ временно приостановлен. Попробуйте позже.');
-            } catch (_) {}
+            } catch (_) { }
             return;
         }
-        
+
         const dreamText = ctx.message.text;
         const userId = ctx.from?.id;
         const chatId = ctx.chat.id;
@@ -62,19 +62,19 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 console.warn(`[TextMessageHandler] Ignoring stale update ${updateId} (age ${ageSec}s).`);
                 return;
             }
-        } catch (_) {}
-        
+        } catch (_) { }
+
         if (!userId || !chatId) {
             console.warn("[TextMessageHandler] No user/chat ID.");
             return;
         }
-        
+
         // Ignore commands
         if (dreamText.startsWith('/')) {
             console.log(`[TextMessageHandler] Ignoring command.`);
             return;
         }
-        
+
         console.log(`[TextMessageHandler] Processing dream for ${userId} (update ${updateId})`);
         const back = (dreamText || '').toString().slice(0, 3000) + ((dreamText || '').length > 3000 ? '…' : '');
 
@@ -87,7 +87,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             if (!gate?.whitelisted) {
                 // Only gate users who applied to beta; allow others (free/premium/etc.) to proceed
                 if (sub === 'beta') {
-                    try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
+                    try { await messageService.deleteMessage(chatId, messageId); } catch (_) { }
                     const txt = 'Ваша заявка на участие в бета-тесте принята. Пожалуйста, дождитесь одобрения — мы уведомим вас.';
                     await messageService.sendReply(ctx, makeHtmlWithQuote(txt, back), { parse_mode: 'HTML' });
                     return;
@@ -97,7 +97,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 const secs = Math.max(0, Math.floor((gate.accessAt - nowTs) / 1000));
                 const hours = Math.floor(secs / 3600);
                 const minutes = Math.floor((secs % 3600) / 60);
-                try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
+                try { await messageService.deleteMessage(chatId, messageId); } catch (_) { }
                 // Удаляем предыдущее DM-уведомление "одобрены", если есть, и сохраняем текущее как stage=soon
                 try {
                     const { createClient } = require('@supabase/supabase-js');
@@ -113,10 +113,10 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                         const ans = Array.isArray(rows) && rows[0] && rows[0].answers && typeof rows[0].answers === 'object' ? rows[0].answers : {};
                         const status = ans._status || {};
                         const prevApprovedId = status.approved?.message_id;
-                        if (prevApprovedId) { try { await messageService.deleteMessage(chatId, prevApprovedId); } catch (_) {} }
+                        if (prevApprovedId) { try { await messageService.deleteMessage(chatId, prevApprovedId); } catch (_) { } }
                         // удалим прошлое "soon" если было
                         const prevSoonId = status.soon?.message_id;
-                        if (prevSoonId) { try { await messageService.deleteMessage(chatId, prevSoonId); } catch (_) {} }
+                        if (prevSoonId) { try { await messageService.deleteMessage(chatId, prevSoonId); } catch (_) { } }
                         const soonTxt = `Доступ скоро появится. Осталось примерно ${hours}ч ${minutes}м.`;
                         const sentSoon = await messageService.sendReply(ctx, makeHtmlWithQuote(soonTxt, back), { parse_mode: 'HTML' });
                         const newStatus = { ...status, approved: undefined, soon: { message_id: sentSoon?.message_id, chat_id: chatId, updated_at: new Date().toISOString() } };
@@ -136,7 +136,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             }
             // After access opens: gate only if user is explicitly in 'whitelisted' state; allow free/premium/etc.
             if (gate?.whitelisted && (!gate?.accessAt || gate.accessAt <= nowTs) && sub === 'whitelisted') {
-                try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
+                try { await messageService.deleteMessage(chatId, messageId); } catch (_) { }
                 // Сохраняем/обновляем onboarding-уведомление, не удаляя предыдущие (чтобы оставалось вместе с "soon")
                 try {
                     const { createClient } = require('@supabase/supabase-js');
@@ -156,7 +156,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                         const status = ans._status || {};
                         // удалим прошлое onboarding сообщение, чтобы не плодить дубликаты
                         const prevOnbId = status.onboarding?.message_id;
-                        if (prevOnbId) { try { await messageService.deleteMessage(chatId, prevOnbId); } catch (_) {} }
+                        if (prevOnbId) { try { await messageService.deleteMessage(chatId, prevOnbId); } catch (_) { } }
                         const newStatus = { ...status, onboarding: { message_id: sentOnb?.message_id, chat_id: chatId, updated_at: new Date().toISOString() } };
                         await supabase
                             .from('beta_survey_responses')
@@ -174,7 +174,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             }
         } catch (e) {
             console.warn('[TextMessageHandler] Whitelist check failed:', e?.message);
-            try { await messageService.deleteMessage(chatId, messageId); } catch (_) {}
+            try { await messageService.deleteMessage(chatId, messageId); } catch (_) { }
             const errTxt = 'Техническая ошибка. Попробуйте позже.';
             await messageService.sendReply(ctx, makeHtmlWithQuote(errTxt, back), { parse_mode: 'HTML' });
             return;
@@ -206,14 +206,14 @@ function createTextMessageHandler(userService, messageService, analysisService, 
         } catch (e) {
             console.warn('[TextMessageHandler] Idempotency cache failed:', e?.message);
         }
-        
+
         let statusMessage;
-        
+
         try {
             // Delete user's message
             console.log(`[TextMessageHandler] Deleting user message ${messageId}`);
             await messageService.deleteMessage(chatId, messageId);
-            
+
             // Перед началом анализа удалим сохранённое сообщение про онбординг, если было
             try {
                 const { createClient } = require('@supabase/supabase-js');
@@ -230,7 +230,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                     const status = ans._status || {};
                     const onbId = status.onboarding?.message_id;
                     if (onbId) {
-                        try { await messageService.deleteMessage(chatId, onbId); } catch (_) {}
+                        try { await messageService.deleteMessage(chatId, onbId); } catch (_) { }
                         const newStatus = { ...status };
                         delete newStatus.onboarding;
                         await supabase
@@ -239,14 +239,14 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                             .eq('tg_id', userId);
                     }
                 }
-            } catch (_) {}
+            } catch (_) { }
 
             // Send status message
             statusMessage = await messageService.sendStatusMessage(ctx, messages.get('analysis.status'));
             if (!statusMessage) {
                 throw new Error("Failed to send status message.");
             }
-            
+
             // Get user data
             const userData = await userService.getOrCreateUser(userId);
 
@@ -261,7 +261,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             // NOTE: Token decrement happens in the background function AFTER successful analysis
             const siteUrl = process.env.FUNCTIONS_BASE_URL || process.env.URL || process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN;
             if (!siteUrl) throw new Error('Site URL is not configured');
-            const backgroundUrl = new URL('/.netlify/functions/analyze-dream-background', siteUrl).toString();
+            const backgroundUrl = new URL('/api/analyze-dream-background', siteUrl).toString();
             const payload = {
                 tgUserId: userId,
                 userDbId: userData.id,
@@ -270,14 +270,14 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 dreamText
             };
             await fetch(backgroundUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            
+
             // NOTE: Background function will handle:
             // - Deleting status message
             // - Sending success message
             // - Token decrement
             // We just fire-and-forget here to avoid 10s webhook timeout
             console.log(`[TextMessageHandler] Background analysis triggered for user ${userId}`);
-            
+
         } catch (error) {
             console.error(`[TextMessageHandler] Error processing dream for ${userId}:`, error);
 
@@ -297,7 +297,7 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 const cache = require('../../shared/services/cache-service');
                 const inflightKey = `bot:inflight:text:${userId}`;
                 cache.delete(inflightKey);
-            } catch (_) {}
+            } catch (_) { }
         }
     };
 }
