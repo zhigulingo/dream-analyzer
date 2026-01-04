@@ -11,14 +11,14 @@
 function createNetlifyEvent(req) {
   // Конвертируем Vercel req в Netlify event формат
   const body = req.body || {};
-  
+
   // Парсим query string из URL если нужно
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const queryParams = {};
   url.searchParams.forEach((value, key) => {
     queryParams[key] = value;
   });
-  
+
   return {
     httpMethod: req.method,
     path: url.pathname,
@@ -52,15 +52,16 @@ function convertNetlifyResponse(netlifyResponse, res) {
   const statusCode = netlifyResponse.statusCode || 200;
   const headers = netlifyResponse.headers || {};
   const body = netlifyResponse.body || '';
-  
+
   // Устанавливаем заголовки
   Object.keys(headers).forEach(key => {
+    const lKey = key.toLowerCase();
     // Пропускаем заголовки, которые Vercel устанавливает автоматически
-    if (key.toLowerCase() !== 'content-length') {
+    if (lKey !== 'content-length') {
       res.setHeader(key, headers[key]);
     }
   });
-  
+
   // Обрабатываем multiValueHeaders (для Set-Cookie и других множественных заголовков)
   if (netlifyResponse.multiValueHeaders) {
     Object.keys(netlifyResponse.multiValueHeaders).forEach(key => {
@@ -78,10 +79,10 @@ function convertNetlifyResponse(netlifyResponse, res) {
       }
     });
   }
-  
+
   // Отправляем ответ
   res.status(statusCode);
-  
+
   // Парсим body если это JSON
   if (typeof body === 'string' && body.trim().startsWith('{')) {
     try {
@@ -92,7 +93,7 @@ function convertNetlifyResponse(netlifyResponse, res) {
       // Не JSON, отправляем как есть
     }
   }
-  
+
   if (body) {
     res.send(body);
   } else {
@@ -109,24 +110,24 @@ function wrapNetlifyFunction(netlifyHandler) {
     try {
       const event = createNetlifyEvent(req);
       const context = createNetlifyContext();
-      
+
       // Вызываем Netlify функцию
       const response = await netlifyHandler(event, context);
-      
+
       // Если функция вернула undefined или null, отправляем 204
       if (!response) {
         return res.status(204).end();
       }
-      
+
       // Конвертируем ответ
       convertNetlifyResponse(response, res);
     } catch (error) {
       console.error('Function error:', error);
       console.error('Stack:', error.stack);
-      
+
       // Пытаемся отправить ошибку в формате JSON
       if (!res.headersSent) {
-        res.status(500).json({ 
+        res.status(500).json({
           error: 'Internal server error',
           message: error.message,
           // В development можно показать stack
@@ -137,7 +138,7 @@ function wrapNetlifyFunction(netlifyHandler) {
   };
 }
 
-module.exports = { 
+module.exports = {
   wrapNetlifyFunction,
   createNetlifyEvent,
   createNetlifyContext,

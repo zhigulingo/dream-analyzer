@@ -99,29 +99,21 @@ async function routerHandler(req, res) {
 
   if (handler) {
     console.log(`[Router] ✅ Matched path: ${pathname}. Method: ${req.method}`);
-    const wrappedHandler = wrapNetlifyFunction(handler.handler || handler);
 
-    // Dynamically handle CORS for the response
+    // Dynamic CORS Setup
     const origin = req.headers.origin || req.headers.Origin || '*';
-    const originalResEnd = res.end;
-    const originalResWriteHead = res.writeHead;
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Telegram-Init-Data, Authorization, Accept');
+    res.setHeader('Access-Control-Max-Age', '86400'); // Cache CORS for 24 hours
 
-    res.writeHead = (statusCode, statusMessage, headers) => {
-      const extraHeaders = {
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Credentials': 'true',
-      };
-      if (headers) {
-        Object.assign(headers, extraHeaders);
-      } else {
-        // If only status and headers object is provided
-        if (typeof statusMessage === 'object') {
-          Object.assign(statusMessage, extraHeaders);
-        }
-      }
-      return originalResWriteHead.call(res, statusCode, statusMessage, headers);
-    };
+    // If it's an OPTIONS request, we can stop here
+    if (req.method === 'OPTIONS') {
+      return res.status(204).end();
+    }
 
+    const wrappedHandler = wrapNetlifyFunction(handler.handler || handler);
     return wrappedHandler(req, res);
   }
 
