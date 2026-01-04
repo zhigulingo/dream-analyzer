@@ -31,6 +31,12 @@ const tgStickerHandler = require('../lib/logic/tg-sticker');
 const setWebhookHandler = require('../lib/logic/set-webhook');
 const betaAccessNotifierHandler = require('../lib/logic/beta-access-notifier');
 
+// Survey handlers (moved from survey project)
+const surveyStatusHandler = require('../lib/logic/survey-status');
+const surveyUserStateHandler = require('../lib/logic/survey-user-state');
+const submitSurveyHandler = require('../lib/logic/submit-survey');
+const editStartButtonHandler = require('../lib/logic/edit-start-button');
+
 // Route mapping
 const routes = {
   '/api/health-check': healthCheckHandler,
@@ -63,6 +69,10 @@ const routes = {
   '/api/tg-sticker': tgStickerHandler,
   '/api/set-webhook': setWebhookHandler,
   '/api/beta-access-notifier': betaAccessNotifierHandler,
+  '/api/survey-status': surveyStatusHandler,
+  '/api/survey-user-state': surveyUserStateHandler,
+  '/api/submit-survey': submitSurveyHandler,
+  '/api/edit-start-button': editStartButtonHandler,
   '/api': botHandler,
   '/': botHandler,
 };
