@@ -30,6 +30,7 @@ const setDemographicsHandler = require('../lib/logic/set-demographics');
 const tgStickerHandler = require('../lib/logic/tg-sticker');
 const setWebhookHandler = require('../lib/logic/set-webhook');
 const betaAccessNotifierHandler = require('../lib/logic/beta-access-notifier');
+const setOnboardingStageHandler = require('../lib/logic/set-onboarding-stage');
 
 // Survey handlers (moved from survey project)
 const surveyStatusHandler = require('../lib/logic/survey-status');
@@ -73,6 +74,7 @@ const routes = {
   '/api/survey-user-state': surveyUserStateHandler,
   '/api/submit-survey': submitSurveyHandler,
   '/api/edit-start-button': editStartButtonHandler,
+  '/api/set-onboarding-stage': setOnboardingStageHandler,
   '/api': botHandler,
   '/': botHandler,
 };
