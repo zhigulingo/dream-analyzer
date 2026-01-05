@@ -257,12 +257,12 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 throw new Error("Insufficient tokens for analysis.");
             }
 
-            // Отправляем задачу на фоновую функцию, чтобы обойти лимит 10s
-            // NOTE: Token decrement happens in the background function AFTER successful analysis
+            // Отправляем задачу на фоновую функцию
             const siteUrl = process.env.FUNCTIONS_BASE_URL || process.env.URL || process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN;
             if (!siteUrl) throw new Error('Site URL is not configured');
             const backgroundUrl = new URL('/api/analyze-dream-background', siteUrl).toString();
             console.log(`[TextMessageHandler] 🚀 Triggering background analysis: ${backgroundUrl}`);
+
             const payload = {
                 tgUserId: userId,
                 userDbId: userData.id,
@@ -270,18 +270,18 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 statusMessageId: statusMessage?.message_id || null,
                 dreamText
             };
-            fetch(backgroundUrl, {
+
+            // В Vercel ОБЯЗАТЕЛЬНО ждем завершения fetch, иначе процесс будет убит до отправки запроса
+            const bgResponse = await fetch(backgroundUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-            }).catch(e => console.error(`[TextMessageHandler] ❌ Background fetch failed:`, e.message));
+            }).catch(e => {
+                console.error(`[TextMessageHandler] ❌ Background fetch failed:`, e.message);
+                throw e;
+            });
 
-            // NOTE: Background function will handle:
-            // - Deleting status message
-            // - Sending success message
-            // - Token decrement
-            // We just fire-and-forget here to avoid 10s webhook timeout
-            console.log(`[TextMessageHandler] Background analysis triggered for user ${userId}`);
+            console.log(`[TextMessageHandler] Background analysis response: ${bgResponse.status}`);
 
         } catch (error) {
             console.error(`[TextMessageHandler] Error processing dream for ${userId}:`, error);

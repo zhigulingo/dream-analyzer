@@ -86,8 +86,20 @@ exports.handler = async (event) => {
             return { statusCode: 500, body: 'Missing env' };
         }
 
-        const { tgUserId, userDbId, chatId, statusMessageId, dreamText } = JSON.parse(event.body || '{}');
+        // В Vercel body может быть уже объектом, если используется bodyParser
+        let body = {};
+        try {
+            body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+        } catch (e) {
+            console.error('[analyze-dream-background] ❌ JSON parse error:', e.message, event.body);
+            return { statusCode: 400, body: 'Invalid JSON' };
+        }
+
+        const { tgUserId, userDbId, chatId, statusMessageId, dreamText } = body;
+        console.log(`[analyze-dream-background] ⚙️ Processing: User=${tgUserId}, Chat=${chatId}, HasDream=${!!dreamText}`);
+
         if (!tgUserId || !userDbId || !chatId || !dreamText) {
+            console.error('[analyze-dream-background] ❌ Missing fields in body:', Object.keys(body));
             return { statusCode: 400, body: 'Bad request' };
         }
 
