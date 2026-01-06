@@ -218,7 +218,7 @@ class UserService {
             .update({
                 beta_whitelisted: true,
                 beta_access_at: nowIso,
-                subscription_type: 'beta',
+                subscription_type: 'onboarding1',
                 beta_notified_access: true
             })
             .eq('tg_id', tgUserId)
@@ -239,7 +239,7 @@ class UserService {
                 tg_id: tgUserId,
                 beta_whitelisted: true,
                 beta_access_at: nowIso,
-                subscription_type: 'beta',
+                subscription_type: 'onboarding1',
                 beta_notified_access: true,
                 tokens: 0,
                 channel_reward_claimed: false
