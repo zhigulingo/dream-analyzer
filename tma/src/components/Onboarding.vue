@@ -281,8 +281,20 @@ onBeforeUnmount(() => {
 const goToCommunity = () => {
   const url = 'https://t.me/thedreamshub'
   try { localStorage.setItem('visited_channel', '1') } catch (_) {}
-  try { if (tg.value?.openLink) { tg.value.openLink(url); return } } catch(_) {}
-  try { if (tg.value?.openTelegramLink) { tg.value.openTelegramLink(url); return } } catch(_) {}
+  
+  const t = tg.value
+  if (t) {
+    // openTelegramLink открывает ссылку ВНУТРИ Telegram (без браузера)
+    if (typeof t.openTelegramLink === 'function') {
+      try { t.openTelegramLink(url); return } catch (_) {}
+    }
+    // Если по какой-то причине openTelegramLink не сработал или отсутствует
+    if (typeof t.openLink === 'function') {
+      try { t.openLink(url); return } catch (_) {}
+    }
+  }
+
+  // Fallback для браузера
   window.open(url, '_blank')
 }
 
@@ -380,7 +392,7 @@ const onSlideChangeNew = async (swiper: any) => {
       })()
     } else {
       api.trackOnboarding('onboarding1_step4_need_subscribe')
-      setMainButton('Перейти и подписаться', goToCommunity)
+      setMainButton('Подписаться', goToCommunity)
     }
   }
   else clearMainButton()
@@ -483,7 +495,7 @@ const currentSticker = computed(() => {
 
 const primaryAction = computed(() => {
   if (flow.value === 'new') {
-    if (step.value === 1) return { label: 'Перейти и подписаться', handler: goToCommunity }
+    if (step.value === 1) return { label: 'Подписаться', handler: goToCommunity }
     if (step.value === 4) return { label: 'Проверить подписку', handler: verifySubscription }
     return null as any
   }
