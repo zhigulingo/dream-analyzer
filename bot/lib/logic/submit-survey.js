@@ -188,11 +188,12 @@ exports.handler = async (event) => {
     // Обновим тип подписки пользователя на 'beta' (новая семантика: подал заявку, ждёт одобрения)
     if (isFinalSubmit && resolvedTgId) {
       try {
-        const { data: urow } = await supabase
+        const { data: urows } = await supabase
           .from('users')
           .select('id, beta_whitelisted, subscription_type')
           .eq('tg_id', resolvedTgId)
-          .single();
+          .limit(1);
+        const urow = Array.isArray(urows) && urows[0] ? urows[0] : null;
         if (urow && !urow.beta_whitelisted) {
           await supabase
             .from('users')
@@ -254,11 +255,12 @@ exports.handler = async (event) => {
     // Также обновим кнопку в последнем /start сообщении пользователя (если id сохранён)
     if (isFinalSubmit && botToken && resolvedTgId) {
       try {
-        const { data: userRow, error: uErr } = await supabase
+        const { data: urows2, error: uErr } = await supabase
           .from('users')
           .select('last_start_message_id')
           .eq('tg_id', resolvedTgId)
-          .single();
+          .limit(1);
+        const userRow = Array.isArray(urows2) && urows2[0] ? urows2[0] : null;
         if (!uErr && userRow && userRow.last_start_message_id) {
           const msgId = userRow.last_start_message_id;
           const editUrl = `https://api.telegram.org/bot${botToken}/editMessageReplyMarkup`;

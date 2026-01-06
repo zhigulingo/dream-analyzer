@@ -17,9 +17,9 @@ class UserService {
         if (!this.supabase) {
             throw new Error("Supabase client not provided to UserService.");
         }
-        
+
         console.log(`[UserService] Processing user ${userId}...`);
-        
+
         try {
             console.log(`[UserService] Selecting user ${userId}...`);
             let { data: existingUser, error: selectError } = await this.supabase
@@ -62,7 +62,7 @@ class UserService {
                             .select('id, channel_reward_claimed, last_start_message_id')
                             .eq('tg_id', userId)
                             .single();
-                        
+
                         if (raceError) {
                             throw new Error(`DB Re-fetch Error: ${raceError.message}`);
                         }
@@ -79,11 +79,11 @@ class UserService {
                     }
                     throw new Error(`DB Insert Error: ${insertError.message}`);
                 }
-                
+
                 if (!newUser) {
                     throw new Error("DB Insert Error: No data returned after user creation.");
                 }
-                
+
                 console.log(`[UserService] Created new user ${userId} with ID ${newUser.id}.`);
                 return {
                     id: newUser.id,
@@ -107,12 +107,12 @@ class UserService {
             .from('users')
             .update({ last_start_message_id: messageId })
             .eq('id', userId);
-            
+
         if (updateError) {
             console.error(`[UserService] Failed to update last_start_message_id:`, updateError);
             throw new Error(`Failed to update message ID: ${updateError.message}`);
         }
-        
+
         console.log(`[UserService] Updated last_start_message_id to ${messageId}.`);
     }
 
@@ -143,11 +143,11 @@ class UserService {
     async decrementTokenIfAvailable(tgUserId) {
         const { data: tokenDecremented, error: rpcError } = await this.supabase
             .rpc('decrement_token_if_available', { user_tg_id: tgUserId });
-            
+
         if (rpcError) {
             throw new Error(`Internal token error: ${rpcError.message}`);
         }
-        
+
         return tokenDecremented;
     }
 
@@ -198,12 +198,12 @@ class UserService {
             .from('users')
             .update({ subscription_type: 'beta', beta_notified_access: true })
             .eq('tg_id', tgUserId)
-            .select('id')
-            .single();
+            .select('id');
+
         if (error) {
             throw new Error(`Failed to transition to beta: ${error.message}`);
         }
-        return Boolean(data?.id);
+        return data && data.length > 0;
     }
 
     /**
@@ -211,16 +211,47 @@ class UserService {
      */
     async openAccessNow(tgUserId) {
         const nowIso = new Date().toISOString();
-        const { data, error } = await this.supabase
+
+        // Try update first
+        const { data: updated, error: updateError } = await this.supabase
             .from('users')
-            .update({ beta_whitelisted: true, beta_access_at: nowIso, subscription_type: 'beta', beta_notified_access: true })
+            .update({
+                beta_whitelisted: true,
+                beta_access_at: nowIso,
+                subscription_type: 'beta',
+                beta_notified_access: true
+            })
             .eq('tg_id', tgUserId)
-            .select('id')
-            .single();
-        if (error) {
-            throw new Error(`Failed to open access: ${error.message}`);
+            .select('id');
+
+        if (updateError) {
+            throw new Error(`Failed to update access: ${updateError.message}`);
         }
-        return Boolean(data?.id);
+
+        if (updated && updated.length > 0) {
+            return true;
+        }
+
+        // If no rows updated, user might not exist. Create them.
+        const { data: inserted, error: insertError } = await this.supabase
+            .from('users')
+            .insert({
+                tg_id: tgUserId,
+                beta_whitelisted: true,
+                beta_access_at: nowIso,
+                subscription_type: 'beta',
+                beta_notified_access: true,
+                tokens: 0,
+                channel_reward_claimed: false
+            })
+            .select('id');
+
+        if (insertError) {
+            // Probably a race condition or other error
+            throw new Error(`Failed to create user for access: ${insertError.message}`);
+        }
+
+        return inserted && inserted.length > 0;
     }
 
     /**
@@ -250,12 +281,12 @@ class UserService {
             plan_type: plan,
             duration_months: durationMonths
         });
-        
+
         if (txError) {
             console.error(`[UserService] RPC error for sub payment ${userId}:`, txError);
             throw new Error("DB update failed for subscription.");
         }
-        
+
         console.log(`[UserService] Subscription payment processed via RPC for ${userId}.`);
     }
 
@@ -266,14 +297,14 @@ class UserService {
      */
     async addDeepAnalysisCredit(userId) {
         console.log(`[UserService] Adding deep analysis credit for user ${userId} using atomic operation...`);
-        
+
         try {
             const newCredits = await this.dbQueries.incrementDeepAnalysisCredits(userId);
-            
+
             if (newCredits === null || newCredits === undefined) {
                 throw new Error("Failed to increment credits - no result returned");
             }
-            
+
             console.log(`[UserService] Deep analysis credit added for user ${userId}. New total: ${newCredits}`);
             return newCredits;
         } catch (error) {
