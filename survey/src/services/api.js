@@ -1,19 +1,19 @@
 import axios from 'axios';
 
-const base = import.meta.env.VITE_FUNCTIONS_BASE_URL || '/api';
+const base = import.meta.env.VITE_FUNCTIONS_BASE_URL || import.meta.env.VITE_API_BASE_URL || '/api';
 function enqueuePending(path, payload) {
   try {
     const key = 'survey_pending_queue';
     const list = JSON.parse(localStorage.getItem(key) || '[]');
     list.push({ path, payload, ts: Date.now() });
     localStorage.setItem(key, JSON.stringify(list));
-  } catch {}
+  } catch { }
 }
 
 export async function flushPendingQueue() {
   const key = 'survey_pending_queue';
   let list = [];
-  try { list = JSON.parse(localStorage.getItem(key) || '[]'); } catch {}
+  try { list = JSON.parse(localStorage.getItem(key) || '[]'); } catch { }
   if (!Array.isArray(list) || list.length === 0) return;
   const remaining = [];
   for (const item of list) {
@@ -25,7 +25,7 @@ export async function flushPendingQueue() {
       if (!res.ok) remaining.push(item);
     } catch { remaining.push(item); }
   }
-  try { localStorage.setItem(key, JSON.stringify(remaining)); } catch {}
+  try { localStorage.setItem(key, JSON.stringify(remaining)); } catch { }
 }
 
 function trySendBeacon(path, payload) {
@@ -41,13 +41,13 @@ function getTelegramInitData() {
     // 1) Основной источник
     const direct = window?.Telegram?.WebApp?.initData;
     if (direct && typeof direct === 'string' && direct.length > 0) return direct;
-  } catch {}
+  } catch { }
   try {
     // 2) URL-параметр tgWebAppData
     const sp = new URLSearchParams(location.search);
     const fromQuery = sp.get('tgWebAppData') || sp.get('initData');
     if (fromQuery && typeof fromQuery === 'string' && fromQuery.length > 0) return decodeURIComponent(fromQuery);
-  } catch {}
+  } catch { }
   try {
     // 2b) Хэш-параметр (#tgWebAppData=...)
     const hash = location.hash.startsWith('#') ? location.hash.slice(1) : location.hash;
@@ -56,12 +56,12 @@ function getTelegramInitData() {
       const fromHash = hp.get('tgWebAppData') || hp.get('initData');
       if (fromHash && fromHash.length > 0) return decodeURIComponent(fromHash);
     }
-  } catch {}
+  } catch { }
   try {
     // 3) Кэш из localStorage (создаётся в main.js при старте)
     const cached = localStorage.getItem('tma_init_data');
     if (cached && cached.length > 0) return cached;
-  } catch {}
+  } catch { }
   return '';
 }
 
@@ -142,7 +142,7 @@ export async function updateStartButton(buttonText = 'Заявка принят�
     const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload), keepalive: true, credentials: 'omit' });
     return await res.json().catch(() => ({}));
   } catch {
-    try { enqueuePending('/edit-start-button', payload); } catch {}
+    try { enqueuePending('/edit-start-button', payload); } catch { }
     return { ok: false };
   }
 }
