@@ -24,8 +24,8 @@ async function getOrCreateUser(supabase, userId) {
             .from('users').select('id, channel_reward_claimed, last_start_message_id').eq('tg_id', userId).single();
 
         if (selectError && selectError.code !== 'PGRST116') {
-             console.error(`[getOrCreateUser] Supabase SELECT error: ${selectError.message}`);
-             throw new Error(`DB Select Error: ${selectError.message}`);
+            console.error(`[getOrCreateUser] Supabase SELECT error: ${selectError.message}`);
+            throw new Error(`DB Select Error: ${selectError.message}`);
         }
         if (existingUser) {
             console.log(`[getOrCreateUser] Found existing user ${userId}.`);
@@ -36,15 +36,15 @@ async function getOrCreateUser(supabase, userId) {
                 .from('users').insert({ tg_id: userId, subscription_type: 'guest', tokens: 0, channel_reward_claimed: false }).select('id').single();
 
             if (insertError) {
-                 console.error(`[getOrCreateUser] Supabase INSERT error: ${insertError.message}`);
-                 if (insertError.code === '23505') { // Race condition
-                     console.warn(`[getOrCreateUser] Race condition for ${userId}. Re-fetching...`);
-                     let { data: raceUser, error: raceError } = await supabase.from('users').select('id, channel_reward_claimed, last_start_message_id').eq('tg_id', userId).single();
-                     if (raceError) { throw new Error(`DB Re-fetch Error: ${raceError.message}`); }
-                     if (raceUser) { console.log(`[getOrCreateUser] Found user ${userId} on re-fetch.`); return { id: raceUser.id, claimed: raceUser.channel_reward_claimed ?? false, lastMessageId: raceUser.last_start_message_id }; }
-                     else { throw new Error("DB Inconsistent state after unique violation."); }
-                 }
-                 throw new Error(`DB Insert Error: ${insertError.message}`);
+                console.error(`[getOrCreateUser] Supabase INSERT error: ${insertError.message}`);
+                if (insertError.code === '23505') { // Race condition
+                    console.warn(`[getOrCreateUser] Race condition for ${userId}. Re-fetching...`);
+                    let { data: raceUser, error: raceError } = await supabase.from('users').select('id, channel_reward_claimed, last_start_message_id').eq('tg_id', userId).single();
+                    if (raceError) { throw new Error(`DB Re-fetch Error: ${raceError.message}`); }
+                    if (raceUser) { console.log(`[getOrCreateUser] Found user ${userId} on re-fetch.`); return { id: raceUser.id, claimed: raceUser.channel_reward_claimed ?? false, lastMessageId: raceUser.last_start_message_id }; }
+                    else { throw new Error("DB Inconsistent state after unique violation."); }
+                }
+                throw new Error(`DB Insert Error: ${insertError.message}`);
             }
             if (!newUser) { throw new Error("DB Insert Error: No data returned after user creation."); }
             console.log(`[getOrCreateUser] Created new user ${userId} with ID ${newUser.id}.`);
@@ -58,15 +58,15 @@ async function getOrCreateUser(supabase, userId) {
 
 exports.handler = async (event) => {
     console.log("[user-profile] Function invoked");
-    
+
     const allowedOrigins = [ALLOWED_TMA_ORIGIN, ALLOWED_WEB_ORIGIN].filter(Boolean);
     const requestOrigin = event.headers.origin || event.headers.Origin;
-    
+
     // Детальное логирование для диагностики CORS
     console.log(`[user-profile] Request origin: ${requestOrigin}`);
     console.log(`[user-profile] Allowed origins:`, allowedOrigins);
     console.log(`[user-profile] Origin allowed:`, allowedOrigins.includes(requestOrigin));
-    
+
     const corsHeaders = {
         // Always echo back request origin to allow credentialed requests
         'Access-Control-Allow-Origin': requestOrigin || allowedOrigins[0] || '*',
@@ -75,7 +75,7 @@ exports.handler = async (event) => {
         'Access-Control-Allow-Credentials': 'true',
         'Vary': 'Origin'
     };
-    
+
     console.log(`[user-profile] CORS origin set to: ${corsHeaders['Access-Control-Allow-Origin']}`);
 
     // Handle CORS preflight OPTIONS request at the very top
@@ -99,7 +99,7 @@ exports.handler = async (event) => {
             console.error("[user-profile] JWT verification failed:", error.message);
             return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: Invalid or expired token.' }) };
         }
-    } 
+    }
     // Try JWT from httpOnly cookie as fallback
     else if (cookies.includes('dream_analyzer_jwt=')) {
         try {
@@ -121,15 +121,15 @@ exports.handler = async (event) => {
         const initDataHeader = event.headers['x-telegram-init-data'];
         console.log("[user-profile] TMA auth attempt, initData present:", !!initDataHeader);
         console.log("[user-profile] BOT_TOKEN present:", !!BOT_TOKEN);
-        
+
         if (!BOT_TOKEN) {
             console.error("[user-profile] BOT_TOKEN is missing from environment variables!");
             return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Internal Server Error: Bot configuration missing.' }) };
         }
-        
+
         const validationResult = validateTelegramData(initDataHeader, BOT_TOKEN);
         console.log("[user-profile] Validation result:", { valid: validationResult.valid, error: validationResult.error, hasData: !!validationResult.data });
-        
+
         if (!validationResult.valid || !validationResult.data?.id) {
             return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
         }
@@ -147,16 +147,16 @@ exports.handler = async (event) => {
 
     try {
         const noCache = (event.queryStringParameters && (event.queryStringParameters.noCache === '1' || event.queryStringParameters.nocache === '1')) ||
-                        (event.headers && (event.headers['x-bypass-cache'] === '1'));
+            (event.headers && (event.headers['x-bypass-cache'] === '1'));
         const supabase = createOptimizedClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
         const dbQueries = new DatabaseQueries(supabase);
-        
+
         // Проверяем кеш сначала
         let userData = noCache ? null : userCacheService.getFullUserData(verifiedUserId);
-        
+
         if (!userData) {
             console.log(`[user-profile] Cache miss for user ${verifiedUserId}, querying database...`);
-            
+
             // Получить полный профиль пользователя одним оптимизированным запросом
             // Если пользователь не существует, он будет создан автоматически
             console.log(`[user-profile] 🔍 Calling dbQueries.getUserProfile(${verifiedUserId})`);
@@ -168,22 +168,56 @@ exports.handler = async (event) => {
                 console.error(`[user-profile] ❌ Database query failed:`, dbError.message);
                 throw new Error(`Database query failed: ${dbError.message}`);
             }
-            
+
             // Если пользователь не найден, создаем его и пытаемся снова
             if (!userData) {
                 console.log(`[user-profile] User ${verifiedUserId} not found, creating...`);
                 await getOrCreateUser(supabase, verifiedUserId);
                 userData = await dbQueries.getUserProfile(verifiedUserId);
             }
-            
+
             // Lazy transition to 'beta' if timer passed and still 'whitelisted'
             try {
-                const accessAt = userData?.beta_access_at ? new Date(userData.beta_access_at).getTime() : null;
-                if (userData?.beta_whitelisted && userData?.subscription_type === 'whitelisted' && accessAt && accessAt <= Date.now()) {
-                    await supabase.from('users').update({ subscription_type: 'beta' }).eq('id', userData.id);
-                    userData.subscription_type = 'beta';
+                // ПРОВЕРКА ОДОБРЕНИЯ АНКЕТЫ (для синхронизации с Supabase Manual Approval)
+                if (!userData?.beta_whitelisted) {
+                    const { data: surveyRow } = await supabase
+                        .from('beta_survey_responses')
+                        .select('approved')
+                        .eq('tg_id', verifiedUserId)
+                        .limit(1)
+                        .single();
+
+                    if (surveyRow && surveyRow.approved === true) {
+                        console.log(`[user-profile] User approved in survey, whitelisting...`);
+                        const now = new Date();
+                        const accessAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // +24ч
+                        await supabase
+                            .from('users')
+                            .update({
+                                beta_whitelisted: true,
+                                beta_approved_at: now.toISOString(),
+                                beta_access_at: accessAt,
+                                subscription_type: 'beta'
+                            })
+                            .eq('id', userData.id);
+
+                        userData.beta_whitelisted = true;
+                        userData.beta_access_at = accessAt;
+                        userData.subscription_type = 'beta';
+                    }
                 }
-            } catch (_) {}
+
+                const accessAt = userData?.beta_access_at ? new Date(userData.beta_access_at).getTime() : null;
+                if (userData?.beta_whitelisted && (userData?.subscription_type === 'whitelisted' || userData?.subscription_type === 'beta') && accessAt && accessAt <= Date.now()) {
+                    // Если время доступа пришло, но статус еще не onboarding1/2 или free — это значит пора открывать вход
+                    // (Мы не переводим в onboarding здесь, это сделает BetaReady экран или само приложение)
+                    // Но убедимся, что тип подписки корректный
+                    if (userData?.subscription_type === 'whitelisted') {
+                        await supabase.from('users').update({ subscription_type: 'beta' }).eq('id', userData.id);
+                        userData.subscription_type = 'beta';
+                    }
+                }
+            } catch (_) { }
             // Кешируем результат если получены данные
             if (userData && !noCache) {
                 userCacheService.cacheFullUserData(verifiedUserId, userData);
@@ -195,10 +229,10 @@ exports.handler = async (event) => {
 
         let responseBody;
         if (!userData) {
-            responseBody = { 
-                tokens: 0, 
-                subscription_type: 'free', 
-                subscription_end: null, 
+            responseBody = {
+                tokens: 0,
+                subscription_type: 'free',
+                subscription_end: null,
                 channel_reward_claimed: false,
                 deep_analysis_credits: 0,
                 total_dreams_count: 0,

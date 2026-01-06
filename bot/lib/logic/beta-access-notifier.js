@@ -11,7 +11,7 @@ async function sendTelegramMessage(chatId, text) {
   if (!BOT_TOKEN || !chatId) return;
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
   const body = { chat_id: chatId, text };
-  await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => {});
+  await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => { });
 }
 
 exports.handler = async (event) => {
@@ -33,8 +33,47 @@ exports.handler = async (event) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
-    const nowIso = new Date().toISOString();
+    const now = new Date();
+    const nowIso = now.toISOString();
 
+    // --- STEP 1: Sync Approved Surveys to Users ---
+    // Находим все одобренные анкеты
+    const { data: approvedSurveys } = await supabase
+      .from('beta_survey_responses')
+      .select('tg_id')
+      .eq('approved', true);
+
+    if (approvedSurveys && approvedSurveys.length > 0) {
+      const approvedIds = approvedSurveys.map(s => s.tg_id).filter(Boolean);
+
+      for (const tid of approvedIds) {
+        // Проверяем статус пользователя
+        const { data: user } = await supabase
+          .from('users')
+          .select('id, beta_whitelisted')
+          .eq('tg_id', tid)
+          .single();
+
+        if (user && !user.beta_whitelisted) {
+          console.log(`[Notifier] Whitelisting user ${tid} based on approved survey...`);
+          const accessAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // +24 часа
+          await supabase
+            .from('users')
+            .update({
+              beta_whitelisted: true,
+              beta_approved_at: nowIso,
+              beta_access_at: accessAt,
+              subscription_type: 'beta'
+            })
+            .eq('id', user.id);
+
+          // Опционально: можно отправить сообщение "Вы одобрены, доступ через 24ч", 
+          // но сейчас ограничимся тем, что пользователь увидит таймер при входе
+        }
+      }
+    }
+
+    // --- STEP 2: Notify Users who are Ready ---
     const { data: users, error } = await supabase
       .from('users')
       .select('id, tg_id, beta_access_at, beta_notified_access, beta_whitelisted')
@@ -60,16 +99,16 @@ exports.handler = async (event) => {
         const prevSoon = status.soon?.message_id;
         const prevApproved = status.approved?.message_id;
         if (prevSoon) {
-          try { await sendTelegramMessage(u.tg_id, ''); } catch (_) {}
+          try { await sendTelegramMessage(u.tg_id, ''); } catch (_) { }
           try {
             const url = `https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`;
             await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: u.tg_id, message_id: prevSoon }) });
-          } catch (_) {}
+          } catch (_) { }
         } else if (prevApproved) {
           try {
             const url = `https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`;
             await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: u.tg_id, message_id: prevApproved }) });
-          } catch (_) {}
+          } catch (_) { }
         }
         // Отправим "доступ открыт" с кнопкой открытия приложения
         const TMA_URL = process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN || 'https://dream-analyzer.netlify.app';
