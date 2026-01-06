@@ -37,6 +37,7 @@ const surveyStatusHandler = require('../lib/logic/survey-status');
 const surveyUserStateHandler = require('../lib/logic/survey-user-state');
 const submitSurveyHandler = require('../lib/logic/submit-survey');
 const editStartButtonHandler = require('../lib/logic/edit-start-button');
+const sendSurveyAnnouncementHandler = require('../lib/logic/send-survey-announcement');
 
 // Route mapping
 const routes = {
@@ -75,6 +76,7 @@ const routes = {
   '/api/submit-survey': submitSurveyHandler,
   '/api/edit-start-button': editStartButtonHandler,
   '/api/set-onboarding-stage': setOnboardingStageHandler,
+  '/api/send-survey-announcement': sendSurveyAnnouncementHandler,
   '/api': botHandler,
   '/': botHandler,
 };

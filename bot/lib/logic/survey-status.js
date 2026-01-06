@@ -1,5 +1,5 @@
 exports.handler = async (event) => {
-  const startAt = process.env.SURVEY_START_AT ? new Date(process.env.SURVEY_START_AT).toISOString() : null;
+  const startAt = null; // Clear start date to force open
   const endAt = process.env.SURVEY_END_AT ? new Date(process.env.SURVEY_END_AT).toISOString() : null;
   const nowIso = new Date().toISOString();
 
