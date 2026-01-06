@@ -1,17 +1,20 @@
 exports.handler = async (event) => {
-  const startAt = null; // Clear start date to force open
-  const endAt = process.env.SURVEY_END_AT ? new Date(process.env.SURVEY_END_AT).toISOString() : null;
+  // Hardcoded for debug to bypass any environment variable issues
+  const startAt = null;
+  const endAt = null;
   const nowIso = new Date().toISOString();
+  const isOpen = true;
 
-  const isOpen = true; // Forced open for launch as requested
+  console.log('[survey-status] Returning: isOpen=true');
 
-  try {
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ isOpen, now: nowIso, startAt, endAt })
-    };
-  } catch (e) {
-    console.error('[survey-status] exception', { message: e?.message, stack: e?.stack });
-    return { statusCode: 500, body: JSON.stringify({ error: 'Internal error' }) };
-  }
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      isOpen: true,
+      now: nowIso,
+      startAt: null,
+      endAt: null,
+      v: 4 // Version marker to ensure we see the latest code
+    })
+  };
 };

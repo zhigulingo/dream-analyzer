@@ -171,6 +171,54 @@ try {
     bot.command("start", createStartCommandHandler(userService, messageService, TMA_APP_URL));
     bot.command("setpassword", createSetPasswordCommandHandler(userService, messageService));
     bot.command("golive", createGoLiveCommandHandler(userService, messageService, ADMIN_IDS, TMA_APP_URL));
+
+    // Admin command to get Channel ID by forwarding a message
+    bot.on('message:forward_origin', async (ctx) => {
+        if (!ADMIN_IDS.includes(ctx.from?.id)) return;
+        const origin = ctx.message.forward_origin;
+        if (origin.type === 'chat') {
+            await ctx.reply(`ID этого канала: <code>${origin.chat.id}</code>`, { parse_mode: 'HTML' });
+        }
+    });
+
+    // Command /startbeta [текст] - sends announcement to channel
+    bot.command('startbeta', async (ctx) => {
+        if (!ADMIN_IDS.includes(ctx.from?.id)) return ctx.reply('У вас нет прав администратора.');
+
+        const text = ctx.match || 'Дорогие друзья, наконец мы готовы пригласить вас принять участие в бета тесте! Откликнуться и принять участие можно кликнув по кнопке ниже';
+        const channelId = process.env.BETA_CHANNEL_ID;
+        const appUrl = process.env.SURVEY_APP_URL || 'https://t.me/dreamtestaibot/betasurvey';
+
+        if (!channelId) return ctx.reply('Ошибка: BETA_CHANNEL_ID не настроен в переменных окружения.');
+
+        await ctx.reply(`Отправляю анонс в канал ${channelId}...`);
+
+        try {
+            const botToken = process.env.BOT_TOKEN;
+            const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+            const payload = {
+                chat_id: channelId,
+                text: text,
+                reply_markup: {
+                    inline_keyboard: [[{ text: 'Принять участие', url: appUrl }]]
+                }
+            };
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await resp.json();
+            if (result.ok) {
+                await ctx.reply('✅ Анонс успешно опубликован!');
+            } else {
+                await ctx.reply(`❌ Ошибка Telegram: ${result.description}`);
+            }
+        } catch (e) {
+            await ctx.reply(`❌ Системная ошибка: ${e.message}`);
+        }
+    });
+
     // Ingest command (one-time, open access, with strong idempotency)
     bot.command('ingest_database', async (ctx) => {
         const cache = require('./shared/services/cache-service');
