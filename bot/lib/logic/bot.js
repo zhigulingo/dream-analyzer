@@ -9,6 +9,7 @@ const MessageService = require("./bot/services/message-service");
 const AnalysisService = require("./bot/services/analysis-service");
 const createStartCommandHandler = require("./bot/handlers/start-command");
 const createTextMessageHandler = require("./bot/handlers/text-message");
+const createGoLiveCommandHandler = require("./bot/handlers/golive-command");
 const { createPreCheckoutQueryHandler, createSuccessfulPaymentHandler } = require("./bot/handlers/payment-handlers");
 
 // Env Vars
@@ -97,6 +98,7 @@ async function initBot() {
     });
 
     // 3. Main Commands & Actions
+    bot.command("golive", createGoLiveCommandHandler(userService, messageService, ADMIN_IDS, TMA_APP_URL));
     bot.command("start", createStartCommandHandler(userService, messageService, TMA_APP_URL));
     bot.on("message:text", createTextMessageHandler(userService, messageService, analysisService, TMA_APP_URL));
     bot.on('pre_checkout_query', createPreCheckoutQueryHandler(messageService));
