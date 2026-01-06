@@ -67,16 +67,21 @@ onMounted(async () => {
   } catch {}
   try {
     const data = await getSurveyStatus();
-    if (data.startAt) {
-      countdown.value = computeCountdown(data.startAt);
-      isOpen.value = data.isOpen;
-      t = setInterval(() => {
+    console.log('[Survey] Status data:', data);
+    if (data && typeof data.isOpen !== 'undefined') {
+      isOpen.value = !!data.isOpen;
+      if (data.startAt) {
         countdown.value = computeCountdown(data.startAt);
-      }, 1000);
+        t = setInterval(() => {
+          countdown.value = computeCountdown(data.startAt);
+        }, 1000);
+      }
     } else {
-      isOpen.value = data.isOpen;
+      console.warn('[Survey] Invalid status data, falling back to open');
+      isOpen.value = true;
     }
-  } catch {
+  } catch (err) {
+    console.error('[Survey] Failed to fetch status:', err);
     isOpen.value = true; // локальный фолбэк
   }
   // Показ MainButton при готовности
