@@ -54,21 +54,35 @@ exports.handler = async (event) => {
           .eq('tg_id', tid)
           .single();
 
-        if (user && !user.beta_whitelisted) {
-          console.log(`[Notifier] Whitelisting user ${tid} based on approved survey...`);
-          const accessAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // +24 часа
+        if (user) {
+          if (!user.beta_whitelisted) {
+            console.log(`[Notifier] Whitelisting user ${tid} based on approved survey...`);
+            const accessAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // +24 часа
+            await supabase
+              .from('users')
+              .update({
+                beta_whitelisted: true,
+                beta_approved_at: nowIso,
+                beta_access_at: accessAt,
+                subscription_type: 'beta'
+              })
+              .eq('id', user.id);
+          }
+        } else {
+          // Если пользователя ВООБЩЕ нет в users (например, зашел сразу в опрос)
+          console.log(`[Notifier] Creating missing user ${tid} from approved survey...`);
+          const accessAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
           await supabase
             .from('users')
-            .update({
+            .insert({
+              tg_id: tid,
               beta_whitelisted: true,
               beta_approved_at: nowIso,
               beta_access_at: accessAt,
-              subscription_type: 'beta'
-            })
-            .eq('id', user.id);
-
-          // Опционально: можно отправить сообщение "Вы одобрены, доступ через 24ч", 
-          // но сейчас ограничимся тем, что пользователь увидит таймер при входе
+              subscription_type: 'beta',
+              tokens: 0,
+              channel_reward_claimed: false
+            });
         }
       }
     }

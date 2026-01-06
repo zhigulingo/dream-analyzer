@@ -185,22 +185,36 @@ exports.handler = async (event) => {
       return { statusCode: 500, body: JSON.stringify({ error: 'Database error', code: error.code, details: error.message }) };
     }
 
-    // Обновим тип подписки пользователя на 'beta' (новая семантика: подал заявку, ждёт одобрения)
+    // Создаем или обновляем пользователя в таблице users при финальной отправке
     if (isFinalSubmit && resolvedTgId) {
       try {
+        console.log('[submit-survey] Ensuring user exists in users table:', resolvedTgId);
         const { data: urows } = await supabase
           .from('users')
           .select('id, beta_whitelisted, subscription_type')
           .eq('tg_id', resolvedTgId)
           .limit(1);
+
         const urow = Array.isArray(urows) && urows[0] ? urows[0] : null;
-        if (urow && !urow.beta_whitelisted) {
-          await supabase
-            .from('users')
-            .update({ subscription_type: 'beta' })
-            .eq('id', urow.id);
+
+        if (urow) {
+          // Если пользователь есть, просто обновляем статус на beta (если он не whitelisted)
+          if (!urow.beta_whitelisted && urow.subscription_type !== 'beta') {
+            await supabase.from('users').update({ subscription_type: 'beta' }).eq('id', urow.id);
+          }
+        } else {
+          // Если пользователя нет — создаем его!
+          await supabase.from('users').insert({
+            tg_id: resolvedTgId,
+            subscription_type: 'beta',
+            tokens: 0,
+            channel_reward_claimed: false
+          });
+          console.log('[submit-survey] New user created in users table via survey');
         }
-      } catch (_) { }
+      } catch (e) {
+        console.warn('[submit-survey] Failed to sync user status:', e.message);
+      }
     }
 
     // Уведомим пользователя в Telegram при финальной отправке анкеты
