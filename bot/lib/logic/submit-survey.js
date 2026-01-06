@@ -1,5 +1,4 @@
 const { createClient } = require('@supabase/supabase-js');
-const { getCorsHeaders, handleCorsPrelight } = require('./shared/middleware/cors');
 const { validateTelegramData, isInitDataValid } = require('./shared/auth/telegram-validator');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -9,7 +8,6 @@ function validateAnswers(answers) {
   if (!answers || typeof answers !== 'object') return false;
   const hasAll = ['q1', 'q2', 'q3', 'q4', 'q6', 'q7', 'q8', 'q9'].every(k => k in answers);
   if (!hasAll) return false;
-  // q1 теперь кнопки: принимаем строку
   const q1ok = typeof answers.q1 === 'string' && answers.q1.length > 0;
   const btn = v => typeof v === 'string' && v.length > 0;
   const text = v => typeof v === 'string' && v.trim().length > 3;
@@ -18,15 +16,8 @@ function validateAnswers(answers) {
 }
 
 exports.handler = async (event) => {
-  const requestOrigin = event.headers.origin || event.headers.Origin || '';
-  const ALLOWED_SURVEY_ORIGIN = process.env.ALLOWED_SURVEY_ORIGIN || '';
-  const allowed = [ALLOWED_SURVEY_ORIGIN, requestOrigin].filter(Boolean);
-  const corsHeaders = getCorsHeaders(event, allowed);
-  const pre = handleCorsPrelight(event, allowed);
-  if (pre) return pre;
-
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: 'Method not allowed' }) };
+    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   try {
@@ -35,11 +26,11 @@ exports.handler = async (event) => {
 
     const isFinalSubmit = !!answers && typeof answers === 'object';
     if (isFinalSubmit && !validateAnswers(answers)) {
-      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid answers' }) };
+      return { statusCode: 400, body: JSON.stringify({ error: 'Invalid answers' }) };
     }
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Server not configured' }) };
+      return { statusCode: 500, body: JSON.stringify({ error: 'Server not configured' }) };
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -191,7 +182,7 @@ exports.handler = async (event) => {
 
     if (error) {
       console.error('[submit-survey] upsert error', { onConflictColumn, upsertPayloadSummary: { hasTg: !!upsertPayload.tg_id, hasClient: !!upsertPayload.client_id }, error });
-      return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Database error', code: error.code, details: error.message }) };
+      return { statusCode: 500, body: JSON.stringify({ error: 'Database error', code: error.code, details: error.message }) };
     }
 
     // Обновим тип подписки пользователя на 'beta' (новая семантика: подал заявку, ждёт одобрения)
@@ -285,10 +276,10 @@ exports.handler = async (event) => {
       }
     }
 
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ success: true }) };
+    return { statusCode: 200, body: JSON.stringify({ success: true }) };
   } catch (e) {
     console.error('[submit-survey] exception', { message: e?.message, stack: e?.stack, body: event.body });
-    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Internal error', details: e?.message }) };
+    return { statusCode: 500, body: JSON.stringify({ error: 'Internal error', details: e?.message }) };
   }
 };
 
