@@ -78,7 +78,7 @@ api.interceptors.request.use((config) => {
 });
 
 export async function getSurveyStatus() {
-  const { data } = await api.get('/survey-status');
+  const { data } = await api.get('/survey-status?t=' + Date.now());
   return data;
 }
 

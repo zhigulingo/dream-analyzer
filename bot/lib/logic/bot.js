@@ -106,6 +106,15 @@ async function initBot() {
         console.error("Grammy error:", err.error);
     });
 
+    // Initialize bot info (required for handleUpdate)
+    try {
+        await bot.init();
+        console.log(`[Bot] Initialized as ${bot.botInfo.username}`);
+    } catch (e) {
+        console.error("[Bot] Failed to fetch bot info:", e.message);
+        // We can continue, but some middleware might fail if they depend on botInfo
+    }
+
     cachedBot = bot;
     return bot;
 }
