@@ -1,10 +1,8 @@
 // bot/functions/bot.js
 
 // --- Imports ---
-const { Bot, GrammyError, HttpError, webhookCallback } = require("grammy");
+const { Bot, GrammyError, HttpError } = require("grammy");
 const { createClient } = require("@supabase/supabase-js");
-
-// Импорт structured logger
 const { createLogger } = require("./shared/utils/logger");
 
 // Import services
@@ -14,9 +12,7 @@ const AnalysisService = require("./bot/services/analysis-service");
 
 // Import handlers
 const createStartCommandHandler = require("./bot/handlers/start-command");
-const createSetPasswordCommandHandler = require("./bot/handlers/setpassword-command");
 const createTextMessageHandler = require("./bot/handlers/text-message");
-const createGoLiveCommandHandler = require("./bot/handlers/golive-command");
 const {
     createPreCheckoutQueryHandler,
     createSuccessfulPaymentHandler
@@ -37,165 +33,64 @@ let supabaseAdmin;
 let userService;
 let messageService;
 let analysisService;
-let initializationError = null;
-let botInitializedAndHandlersSet = false;
-
-// Создание логгера для бота
 const logger = createLogger({ module: 'telegram-bot' });
 
 try {
-    // Генерируем correlation ID для инициализации
-    const correlationId = logger.generateCorrelationId();
-
-    logger.info("Bot initialization started", {
-        correlationId,
-        environment: process.env.NODE_ENV || 'development'
-    });
-
-    // Validate environment variables
     if (!BOT_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_KEY || !GEMINI_API_KEY) {
-        throw new Error("FATAL: Missing one or more critical environment variables! (BOT_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY)");
+        throw new Error("Missing critical environment variables!");
     }
 
-    // Initialize clients
     supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
         auth: { autoRefreshToken: false, persistSession: false }
     });
     bot = new Bot(BOT_TOKEN);
 
-    logger.info("Bot clients and instance created", {
-        botToken: BOT_TOKEN ? 'configured' : 'missing',
-        supabaseUrl: SUPABASE_URL ? 'configured' : 'missing'
-    });
-
-    // Resolve TMA app URL (fallback to allowed origin if TMA_URL is not set)
-    // Updated fallback to use ALLOWED_TMA_ORIGIN or empty string instead of netlify
     const TMA_APP_URL = TMA_URL || ALLOWED_TMA_ORIGIN || '';
-    logger.info("Resolved TMA app URL", { TMA_APP_URL, hasExplicitTmaUrl: !!TMA_URL, allowedOrigin: ALLOWED_TMA_ORIGIN });
-
-    // Initialize services
     userService = new UserService(supabaseAdmin);
     messageService = new MessageService(bot.api);
     analysisService = new AnalysisService(supabaseAdmin);
 
-    logger.info("Bot services initialized", {
-        services: ['UserService', 'MessageService', 'AnalysisService']
-    });
-
     // --- Setting up Handlers ---
-    logger.info("Setting up bot handlers");
 
-    // Global 5‑minute stub for any incoming messages/commands to prevent spam during beta survey
+    // 1. Global Stub for Guests
     bot.on('message', async (ctx, next) => {
         try {
             const userId = ctx.from?.id;
-            const updateId = ctx.update?.update_id;
-            // Ignore stale updates (>60s)
-            try {
-                const msgTs = Number(ctx.message?.date || 0);
-                const ageSec = Math.floor(Date.now() / 1000) - msgTs;
-                if (ageSec > 60) return; // silent ignore
-            } catch (_) { }
+            const msgTs = Number(ctx.message?.date || 0);
+            if (Math.floor(Date.now() / 1000) - msgTs > 60) return;
 
-            // Resolve user type to customize message for guests
-            let isGuest = true;
             let subType = 'guest';
             try {
                 if (userId && supabaseAdmin) {
-                    const { data: u } = await supabaseAdmin
-                        .from('users')
-                        .select('subscription_type')
-                        .eq('tg_id', userId)
-                        .single();
+                    const { data: u } = await supabaseAdmin.from('users').select('subscription_type').eq('tg_id', userId).single();
                     subType = String(u?.subscription_type || 'guest').toLowerCase();
-                    isGuest = (subType === 'guest');
-                    console.log(`[Bot Stub] User ${userId} status: ${subType}, isGuest: ${isGuest}`);
                 }
-            } catch (e) { console.warn('[Bot Stub] DB check failed:', e.message); /* default to guest */ }
+            } catch (_) { }
 
-            // For any non-guest user types (beta, whitelisted, onboarding, free, paid): skip stub and allow normal handlers
-            if (subType !== 'guest') {
+            // Admins and non-guests proceed
+            if (ADMIN_IDS.includes(String(userId)) || subType !== 'guest') {
                 return next();
             }
 
-            const cache = require('./shared/services/cache-service');
-            // Idempotency by update_id (1 hour) — only for stub path
-            if (updateId) {
-                const idemKey = `bot:idem:update:${updateId}`;
-                if (cache.get(idemKey)) return;
-                cache.set(idemKey, true, 60 * 60 * 1000);
-            }
-            // Debounce per user (5 minutes) — only for stub path
-            const debounceKey = userId ? `bot:stub:5m:${userId}` : null;
-            if (debounceKey && cache.get(debounceKey)) {
-                return; // swallow within buffer window
-            }
-            if (debounceKey) cache.set(debounceKey, true, 5 * 60 * 1000);
-
-            let sent;
-            if (isGuest) {
-                const text = 'Привет! Наш бот в процессе обновления и скоро будет вновь доступен. Следи за новостями и подпишись на нашу группу: @TheDreamsHub';
-                sent = await messageService.sendReply(ctx, text);
-            } else {
-                const text = 'Мы запускаем бета-тест. Пожалуйста, заполните короткий опрос — это займёт пару минут.';
-                // Use URL button to open survey TMA via t.me link
-                const SURVEY_URL = process.env.SURVEY_APP_URL || 'https://t.me/dreamtestaibot/betasurvey';
-                sent = await messageService.sendReply(ctx, text, {
-                    reply_markup: { inline_keyboard: [[{ text: 'Принять участие', url: SURVEY_URL }]] }
-                });
-            }
-            // Persist last message id for later edits
-            try {
-                if (sent && sent.message_id && userId) {
-                    const { createClient } = require('@supabase/supabase-js');
-                    const SUPABASE_URL = process.env.SUPABASE_URL;
-                    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-                    if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
-                        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
-                        // Ensure user exists then update last_start_message_id
-                        const { data: u } = await supabase.from('users').select('id').eq('tg_id', userId).single();
-                        if (!u) {
-                            await supabase.from('users').insert({ tg_id: userId, subscription_type: 'guest', tokens: 0, channel_reward_claimed: false });
-                        }
-                        await supabase.from('users').update({ last_start_message_id: sent.message_id }).eq('tg_id', userId);
-                    }
-                }
-            } catch (e) { logger.warn('Failed to persist stub message id', { error: e?.message }); }
+            // Guest stub
+            const text = 'Привет! Наш бот в процессе обновления и скоро будет вновь доступен. Следи за новостями и подпишись на нашу группу: @TheDreamsHub';
+            await messageService.sendReply(ctx, text);
         } catch (e) {
             logger.warn('Stub handler failed', { error: e?.message });
         }
-        return; // stop further handlers when stub path used
     });
 
-    // Command handlers
-    bot.command("start", createStartCommandHandler(userService, messageService, TMA_APP_URL));
-    bot.command("setpassword", createSetPasswordCommandHandler(userService, messageService));
-    bot.command("golive", createGoLiveCommandHandler(userService, messageService, ADMIN_IDS, TMA_APP_URL));
-
-    // Admin command to get Channel ID by forwarding a message
-    bot.on('message:forward_origin', async (ctx) => {
-        if (!ADMIN_IDS.includes(ctx.from?.id)) return;
-        const origin = ctx.message.forward_origin;
-        if (origin.type === 'chat') {
-            await ctx.reply(`ID этого канала: <code>${origin.chat.id}</code>`, { parse_mode: 'HTML' });
-        }
-    });
-
-    // Command /startbeta [текст] - sends announcement to channel
+    // 2. Admin Command: /startbeta [текст]
     bot.command('startbeta', async (ctx) => {
-        if (!ADMIN_IDS.includes(ctx.from?.id)) return ctx.reply('У вас нет прав администратора.');
+        if (!ADMIN_IDS.includes(String(ctx.from?.id))) return;
 
         const text = ctx.match || 'Дорогие друзья, наконец мы готовы пригласить вас принять участие в бета тесте! Откликнуться и принять участие можно кликнув по кнопке ниже';
         const channelId = process.env.BETA_CHANNEL_ID;
         const appUrl = process.env.SURVEY_APP_URL || 'https://t.me/dreamtestaibot/betasurvey';
 
-        if (!channelId) return ctx.reply('Ошибка: BETA_CHANNEL_ID не настроен в переменных окружения.');
-
-        await ctx.reply(`Отправляю анонс в канал ${channelId}...`);
+        if (!channelId) return ctx.reply('Ошибка: BETA_CHANNEL_ID не настроен.');
 
         try {
-            const botToken = process.env.BOT_TOKEN;
-            const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
             const payload = {
                 chat_id: channelId,
                 text: text,
@@ -203,190 +98,44 @@ try {
                     inline_keyboard: [[{ text: 'Принять участие', url: appUrl }]]
                 }
             };
-            const resp = await fetch(url, {
+            const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
             const result = await resp.json();
-            if (result.ok) {
-                await ctx.reply('✅ Анонс успешно опубликован!');
-            } else {
-                await ctx.reply(`❌ Ошибка Telegram: ${result.description}`);
-            }
+            if (result.ok) await ctx.reply('✅ Анонс опубликован!');
+            else await ctx.reply(`❌ Ошибка: ${result.description}`);
         } catch (e) {
-            await ctx.reply(`❌ Системная ошибка: ${e.message}`);
+            await ctx.reply(`❌ Ошибка: ${e.message}`);
         }
     });
 
-    // Ingest command (one-time, open access, with strong idempotency)
-    bot.command('ingest_database', async (ctx) => {
-        const cache = require('./shared/services/cache-service');
-        try {
-            const updateId = ctx.update?.update_id;
-            // Ignore stale updates (>60s)
-            try {
-                const msgTs = Number(ctx.message?.date || 0);
-                const ageSec = Math.floor(Date.now() / 1000) - msgTs;
-                if (ageSec > 60) {
-                    return; // silent ignore
-                }
-            } catch (_) { }
+    // 3. Command: /start
+    bot.command("start", createStartCommandHandler(userService, messageService, TMA_APP_URL));
 
-            // Idempotency by update_id (1 hour)
-            const idemKey = `bot:idem:update:${updateId}`;
-            if (cache.get(idemKey)) {
-                return;
-            }
-            cache.set(idemKey, true, 60 * 60 * 1000);
-
-            // Single-flight lock for ingest (10 minutes)
-            const lockKey = 'bot:ingest:lock';
-            if (cache.get(lockKey)) {
-                return ctx.reply('Инжест уже выполняется, подождите...');
-            }
-            cache.set(lockKey, true, 10 * 60 * 1000);
-
-            await ctx.reply('Запускаю инжест базы знаний (фоново)...');
-
-            const siteUrl = process.env.FUNCTIONS_BASE_URL || process.env.URL || process.env.WEB_URL || process.env.TMA_URL || process.env.ALLOWED_TMA_ORIGIN;
-            if (!siteUrl) {
-                throw new Error('Site URL is not configured');
-            }
-            const url = new URL('/api/ingest-knowledge-background', siteUrl).toString();
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reset: true, chatId: ctx.chat?.id })
-            });
-            const txt = await res.text();
-            await ctx.reply(`Инжест запущен. Ответ функции: ${txt.slice(0, 100)}`);
-        } catch (e) {
-            try { cache.delete('bot:ingest:lock'); } catch (_) { }
-            await ctx.reply(`Ошибка инжеста: ${e?.message || 'неизвестная ошибка'}`);
-        } finally {
-            // Release lock after short delay to avoid immediate re-entry
-            setTimeout(() => { try { cache.delete('bot:ingest:lock'); } catch (_) { } }, 5 * 1000);
-        }
-    });
-
-    // Message handlers (inactive due to global stub above)
+    // 4. Main Dream Analysis Handler
     bot.on("message:text", createTextMessageHandler(userService, messageService, analysisService, TMA_APP_URL));
 
-    // Payment handlers
+    // 5. Payment Handlers
     bot.on('pre_checkout_query', createPreCheckoutQueryHandler(messageService));
     bot.on('message:successful_payment', createSuccessfulPaymentHandler(userService, messageService));
 
-    // Error handler
     bot.catch((err) => {
-        const ctx = err.ctx;
-        const e = err.error;
-        const updateId = ctx?.update?.update_id;
-        const userId = ctx?.from?.id;
-        const chatId = ctx?.chat?.id;
-
-        if (e instanceof GrammyError) {
-            logger.botError("grammy_error", e, userId, chatId, {
-                updateId,
-                description: e.description,
-                payload: e.payload
-            });
-        } else if (e instanceof HttpError) {
-            logger.botError("http_error", e, userId, chatId, {
-                updateId
-            });
-        } else if (e instanceof Error) {
-            logger.botError("general_error", e, userId, chatId, {
-                updateId
-            });
-        } else {
-            logger.error("Unknown error object in bot.catch", {
-                updateId,
-                userId,
-                chatId,
-                errorType: typeof e,
-                error: e
-            });
-        }
+        logger.error("Bot error", err.error);
     });
 
-    logger.info("Bot handlers setup completed successfully");
-    botInitializedAndHandlersSet = true;
-
-} catch (error) {
-    logger.error("Critical bot initialization error", {
-        botTokenSet: !!BOT_TOKEN,
-        supabaseSet: !!SUPABASE_URL,
-        geminiSet: !!GEMINI_API_KEY
-    }, error);
-    initializationError = error;
-    bot = null;
-    botInitializedAndHandlersSet = false;
+} catch (e) {
+    logger.error("Failed to initialize bot", e);
 }
 
-
-
-// --- Export handler for Netlify with webhookCallback ---
-let netlifyWebhookHandler = null;
-if (botInitializedAndHandlersSet && bot) {
+exports.handler = async (event) => {
     try {
-        // Используем async-режим AWS Lambda, совместимый с нашей обёрткой
-        netlifyWebhookHandler = webhookCallback(bot, 'aws-lambda-async');
-        logger.info("Webhook callback created successfully");
-    } catch (callbackError) {
-        logger.error("Failed to create webhook callback", {}, callbackError);
-        initializationError = callbackError;
+        const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+        await bot.handleUpdate(body);
+        return { statusCode: 200, body: 'ok' };
+    } catch (e) {
+        console.error('Webhook error:', e);
+        return { statusCode: 500, body: 'error' };
     }
-} else {
-    logger.error("Skipping webhook callback creation due to initialization errors", {
-        botInitialized: botInitializedAndHandlersSet,
-        botExists: !!bot,
-        initError: initializationError?.message
-    });
-}
-
-exports.handler = async (event, context) => {
-    // Не ждём очистки event loop, чтобы ускорить возврат ответа
-    try { context.callbackWaitsForEmptyEventLoop = false; } catch (_) { }
-    const handlerLogger = logger.child({ handler: 'netlify-webhook' });
-    handlerLogger.generateCorrelationId();
-
-    handlerLogger.info("Netlify handler invoked", {
-        method: event.httpMethod,
-        path: event.path,
-        hasBody: !!event.body,
-        bodyType: typeof event.body,
-        botTokenSet: !!process.env.BOT_TOKEN,
-        botPaused: process.env.BOT_PAUSED === 'true' ? 'true' : 'false'
-    });
-
-    if (event.body) {
-        try {
-            const parsedBody = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
-            handlerLogger.info("Update received", {
-                update_id: parsedBody.update_id,
-                message_text: parsedBody.message?.text,
-                from_id: parsedBody.message?.from?.id
-            });
-        } catch (e) {
-            handlerLogger.warn("Failed to parse body for logging", { error: e.message });
-        }
-    }
-
-    if (initializationError || !netlifyWebhookHandler) {
-        handlerLogger.error("Handler failed due to initialization errors", {
-            hasInitError: !!initializationError,
-            hasWebhookHandler: !!netlifyWebhookHandler,
-            initErrorMessage: initializationError?.message
-        }, initializationError);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: "Internal Server Error: Bot failed to initialize." })
-        };
-    }
-
-    handlerLogger.info("Calling webhook callback handler");
-    return netlifyWebhookHandler(event, context);
 };
-
-logger.info("Netlify handler exported successfully");

@@ -70,8 +70,18 @@ function createTextMessageHandler(userService, messageService, analysisService, 
         }
 
         // Ignore commands
-        if (dreamText.startsWith('/')) {
-            console.log(`[TextMessageHandler] Ignoring command.`);
+        if (typeof dreamText !== 'string' || dreamText.startsWith('/')) {
+            console.log(`[TextMessageHandler] Ignoring non-text or command.`);
+            return;
+        }
+
+        // Длина сна (минимум 100 символов)
+        if (dreamText.length < 100) {
+            console.log(`[TextMessageHandler] Dream too short: ${dreamText.length} chars.`);
+            try {
+                const tooShortText = 'Пожалуйста, опишите ваш сон подробнее (минимум 100 символов). Чем больше деталей вы укажете, тем точнее будет анализ. ✨';
+                await messageService.sendReply(ctx, tooShortText);
+            } catch (_) { }
             return;
         }
 
