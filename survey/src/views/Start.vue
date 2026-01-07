@@ -48,19 +48,9 @@ onMounted(async () => {
   try {
     const state = await getSurveyUserState(store.clientId);
     if (state?.submitted) {
-      try {
-        const tg = window?.Telegram?.WebApp;
-        if (tg?.MainButton) {
-          tg.MainButton.setParams({ text: 'Заявка принята', is_active: true, is_visible: true });
-          const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} emit('start'); emit('finish'); };
-          try { tg.MainButton.offClick(handler); } catch {}
-          tg.MainButton.onClick(handler);
-          tg.MainButton.show();
-        }
-      } catch {}
       // Обновим кнопку в последнем /start сообщении, если не была обновлена ранее
       try { updateStartButton('Заявка принята').catch(() => {}); } catch {}
-      // Перейдём сразу на finish
+      // Перейдём сразу на finish, пусть он и управляет MainButton
       try { emit('finish'); } catch {}
       return;
     }

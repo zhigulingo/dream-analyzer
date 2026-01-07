@@ -15,43 +15,60 @@ function returnToChat() {
     const tg = window?.Telegram?.WebApp;
     if (tg) {
       try { tg.HapticFeedback?.impactOccurred?.('rigid'); } catch {}
-      try { tg.expand?.(); } catch {}
-      // Пытаемся закрыть приложение стандартными методами
-      try { if (typeof tg.close === 'function') { tg.close(); return; } } catch {}
-      try { if (typeof tg.requestClose === 'function') { tg.requestClose(); return; } } catch {}
-      // Фолбэк через BackButton
-      try { tg.BackButton?.show?.(); tg.BackButton?.onClick?.(() => tg.close?.()); } catch {}
-      // Фолбэк: открыть чат бота в Telegram
-      try {
-        const botUrl = import.meta.env.VITE_TG_BOT_URL;
-        if (tg.openTelegramLink && botUrl) { tg.openTelegramLink(botUrl); return; }
-      } catch {}
+      // Самый надежный способ закрыть TWA
+      try { tg.close(); } catch {}
+      // Если не закрылось сразу (например, в десктопе иногда нужно время)
+      setTimeout(() => {
+        try { window.close(); } catch {}
+        try {
+          const url = import.meta.env.VITE_TG_BOT_URL || 'https://t.me/dreamstalk_bot';
+          const deeplink = url.replace('https://t.me/','tg://resolve?domain=');
+          location.href = deeplink;
+        } catch {}
+      }, 500);
+      return;
     }
   } catch {}
-  // В вебе/десктопе: сначала назад, если есть история, иначе попытка закрыть окно
-  try { if (history.length > 1) { history.back(); return; } } catch {}
+  // В вебе/десктопе
   try { window.close(); } catch {}
-  // Жёсткий fallback: перейти в чат
   try {
     const url = import.meta.env.VITE_TG_BOT_URL || 'https://t.me/dreamstalk_bot';
-    // Попытка tg:// ссылки для desktop Telegram
-    const deeplink = url.replace('https://t.me/','tg://resolve?domain=');
-    location.href = deeplink;
+    location.href = url;
   } catch {}
 }
+
+const mainButtonHandler = () => { returnToChat(); };
 
 onMounted(() => {
   try {
     const tg = window?.Telegram?.WebApp;
-    if (tg?.MainButton) {
+    if (tg) {
       if (tg?.ready) tg.ready();
       if (tg?.expand) tg.expand();
-      try { tg.MainButton.setParams({ text: 'Закрыть', is_active: true, is_visible: true }); } catch { tg.MainButton.setText('Закрыть'); }
-      tg.MainButton.show();
-      const handler = () => { returnToChat(); };
-      try { tg.MainButton.offClick(handler); } catch {}
-      tg.MainButton.onClick(handler);
-      onUnmounted(() => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} });
+      
+      if (tg?.MainButton) {
+        tg.MainButton.setParams({ 
+          text: 'Закрыть', 
+          is_active: true, 
+          is_visible: true,
+          color: '#ffffff',
+          text_color: '#111827'
+        });
+        tg.MainButton.show();
+        tg.MainButton.onClick(mainButtonHandler);
+      }
+    }
+  } catch (err) {
+    console.error('Error in Finish.vue onMounted:', err);
+  }
+});
+
+onUnmounted(() => {
+  try {
+    const tg = window?.Telegram?.WebApp;
+    if (tg?.MainButton) {
+      tg.MainButton.offClick(mainButtonHandler);
+      tg.MainButton.hide();
     }
   } catch {}
 });
