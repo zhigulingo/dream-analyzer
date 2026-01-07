@@ -1,6 +1,9 @@
 <template>
   <div class="start-wrap">
-    <div class="start-card onboarding-card slidePeek center-card">
+    <div v-if="loading" class="preloader">
+      <div class="spinner"></div>
+    </div>
+    <div v-else class="start-card onboarding-card slidePeek center-card">
       <h1>Бета‑тест Dream Analyzer</h1>
       <p class="lead">Ответьте на 10 вопросов, чтобы участвовать в закрытом тесте.</p>
       <div v-if="countdown && countdown.totalMs > 0" class="timer">
@@ -27,6 +30,7 @@ function emitStart() {
   emit('start');
 }
 
+const loading = ref(true);
 const isOpen = ref(true);
 const countdown = ref(null);
 let t;
@@ -44,59 +48,65 @@ function computeCountdown(targetIso) {
 }
 
 onMounted(async () => {
-  // Если уже подавал заявку – сразу показать Finish
   try {
-    const state = await getSurveyUserState(store.clientId);
-    if (state?.submitted) {
-      // Обновим кнопку в последнем /start сообщении, если не была обновлена ранее
-      try { updateStartButton('Заявка принята').catch(() => {}); } catch {}
-      // Перейдём сразу на finish, пусть он и управляет MainButton
-      try { emit('finish'); } catch {}
-      return;
-    }
-  } catch {}
-  try {
-    const data = await getSurveyStatus();
-    console.log('[Survey] Status data:', data);
-    if (data && typeof data.isOpen !== 'undefined') {
-      isOpen.value = !!data.isOpen;
-      if (data.startAt) {
-        countdown.value = computeCountdown(data.startAt);
-        t = setInterval(() => {
-          countdown.value = computeCountdown(data.startAt);
-        }, 1000);
+    // Если уже подавал заявку – сразу показать Finish
+    try {
+      const state = await getSurveyUserState(store.clientId);
+      if (state?.submitted) {
+        // Обновим кнопку в последнем /start сообщении, если не была обновлена ранее
+        try { updateStartButton('Заявка принята').catch(() => {}); } catch {}
+        // Перейдём сразу на finish, пусть он и управляет MainButton
+        try { emit('finish'); } catch {}
+        return;
       }
-    } else {
-      console.warn('[Survey] Invalid status data, falling back to open');
-      isOpen.value = true;
+    } catch {}
+
+    try {
+      const data = await getSurveyStatus();
+      console.log('[Survey] Status data:', data);
+      if (data && typeof data.isOpen !== 'undefined') {
+        isOpen.value = !!data.isOpen;
+        if (data.startAt) {
+          countdown.value = computeCountdown(data.startAt);
+          t = setInterval(() => {
+            countdown.value = computeCountdown(data.startAt);
+          }, 1000);
+        }
+      } else {
+        console.warn('[Survey] Invalid status data, falling back to open');
+        isOpen.value = true;
+      }
+    } catch (err) {
+      console.error('[Survey] Failed to fetch status:', err);
+      isOpen.value = true; // локальный фолбэк
     }
-  } catch (err) {
-    console.error('[Survey] Failed to fetch status:', err);
-    isOpen.value = true; // локальный фолбэк
+
+    // Показ MainButton при готовности
+    try {
+      const tg = window?.Telegram?.WebApp;
+      if (tg?.ready) tg.ready();
+      if (tg?.expand) tg.expand();
+      if (tg?.MainButton) {
+        hasMainButton.value = true;
+        try { tg.MainButton.setParams({ text: 'Начать опрос', is_active: true, is_visible: true }); } catch { tg.MainButton.setText('Начать опрос'); }
+        if (isOpen.value) tg.MainButton.show(); else tg.MainButton.hide();
+        const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} emitStart(); };
+        try { tg.MainButton.offClick(handler); } catch {}
+        tg.MainButton.onClick(handler);
+        // Убираем MainButton при размонтировании
+        onUnmounted(() => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} });
+        // Следим за открытием окна опроса (isOpen)
+        try {
+          watch(isOpen, (val) => {
+            try { tg.MainButton.setParams({ text: 'Начать опрос', is_active: true }); } catch { tg.MainButton.setText('Начать опрос'); }
+            if (val) tg.MainButton.show(); else tg.MainButton.hide();
+          });
+        } catch {}
+      }
+    } catch {}
+  } finally {
+    loading.value = false;
   }
-  // Показ MainButton при готовности
-  try {
-    const tg = window?.Telegram?.WebApp;
-    if (tg?.ready) tg.ready();
-    if (tg?.expand) tg.expand();
-    if (tg?.MainButton) {
-      hasMainButton.value = true;
-      try { tg.MainButton.setParams({ text: 'Начать опрос', is_active: true, is_visible: true }); } catch { tg.MainButton.setText('Начать опрос'); }
-      if (isOpen.value) tg.MainButton.show(); else tg.MainButton.hide();
-      const handler = () => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} emitStart(); };
-      try { tg.MainButton.offClick(handler); } catch {}
-      tg.MainButton.onClick(handler);
-      // Убираем MainButton при размонтировании
-      onUnmounted(() => { try { tg.MainButton.hide(); tg.MainButton.offClick(handler); } catch {} });
-      // Следим за открытием окна опроса (isOpen)
-      try {
-        watch(isOpen, (val) => {
-          try { tg.MainButton.setParams({ text: 'Начать опрос', is_active: true }); } catch { tg.MainButton.setText('Начать опрос'); }
-          if (val) tg.MainButton.show(); else tg.MainButton.hide();
-        });
-      } catch {}
-    }
-  } catch {}
 });
 
 onUnmounted(() => { if (t) clearInterval(t); });
@@ -104,6 +114,9 @@ onUnmounted(() => { if (t) clearInterval(t); });
 
 <style scoped>
 .start-wrap { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 0; box-sizing: border-box; }
+.preloader { display: flex; justify-content: center; align-items: center; width: 100%; height: 100vh; }
+.spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid #fff; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 .start-card { width: calc(100% - 32px); max-width: 560px; padding: 24px; border-radius: 20px; color: #fff; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); box-shadow: 0 12px 28px rgba(0,0,0,0.16); min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 h1 { font-size: 22px; margin: 0 0 8px; text-align: center; }
 .lead { opacity: 0.95; }
