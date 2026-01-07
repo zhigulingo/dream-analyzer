@@ -64,7 +64,7 @@ exports.handler = async (event) => {
                 beta_whitelisted: true,
                 beta_approved_at: nowIso,
                 beta_access_at: accessAt,
-                subscription_type: 'beta'
+                subscription_type: 'whitelisted'  // ИСПРАВЛЕНО: whitelisted вместо beta
               })
               .eq('id', user.id);
           }
@@ -79,7 +79,7 @@ exports.handler = async (event) => {
               beta_whitelisted: true,
               beta_approved_at: nowIso,
               beta_access_at: accessAt,
-              subscription_type: 'beta',
+              subscription_type: 'whitelisted',  // ИСПРАВЛЕНО: whitelisted вместо beta
               tokens: 0,
               channel_reward_claimed: false
             });

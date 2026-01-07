@@ -2,8 +2,8 @@
 <template>
   <div class="tma-app-container">
     <BetaGate v-if="!onboardingVisible && appReady && !userStore.profile?.beta_whitelisted" />
-    <BetaTimer v-else-if="!onboardingVisible && appReady && userStore.profile?.beta_whitelisted && userStore.profile?.beta_access_at && (new Date(userStore.profile.beta_access_at).getTime() > Date.now())" />
-    <BetaReady v-else-if="!onboardingVisible && appReady && (String(userStore.profile?.subscription_type || '').toLowerCase() === 'beta')" />
+    <BetaTimer v-else-if="!onboardingVisible && appReady && userStore.profile?.beta_whitelisted && userStore.profile?.subscription_type === 'whitelisted' && userStore.profile?.beta_access_at && (new Date(userStore.profile.beta_access_at).getTime() > Date.now())" />
+    <BetaReady v-else-if="!onboardingVisible && appReady && userStore.profile?.beta_whitelisted && userStore.profile?.subscription_type === 'whitelisted' && userStore.profile?.beta_access_at && (new Date(userStore.profile.beta_access_at).getTime() <= Date.now())" />
     <PersonalAccount v-else-if="!onboardingVisible && appReady" />
     <NotificationSystem v-if="!onboardingVisible" />
     <Onboarding @visible-change="onboardingVisible = $event" />

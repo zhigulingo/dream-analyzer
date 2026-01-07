@@ -197,26 +197,19 @@ exports.handler = async (event) => {
                                 beta_whitelisted: true,
                                 beta_approved_at: now.toISOString(),
                                 beta_access_at: accessAt,
-                                subscription_type: 'beta'
+                                subscription_type: 'whitelisted'  // ИСПРАВЛЕНО: whitelisted вместо beta
                             })
                             .eq('id', userData.id);
 
                         userData.beta_whitelisted = true;
                         userData.beta_access_at = accessAt;
-                        userData.subscription_type = 'beta';
+                        userData.subscription_type = 'whitelisted';
                     }
                 }
 
                 const accessAt = userData?.beta_access_at ? new Date(userData.beta_access_at).getTime() : null;
-                if (userData?.beta_whitelisted && (userData?.subscription_type === 'whitelisted' || userData?.subscription_type === 'beta') && accessAt && accessAt <= Date.now()) {
-                    // Если время доступа пришло, но статус еще не onboarding1/2 или free — это значит пора открывать вход
-                    // (Мы не переводим в onboarding здесь, это сделает BetaReady экран или само приложение)
-                    // Но убедимся, что тип подписки корректный
-                    if (userData?.subscription_type === 'whitelisted') {
-                        await supabase.from('users').update({ subscription_type: 'beta' }).eq('id', userData.id);
-                        userData.subscription_type = 'beta';
-                    }
-                }
+                // Примечание: переход из whitelisted в onboarding происходит в BetaReady компоненте
+                // Здесь мы только проверяем, что данные корректны
             } catch (_) { }
             // Кешируем результат если получены данные
             if (userData && !noCache) {
