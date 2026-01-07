@@ -12,20 +12,20 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 DECLARE
-  v_user_id UUID;
+  v_user_record RECORD;
   v_access_at TIMESTAMPTZ;
 BEGIN
   -- Триггер срабатывает только если approved изменился с false/null на true
   IF NEW.approved IS TRUE AND (OLD.approved IS NULL OR OLD.approved IS FALSE) THEN
     
     -- Ищем пользователя по tg_id
-    SELECT id INTO v_user_id
+    SELECT id, beta_whitelisted INTO v_user_record
     FROM public.users
     WHERE tg_id = NEW.tg_id
     LIMIT 1;
     
     -- Если пользователя нет - создаём его (на случай старых записей или ошибок)
-    IF v_user_id IS NULL THEN
+    IF v_user_record.id IS NULL THEN
       INSERT INTO public.users (
         tg_id,
         beta_whitelisted,
@@ -40,11 +40,10 @@ BEGIN
         TRUE,
         NOW(),
         NOW() + INTERVAL '24 hours',
-        'whitelisted',  -- ИСПРАВЛЕНО: whitelisted вместо beta
+        'whitelisted',
         0,
         FALSE
-      )
-      RETURNING id INTO v_user_id;
+      );
       
       RAISE NOTICE 'Created new user % from approved survey', NEW.tg_id;
     ELSE
@@ -56,8 +55,8 @@ BEGIN
         beta_whitelisted = TRUE,
         beta_approved_at = NOW(),
         beta_access_at = v_access_at,
-        subscription_type = 'whitelisted'  -- ИСПРАВЛЕНО: whitelisted вместо beta
-      WHERE id = v_user_id;
+        subscription_type = 'whitelisted'
+      WHERE id = v_user_record.id;
       
       RAISE NOTICE 'Updated user % status from beta to whitelisted with access at %', NEW.tg_id, v_access_at;
     END IF;
@@ -82,7 +81,7 @@ EXECUTE FUNCTION public.sync_beta_approval();
 DO $$
 DECLARE
   r RECORD;
-  v_user_id UUID;
+  v_user_record RECORD;
   v_access_at TIMESTAMPTZ;
 BEGIN
   FOR r IN 
@@ -91,12 +90,12 @@ BEGIN
     WHERE approved = TRUE
   LOOP
     -- Ищем пользователя
-    SELECT id INTO v_user_id
+    SELECT id, beta_whitelisted INTO v_user_record
     FROM public.users
     WHERE tg_id = r.tg_id
     LIMIT 1;
     
-    IF v_user_id IS NULL THEN
+    IF v_user_record.id IS NULL THEN
       -- Создаём нового пользователя (только для старых записей)
       INSERT INTO public.users (
         tg_id,
@@ -112,28 +111,22 @@ BEGIN
         TRUE,
         NOW(),
         NOW() + INTERVAL '24 hours',
-        'whitelisted',  -- ИСПРАВЛЕНО
+        'whitelisted',
         0,
         FALSE
       );
       RAISE NOTICE 'Created user % from existing approved survey', r.tg_id;
     ELSE
       -- Обновляем только если ещё не whitelisted
-      SELECT id INTO v_user_id
-      FROM public.users
-      WHERE tg_id = r.tg_id 
-        AND (beta_whitelisted IS NULL OR beta_whitelisted = FALSE)
-      LIMIT 1;
-      
-      IF v_user_id IS NOT NULL THEN
+      IF v_user_record.beta_whitelisted IS NULL OR v_user_record.beta_whitelisted = FALSE THEN
         v_access_at := NOW() + INTERVAL '24 hours';
         UPDATE public.users
         SET 
           beta_whitelisted = TRUE,
           beta_approved_at = NOW(),
           beta_access_at = v_access_at,
-          subscription_type = 'whitelisted'  -- ИСПРАВЛЕНО
-        WHERE id = v_user_id;
+          subscription_type = 'whitelisted'
+        WHERE id = v_user_record.id;
         RAISE NOTICE 'Fixed user % status (was beta, now whitelisted)', r.tg_id;
       END IF;
     END IF;
