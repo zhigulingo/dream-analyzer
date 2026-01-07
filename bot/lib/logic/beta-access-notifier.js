@@ -36,53 +36,48 @@ exports.handler = async (event) => {
     const now = new Date();
     const nowIso = now.toISOString();
 
-    // --- STEP 1: Sync Approved Surveys to Users ---
-    // Находим все одобренные анкеты
-    const { data: approvedSurveys } = await supabase
-      .from('beta_survey_responses')
-      .select('tg_id')
-      .eq('approved', true);
+    // --- STEP 1: Notify Users About Approval (whitelisted, waiting for timer) ---
+    // Находим пользователей, которые одобрены (whitelisted), но еще не получили уведомление об одобрении
+    const { data: approvedUsers, error: approvedError } = await supabase
+      .from('users')
+      .select('id, tg_id, beta_access_at')
+      .eq('beta_whitelisted', true)
+      .eq('subscription_type', 'whitelisted')
+      .or('beta_notified_approved.is.null,beta_notified_approved.eq.false');
 
-    if (approvedSurveys && approvedSurveys.length > 0) {
-      const approvedIds = approvedSurveys.map(s => s.tg_id).filter(Boolean);
+    if (!approvedError && approvedUsers && approvedUsers.length > 0) {
+      console.log(`[Notifier] Found ${approvedUsers.length} users to notify about approval`);
 
-      for (const tid of approvedIds) {
-        // Проверяем статус пользователя
-        const { data: user } = await supabase
-          .from('users')
-          .select('id, beta_whitelisted')
-          .eq('tg_id', tid)
-          .single();
+      for (const user of approvedUsers) {
+        try {
+          // Отправляем уведомление "Вы прошли отбор"
+          const accessDate = new Date(user.beta_access_at);
+          const hoursLeft = Math.ceil((accessDate.getTime() - Date.now()) / (1000 * 60 * 60));
 
-        if (user) {
-          if (!user.beta_whitelisted) {
-            console.log(`[Notifier] Whitelisting user ${tid} based on approved survey...`);
-            const accessAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // +24 часа
-            await supabase
-              .from('users')
-              .update({
-                beta_whitelisted: true,
-                beta_approved_at: nowIso,
-                beta_access_at: accessAt,
-                subscription_type: 'whitelisted'  // ИСПРАВЛЕНО: whitelisted вместо beta
-              })
-              .eq('id', user.id);
-          }
-        } else {
-          // Если пользователя ВООБЩЕ нет в users (например, зашел сразу в опрос)
-          console.log(`[Notifier] Creating missing user ${tid} from approved survey...`);
-          const accessAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+          const message = `🎉 Поздравляем!\n\nВы прошли отбор в бета-тестирование Dream Analyzer!\n\n⏰ Доступ к приложению откроется примерно через ${hoursLeft} ч.\n\nМы пришлем вам уведомление, как только приложение станет доступным.`;
+
+          const urlSend = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+          const resp = await fetch(urlSend, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: user.tg_id,
+              text: message,
+              parse_mode: 'HTML'
+            })
+          });
+
+          const dataResp = await resp.json().catch(() => ({}));
+          console.log(`[Notifier] Sent approval notification to user ${user.tg_id}`);
+
+          // Отмечаем, что уведомление отправлено
           await supabase
             .from('users')
-            .insert({
-              tg_id: tid,
-              beta_whitelisted: true,
-              beta_approved_at: nowIso,
-              beta_access_at: accessAt,
-              subscription_type: 'whitelisted',  // ИСПРАВЛЕНО: whitelisted вместо beta
-              tokens: 0,
-              channel_reward_claimed: false
-            });
+            .update({ beta_notified_approved: true })
+            .eq('id', user.id);
+
+        } catch (err) {
+          console.error(`[Notifier] Failed to notify user ${user.tg_id}:`, err.message);
         }
       }
     }
