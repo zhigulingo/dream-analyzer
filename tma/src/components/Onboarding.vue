@@ -315,8 +315,12 @@ const verifySubscription = async () => {
   }
   // Если возникла ошибка (часто это отсутствие подписки) — оставляем возможность перейти в канал
   if (userStore.claimRewardError) {
-    userStore.notificationStore?.warning(userStore.claimRewardError || 'Не удалось подтвердить подписку.')
+    userStore.notificationStore?.warning('Подписка не найдена. Открываем канал...')
     api.trackOnboarding('onboarding1_verify_failed', { reason: userStore.claimRewardError })
+    // Автоматически открываем канал через секунду, чтобы пользователь мог подписаться
+    setTimeout(() => {
+        goToCommunity()
+    }, 1500)
     return
   }
   try { /* stage остаётся onboarding1; переход в onboarding2 выполнит бэкенд после первого анализа */ } catch (_) {}
