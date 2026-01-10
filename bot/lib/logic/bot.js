@@ -144,10 +144,20 @@ async function initBot() {
 
                 // 3. Notify User
                 const hoursLeft = 24;
-                const message = `🎉 <b>Поздравляем!</b>\n\nВы прошли отбор в бета-тестирование Dream Analyzer!\n\n⏰ Доступ к приложению откроется примерно через <b>${hoursLeft} часа</b>.\n\nМы пришлем вам уведомление, как только приложение станет доступным.`;
+                const message = `🎉 <b>Поздравляем!</b>\n\nВы прошли отбор в бета-тестирование Dream Analyzer!\n\n⏰ Доступ к приложению откроется примерно через <b>${hoursLeft} часа</b> (завтра в это же время).\n\nВы можете запустить приложение сейчас, чтобы увидеть таймер обратного отсчета.`;
+
+                // Fallback URL logic
+                const appUrl = TMA_APP_URL || 'https://t.me/dreamtestaibot/app';
 
                 try {
-                    await ctx.api.sendMessage(targetTgId, message, { parse_mode: 'HTML' });
+                    await ctx.api.sendMessage(targetTgId, message, {
+                        parse_mode: 'HTML',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: '🚀 Открыть приложение', url: appUrl }]
+                            ]
+                        }
+                    });
                 } catch (sendErr) {
                     console.warn(`[Approve] Failed to notify user ${targetTgId}:`, sendErr.message);
                 }

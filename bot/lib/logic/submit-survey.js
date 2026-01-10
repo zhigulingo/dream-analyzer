@@ -250,17 +250,18 @@ exports.handler = async (event) => {
                   userName = uObj.first_name + (uObj.last_name ? ' ' + uObj.last_name : '');
                   if (uObj.username) userName += ` (@${uObj.username})`;
                 }
-                // Ссылка на профиль
+
+                // Формируем ссылку: @username (ID: 123) или Имя (ID: 123)
                 if (uObj.username) {
-                  userLink = `@${uObj.username}`;
+                  userLink = `@${uObj.username} (ID: ${resolvedTgId})`;
                 } else {
-                  userLink = `<a href="tg://user?id=${resolvedTgId}">${userName}</a>`;
+                  userLink = `<a href="tg://user?id=${resolvedTgId}">${userName}</a> (ID: ${resolvedTgId})`;
                 }
               } catch (_) { }
             }
           }
 
-          const segment = (answers && answers.q9) ? answers.q9 : 'Unknown';
+          const segment = (answers && answers.q9) ? answers.q9 : 'Не указан';
           const msgText = `🆕 <b>Новая заявка на бета-тест!</b>\n\n👤 <b>Пользователь:</b> ${userLink}\n📊 <b>Сегмент:</b> ${segment}\n\nНажмите кнопку ниже, чтобы одобрить доступ.`;
 
           const reply_markup = {
