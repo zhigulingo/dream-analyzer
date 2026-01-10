@@ -28,10 +28,11 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body || '{}');
     const age_range = String(body.age_range || '').trim();
     const gender = String(body.gender || '').trim();
-    const ageAllow = new Set(['0-20','20-30','30-40','40-50','50+']);
-    const genderAllow = new Set(['male','female']);
+    const ageAllow = new Set(['0-20', '20-30', '30-40', '40-50', '50+']);
+    const genderAllow = new Set(['male', 'female']);
     if (!ageAllow.has(age_range) || !genderAllow.has(gender)) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid demographics' }) };
+      console.warn(`[set-demographics] Invalid input. Age: "${age_range}", Gender: "${gender}"`);
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid demographics', received: { age_range, gender } }) };
     }
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } });
     const { error } = await supabase
@@ -39,7 +40,8 @@ exports.handler = async (event) => {
       .update({ age_range, gender })
       .eq('tg_id', v.data.id);
     if (error) {
-      return { statusCode: 500, headers, body: JSON.stringify({ error: 'DB error' }) };
+      console.error('[set-demographics] DB Error:', error);
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'DB error', details: error.message }) };
     }
     return { statusCode: 200, headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ success: true }) };
   } catch (e) {
