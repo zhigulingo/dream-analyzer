@@ -146,15 +146,15 @@ async function initBot() {
                 const hoursLeft = 24;
                 const message = `🎉 <b>Поздравляем!</b>\n\nВы прошли отбор в бета-тестирование Dream Analyzer!\n\n⏰ Доступ к приложению откроется примерно через <b>${hoursLeft} часа</b> (завтра в это же время).\n\nВы можете запустить приложение сейчас, чтобы увидеть таймер обратного отсчета.`;
 
-                // Fallback URL logic
-                const appUrl = TMA_APP_URL || 'https://t.me/dreamtestaibot/app';
+                // WebApp URL must be HTTPS (Vercel/Netlify), not t.me
+                const webAppUrl = process.env.ALLOWED_TMA_ORIGIN || process.env.VITE_API_BASE_URL || 'https://dream-analyzer-bot.vercel.app';
 
                 try {
                     await ctx.api.sendMessage(targetTgId, message, {
                         parse_mode: 'HTML',
                         reply_markup: {
                             inline_keyboard: [
-                                [{ text: '🚀 Открыть приложение', url: appUrl }]
+                                [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
                             ]
                         }
                     });

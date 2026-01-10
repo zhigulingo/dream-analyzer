@@ -261,7 +261,20 @@ exports.handler = async (event) => {
             }
           }
 
-          const segment = (answers && answers.q9) ? answers.q9 : 'Не указан';
+          // Fetch actual engagement_segment from DB (it might be calculated)
+          let dbSegment = null;
+          try {
+            if (idCol && keyVal) {
+              const { data: latestRow } = await supabase
+                .from('beta_survey_responses')
+                .select('engagement_segment')
+                .eq(idCol, keyVal)
+                .single();
+              if (latestRow && latestRow.engagement_segment) dbSegment = latestRow.engagement_segment;
+            }
+          } catch (_) { }
+
+          const segment = dbSegment || ((answers && answers.q9) ? answers.q9 : 'Не указан');
           const msgText = `🆕 <b>Новая заявка на бета-тест!</b>\n\n👤 <b>Пользователь:</b> ${userLink}\n📊 <b>Сегмент:</b> ${segment}\n\nНажмите кнопку ниже, чтобы одобрить доступ.`;
 
           const reply_markup = {
