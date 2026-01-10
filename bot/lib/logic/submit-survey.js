@@ -230,6 +230,63 @@ exports.handler = async (event) => {
       } catch (notifyErr) {
         try { console.warn('[submit-survey] failed to notify user about submission:', notifyErr?.message || notifyErr); } catch (_) { }
       }
+
+      // --- NOTIFY ADMINS ---
+      try {
+        const adminIdsStr = process.env.ADMIN_IDS || '';
+        const adminIds = adminIdsStr.split(',').map(s => s.trim()).filter(Boolean);
+        if (adminIds.length > 0) {
+          // Попытаемся достать имя пользователя из initData или базы
+          let userName = `User ${resolvedTgId}`;
+          let userLink = `<a href="tg://user?id=${resolvedTgId}">${resolvedTgId}</a>`;
+
+          if (initData) {
+            const parsed = new URLSearchParams(initData);
+            const userJson = parsed.get('user');
+            if (userJson) {
+              try {
+                const uObj = JSON.parse(userJson);
+                if (uObj.first_name) {
+                  userName = uObj.first_name + (uObj.last_name ? ' ' + uObj.last_name : '');
+                  if (uObj.username) userName += ` (@${uObj.username})`;
+                }
+                // Ссылка на профиль
+                if (uObj.username) {
+                  userLink = `@${uObj.username}`;
+                } else {
+                  userLink = `<a href="tg://user?id=${resolvedTgId}">${userName}</a>`;
+                }
+              } catch (_) { }
+            }
+          }
+
+          const segment = (answers && answers.q9) ? answers.q9 : 'Unknown';
+          const msgText = `🆕 <b>Новая заявка на бета-тест!</b>\n\n👤 <b>Пользователь:</b> ${userLink}\n📊 <b>Сегмент:</b> ${segment}\n\nНажмите кнопку ниже, чтобы одобрить доступ.`;
+
+          const reply_markup = {
+            inline_keyboard: [
+              [{ text: '✅ Одобрить доступ', callback_data: `approve_beta_${resolvedTgId}` }]
+            ]
+          };
+
+          const urlSend = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+          for (const adminId of adminIds) {
+            await fetch(urlSend, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: adminId,
+                text: msgText,
+                parse_mode: 'HTML',
+                reply_markup: reply_markup
+              })
+            }).catch(e => console.warn(`Failed to notify admin ${adminId}:`, e.message));
+          }
+        }
+      } catch (adminErr) {
+        console.warn('[submit-survey] failed to notify admins:', adminErr);
+      }
     }
 
     // Попробуем обновить текст кнопки в исходном анонсе (если отправляли в ЛС ранее)

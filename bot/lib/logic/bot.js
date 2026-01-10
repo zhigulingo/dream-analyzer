@@ -104,6 +104,67 @@ async function initBot() {
     bot.on('pre_checkout_query', createPreCheckoutQueryHandler(messageService));
     bot.on('message:successful_payment', createSuccessfulPaymentHandler(userService, messageService));
 
+    // 4. Callback Queries (including Admin Approvals)
+    bot.on('callback_query:data', async (ctx) => {
+        const data = ctx.callbackQuery.data;
+        const adminId = ctx.from.id;
+
+        // Admin Action: Approve Beta
+        if (data.startsWith('approve_beta_')) {
+            if (!ADMIN_IDS.includes(String(adminId))) {
+                return ctx.answerCallbackQuery({ text: '⛔ У вас нет прав администратора', show_alert: true });
+            }
+
+            const targetTgId = data.replace('approve_beta_', '');
+            if (!targetTgId) return ctx.answerCallbackQuery();
+
+            try {
+                // 1. Update User in DB
+                const now = new Date();
+                const accessAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(); // +24h
+
+                const { error } = await supabaseAdmin
+                    .from('users')
+                    .update({
+                        beta_whitelisted: true,
+                        beta_approved_at: now.toISOString(),
+                        beta_access_at: accessAt,
+                        subscription_type: 'whitelisted',
+                        beta_notified_approved: true // Сразу ставим флаг, так как уведомим прямо сейчас
+                    })
+                    .eq('tg_id', targetTgId);
+
+                if (error) throw error;
+
+                // 2. Also update survey response status
+                await supabaseAdmin
+                    .from('beta_survey_responses')
+                    .update({ approved: true })
+                    .eq('tg_id', targetTgId);
+
+                // 3. Notify User
+                const hoursLeft = 24;
+                const message = `🎉 <b>Поздравляем!</b>\n\nВы прошли отбор в бета-тестирование Dream Analyzer!\n\n⏰ Доступ к приложению откроется примерно через <b>${hoursLeft} часа</b>.\n\nМы пришлем вам уведомление, как только приложение станет доступным.`;
+
+                try {
+                    await ctx.api.sendMessage(targetTgId, message, { parse_mode: 'HTML' });
+                } catch (sendErr) {
+                    console.warn(`[Approve] Failed to notify user ${targetTgId}:`, sendErr.message);
+                }
+
+                // 4. Update Admin Message
+                await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: [] } }); // remove buttons
+                await ctx.reply(`✅ Пользователь ${targetTgId} одобрен! Уведомление отправлено.`);
+                await ctx.answerCallbackQuery({ text: 'Доступ одобрен!' });
+
+            } catch (err) {
+                console.error(`[Approve] Error approving user ${targetTgId}:`, err);
+                await ctx.answerCallbackQuery({ text: '❌ Ошибка при обновлении базы', show_alert: true });
+            }
+        }
+    });
+
+
     bot.catch((err) => {
         console.error("Grammy error:", err.error);
     });
