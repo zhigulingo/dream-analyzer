@@ -168,7 +168,9 @@ const hasNewFlowEligibility = computed(() => {
 // Второй онбординг показываем, когда у пользователя уже есть первый проанализированный сон
 const hasFreeFlowEligibility = computed(() => {
   const s = (userStore.profile?.subscription_type || '').toLowerCase()
-  return s === 'onboarding2'
+  // Явный статус или неявный (есть анализы, но статус еще не обновился)
+  const hasAnalyses = (userStore.profile?.total_dreams_count || 0) > 0 || (userStore.history?.length || 0) > 0
+  return s === 'onboarding2' || (s === 'onboarding1' && hasAnalyses)
 })
 
 // Промежуточный экран больше не используется — логика этапов строго по subscription_type
