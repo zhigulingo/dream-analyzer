@@ -80,10 +80,26 @@ onMounted(async () => {
       try { tg.requestFullscreen?.() } catch (_) {}
     }
   } catch (_) {}
+
+  // Обновляем профиль при возвращении в приложение (после отправки сна в чате)
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      userStore.fetchProfile().catch(() => {})
+      userStore.fetchHistory().catch(() => {})
+    }
+  }
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  window.addEventListener('focus', handleVisibilityChange) // Для надежности
+  window.__tma_visibilityHandler = handleVisibilityChange
 })
 // no message on overlay per spec
 
 onBeforeUnmount(() => {
+  if (window.__tma_visibilityHandler) {
+    document.removeEventListener('visibilitychange', window.__tma_visibilityHandler)
+    window.removeEventListener('focus', window.__tma_visibilityHandler)
+    window.__tma_visibilityHandler = null
+  }
   // Снимаем обработчик события полноэкрана, если назначали
   try {
     const tg = window?.Telegram?.WebApp

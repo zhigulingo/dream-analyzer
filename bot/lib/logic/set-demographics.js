@@ -9,7 +9,7 @@ const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
 
 exports.handler = async (event) => {
   const headers = {
-    'Access-Control-Allow-Origin': ALLOWED_TMA_ORIGIN || '*',
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Vary': 'Origin'
