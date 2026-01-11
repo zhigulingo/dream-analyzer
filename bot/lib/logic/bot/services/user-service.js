@@ -219,7 +219,8 @@ class UserService {
                 beta_whitelisted: true,
                 beta_access_at: nowIso,
                 subscription_type: 'onboarding1',
-                beta_notified_access: true
+                beta_notified_access: true,
+                beta_notified_approved: true
             })
             .eq('tg_id', tgUserId)
             .select('id');
@@ -227,6 +228,14 @@ class UserService {
         if (updateError) {
             throw new Error(`Failed to update access: ${updateError.message}`);
         }
+
+        // Also update survey response status if exists
+        try {
+            await this.supabase
+                .from('beta_survey_responses')
+                .update({ approved: true })
+                .eq('tg_id', tgUserId);
+        } catch (_) { }
 
         if (updated && updated.length > 0) {
             return true;
@@ -241,6 +250,7 @@ class UserService {
                 beta_access_at: nowIso,
                 subscription_type: 'onboarding1',
                 beta_notified_access: true,
+                beta_notified_approved: true,
                 tokens: 0,
                 channel_reward_claimed: false
             })
