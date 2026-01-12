@@ -1,22 +1,24 @@
 <template>
-  <div class="fixed inset-0 z-[9999] flex justify-center items-end sm:items-start bg-black/80 backdrop-blur-sm overflow-hidden" @click.self="closeModal">
-    <!-- Контейнер на весь экран (минус отступ сверху), без отступа снизу -->
+  <div class="fixed inset-0 z-[9999] flex justify-center items-end sm:items-center bg-black/80 backdrop-blur-sm overflow-y-auto" @click.self="closeModal">
+    <!-- Отступ сверху для тач-зоны закрытия -->
+    <div class="w-full min-h-[100dvh] sm:min-h-0 flex items-end sm:items-center justify-center pointer-events-none">
+      
     <div 
-      class="w-full max-w-lg h-[calc(100dvh-var(--tma-safe-top,20px)-20px)] sm:h-[calc(100vh-4rem)] sm:mt-16 sm:rounded-t-[32px] relative transition-all flex flex-col"
+      class="w-full max-w-lg rounded-t-[32px] sm:rounded-[32px] relative transition-all pointer-events-auto mt-[10vh] sm:mt-0"
     >
-       <!-- Card Container: растянут на всю высоту, скролл внутри -->
-       <!-- Градиент Purple, скругление только сверху (rounded-t-[32px]) -->
-       <div class="bg-gradient-to-br from-[#8000FF] to-[#5500AA] text-white shadow-2xl w-full h-full rounded-t-[32px] overflow-hidden flex flex-col">
+       <!-- Card Container -->
+       <!-- Градиент Purple -->
+       <div class="bg-gradient-to-br from-[#8000FF] to-[#5500AA] text-white shadow-2xl w-full rounded-t-[32px] sm:rounded-[32px] overflow-hidden">
          
-         <!-- Header: без крестика, заголовок по центру -->
-         <div class="relative px-6 pt-6 pb-2 text-center shrink-0 z-10">
+         <!-- Header -->
+         <div class="relative px-6 pt-8 pb-4 text-center z-10">
             <h2 class="text-[28px] font-bold leading-tight drop-shadow-md">Выбери тариф</h2>
          </div>
 
-         <!-- Scrollable content area -->
-         <div class="px-6 pb-24 flex-1 overflow-y-auto flex flex-col gap-6 scrollbar-hide">
+         <!-- Content area (no internal scroll) -->
+         <div class="px-6 pb-8 flex flex-col gap-6">
             <!-- Plan Selector (Pills) -->
-            <div class="bg-black/20 p-1 rounded-full flex font-medium backdrop-blur-md shrink-0 mt-2">
+            <div class="bg-black/20 p-1 rounded-full flex font-medium backdrop-blur-md shrink-0">
                <button 
                  class="flex-1 py-3 rounded-full text-[17px] transition-all duration-200"
                  :class="userStore.selectedPlan === 'basic' ? 'bg-white text-[#6B00D0] shadow-md font-bold' : 'text-white/70 hover:text-white'"
@@ -61,7 +63,7 @@
                        <span class="text-[11px] opacity-90 uppercase tracking-widest font-bold">мес</span>
                        
                        <div v-if="getPlanDetails(userStore.selectedPlan, duration).price" class="mt-2 text-[13px] font-bold text-white drop-shadow-sm bg-black/20 px-2 py-0.5 rounded-full">
-                          {{ (getPlanDetails(userStore.selectedPlan, duration).price / duration).toFixed(0) }}⭐
+                          {{ (getPlanDetails(userStore.selectedPlan, duration).price / duration).toFixed(0) }}⭐<span class="opacity-80 font-normal">/мес</span>
                        </div>
                     </div>
                 </label>
@@ -85,10 +87,11 @@
                </ul>
             </div>
             
-            <!-- Дополнительный паддинг снизу, чтобы контент не перекрывался MainButton -->
-            <div class="h-16 shrink-0"></div>
+            <!-- Дополнительный паддинг снизу для MainButton -->
+            <div class="h-20 sm:h-0"></div>
          </div>
        </div>
+    </div>
     </div>
   </div>
 </template>
