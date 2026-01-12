@@ -10,8 +10,6 @@
          
          <!-- Header: без крестика, заголовок по центру -->
          <div class="relative px-6 pt-6 pb-2 text-center shrink-0 z-10">
-             <!-- Декоративная "ручка" (drag handle) для визуального эффекта шторки -->
-             <div class="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-4"></div>
             <h2 class="text-[28px] font-bold leading-tight drop-shadow-md">Выбери тариф</h2>
          </div>
 
@@ -118,6 +116,9 @@ const handleMainButtonClick = () => {
 
 onMounted(() => {
     isMounted.value = true;
+    
+    // Ensure pricing is loaded just in case
+    userStore.loadPricing();
     
     // Setup Telegram Back Button
     if (tg?.BackButton) {
