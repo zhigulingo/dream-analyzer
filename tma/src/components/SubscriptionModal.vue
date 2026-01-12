@@ -1,41 +1,33 @@
 <template>
-  <div class="fixed inset-0 z-[9999] flex justify-center items-start bg-black/80 backdrop-blur-sm overflow-y-auto" @click.self="closeModal">
-    <!-- Отступ сверху больше, чтобы имитировать плавающую карточку (sheet) как на 2 скриншоте -->
+  <div class="fixed inset-0 z-[9999] flex justify-center items-end sm:items-start bg-black/80 backdrop-blur-sm overflow-hidden" @click.self="closeModal">
+    <!-- Контейнер на весь экран (минус отступ сверху), без отступа снизу -->
     <div 
-      class="w-full max-w-lg min-h-screen sm:min-h-0 sm:mt-16 sm:mb-10 rounded-t-[32px] sm:rounded-[32px] relative transition-all pt-[var(--tma-safe-top,20px)] sm:pt-0"
+      class="w-full max-w-lg h-[calc(100dvh-var(--tma-safe-top,20px)-20px)] sm:h-[calc(100vh-4rem)] sm:mt-16 sm:rounded-t-[32px] relative transition-all flex flex-col"
     >
-       <!-- Card Container -->
-       <!-- Градиент Purple (как Deep Analysis), скругление 32px -->
-       <div class="bg-gradient-to-br from-[#8000FF] to-[#5500AA] text-white shadow-2xl min-h-full sm:min-h-0 rounded-t-[32px] sm:rounded-[32px] overflow-hidden flex flex-col">
+       <!-- Card Container: растянут на всю высоту, скролл внутри -->
+       <!-- Градиент Purple, скругление только сверху (rounded-t-[32px]) -->
+       <div class="bg-gradient-to-br from-[#8000FF] to-[#5500AA] text-white shadow-2xl w-full h-full rounded-t-[32px] overflow-hidden flex flex-col">
          
-         <!-- Header -->
-         <div class="relative px-6 pt-8 pb-4 text-center">
+         <!-- Header: без крестика, заголовок по центру -->
+         <div class="relative px-6 pt-6 pb-2 text-center shrink-0 z-10">
+             <!-- Декоративная "ручка" (drag handle) для визуального эффекта шторки -->
+             <div class="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-4"></div>
             <h2 class="text-[28px] font-bold leading-tight drop-shadow-md">Выбери тариф</h2>
-            
-            <!-- Кнопка закрытия -->
-            <button 
-              class="absolute right-6 top-8 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-md z-10" 
-              @click="closeModal"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1 1L13 13M1 13L13 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
          </div>
 
-         <div class="px-6 pb-8 flex-1 flex flex-col gap-8">
+         <!-- Scrollable content area -->
+         <div class="px-6 pb-24 flex-1 overflow-y-auto flex flex-col gap-6 scrollbar-hide">
             <!-- Plan Selector (Pills) -->
-            <!-- Контейнер: rounded-full (пилюля), фон полупрозрачный темный -->
-            <div class="bg-black/20 p-1.5 rounded-full flex font-medium backdrop-blur-md">
+            <div class="bg-black/20 p-1 rounded-full flex font-medium backdrop-blur-md shrink-0 mt-2">
                <button 
-                 class="flex-1 py-3 rounded-full text-base transition-all duration-200"
+                 class="flex-1 py-3 rounded-full text-[17px] transition-all duration-200"
                  :class="userStore.selectedPlan === 'basic' ? 'bg-white text-[#6B00D0] shadow-md font-bold' : 'text-white/70 hover:text-white'"
                  @click="userStore.selectPlan('basic')"
                >
                  Базовый
                </button>
                <button 
-                 class="flex-1 py-3 rounded-full text-base transition-all duration-200"
+                 class="flex-1 py-3 rounded-full text-[17px] transition-all duration-200"
                  :class="userStore.selectedPlan === 'premium' ? 'bg-white text-[#6B00D0] shadow-md font-bold' : 'text-white/70 hover:text-white'"
                  @click="userStore.selectPlan('premium')"
                >
@@ -44,8 +36,8 @@
             </div>
 
             <!-- Duration Selector -->
-            <div>
-              <p class="text-base opacity-80 mb-4 px-2 font-medium">Длительность подписки</p>
+            <div class="shrink-0">
+              <p class="text-[17px] opacity-80 mb-3 px-2 font-medium">Длительность подписки</p>
               <div class="grid grid-cols-3 gap-3">
                 <label v-for="duration in [1, 3, 12]" :key="duration" class="cursor-pointer group select-none">
                    <input
@@ -57,9 +49,9 @@
                       :checked="userStore.selectedDuration === duration"
                       @change="userStore.selectDuration(duration)"
                     />
-                    <!-- Card-like duration button: More rounded (24px) -->
+                    <!-- Card-like duration button -->
                     <div 
-                      class="relative rounded-[24px] border transition-all duration-200 py-4 flex flex-col items-center justify-center gap-1 h-full min-h-[90px] backdrop-blur-md"
+                      class="relative rounded-[24px] border transition-all duration-200 py-4 flex flex-col items-center justify-center gap-1 h-full min-h-[96px] backdrop-blur-md"
                       :class="[
                         userStore.selectedDuration === duration 
                           ? 'bg-white/20 border-white/60 shadow-lg scale-[1.02]' 
@@ -67,10 +59,10 @@
                          !getPlanDetails(userStore.selectedPlan, duration).price ? 'opacity-40 grayscale cursor-not-allowed' : ''
                       ]"
                     >
-                       <span class="text-2xl font-bold leading-none filter drop-shadow-sm">{{ duration }}</span>
-                       <span class="text-xs opacity-90 uppercase tracking-widest font-medium">мес</span>
+                       <span class="text-3xl font-bold leading-none filter drop-shadow-sm">{{ duration }}</span>
+                       <span class="text-[11px] opacity-90 uppercase tracking-widest font-bold">мес</span>
                        
-                       <div v-if="getPlanDetails(userStore.selectedPlan, duration).price" class="mt-2 text-sm font-bold text-white drop-shadow-sm">
+                       <div v-if="getPlanDetails(userStore.selectedPlan, duration).price" class="mt-2 text-[13px] font-bold text-white drop-shadow-sm bg-black/20 px-2 py-0.5 rounded-full">
                           {{ (getPlanDetails(userStore.selectedPlan, duration).price / duration).toFixed(0) }}⭐
                        </div>
                     </div>
@@ -79,25 +71,24 @@
             </div>
 
             <!-- Features List -->
-            <!-- Скругление 24px для мягкости -->
-            <div class="bg-white/10 rounded-[24px] p-6 border border-white/5 backdrop-blur-md">
-               <h3 class="font-bold text-xl mb-5 flex items-center gap-2 drop-shadow-sm">
+            <div class="bg-white/10 rounded-[24px] p-6 border border-white/5 backdrop-blur-md shrink-0">
+               <h3 class="font-bold text-[20px] mb-4 flex items-center gap-2 drop-shadow-sm">
                  <span>Входит в тариф:</span>
                </h3>
                <ul class="space-y-4">
                   <li 
                     v-for="(feature, index) in getPlanDetails(userStore.selectedPlan, userStore.selectedDuration).features" 
                     :key="index"
-                    class="flex items-start gap-3 text-lg leading-snug opacity-95"
+                    class="flex items-start gap-3 text-[17px] leading-snug opacity-95"
                   >
-                    <!-- Галочка жёлтая, хорошо видна на фиолетовом -->
-                    <span class="text-[#FFD700] font-bold mt-[2px] text-xl">✓</span>
+                    <span class="text-[#FFD700] font-bold mt-[1px] text-xl">✓</span>
                     <span class="font-medium shadow-black/10">{{ feature }}</span>
                   </li>
                </ul>
             </div>
             
-            <div class="h-10 sm:h-0"></div>
+            <!-- Дополнительный паддинг снизу, чтобы контент не перекрывался MainButton -->
+            <div class="h-16 shrink-0"></div>
          </div>
        </div>
     </div>
@@ -155,12 +146,15 @@ watchEffect(() => {
   if (!tg || !isMounted.value) return;
 
   const amount = userStore.selectedInvoiceAmount;
+  // Цвет низа градиента (или максимально близкий приятный цвет)
+  const buttonColor = '#5500AA'; 
+  const buttonTextColor = '#ffffff';
 
   if (amount) {
     tg.MainButton.setParams({
       text: `Оплатить ${amount} ⭐`,
-      color: tg.themeParams?.button_color || '#2481CC',
-      text_color: tg.themeParams?.button_text_color || '#ffffff',
+      color: buttonColor,
+      text_color: buttonTextColor,
       is_active: true,
       is_visible: true,
     });
@@ -168,7 +162,8 @@ watchEffect(() => {
     tg.MainButton.onClick(handleMainButtonClick);
   } else {
     tg.MainButton.setParams({
-        text: 'Выберите тариф', // Обновил текст здесь тоже
+        text: 'Выберите тариф',
+        color: buttonColor, // Даже в неактивном состоянии держим стиль (хотя оно будет серым)
         is_active: false,
         is_visible: true
     });
@@ -178,5 +173,11 @@ watchEffect(() => {
 </script>
 
 <style scoped>
-/* Всё в Tailwind */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
 </style>
