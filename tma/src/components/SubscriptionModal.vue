@@ -119,6 +119,7 @@ const handleMainButtonClick = () => {
 
 onMounted(() => {
     isMounted.value = true;
+    console.log('[SubscriptionModal] v0.1.1 Mounted');
     
     // Ensure pricing is loaded just in case
     userStore.loadPricing();
