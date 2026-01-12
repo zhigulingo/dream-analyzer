@@ -165,10 +165,6 @@ watchEffect(() => {
 /* Стилей минимум, так как используем Tailwind */
 </style>
 
-      <!-- Табы Basic/Premium -->
-      <div class="tabs">
-        <button
-          :class="{ active: userStore.selectedPlan === 'basic' }"
           @click="userStore.selectPlan('basic')"
         >
           Basic
