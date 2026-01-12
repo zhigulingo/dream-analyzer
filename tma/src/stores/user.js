@@ -45,6 +45,13 @@ export const useUserStore = defineStore('user', {
     showSubscriptionModal: false,
     selectedPlan: 'premium',
     selectedDuration: 3,
+    // Default fallback pricing to keep UI active
+    __pricing: {
+      subscription: {
+        basic: { "1": 150, "3": 400, "12": 1400 },
+        premium: { "1": 300, "3": 800, "12": 2800 }
+      }
+    }
   }),
 
   getters: {
