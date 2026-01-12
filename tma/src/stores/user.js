@@ -145,9 +145,9 @@ export const useUserStore = defineStore('user', {
       return this.retryState[action]?.count < maxRetries;
     },
 
-    async fetchProfile() {
+    async fetchProfile(useLoader = true) {
       this.initServices();
-      this.isLoadingProfile = true;
+      if (useLoader) this.isLoadingProfile = true;
       this.errorProfile = null;
       this.claimRewardError = null;
       this.claimRewardSuccessMessage = null;
@@ -176,7 +176,7 @@ export const useUserStore = defineStore('user', {
         this.errorProfile = errorInfo.userMessage;
 
       } finally {
-        this.isLoadingProfile = false;
+        if (useLoader) this.isLoadingProfile = false;
       }
     },
 
