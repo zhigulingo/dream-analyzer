@@ -13,6 +13,7 @@
       :observer="true"
       :observe-parents="true"
       :watch-overflow="true"
+      :loop="true"
       :speed="650"
       @init="onInit"
       class="w-screen"

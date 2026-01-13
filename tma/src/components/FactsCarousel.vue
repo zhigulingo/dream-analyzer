@@ -17,6 +17,7 @@
       :observer="true"
       :observe-parents="true"
       :watch-overflow="true"
+      :loop="true"
       @init="onSwiperInit"
       :style="{ height: maxCardHeight + 'px' }"
       class="w-full"
