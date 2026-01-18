@@ -1,3 +1,4 @@
+<template>
   <Teleport to="body">
     <div class="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm overflow-y-auto" @click.self="closeModal">
       <!-- Scroller internal container -->
@@ -95,6 +96,7 @@
       </div>
     </div>
   </Teleport>
+</template>
 
 <script setup>
 import { useUserStore } from '@/stores/user';
