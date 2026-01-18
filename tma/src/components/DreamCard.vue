@@ -386,6 +386,7 @@
           </div>
         </div>
       </div>
+      </Teleport>
       <Teleport to="body">
         <!-- Nested Modal for Symbols -->
         <div v-if="selectedSymbol" class="fixed inset-0 z-[10001] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 px-6 overflow-y-auto" @click="closeSymbolModal">
