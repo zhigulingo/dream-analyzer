@@ -414,9 +414,9 @@
       </Teleport>
       <Teleport to="body">
         <!-- Category Modal: Recurring Symbols -->
-        <div v-if="showCategoryModal === 'symbols'" class="fixed inset-0 z-[10001] bg-black/95 backdrop-blur-xl flex flex-col pt-10" @click="closeCategoryModal">
-           <div class="flex-1 flex flex-col p-6 space-y-8" @click.stop>
-              <div class="flex items-center justify-between">
+        <div v-if="userStore.activeCategoryModal === 'symbols'" class="fixed inset-0 z-[10001] bg-black/95 backdrop-blur-xl flex flex-col pt-24 overscroll-behavior-contain" @click="closeCategoryModal">
+           <div class="flex-1 flex flex-col p-6 space-y-8 overflow-y-auto" @click.stop>
+              <div class="flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-3">
                    <div class="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
                       <Puzzle :size="24" class="text-purple-300" />
@@ -428,7 +428,7 @@
                 </button>
               </div>
               
-              <div class="space-y-6 flex-1 overflow-y-auto">
+              <div class="space-y-6">
                  <p v-if="symbolsIntro" class="text-lg opacity-80 border-l-2 border-white/20 pl-4 italic leading-relaxed">{{ symbolsIntro }}</p>
                  
                  <div class="-mx-6">
@@ -447,9 +447,9 @@
                       :key="idx" 
                       class="!w-[88%]"
                     >
-                      <div class="space-y-4 bg-white/10 rounded-[32px] p-6 border border-white/10 backdrop-blur-sm h-full transition-transform">
+                      <div class="space-y-4 bg-white/10 rounded-[32px] p-6 border border-white/10 backdrop-blur-sm h-full">
                         <div class="flex items-center justify-between">
-                          <h4 class="font-bold text-2xl">{{ symbol.symbol }}</h4>
+                          <h4 class="font-bold text-2xl text-purple-200">{{ symbol.symbol }}</h4>
                           <span class="text-xl font-bold opacity-40 bg-white/10 px-3 py-1 rounded-full">×{{ symbol.frequency }}</span>
                         </div>
                         <p class="text-lg opacity-90 leading-relaxed">{{ symbol.description }}</p>
@@ -465,14 +465,14 @@
                   </div>
                  </div>
               </div>
-              <p class="text-center text-xs opacity-30 uppercase tracking-[0.2em] font-bold py-4">Листайте карусель</p>
+              <p class="text-center text-xs opacity-30 uppercase tracking-[0.2em] font-bold py-4 shrink-0">Листайте карусель</p>
            </div>
         </div>
 
         <!-- Category Modal: Dynamics -->
-        <div v-if="showCategoryModal === 'dynamics'" class="fixed inset-0 z-[10001] bg-black/95 backdrop-blur-xl flex flex-col pt-10" @click="closeCategoryModal">
+        <div v-if="userStore.activeCategoryModal === 'dynamics'" class="fixed inset-0 z-[10001] bg-black/95 backdrop-blur-xl flex flex-col pt-24 overscroll-behavior-contain" @click="closeCategoryModal">
            <div class="flex-1 flex flex-col p-6 space-y-8 overflow-y-auto" @click.stop>
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-3">
                    <div class="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
                       <LineChart :size="24" class="text-yellow-300" />
@@ -489,7 +489,7 @@
                    Динамика контекста позволяет отследить изменения в вашем эмоциональном состоянии на протяжении серии снов.
                  </p>
                  
-                 <div class="-mx-6">
+                 <div class="w-full">
                    <DynamicsChart 
                     :dynamics="dynamicsContext" 
                     :userAge="userStore.profile?.age_range"
@@ -546,14 +546,13 @@ const toggleAccordion = (id: string) => {
   if (window.triggerHaptic) window.triggerHaptic('light')
 }
 
-const showCategoryModal = ref<string | null>(null)
 const openCategoryModal = (id: string) => {
-  showCategoryModal.value = id
+  userStore.activeCategoryModal = id
   if (window.triggerHaptic) window.triggerHaptic('medium')
   try { document.body.style.overflow = 'hidden' } catch {}
 }
 const closeCategoryModal = () => {
-  showCategoryModal.value = null
+  userStore.activeCategoryModal = null
   try { if (!props.active) document.body.style.overflow = '' } catch {}
 }
 

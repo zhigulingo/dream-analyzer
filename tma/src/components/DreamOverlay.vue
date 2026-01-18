@@ -25,6 +25,7 @@ import 'dayjs/locale/ru'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import DreamCard from '@/components/DreamCard.vue'
+import { useUserStore } from '@/stores/user.js'
 
 dayjs.locale('ru')
 dayjs.extend(utc)
@@ -107,6 +108,11 @@ function hideBackButton() {
   } catch {}
 }
 function handleBack(){
+  const userStore = useUserStore()
+  if (userStore.activeCategoryModal) {
+    userStore.activeCategoryModal = null
+    return
+  }
   emit('close')
 }
 

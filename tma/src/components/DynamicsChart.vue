@@ -1,5 +1,5 @@
 <template>
-  <div class="dynamics-chart-container -mx-4 sm:-mx-6 md:-mx-8">
+  <div class="dynamics-chart-container">
     <Swiper
       :modules="modules"
       slides-per-view="auto"

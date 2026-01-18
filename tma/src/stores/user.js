@@ -51,7 +51,8 @@ export const useUserStore = defineStore('user', {
         basic: { "1": 1, "3": 3, "12": 12 },
         premium: { "1": 1, "3": 3, "12": 12 }
       }
-    }
+    },
+    activeCategoryModal: null // Track nested modals for BackButton handling
   }),
 
   getters: {
