@@ -431,21 +431,25 @@
               <div class="space-y-6">
                  <p v-if="symbolsIntro" class="text-lg opacity-80 border-l-2 border-white/20 pl-4 italic leading-relaxed">{{ symbolsIntro }}</p>
                  
-                 <div class="-mx-6">
+                 <div class="space-y-4">
+                   <!-- Pagination dots (Top) -->
+                   <div class="flex justify-center gap-2">
+                     <div v-for="(_, idx) in filteredRecurringSymbols" :key="idx" class="w-1.5 h-1.5 rounded-full transition-all" :class="idx === currentSymbolIndex ? 'bg-white scale-125' : 'bg-white/20'"></div>
+                   </div>
+
                    <Swiper
                     :modules="swiperModules"
                     slides-per-view="auto"
                     :centered-slides="true"
-                    :space-between="12"
+                    :space-between="16"
                     @swiper="onSymbolSwiper"
                     @slideChange="onSymbolSlideChange"
                     class="w-full"
-                    :style="{ paddingLeft: '24px', paddingRight: '24px' }"
                   >
                     <SwiperSlide 
                       v-for="(symbol, idx) in filteredRecurringSymbols" 
                       :key="idx" 
-                      class="!w-[88%]"
+                      class="!w-full"
                     >
                       <div class="space-y-4 bg-white/10 rounded-[32px] p-6 border border-white/10 backdrop-blur-sm h-full">
                         <div class="flex items-center justify-between">
@@ -460,9 +464,6 @@
                       </div>
                     </SwiperSlide>
                   </Swiper>
-                  <div class="flex justify-center gap-2 mt-4">
-                    <div v-for="(_, idx) in filteredRecurringSymbols" :key="idx" class="w-1.5 h-1.5 rounded-full transition-all" :class="idx === currentSymbolIndex ? 'bg-white scale-125' : 'bg-white/20'"></div>
-                  </div>
                  </div>
               </div>
               <p class="text-center text-xs opacity-30 uppercase tracking-[0.2em] font-bold py-4 shrink-0">Листайте карусель</p>

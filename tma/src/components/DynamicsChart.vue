@@ -1,19 +1,28 @@
 <template>
   <div class="dynamics-chart-container">
+    <!-- Pagination dots (Top) -->
+    <div v-if="dynamics.length > 1" class="pagination-dots">
+      <div
+        v-for="(_, idx) in dynamics"
+        :key="`dot-${idx}`"
+        class="dot"
+        :class="{ active: idx === currentIndex }"
+      ></div>
+    </div>
+
     <Swiper
       :modules="modules"
       slides-per-view="auto"
       :centered-slides="true"
-      :space-between="12"
+      :space-between="16"
       @swiper="onSwiper"
       @slideChange="onSlideChange"
       class="w-full"
-      :style="{ paddingLeft: '24px', paddingRight: '24px' }"
     >
       <SwiperSlide 
         v-for="(metric, idx) in dynamics" 
         :key="idx" 
-        class="!w-[88%] sm:!w-[340px]"
+        class="!w-full"
       >
         <div class="chart-content bg-white/10 rounded-2xl p-5 border border-white/5 backdrop-blur-sm h-full">
           <!-- Chart Title -->
@@ -99,16 +108,6 @@
         </div>
       </SwiperSlide>
     </Swiper>
-    
-    <!-- Pagination dots -->
-    <div v-if="dynamics.length > 1" class="pagination-dots mt-4">
-      <div
-        v-for="(_, idx) in dynamics"
-        :key="`dot-${idx}`"
-        class="dot"
-        :class="{ active: idx === currentIndex }"
-      ></div>
-    </div>
   </div>
 </template>
 
