@@ -1,0 +1,61 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ vercel-export ]
+    paths:
+      - 'web/**'
+      - 'tma/**'
+      - 'survey/**'
+      - '.github/workflows/deploy-gh-pages.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Build Web
+        run: |
+          cd web
+          npm ci
+          npm run build
+
+      - name: Build TMA
+        run: |
+          cd tma
+          npm ci
+          npm run build
+
+      - name: Build Survey
+        run: |
+          cd survey
+          npm ci
+          npm run build
+
+      - name: Assemble GH Pages
+        run: |
+          mkdir out
+          cp -r web/dist/* out/
+          mkdir -p out/tma
+          cp -r tma/dist/* out/tma/
+          mkdir -p out/survey
+          cp -r survey/dist/* out/survey/
+          # Copy index.html as 404.html for SPA routing support
+          cp out/index.html out/404.html
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: out
+          clean: true

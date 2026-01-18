@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
+  base: '/dream-analyzer/tma/',
   plugins: [vue()],
   resolve: {
     alias: {
@@ -11,9 +12,7 @@ export default defineConfig({
   },
   define: {
     // Set API base URL for TMA application
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify(
-      process.env.VITE_API_BASE_URL || '/api'
-    ),
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://dream-analyzer-bot.vercel.app/api'),
   },
   build: {
     rollupOptions: {
