@@ -138,12 +138,15 @@ onMounted(() => {
 })
 
 watch(() => props.dream, (val) => {
+  const userStore = useUserStore()
   if (val) {
+    // При открытии нового сна ВСЕГДА сбрасываем состояние вложенных окон,
+    // чтобы не открывался старый экран (например, символы) при смене сна.
+    userStore.activeCategoryModal = null
     try { document.body.style.overflow = 'hidden' } catch {}
     showBackButton()
   } else {
     // При закрытии оверлея очищаем и состояние вложенных окон
-    const userStore = useUserStore()
     userStore.activeCategoryModal = null
     hideBackButton()
     try { document.body.style.overflow = '' } catch {}

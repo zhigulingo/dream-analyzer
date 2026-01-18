@@ -33,6 +33,7 @@ onMounted(async () => {
   // Глобальная загрузка данных, чтобы оверлей корректно скрывался даже при активном онбординге
   try {
     userStore.initServices()
+    userStore.activeCategoryModal = null // Reset any leaked sub-modal state
     await userStore.fetchProfile()
     // Историю грузим в фоне, чтобы не держать прелоадер
     userStore.fetchHistory().catch(() => {})
