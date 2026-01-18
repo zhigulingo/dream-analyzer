@@ -44,9 +44,7 @@
         <!-- Повторяющиеся символы - Carousel -->
         <div v-if="hasRecurringSymbols" class="space-y-4">
           <h3 class="text-2xl font-bold">Повторяющиеся символы</h3>
-          <div class="text-white/90 space-y-5">
-            <p v-if="symbolsIntro" class="text-lg opacity-90 leading-snug pb-4 border-b border-white/10">{{ symbolsIntro }}</p>
-            
+          <div class="text-white/90">
             <div class="-mx-8 md:-mx-16">
               <Swiper
                 :modules="swiperModules"
@@ -62,8 +60,9 @@
                   v-for="(symbol, idx) in filteredRecurringSymbols" 
                   :key="idx" 
                   class="!w-[88%] sm:!w-[340px]"
+                  @click="openSymbolModal(symbol)"
                 >
-                  <div class="space-y-4 bg-white/10 rounded-2xl p-5 border border-white/5 backdrop-blur-sm h-full">
+                  <div class="space-y-4 bg-white/10 rounded-2xl p-5 border border-white/5 backdrop-blur-sm h-full active:scale-[0.98] transition-transform">
                     <div class="flex items-center justify-between">
                       <div class="flex items-center gap-3">
                         <span class="text-2xl">🧩</span>
@@ -72,12 +71,13 @@
                       <span class="text-lg font-bold opacity-60 bg-white/15 px-3 py-1 rounded-full">×{{ symbol.frequency }}</span>
                     </div>
                     
-                    <p class="text-[17px] opacity-90 leading-relaxed">{{ symbol.description }}</p>
+                    <p class="text-[17px] opacity-90 leading-relaxed line-clamp-3">{{ symbol.description }}</p>
                     
                     <div class="bg-black/20 rounded-xl p-4 border border-white/5">
                       <div class="text-sm font-bold opacity-50 uppercase tracking-wider mb-2">Контекст в ваших снах</div>
-                      <p class="text-base opacity-95 leading-snug">{{ symbol.userContext }}</p>
+                      <p class="text-base opacity-95 leading-snug line-clamp-2">{{ symbol.userContext }}</p>
                     </div>
+                    <div class="text-center text-xs font-bold opacity-40 uppercase tracking-widest pt-2">Нажмите для подробностей</div>
                   </div>
                 </SwiperSlide>
               </Swiper>
@@ -92,6 +92,9 @@
                 ></div>
               </div>
             </div>
+
+            <!-- Intro text moved BELOW carousel -->
+            <p v-if="symbolsIntro" class="text-lg opacity-80 leading-snug mt-6 px-1">{{ symbolsIntro }}</p>
           </div>
         </div>
 
@@ -103,25 +106,29 @@
               :dynamics="dynamicsContext" 
               :userAge="userStore.profile?.age_range"
               :userGender="userStore.profile?.gender"
+              @openMetric="openMetricModal"
             />
+            <!-- Description for Dynamics Context moved BELOW carousel -->
+            <p class="text-lg opacity-80 leading-snug mt-6 px-1">
+              Динамика контекста позволяет отследить изменения в вашем эмоциональном состоянии на протяжении серии снов, помогая заметить прогресс в проработке важных тем.
+            </p>
           </div>
         </div>
 
-        <!-- Заключение -->
-        <div v-if="hasConclusion" class="space-y-4">
-          <h3 class="text-2xl font-bold">Заключение</h3>
-          <div class="text-white/90 space-y-5">
-            <p v-if="conclusion.periodThemes" class="text-lg opacity-90 leading-snug">{{ conclusion.periodThemes }}</p>
-            <p v-if="conclusion.dreamFunctionsAnalysis" class="text-lg opacity-90 leading-snug">{{ conclusion.dreamFunctionsAnalysis }}</p>
-            <p v-if="conclusion.psychologicalSupport" class="text-lg opacity-90 leading-snug">{{ conclusion.psychologicalSupport }}</p>
-            
-            <div v-if="conclusion.integrationExercise" class="bg-white/10 rounded-lg p-4 space-y-3 mt-5">
-              <h4 class="font-bold text-xl opacity-95 flex items-center gap-2">
-                <span>💫</span>
+        <!-- Заключение - Simplified to only integration exercise/user context -->
+        <div v-if="hasConclusion && conclusion.integrationExercise" class="space-y-4">
+          <h3 class="text-2xl font-bold">Работа со снами</h3>
+          <div class="text-white/90">
+            <div class="bg-white/10 rounded-2xl p-6 space-y-4 border border-white/5 backdrop-blur-md">
+              <h4 class="font-bold text-2xl opacity-95 flex items-center gap-3">
+                <span class="text-3xl">💫</span>
                 <span>{{ conclusion.integrationExercise.title || 'Практическое упражнение' }}</span>
               </h4>
-              <p class="text-lg opacity-90 leading-snug">{{ conclusion.integrationExercise.description }}</p>
-              <p v-if="conclusion.integrationExercise.rationale" class="text-base opacity-60 leading-tight">{{ conclusion.integrationExercise.rationale }}</p>
+              <p class="text-xl opacity-90 leading-relaxed font-medium">{{ conclusion.integrationExercise.description }}</p>
+              <div v-if="conclusion.integrationExercise.rationale" class="bg-black/20 rounded-xl p-4 border border-white/5">
+                <div class="text-sm font-bold opacity-50 uppercase tracking-wider mb-2">Почему это важно</div>
+                <p class="text-lg opacity-80 leading-snug italic">{{ conclusion.integrationExercise.rationale }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -379,6 +386,50 @@
           </div>
         </div>
       </div>
+      <Teleport to="body">
+        <!-- Nested Modal for Symbols -->
+        <div v-if="selectedSymbol" class="fixed inset-0 z-[10001] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 px-6 overflow-y-auto" @click="closeSymbolModal">
+          <div class="w-full max-w-lg bg-gradient-to-br from-[#8000FF] to-[#5500AA] rounded-[32px] p-8 space-y-6 shadow-2xl relative" @click.stop>
+            <button class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-2xl font-bold" @click="closeSymbolModal">×</button>
+            <div class="flex items-center gap-4">
+               <span class="text-4xl">🧩</span>
+               <h2 class="text-3xl font-bold leading-tight">{{ selectedSymbol.symbol }}</h2>
+            </div>
+            <div class="bg-white/10 rounded-2xl p-6 space-y-4 border border-white/5">
+               <p class="text-xl leading-relaxed opacity-95">{{ selectedSymbol.description }}</p>
+            </div>
+            <div class="bg-black/20 rounded-[24px] p-6 border border-white/5">
+              <div class="text-sm font-bold opacity-50 uppercase tracking-wider mb-3">Контекст в ваших снах</div>
+              <p class="text-lg opacity-95 leading-relaxed font-medium italic">{{ selectedSymbol.userContext }}</p>
+            </div>
+            <button class="w-full bg-white text-[#6B00D0] font-bold py-4 rounded-2xl text-lg shadow-lg active:scale-95 transition-transform" @click="closeSymbolModal">Понятно</button>
+          </div>
+        </div>
+        <!-- Nested Modal for Dynamics Metrics -->
+        <div v-if="selectedMetric" class="fixed inset-0 z-[10001] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 px-6 overflow-y-auto" @click="closeMetricModal">
+          <div class="w-full max-w-lg bg-gradient-to-br from-[#FFD700]/20 to-[#DAA520]/20 rounded-[32px] p-8 space-y-6 shadow-2xl relative border border-white/10" @click.stop>
+            <button class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-2xl font-bold" @click="closeMetricModal">×</button>
+            <div class="flex items-center gap-4">
+               <span class="text-4xl">📊</span>
+               <h2 class="text-3xl font-bold leading-tight">{{ selectedMetric.category || selectedMetric.metric }}</h2>
+            </div>
+            <div class="bg-white/10 rounded-2xl p-6 space-y-4 border border-white/5">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm font-bold opacity-50 uppercase tracking-wider">Текущий показатель</span>
+                  <span class="text-2xl font-bold">{{ selectedMetric.values[selectedMetric.values.length-1] }}%</span>
+                </div>
+               <p class="text-xl leading-relaxed opacity-95">{{ selectedMetric.analysis }}</p>
+            </div>
+            <div v-if="selectedMetric.insight" class="bg-black/20 rounded-[24px] p-6 border border-white/5">
+              <div class="text-sm font-bold opacity-50 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span>💡</span>
+                <span>Инсайт</span>
+              </div>
+              <p class="text-lg opacity-95 leading-relaxed font-medium italic">{{ selectedMetric.insight }}</p>
+            </div>
+            <button class="w-full bg-white text-black font-bold py-4 rounded-2xl text-lg shadow-lg active:scale-95 transition-transform" @click="closeMetricModal">Понятно</button>
+          </div>
+        </div>
       </Teleport>
     </div>
   </article>
@@ -404,10 +455,35 @@ import 'swiper/css'
 const props = defineProps<{ dream: any; active?: boolean; overlayMode?: boolean }>()
 const emit = defineEmits(['toggle','open'])
 
-// Swiper setup
 const swiperModules = [A11y, Keyboard]
 const symbolSwiperInstance = ref<any>(null)
 const currentSymbolIndex = ref(0)
+
+const selectedSymbol = ref<any>(null)
+const openSymbolModal = (symbol: any) => {
+  selectedSymbol.value = symbol
+  if (window.triggerHaptic) window.triggerHaptic('medium')
+  try { document.body.style.overflow = 'hidden' } catch {}
+}
+const closeSymbolModal = () => {
+  selectedSymbol.value = null
+  try { 
+    if (!props.active) document.body.style.overflow = '' 
+  } catch {}
+}
+
+const selectedMetric = ref<any>(null)
+const openMetricModal = (metric: any) => {
+  selectedMetric.value = metric
+  if (window.triggerHaptic) window.triggerHaptic('medium')
+  try { document.body.style.overflow = 'hidden' } catch {}
+}
+const closeMetricModal = () => {
+  selectedMetric.value = null
+  try { 
+    if (!props.active) document.body.style.overflow = '' 
+  } catch {}
+}
 
 const onSymbolSwiper = (swiper: any) => {
   symbolSwiperInstance.value = swiper
