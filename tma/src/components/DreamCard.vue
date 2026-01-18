@@ -5,6 +5,10 @@
     :class="[gradientClass, overlayMode ? '' : 'cursor-pointer min-h-[4.5rem]']"
     @click="handleOpen"
   >
+    <!-- Drag Handle for Overlay -->
+    <div v-if="overlayMode" class="flex justify-center -mt-1 mb-4 shrink-0">
+       <div class="w-10 h-1 bg-white/20 rounded-full"></div>
+    </div>
     <!-- Collapsed header (card list view) -->
     <div v-if="!overlayMode" class="flex items-center gap-4 py-2 min-h-[3.5rem]">
       <div class="text-3xl shrink-0">{{ emoji }}</div>

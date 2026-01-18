@@ -18,7 +18,12 @@
         <div class="w-full max-w-lg pointer-events-auto relative shrink-0 transition-transform duration-200" ref="cardRef">
           <div class="bg-gradient-to-br from-[#8000FF] to-[#5500AA] text-white shadow-lg rounded-t-[32px] sm:rounded-b-[32px] overflow-hidden">
             
-            <div class="px-6 pt-8 pb-4 text-center">
+            <!-- Drag Handle -->
+            <div class="flex justify-center pt-3 pb-1 shrink-0">
+               <div class="w-10 h-1 bg-white/20 rounded-full"></div>
+            </div>
+            
+            <div class="px-6 pt-5 pb-4 text-center">
                <h2 class="text-[28px] font-bold leading-tight drop-shadow-md">Выбери тариф</h2>
             </div>
 
