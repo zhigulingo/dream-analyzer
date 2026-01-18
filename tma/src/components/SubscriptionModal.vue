@@ -1,6 +1,13 @@
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm overflow-y-auto scrollbar-hide" @click.self="closeModal">
+    <div 
+      class="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm overflow-y-auto scrollbar-hide" 
+      @click.self="closeModal"
+      ref="scrollerRef"
+      @touchstart="onTouchStart"
+      @touchmove="onTouchMove"
+      @touchend="onTouchEnd"
+    >
       <!-- Scroller internal container -->
       <div class="min-h-full flex flex-col items-center w-full" @click.self="closeModal">
         
@@ -8,7 +15,7 @@
         <div class="flex-1 min-h-[10vh] sm:min-h-[5vh] w-full" @click="closeModal"></div>
         
         <!-- Content Card -->
-        <div class="w-full max-w-lg pointer-events-auto relative shrink-0">
+        <div class="w-full max-w-lg pointer-events-auto relative shrink-0 transition-transform duration-200" ref="cardRef">
           <div class="bg-gradient-to-br from-[#8000FF] to-[#5500AA] text-white shadow-lg rounded-t-[32px] sm:rounded-b-[32px] overflow-hidden">
             
             <div class="px-6 pt-8 pb-4 text-center">
@@ -117,6 +124,56 @@ const handleMainButtonClick = () => {
     if (tg?.MainButton?.isActive) {
         userStore.initiatePayment();
     }
+};
+
+// Pull-down to close (gesture)
+const scrollerRef = ref(null);
+const cardRef = ref(null);
+let startY = 0;
+let dragging = false;
+let startedAtTop = false;
+let dragDelta = 0;
+
+const onTouchStart = (e) => {
+  try {
+    const scroller = scrollerRef.value;
+    if (!scroller) return;
+    startedAtTop = scroller.scrollTop <= 0;
+    if (!startedAtTop) return;
+    startY = e.touches[0].clientY;
+    dragDelta = 0;
+    dragging = true;
+  } catch {}
+};
+
+const onTouchMove = (e) => {
+  if (!dragging || !startedAtTop) return;
+  const y = e.touches[0].clientY;
+  dragDelta = Math.max(0, y - startY);
+  if (dragDelta > 0) {
+    const el = cardRef.value;
+    if (el) {
+      el.style.transform = `translateY(${Math.min(120, dragDelta)}px)`;
+      // Disable transition during drag for responsiveness
+      el.style.transition = 'none';
+      if (dragDelta > 10) e.preventDefault();
+    }
+  }
+};
+
+const onTouchEnd = () => {
+  const el = cardRef.value;
+  if (el) el.style.transition = ''; // restore transition
+  
+  if (dragging && startedAtTop && dragDelta >= 120) {
+    closeModal();
+  } else {
+    if (el) el.style.transform = '';
+  }
+  dragging = false;
+  startedAtTop = false;
+  startY = 0;
+  dragDelta = 0;
 };
 
 onMounted(() => {
