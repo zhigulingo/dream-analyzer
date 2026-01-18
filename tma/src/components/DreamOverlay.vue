@@ -135,6 +135,16 @@ onMounted(() => {
       try { document.body.style.overflow = '' } catch {}
     }
   }, { immediate: true })
+
+  // Следим за вложенными модальными окнами, чтобы перенастроить кнопку Назад
+  const userStore = useUserStore()
+  watch(() => userStore.activeCategoryModal, (val) => {
+    if (props.dream) {
+      // Каждый раз при смене состояния вложенного окна вызываем showBackButton,
+      // чтобы обновить onClick callback и состояние видимости
+      showBackButton()
+    }
+  })
 })
 onBeforeUnmount(() => {
   hideBackButton()
