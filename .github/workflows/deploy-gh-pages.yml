@@ -45,13 +45,26 @@ jobs:
       - name: Assemble GH Pages
         run: |
           mkdir out
+          # Add .nojekyll to prevent GitHub Pages from ignoring assets
+          touch out/.nojekyll
+          
+          echo "Assembling Web..."
           cp -r web/dist/* out/
+          
+          echo "Assembling TMA..."
           mkdir -p out/tma
           cp -r tma/dist/* out/tma/
+          
+          echo "Assembling Survey..."
           mkdir -p out/survey
           cp -r survey/dist/* out/survey/
+          
           # Copy index.html as 404.html for SPA routing support
+          echo "Creating 404.html..."
           cp out/index.html out/404.html
+          
+          echo "Deployment directory structure:"
+          ls -R out
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
