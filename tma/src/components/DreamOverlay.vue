@@ -96,21 +96,26 @@ const fullDate = computed(() => {
 function showBackButton() {
   try {
     const tg = (window as any)?.Telegram?.WebApp
-    tg?.BackButton?.show?.()
-    tg?.BackButton?.onClick?.(handleBack)
-  } catch {}
+    if (!tg?.BackButton) return
+    tg.BackButton.show()
+    // Always remove before adding to prevent stacking
+    tg.BackButton.offClick(handleBack)
+    tg.BackButton.onClick(handleBack)
+  } catch (e) { console.error('Error showing back button:', e) }
 }
 function hideBackButton() {
   try {
     const tg = (window as any)?.Telegram?.WebApp
-    tg?.BackButton?.hide?.()
-    tg?.BackButton?.offClick?.(handleBack)
-  } catch {}
+    if (!tg?.BackButton) return
+    tg.BackButton.hide()
+    tg.BackButton.offClick(handleBack)
+  } catch (e) { console.error('Error hiding back button:', e) }
 }
 function handleBack(){
   const userStore = useUserStore()
   if (userStore.activeCategoryModal) {
     userStore.activeCategoryModal = null
+    if (window.triggerHaptic) window.triggerHaptic('light')
     return
   }
   emit('close')
@@ -125,26 +130,24 @@ function onBackdropClick(e: MouseEvent) {
 }
 
 onMounted(() => {
-  // Следим за появлением/скрытием оверлея через prop, фиксированный верхний отступ
-  watch(() => props.dream, (val) => {
-    if (val) {
-      try { document.body.style.overflow = 'hidden' } catch {}
-      showBackButton()
-    } else {
-      hideBackButton()
-      try { document.body.style.overflow = '' } catch {}
-    }
-  }, { immediate: true })
+  // Инициализируем кнопку, если оверлей открыт при монтировании
+  if (props.dream) {
+    try { document.body.style.overflow = 'hidden' } catch {}
+    showBackButton()
+  }
+})
 
-  // Следим за вложенными модальными окнами, чтобы перенастроить кнопку Назад
-  const userStore = useUserStore()
-  watch(() => userStore.activeCategoryModal, (val) => {
-    if (props.dream) {
-      // Каждый раз при смене состояния вложенного окна вызываем showBackButton,
-      // чтобы обновить onClick callback и состояние видимости
-      showBackButton()
-    }
-  })
+watch(() => props.dream, (val) => {
+  if (val) {
+    try { document.body.style.overflow = 'hidden' } catch {}
+    showBackButton()
+  } else {
+    // При закрытии оверлея очищаем и состояние вложенных окон
+    const userStore = useUserStore()
+    userStore.activeCategoryModal = null
+    hideBackButton()
+    try { document.body.style.overflow = '' } catch {}
+  }
 })
 onBeforeUnmount(() => {
   hideBackButton()
