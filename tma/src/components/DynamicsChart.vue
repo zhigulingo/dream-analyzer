@@ -14,9 +14,8 @@
         v-for="(metric, idx) in dynamics" 
         :key="idx" 
         class="!w-[88%] sm:!w-[340px]"
-        @click="$emit('openMetric', metric)"
       >
-        <div class="chart-content bg-white/10 rounded-2xl p-5 border border-white/5 backdrop-blur-sm h-full active:scale-[0.98] transition-transform">
+        <div class="chart-content bg-white/10 rounded-2xl p-5 border border-white/5 backdrop-blur-sm h-full">
           <!-- Chart Title -->
           <div class="text-lg font-bold mb-4 flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -97,7 +96,6 @@
               </div>
             </div>
           </div>
-          <div class="text-center text-xs font-bold opacity-40 uppercase tracking-widest pt-4">Нажмите для подробностей</div>
         </div>
       </SwiperSlide>
     </Swiper>

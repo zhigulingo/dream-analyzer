@@ -41,7 +41,7 @@
       <template v-if="isDeep">
         <!-- Period Themes (Moved Up) -->
         <div v-if="hasConclusion && conclusion.periodThemes" class="space-y-2">
-           <p class="text-xl opacity-90 leading-relaxed font-medium italic border-l-2 border-white/20 pl-4">
+           <p class="text-xl opacity-90 leading-snug font-medium italic border-l-2 border-white/20 pl-4">
              "{{ conclusion.periodThemes }}"
            </p>
         </div>
@@ -414,7 +414,7 @@
       </Teleport>
       <Teleport to="body">
         <!-- Category Modal: Recurring Symbols -->
-        <div v-if="showCategoryModal === 'symbols'" class="fixed inset-0 z-[10001] bg-black/95 backdrop-blur-xl flex flex-col pt-safe" @click="closeCategoryModal">
+        <div v-if="showCategoryModal === 'symbols'" class="fixed inset-0 z-[10001] bg-black/95 backdrop-blur-xl flex flex-col pt-10" @click="closeCategoryModal">
            <div class="flex-1 flex flex-col p-6 space-y-8" @click.stop>
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -446,9 +446,8 @@
                       v-for="(symbol, idx) in filteredRecurringSymbols" 
                       :key="idx" 
                       class="!w-[88%]"
-                      @click="openSymbolModal(symbol)"
                     >
-                      <div class="space-y-4 bg-white/10 rounded-[32px] p-6 border border-white/10 backdrop-blur-sm h-full active:scale-[0.98] transition-transform">
+                      <div class="space-y-4 bg-white/10 rounded-[32px] p-6 border border-white/10 backdrop-blur-sm h-full transition-transform">
                         <div class="flex items-center justify-between">
                           <h4 class="font-bold text-2xl">{{ symbol.symbol }}</h4>
                           <span class="text-xl font-bold opacity-40 bg-white/10 px-3 py-1 rounded-full">×{{ symbol.frequency }}</span>
@@ -471,7 +470,7 @@
         </div>
 
         <!-- Category Modal: Dynamics -->
-        <div v-if="showCategoryModal === 'dynamics'" class="fixed inset-0 z-[10001] bg-black/95 backdrop-blur-xl flex flex-col pt-safe" @click="closeCategoryModal">
+        <div v-if="showCategoryModal === 'dynamics'" class="fixed inset-0 z-[10001] bg-black/95 backdrop-blur-xl flex flex-col pt-10" @click="closeCategoryModal">
            <div class="flex-1 flex flex-col p-6 space-y-8 overflow-y-auto" @click.stop>
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -480,7 +479,7 @@
                    </div>
                    <h2 class="text-3xl font-bold">Динамика</h2>
                 </div>
-                <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-2xl" @click="closeCategoryModal">
+                <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-3xl" @click="closeCategoryModal">
                   <X :size="24" />
                 </button>
               </div>
@@ -495,64 +494,10 @@
                     :dynamics="dynamicsContext" 
                     :userAge="userStore.profile?.age_range"
                     :userGender="userStore.profile?.gender"
-                    @openMetric="openMetricModal"
                   />
                  </div>
               </div>
            </div>
-        </div>
-
-        <!-- Nested Modal for Symbols Content -->
-        <div v-if="selectedSymbol" class="fixed inset-0 z-[10002] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6" @click="closeSymbolModal">
-          <div class="w-full max-w-lg bg-gradient-to-br from-[#8000FF] to-[#5500AA] rounded-[48px] p-8 space-y-6 shadow-2xl relative border border-white/20" @click.stop>
-            <button class="absolute top-8 right-8 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" @click="closeSymbolModal">
-              <X :size="24" />
-            </button>
-            <div class="flex items-center gap-4 pt-4">
-               <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner">
-                  <Puzzle :size="40" />
-               </div>
-               <h2 class="text-3xl font-bold leading-tight">{{ selectedSymbol.symbol }}</h2>
-            </div>
-            <p class="text-xl leading-relaxed opacity-90">{{ selectedSymbol.description }}</p>
-            <div class="bg-black/30 rounded-[32px] p-6 border border-white/10 shadow-inner">
-              <div class="text-[11px] font-bold opacity-40 uppercase tracking-[0.2em] mb-4">В ваших снах</div>
-              <p class="text-lg opacity-95 leading-relaxed italic">{{ selectedSymbol.userContext }}</p>
-            </div>
-            <button class="w-full bg-white text-[#6B00D0] font-bold py-5 rounded-[24px] text-lg active:scale-95 transition-transform shadow-xl" @click="closeSymbolModal">Понятно</button>
-          </div>
-        </div>
-
-        <!-- Nested Modal for Dynamics Metrics Content -->
-        <div v-if="selectedMetric" class="fixed inset-0 z-[10002] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6" @click="closeMetricModal">
-          <div class="w-full max-w-lg bg-gradient-to-br from-[#FFD700]/20 to-[#DAA520]/20 rounded-[48px] p-8 space-y-6 shadow-2xl relative border border-white/20" @click.stop>
-            <button class="absolute top-8 right-8 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" @click="closeMetricModal">
-               <X :size="24" />
-            </button>
-            <div class="flex items-center gap-4 pt-4">
-               <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner">
-                  <LineChart :size="40" class="text-yellow-400" />
-               </div>
-               <h2 class="text-3xl font-bold leading-tight">{{ selectedMetric.category || selectedMetric.metric }}</h2>
-            </div>
-            <div class="space-y-4">
-               <div class="flex items-center justify-between px-2">
-                 <span class="text-xs font-bold opacity-40 uppercase tracking-[0.2em]">Текущий уровень</span>
-                 <span class="text-4xl font-black text-yellow-400">{{ selectedMetric.values[selectedMetric.values.length-1] }}%</span>
-               </div>
-               <div class="bg-white/10 rounded-[32px] p-6 border border-white/5 backdrop-blur-md">
-                 <p class="text-xl leading-relaxed opacity-95 font-medium">{{ selectedMetric.analysis }}</p>
-               </div>
-            </div>
-            <div v-if="selectedMetric.insight" class="bg-black/30 rounded-[32px] p-6 border border-white/10">
-              <div class="text-[11px] font-bold opacity-40 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-                <Sparkles :size="14" />
-                <span>Инсайт</span>
-              </div>
-              <p class="text-lg opacity-95 leading-relaxed italic font-medium">{{ selectedMetric.insight }}</p>
-            </div>
-            <button class="w-full bg-white text-black font-bold py-5 rounded-[24px] text-lg active:scale-95 transition-transform shadow-xl" @click="closeMetricModal">Закрыть</button>
-          </div>
         </div>
       </Teleport>
     </div>
@@ -610,24 +555,6 @@ const openCategoryModal = (id: string) => {
 const closeCategoryModal = () => {
   showCategoryModal.value = null
   try { if (!props.active) document.body.style.overflow = '' } catch {}
-}
-
-const selectedSymbol = ref<any>(null)
-const openSymbolModal = (symbol: any) => {
-  selectedSymbol.value = symbol
-  if (window.triggerHaptic) window.triggerHaptic('medium')
-}
-const closeSymbolModal = () => {
-  selectedSymbol.value = null
-}
-
-const selectedMetric = ref<any>(null)
-const openMetricModal = (metric: any) => {
-  selectedMetric.value = metric
-  if (window.triggerHaptic) window.triggerHaptic('medium')
-}
-const closeMetricModal = () => {
-  selectedMetric.value = null
 }
 
 const onSymbolSwiper = (swiper: any) => {
