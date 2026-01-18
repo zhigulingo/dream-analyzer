@@ -8,24 +8,30 @@
       @touchend="handleTouchEnd"
     >
       <transition :name="transitionName" mode="out-in">
-        <div :key="currentIndex" class="chart-content">
+        <div :key="currentIndex" class="chart-content bg-white/10 rounded-2xl p-5 border border-white/5 backdrop-blur-sm">
           <!-- Chart Title -->
-          <div class="text-sm font-semibold mb-2 flex items-center justify-between">
-            <span>{{ currentMetric.category || currentMetric.metric }}</span>
-            <span class="text-xs opacity-70">{{ currentValues[currentValues.length - 1] }}</span>
+          <div class="text-lg font-bold mb-4 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">📊</span>
+              <span>{{ currentMetric.category || currentMetric.metric }}</span>
+            </div>
+            <div class="flex flex-col items-end">
+              <span class="text-2xl font-bold leading-none">{{ currentValues[currentValues.length - 1] }}%</span>
+              <span class="text-[10px] uppercase tracking-wider opacity-50 mt-1">текущий уровень</span>
+            </div>
           </div>
           
-          <!-- SVG Chart (80% width with Y-axis labels) -->
-          <div class="chart-svg-container">
+          <!-- SVG Chart -->
+          <div class="chart-svg-container my-6">
             <!-- Y-axis labels -->
-            <div class="y-axis-labels">
-              <span class="y-label">{{ yAxisScale.labels[0] }}</span>
-              <span class="y-label">{{ yAxisScale.labels[1] }}</span>
-              <span class="y-label">{{ yAxisScale.labels[2] }}</span>
+            <div class="y-axis-labels pr-2 border-r border-white/10 mr-2">
+              <span class="y-label">{{ yAxisScale.labels[0] }}%</span>
+              <span class="y-label text-[10px]">{{ yAxisScale.labels[1] }}%</span>
+              <span class="y-label">{{ yAxisScale.labels[2] }}%</span>
             </div>
             
             <!-- Chart SVG -->
-            <div class="chart-svg-wrapper">
+            <div class="chart-svg-wrapper flex-1">
               <svg 
                 :viewBox="`0 0 ${chartWidth} ${chartHeight}`" 
                 class="chart-svg"
@@ -40,68 +46,52 @@
                   :y1="(chartHeight / 2) * (i - 1)" 
                   :y2="(chartHeight / 2) * (i - 1)"
                   stroke="white" 
-                  stroke-opacity="0.15" 
+                  stroke-opacity="0.08" 
                   stroke-width="1"
-                />
-                
-                <!-- Demographic norm zone (if available) -->
-                <rect
-                  v-if="demographicZoneY !== null"
-                  :x="0"
-                  :y="demographicZoneY - 8"
-                  :width="chartWidth"
-                  :height="16"
-                  fill="yellow"
-                  opacity="0.15"
-                />
-                <line
-                  v-if="demographicZoneY !== null"
-                  :x1="0"
-                  :x2="chartWidth"
-                  :y1="demographicZoneY"
-                  :y2="demographicZoneY"
-                  stroke="yellow"
-                  stroke-opacity="0.6"
-                  stroke-width="1.5"
-                  stroke-dasharray="4,3"
                 />
                 
                 <!-- Data line -->
                 <polyline 
                   :points="linePoints" 
                   fill="none" 
-                  stroke="white" 
-                  stroke-width="2.5" 
+                  stroke="url(#chartGradient)" 
+                  stroke-width="3" 
                   stroke-linejoin="round" 
                   stroke-linecap="round"
                 />
                 
-                <!-- Data points -->
+                <!-- Data points with glow -->
                 <circle 
                   v-for="(point, idx) in dataPoints" 
                   :key="`point-${idx}`"
                   :cx="point.x" 
                   :cy="point.y" 
-                  r="4" 
+                  r="3.5" 
                   fill="white"
-                  vector-effect="non-scaling-stroke"
+                  class="chart-point"
                 />
+
+                <defs>
+                  <linearGradient id="chartGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#FFD700" stop-opacity="0.8" />
+                    <stop offset="100%" stop-color="#ffffff" stop-opacity="1" />
+                  </linearGradient>
+                </defs>
               </svg>
             </div>
           </div>
           
-          <!-- Analysis (new format) or Interpretation (legacy) -->
-          <div v-if="currentMetric.analysis" class="mt-4">
-            <div class="dynamics-analysis">
-              <p class="analysis-text">{{ currentMetric.analysis }}</p>
-              <div v-if="currentMetric.insight" class="insight-box">
-                <span class="insight-icon">💡</span>
-                <p class="insight-text">{{ currentMetric.insight }}</p>
+          <!-- Analysis and Insight -->
+          <div class="space-y-4">
+            <div v-if="currentMetric.analysis" class="dynamics-analysis">
+              <p class="text-base opacity-90 leading-relaxed font-medium">{{ currentMetric.analysis }}</p>
+            </div>
+            <div v-if="currentMetric.insight" class="insight-box bg-white/5 rounded-xl p-4 border-l-4 border-yellow-400/60">
+              <div class="flex gap-3">
+                <span class="text-xl">💡</span>
+                <p class="text-sm opacity-95 leading-snug italic">{{ currentMetric.insight }}</p>
               </div>
             </div>
-          </div>
-          <div v-else-if="currentMetric.interpretation" class="mt-3 text-xs opacity-80 leading-relaxed">
-            {{ currentMetric.interpretation }}
           </div>
         </div>
       </transition>

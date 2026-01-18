@@ -41,22 +41,48 @@
       
       <!-- Deep analysis specific layout -->
       <template v-if="isDeep">
-        <!-- Повторяющиеся символы -->
+        <!-- Повторяющиеся символы - Carousel -->
         <div v-if="hasRecurringSymbols" class="space-y-4">
           <h3 class="text-2xl font-bold">Повторяющиеся символы</h3>
           <div class="text-white/90 space-y-5">
-            <!-- Вводный текст о значении повторений -->
+            <!-- Вводный текст -->
             <p v-if="symbolsIntro" class="text-lg opacity-90 leading-snug pb-4 border-b border-white/10">{{ symbolsIntro }}</p>
             
-            <!-- Список символов (только с частотой >= 2) -->
-            <div v-for="(symbol, idx) in filteredRecurringSymbols" :key="`symbol-${idx}`" class="space-y-3">
-              <div class="flex items-baseline gap-2">
-                <h4 class="font-bold text-xl">{{ symbol.symbol }}</h4>
-                <span class="text-base opacity-60 bg-white/15 px-2 py-0.5 rounded-full">×{{ symbol.frequency }}</span>
-              </div>
-              <p class="text-lg opacity-90 leading-snug">{{ symbol.description }}</p>
-              <div class="text-base opacity-60 leading-tight bg-white/5 rounded-lg px-3 py-2">
-                <span class="font-medium opacity-80">В ваших снах:</span> {{ symbol.userContext }}
+            <!-- Carousel Container -->
+            <div 
+              class="relative overflow-hidden touch-action-pan-y"
+              @touchstart="handleSymbolTouchStart"
+              @touchmove="handleSymbolTouchMove"
+              @touchend="handleSymbolTouchEnd"
+            >
+              <transition :name="symbolTransitionName" mode="out-in">
+                <div :key="currentSymbolIndex" class="space-y-4 bg-white/10 rounded-2xl p-5 border border-white/5 backdrop-blur-sm">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <span class="text-2xl">🧩</span>
+                      <h4 class="font-bold text-xl">{{ filteredRecurringSymbols[currentSymbolIndex].symbol }}</h4>
+                    </div>
+                    <span class="text-lg font-bold opacity-60 bg-white/15 px-3 py-1 rounded-full">×{{ filteredRecurringSymbols[currentSymbolIndex].frequency }}</span>
+                  </div>
+                  
+                  <p class="text-[17px] opacity-90 leading-relaxed">{{ filteredRecurringSymbols[currentSymbolIndex].description }}</p>
+                  
+                  <div class="bg-black/20 rounded-xl p-4 border border-white/5">
+                    <div class="text-sm font-bold opacity-50 uppercase tracking-wider mb-2">Контекст в ваших снах</div>
+                    <p class="text-base opacity-95 leading-snug">{{ filteredRecurringSymbols[currentSymbolIndex].userContext }}</p>
+                  </div>
+                </div>
+              </transition>
+
+              <!-- Pagination dots for symbols -->
+              <div v-if="filteredRecurringSymbols.length > 1" class="flex justify-center gap-2 mt-4">
+                <div 
+                  v-for="(_, idx) in filteredRecurringSymbols" 
+                  :key="idx"
+                  class="w-2 h-2 rounded-full transition-all duration-300"
+                  :class="idx === currentSymbolIndex ? 'bg-white scale-125' : 'bg-white/20'"
+                  @click="goToSymbol(idx)"
+                ></div>
               </div>
             </div>
           </div>
@@ -366,6 +392,40 @@ dayjs.extend(timezone)
 
 const props = defineProps<{ dream: any; active?: boolean; overlayMode?: boolean }>()
 const emit = defineEmits(['toggle','open'])
+
+// Carousel logic for Symbols
+const currentSymbolIndex = ref(0)
+const symbolTouchStartX = ref(0)
+const symbolTouchEndX = ref(0)
+const symbolTransitionName = ref('slide-left')
+
+const handleSymbolTouchStart = (e: TouchEvent) => {
+  symbolTouchStartX.value = e.touches[0].clientX
+}
+const handleSymbolTouchMove = (e: TouchEvent) => {
+  symbolTouchEndX.value = e.touches[0].clientX
+}
+const handleSymbolTouchEnd = () => {
+  const diff = symbolTouchStartX.value - symbolTouchEndX.value
+  const threshold = 50
+  if (Math.abs(diff) > threshold) {
+    if (diff > 0 && currentSymbolIndex.value < filteredRecurringSymbols.value.length - 1) {
+      symbolTransitionName.value = 'slide-left'
+      currentSymbolIndex.value++
+      if (window.triggerHaptic) window.triggerHaptic('light')
+    } else if (diff < 0 && currentSymbolIndex.value > 0) {
+      symbolTransitionName.value = 'slide-right'
+      currentSymbolIndex.value--
+      if (window.triggerHaptic) window.triggerHaptic('light')
+    }
+  }
+  symbolTouchStartX.value = 0
+  symbolTouchEndX.value = 0
+}
+const goToSymbol = (idx: number) => {
+  symbolTransitionName.value = idx > currentSymbolIndex.value ? 'slide-left' : 'slide-right'
+  currentSymbolIndex.value = idx
+}
 
 const rootRef = ref<HTMLElement | null>(null)
 const emitOpen = () => {
