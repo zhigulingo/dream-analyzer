@@ -62,7 +62,7 @@ const DemographicsBanner = defineAsyncComponent(() => import('@/components/Demog
 const userStore = useUserStore()
 const { isOnline, pendingOperations } = useOfflineDetection()
 
-const showDeepAnalysisBanner = computed(() => userStore.history && userStore.history.length >= 5)
+const showDeepAnalysisBanner = computed(() => Array.isArray(userStore.history) && userStore.history.length >= 5)
 const dismissedDemo = ref(false)
 const showDemographicsBanner = computed(() => {
   const p: any = userStore.profile || {}

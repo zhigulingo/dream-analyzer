@@ -168,9 +168,14 @@ export const useUserStore = defineStore('user', {
         // route to overlay via isLoadingProfile; avoid noisy snackbars
         const response = await this.offlineDetection.executeOnlineOperation(() => api.getUserProfileFresh(), 'Загрузка профиля (fresh)');
 
-        this.profile = { ...this.profile, ...response.data };
-        this.rewardAlreadyClaimed = this.profile?.channel_reward_claimed ?? false;
-        console.log("[UserStore] Profile loaded:", this.profile);
+        if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+          this.profile = { ...this.profile, ...response.data };
+          this.rewardAlreadyClaimed = this.profile?.channel_reward_claimed ?? false;
+          console.log("[UserStore] Profile loaded:", this.profile);
+        } else {
+          console.warn("[UserStore:fetchProfile] Unexpected response format:", response.data);
+          this.errorProfile = "Некорректный формат профиля";
+        }
 
         // Сбрасываем retry состояние при успехе
         this.resetRetryState('fetchProfile');
@@ -219,8 +224,14 @@ export const useUserStore = defineStore('user', {
         // route to overlay via isLoadingHistory; avoid noisy snackbars
         const response = await this.offlineDetection.executeOnlineOperation(() => api.getAnalysesHistory(), 'Загрузка истории');
 
-        this.history = response.data;
-        console.log("[UserStore] History loaded, count:", this.history.length);
+        if (Array.isArray(response.data)) {
+          this.history = response.data;
+          console.log("[UserStore] History loaded, count:", this.history.length);
+        } else {
+          console.warn("[UserStore:fetchHistory] Unexpected response format (expected array):", response.data);
+          this.history = []; // Keep it as array to prevent crashes
+          this.errorHistory = "Некорректный формат истории";
+        }
 
         // Сбрасываем retry состояние при успехе
         this.resetRetryState('fetchHistory');
