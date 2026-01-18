@@ -16,12 +16,10 @@
         <div class="truncate font-semibold leading-tight text-base">{{ displayTitle }}</div>
         <div class="text-sm opacity-80 leading-tight mt-0.5">{{ relativeDate }}</div>
       </div>
-      <button class="shrink-0 w-5 h-5 opacity-60 hover:opacity-100 flex items-center justify-center transition-opacity"
+      <button class="shrink-0 w-6 h-6 opacity-40 hover:opacity-100 flex items-center justify-center transition-opacity"
               @click.stop="emitOpen()"
               aria-label="Открыть">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <ChevronRight :size="20" />
       </button>
     </div>
 
@@ -57,12 +55,16 @@
               @click="toggleAccordion('functions')"
             >
               <div class="flex items-center gap-3">
-                <span class="text-xl">⚙️</span>
+                <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <Cpu :size="18" class="text-blue-400" />
+                </div>
                 <span>Анализ функций</span>
               </div>
-              <span class="transition-transform duration-300" :style="{ transform: accordionOpen === 'functions' ? 'rotate(90deg)' : '' }">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
+              <ChevronRight 
+                :size="20" 
+                class="transition-transform duration-300 opacity-30" 
+                :style="{ transform: accordionOpen === 'functions' ? 'rotate(90deg)' : '' }"
+              />
             </button>
             <div 
               v-show="accordionOpen === 'functions'" 
@@ -79,12 +81,16 @@
               @click="toggleAccordion('support')"
             >
               <div class="flex items-center gap-3">
-                <span class="text-xl">🕊️</span>
+                <div class="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <HeartHandshake :size="18" class="text-green-400" />
+                </div>
                 <span>Напутствие</span>
               </div>
-              <span class="transition-transform duration-300" :style="{ transform: accordionOpen === 'support' ? 'rotate(90deg)' : '' }">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
+              <ChevronRight 
+                :size="20" 
+                class="transition-transform duration-300 opacity-30" 
+                :style="{ transform: accordionOpen === 'support' ? 'rotate(90deg)' : '' }"
+              />
             </button>
             <div 
               v-show="accordionOpen === 'support'" 
@@ -104,15 +110,15 @@
              @click="openCategoryModal('symbols')"
            >
              <div class="flex items-center gap-4">
-               <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-3xl shadow-inner">🧩</div>
+               <div class="w-12 h-12 rounded-2xl bg-purple-500/20 flex items-center justify-center shadow-lg border border-white/5">
+                 <Puzzle :size="24" class="text-purple-300" />
+               </div>
                <div>
-                  <div class="text-lg font-bold">Повторяющиеся символы</div>
+                  <div class="text-lg font-bold leading-tight">Повторяющиеся символы</div>
                   <div class="text-sm opacity-50">{{ filteredRecurringSymbols.length }} найдено</div>
                </div>
              </div>
-             <div class="opacity-40">
-               <svg width="24" height="24" viewBox="0 0 20 20" fill="none"><path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-             </div>
+             <ChevronRight :size="20" class="opacity-30" />
            </div>
 
            <!-- Dynamics Button -->
@@ -122,30 +128,31 @@
              @click="openCategoryModal('dynamics')"
            >
              <div class="flex items-center gap-4">
-               <div class="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center text-3xl shadow-inner">📊</div>
+               <div class="w-12 h-12 rounded-2xl bg-yellow-500/20 flex items-center justify-center shadow-lg border border-white/5">
+                 <LineChart :size="24" class="text-yellow-300" />
+               </div>
                <div>
-                  <div class="text-lg font-bold">Динамика контекста</div>
+                  <div class="text-lg font-bold leading-tight">Динамика контекста</div>
                   <div class="text-sm opacity-50">{{ dynamicsContext.length }} метрики</div>
                </div>
              </div>
-             <div class="opacity-40">
-               <svg width="24" height="24" viewBox="0 0 20 20" fill="none"><path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-             </div>
+             <ChevronRight :size="20" class="opacity-30" />
            </div>
         </div>
 
         <!-- Integration Exercise (Bottom) -->
         <div v-if="hasConclusion && conclusion.integrationExercise" class="space-y-4 pt-2">
-          <div class="bg-white/10 rounded-2xl p-6 space-y-4 border border-white/10 backdrop-blur-md shadow-2xl relative overflow-hidden">
-              <div class="absolute top-0 right-0 p-4 opacity-5 text-6xl">💫</div>
+          <div class="bg-white/10 rounded-[28px] p-6 space-y-4 border border-white/10 backdrop-blur-md shadow-2xl relative overflow-hidden">
+              <div class="absolute -top-4 -right-4 w-24 h-24 bg-white/5 rounded-full blur-2xl"></div>
               <h4 class="font-bold text-2xl opacity-95 flex items-center gap-3">
+                <Sparkles :size="24" class="text-yellow-400" />
                 <span>Практика</span>
               </h4>
               <p class="text-xl opacity-90 leading-relaxed font-bold">{{ conclusion.integrationExercise.title }}</p>
               <p class="text-base opacity-80 leading-relaxed">{{ conclusion.integrationExercise.description }}</p>
-              <div v-if="conclusion.integrationExercise.rationale" class="bg-black/20 rounded-xl p-4 border border-white/5">
-                <div class="text-sm font-bold opacity-50 uppercase tracking-wider mb-1">Польза</div>
-                <p class="text-sm opacity-70 italic">{{ conclusion.integrationExercise.rationale }}</p>
+              <div v-if="conclusion.integrationExercise.rationale" class="bg-black/25 rounded-2xl p-4 border border-white/5">
+                <div class="text-xs font-bold opacity-40 uppercase tracking-widest mb-1">Польза</div>
+                <p class="text-[15px] opacity-80 leading-snug italic">{{ conclusion.integrationExercise.rationale }}</p>
               </div>
           </div>
         </div>
@@ -345,26 +352,27 @@
       </div>
       </template>
 
-      <div class="mt-4 flex gap-2">
+      <div class="mt-4 flex gap-3 px-1">
         <button 
-          class="flex-1 rounded-xl py-2 text-sm font-medium text-center transition-colors"
-          :class="localFeedback === 1 ? 'bg-green-500/30 text-white ring-2 ring-green-400/60' : 'bg-white/20 hover:bg-white/30 text-white'"
+          class="flex-[2] rounded-2xl h-12 flex items-center justify-center gap-2 font-bold transition-all"
+          :class="localFeedback === 1 ? 'bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.3)]' : 'bg-white/10 hover:bg-white/15 text-white'"
           @click.stop="handleLike"
         >
-          👍
+          <ThumbsUp :size="20" :fill="localFeedback === 1 ? 'currentColor' : 'none'" />
+          <span v-if="localFeedback === 1">Нравится</span>
         </button>
         <button 
-          class="flex-1 rounded-xl py-2 text-sm font-medium text-center transition-colors"
-          :class="localFeedback === 2 ? 'bg-red-500/30 text-white ring-2 ring-red-400/60' : 'bg-white/20 hover:bg-white/30 text-white'"
+          class="flex-1 rounded-2xl h-12 flex items-center justify-center transition-all"
+          :class="localFeedback === 2 ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,44,44,0.3)]' : 'bg-white/10 hover:bg-white/15 text-white'"
           @click.stop="handleDislike"
         >
-          👎
+          <ThumbsDown :size="20" :fill="localFeedback === 2 ? 'currentColor' : 'none'" />
         </button>
         <button 
-          class="flex-1 bg-red-500/20 hover:bg-red-500/30 text-white rounded-xl py-2 text-sm font-medium text-center transition-colors"
+          class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-2xl h-12 flex items-center justify-center transition-all border border-red-500/20"
           @click.stop="handleDelete"
         >
-          🗑️
+          <Trash2 :size="20" />
         </button>
       </div>
 
@@ -409,12 +417,19 @@
         <div v-if="showCategoryModal === 'symbols'" class="fixed inset-0 z-[10001] bg-black/95 backdrop-blur-xl flex flex-col pt-safe" @click="closeCategoryModal">
            <div class="flex-1 flex flex-col p-6 space-y-8" @click.stop>
               <div class="flex items-center justify-between">
-                <h2 class="text-3xl font-bold">Символы</h2>
-                <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-2xl" @click="closeCategoryModal">×</button>
+                <div class="flex items-center gap-3">
+                   <div class="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                      <Puzzle :size="24" class="text-purple-300" />
+                   </div>
+                   <h2 class="text-3xl font-bold">Символы</h2>
+                </div>
+                <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-3xl" @click="closeCategoryModal">
+                  <X :size="24" />
+                </button>
               </div>
               
-              <div class="space-y-6">
-                 <p v-if="symbolsIntro" class="text-lg opacity-80 border-l-2 border-white/20 pl-4 italic">{{ symbolsIntro }}</p>
+              <div class="space-y-6 flex-1 overflow-y-auto">
+                 <p v-if="symbolsIntro" class="text-lg opacity-80 border-l-2 border-white/20 pl-4 italic leading-relaxed">{{ symbolsIntro }}</p>
                  
                  <div class="-mx-6">
                    <Swiper
@@ -435,10 +450,7 @@
                     >
                       <div class="space-y-4 bg-white/10 rounded-[32px] p-6 border border-white/10 backdrop-blur-sm h-full active:scale-[0.98] transition-transform">
                         <div class="flex items-center justify-between">
-                          <div class="flex items-center gap-3">
-                            <span class="text-3xl">🧩</span>
-                            <h4 class="font-bold text-2xl">{{ symbol.symbol }}</h4>
-                          </div>
+                          <h4 class="font-bold text-2xl">{{ symbol.symbol }}</h4>
                           <span class="text-xl font-bold opacity-40 bg-white/10 px-3 py-1 rounded-full">×{{ symbol.frequency }}</span>
                         </div>
                         <p class="text-lg opacity-90 leading-relaxed">{{ symbol.description }}</p>
@@ -462,12 +474,19 @@
         <div v-if="showCategoryModal === 'dynamics'" class="fixed inset-0 z-[10001] bg-black/95 backdrop-blur-xl flex flex-col pt-safe" @click="closeCategoryModal">
            <div class="flex-1 flex flex-col p-6 space-y-8 overflow-y-auto" @click.stop>
               <div class="flex items-center justify-between">
-                <h2 class="text-3xl font-bold">Динамика</h2>
-                <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-2xl" @click="closeCategoryModal">×</button>
+                <div class="flex items-center gap-3">
+                   <div class="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
+                      <LineChart :size="24" class="text-yellow-300" />
+                   </div>
+                   <h2 class="text-3xl font-bold">Динамика</h2>
+                </div>
+                <button class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-2xl" @click="closeCategoryModal">
+                  <X :size="24" />
+                </button>
               </div>
 
               <div class="space-y-8">
-                 <p class="text-lg opacity-80 border-l-2 border-white/20 pl-4 italic">
+                 <p class="text-lg opacity-80 border-l-2 border-white/20 pl-4 italic leading-relaxed">
                    Динамика контекста позволяет отследить изменения в вашем эмоциональном состоянии на протяжении серии снов.
                  </p>
                  
@@ -483,48 +502,56 @@
            </div>
         </div>
 
-        <!-- Nested Modal for Symbols Content (kept) -->
+        <!-- Nested Modal for Symbols Content -->
         <div v-if="selectedSymbol" class="fixed inset-0 z-[10002] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6" @click="closeSymbolModal">
-          <div class="w-full max-w-lg bg-gradient-to-br from-[#8000FF] to-[#5500AA] rounded-[40px] p-8 space-y-6 shadow-2xl relative border border-white/20" @click.stop>
-            <button class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-2xl font-bold" @click="closeSymbolModal">×</button>
-            <div class="flex items-center gap-4">
-               <span class="text-5xl">🧩</span>
+          <div class="w-full max-w-lg bg-gradient-to-br from-[#8000FF] to-[#5500AA] rounded-[48px] p-8 space-y-6 shadow-2xl relative border border-white/20" @click.stop>
+            <button class="absolute top-8 right-8 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" @click="closeSymbolModal">
+              <X :size="24" />
+            </button>
+            <div class="flex items-center gap-4 pt-4">
+               <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner">
+                  <Puzzle :size="40" />
+               </div>
                <h2 class="text-3xl font-bold leading-tight">{{ selectedSymbol.symbol }}</h2>
             </div>
             <p class="text-xl leading-relaxed opacity-90">{{ selectedSymbol.description }}</p>
             <div class="bg-black/30 rounded-[32px] p-6 border border-white/10 shadow-inner">
-              <div class="text-sm font-bold opacity-50 uppercase tracking-widest mb-3">В ваших снах</div>
+              <div class="text-[11px] font-bold opacity-40 uppercase tracking-[0.2em] mb-4">В ваших снах</div>
               <p class="text-lg opacity-95 leading-relaxed italic">{{ selectedSymbol.userContext }}</p>
             </div>
-            <button class="w-full bg-white text-[#6B00D0] font-bold py-4 rounded-2xl text-lg active:scale-95 transition-transform" @click="closeSymbolModal">Понятно</button>
+            <button class="w-full bg-white text-[#6B00D0] font-bold py-5 rounded-[24px] text-lg active:scale-95 transition-transform shadow-xl" @click="closeSymbolModal">Понятно</button>
           </div>
         </div>
 
-        <!-- Nested Modal for Dynamics Metrics Content (kept) -->
+        <!-- Nested Modal for Dynamics Metrics Content -->
         <div v-if="selectedMetric" class="fixed inset-0 z-[10002] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6" @click="closeMetricModal">
-          <div class="w-full max-w-lg bg-gradient-to-br from-[#FFD700]/20 to-[#DAA520]/20 rounded-[40px] p-8 space-y-6 shadow-2xl relative border border-white/20" @click.stop>
-            <button class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-2xl font-bold" @click="closeMetricModal">×</button>
-            <div class="flex items-center gap-4">
-               <span class="text-5xl">📊</span>
+          <div class="w-full max-w-lg bg-gradient-to-br from-[#FFD700]/20 to-[#DAA520]/20 rounded-[48px] p-8 space-y-6 shadow-2xl relative border border-white/20" @click.stop>
+            <button class="absolute top-8 right-8 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" @click="closeMetricModal">
+               <X :size="24" />
+            </button>
+            <div class="flex items-center gap-4 pt-4">
+               <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center shadow-inner">
+                  <LineChart :size="40" class="text-yellow-400" />
+               </div>
                <h2 class="text-3xl font-bold leading-tight">{{ selectedMetric.category || selectedMetric.metric }}</h2>
             </div>
             <div class="space-y-4">
                <div class="flex items-center justify-between px-2">
-                 <span class="text-sm font-bold opacity-40 uppercase tracking-widest">Текущий уровень</span>
-                 <span class="text-3xl font-bold text-yellow-400">{{ selectedMetric.values[selectedMetric.values.length-1] }}%</span>
+                 <span class="text-xs font-bold opacity-40 uppercase tracking-[0.2em]">Текущий уровень</span>
+                 <span class="text-4xl font-black text-yellow-400">{{ selectedMetric.values[selectedMetric.values.length-1] }}%</span>
                </div>
                <div class="bg-white/10 rounded-[32px] p-6 border border-white/5 backdrop-blur-md">
-                 <p class="text-xl leading-relaxed opacity-95">{{ selectedMetric.analysis }}</p>
+                 <p class="text-xl leading-relaxed opacity-95 font-medium">{{ selectedMetric.analysis }}</p>
                </div>
             </div>
             <div v-if="selectedMetric.insight" class="bg-black/30 rounded-[32px] p-6 border border-white/10">
-              <div class="text-sm font-bold opacity-50 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <span>💡</span>
+              <div class="text-[11px] font-bold opacity-40 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                <Sparkles :size="14" />
                 <span>Инсайт</span>
               </div>
-              <p class="text-lg opacity-95 leading-relaxed italic">{{ selectedMetric.insight }}</p>
+              <p class="text-lg opacity-95 leading-relaxed italic font-medium">{{ selectedMetric.insight }}</p>
             </div>
-            <button class="w-full bg-white text-black font-bold py-4 rounded-2xl text-lg active:scale-95 transition-transform" @click="closeMetricModal">Закрыть</button>
+            <button class="w-full bg-white text-black font-bold py-5 rounded-[24px] text-lg active:scale-95 transition-transform shadow-xl" @click="closeMetricModal">Закрыть</button>
           </div>
         </div>
       </Teleport>
@@ -548,6 +575,18 @@ dayjs.extend(timezone)
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { A11y, Keyboard } from 'swiper/modules'
 import 'swiper/css'
+import { 
+  Puzzle, 
+  LineChart, 
+  Cpu, 
+  HeartHandshake, 
+  Sparkles, 
+  ThumbsUp, 
+  ThumbsDown, 
+  Trash2, 
+  ChevronRight, 
+  X 
+} from 'lucide-vue-next'
 
 const props = defineProps<{ dream: any; active?: boolean; overlayMode?: boolean }>()
 const emit = defineEmits(['toggle','open'])

@@ -20,8 +20,10 @@
           <!-- Chart Title -->
           <div class="text-lg font-bold mb-4 flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="text-xl">📊</span>
-              <span>{{ metric.category || metric.metric }}</span>
+              <div class="w-8 h-8 rounded-lg bg-yellow-400/20 flex items-center justify-center">
+                <LineChart :size="18" class="text-yellow-400" />
+              </div>
+              <span class="opacity-90">{{ metric.category || metric.metric }}</span>
             </div>
             <div class="flex flex-col items-end">
               <span class="text-2xl font-bold leading-none">{{ metric.values[metric.values.length - 1] }}%</span>
@@ -88,10 +90,10 @@
             <div v-if="metric.analysis" class="dynamics-analysis">
               <p class="text-base opacity-90 leading-relaxed font-medium">{{ metric.analysis }}</p>
             </div>
-            <div v-if="metric.insight" class="insight-box bg-white/5 rounded-xl p-4 border-l-4 border-yellow-400/60">
+            <div v-if="metric.insight" class="insight-box bg-white/5 rounded-xl p-4 border border-white/5 backdrop-blur-sm">
               <div class="flex gap-3">
-                <span class="text-xl">💡</span>
-                <p class="text-sm opacity-95 leading-snug italic">{{ metric.insight }}</p>
+                <Sparkles :size="18" class="text-yellow-400 shrink-0 mt-0.5" />
+                <p class="text-[15px] opacity-90 leading-relaxed italic">{{ metric.insight }}</p>
               </div>
             </div>
           </div>
@@ -117,6 +119,7 @@ import { ref, computed } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { A11y, Keyboard } from 'swiper/modules'
 import 'swiper/css'
+import { LineChart, Sparkles } from 'lucide-vue-next'
 
 interface DynamicMetric {
   metric: string
