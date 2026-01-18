@@ -14,7 +14,7 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
         const userId = ctx.from?.id;
         const chatId = ctx.chat.id;
         const updateId = ctx.update?.update_id;
-        
+
         // Extract startParam from /start command, if present
         let startParam;
         if (ctx.message && ctx.message.text) {
@@ -23,12 +23,12 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
                 startParam = parts[1];
             }
         }
-        
+
         if (!userId || !chatId) {
             console.warn("[StartCommandHandler] No user ID or chat ID.");
             return;
         }
-        
+
         console.log(`[StartCommandHandler] User ${userId} in chat ${chatId} (update ${updateId})`);
 
         // Idempotency by update_id + debounce per user
@@ -50,7 +50,7 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
         } catch (e) {
             console.warn('[StartCommandHandler] Idempotency/debounce cache failed:', e?.message);
         }
-        
+
         try {
             const userData = await userService.getOrCreateUser(userId);
             console.log(`[StartCommandHandler] User data received: ID=${userData.id}, Claimed=${userData.claimed}, LastMsgId=${userData.lastMessageId}`);
@@ -66,18 +66,18 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
                             await messageService.sendReply(ctx, 'Бета-доступ открыт! Нажмите кнопку, чтобы открыть приложение.', {
                                 reply_markup: messageService.createWebAppButton('Открыть приложение', TMA_URL)
                             });
-                        } catch (_) {}
+                        } catch (_) { }
                     }
                 }
             } catch (e) {
                 console.warn('[StartCommandHandler] beta auto-transition failed:', e?.message);
             }
-            
+
             // Delete previous message if exists
             if (userData.lastMessageId) {
                 await messageService.deleteMessage(chatId, userData.lastMessageId);
             }
-            
+
             // For guests (not claimed) without explicit weblogin param — stay silent after cleanup
             if (!userData.claimed && startParam !== 'weblogin') {
                 console.log('[StartCommandHandler] Guest user: no message will be sent.');
@@ -90,12 +90,12 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
             if (userData.claimed) {
                 messageText = messages.get('start.returning');
                 buttonText = messages.get('buttons.open_account');
-                buttonUrl = TMA_URL;
+                buttonUrl = `${TMA_URL}/#tgWebAppReadyToFullscreen=1`;
             } else {
                 // weblogin path for guests
                 messageText = messages.get('start.weblogin');
                 buttonText = messages.get('buttons.open_web');
-                buttonUrl = `${TMA_URL}/login`;
+                buttonUrl = `${TMA_URL}/login#tgWebAppReadyToFullscreen=1`;
             }
 
             // Send new message
@@ -112,7 +112,7 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
             // Save new message ID
             await userService.updateLastStartMessageId(userData.id, sentMessage.message_id);
             console.log(`[StartCommandHandler] Updated last_start_message_id to ${sentMessage.message_id}.`);
-            
+
         } catch (error) {
             console.error("[StartCommandHandler] CRITICAL Error:", error.message);
             await messageService.sendReply(ctx, messages.get('start.profile_error', { error: error.message }));

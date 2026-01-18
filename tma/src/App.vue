@@ -43,8 +43,7 @@ onMounted(async () => {
   // Включаем Full-screen Mode только на мобильных устройствах, внутри Telegram
   try {
     const tg = window?.Telegram?.WebApp
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    if (tg && isMobile) {
+    if (tg) {
       // На главной по умолчанию должна быть кнопка Close (BackButton скрыт)
       try { tg.BackButton?.hide?.() } catch (_) {}
       // Блокируем системный вертикальный свайп Telegram, чтобы не мешал работе со скроллом внутри приложения

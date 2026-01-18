@@ -154,7 +154,7 @@ async function initBot() {
                         parse_mode: 'HTML',
                         reply_markup: {
                             inline_keyboard: [
-                                [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }]
+                                [{ text: '🚀 Открыть приложение', web_app: { url: `${webAppUrl}/#tgWebAppReadyToFullscreen=1` } }]
                             ]
                         }
                     });
