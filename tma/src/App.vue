@@ -74,7 +74,8 @@ onMounted(async () => {
       const updateSafeTop = () => {
         try {
           const topInset = Number(tg?.contentSafeAreaInset?.top ?? tg?.safeAreaInset?.top ?? 0)
-          const headerOffsetPx = 88 // увеличенный буфер под Close/заголовок и отступы
+          const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+          const headerOffsetPx = isMobile ? 64 : 12 // Reduced from 88/56
           const safeTop = Math.max(0, topInset) + headerOffsetPx
           document.documentElement.style.setProperty('--tma-safe-top', `${safeTop}px`)
         } catch (_) {}
@@ -168,5 +169,16 @@ body {
   box-sizing: border-box;
   min-height: 100vh;
   overflow-y: auto;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.tma-app-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.tma-app-container {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 </style>

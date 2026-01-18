@@ -1,11 +1,11 @@
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm overflow-y-auto" @click.self="closeModal">
+    <div class="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm overflow-y-auto scrollbar-hide" @click.self="closeModal">
       <!-- Scroller internal container -->
       <div class="min-h-full flex flex-col items-center w-full" @click.self="closeModal">
         
-        <!-- Top Spacer: at least 15% on mobile, flexible on desktop to center -->
-        <div class="flex-1 min-h-[15vh] sm:min-h-[10vh] w-full" @click="closeModal"></div>
+        <!-- Top Spacer: reduced on both mobile and desktop -->
+        <div class="flex-1 min-h-[10vh] sm:min-h-[5vh] w-full" @click="closeModal"></div>
         
         <!-- Content Card -->
         <div class="w-full max-w-lg pointer-events-auto relative shrink-0">
@@ -83,15 +83,15 @@
                </div>
                
                <!-- Gap for MainButton / Bottom edge -->
-               <div class="h-10 sm:h-4"></div>
+               <div class="h-10 sm:h-2"></div>
             </div>
           </div>
           <!-- Extra bottom filling for mobile safe area -->
-          <div class="h-10 sm:hidden bg-[#5500AA]"></div>
+          <div class="h-6 sm:hidden bg-[#5500AA]"></div>
         </div>
 
-        <!-- Bottom Spacer: active on desktop to center the card -->
-        <div class="flex-1 hidden sm:block w-full" @click="closeModal"></div>
+        <!-- Bottom Spacer: larger on desktop to push card higher -->
+        <div class="flex-[2] hidden sm:block w-full" @click="closeModal"></div>
         
       </div>
     </div>
