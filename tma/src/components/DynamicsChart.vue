@@ -1,36 +1,41 @@
 <template>
-  <div class="dynamics-chart-container">
-    <!-- Swipeable chart area -->
-    <div 
-      class="chart-wrapper"
-      @touchstart="handleTouchStart"
-      @touchmove="handleTouchMove"
-      @touchend="handleTouchEnd"
+  <div class="dynamics-chart-container -mx-4 sm:-mx-6 md:-mx-8">
+    <Swiper
+      :modules="modules"
+      slides-per-view="auto"
+      :centered-slides="true"
+      :space-between="12"
+      @swiper="onSwiper"
+      @slideChange="onSlideChange"
+      class="w-full"
+      :style="{ paddingLeft: '24px', paddingRight: '24px' }"
     >
-      <transition :name="transitionName" mode="out-in">
-        <div :key="currentIndex" class="chart-content bg-white/10 rounded-2xl p-5 border border-white/5 backdrop-blur-sm">
+      <SwiperSlide 
+        v-for="(metric, idx) in dynamics" 
+        :key="idx" 
+        class="!w-[88%] sm:!w-[340px]"
+      >
+        <div class="chart-content bg-white/10 rounded-2xl p-5 border border-white/5 backdrop-blur-sm h-full">
           <!-- Chart Title -->
           <div class="text-lg font-bold mb-4 flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="text-xl">📊</span>
-              <span>{{ currentMetric.category || currentMetric.metric }}</span>
+              <span>{{ metric.category || metric.metric }}</span>
             </div>
             <div class="flex flex-col items-end">
-              <span class="text-2xl font-bold leading-none">{{ currentValues[currentValues.length - 1] }}%</span>
+              <span class="text-2xl font-bold leading-none">{{ metric.values[metric.values.length - 1] }}%</span>
               <span class="text-[10px] uppercase tracking-wider opacity-50 mt-1">текущий уровень</span>
             </div>
           </div>
           
           <!-- SVG Chart -->
           <div class="chart-svg-container my-6">
-            <!-- Y-axis labels -->
             <div class="y-axis-labels pr-2 border-r border-white/10 mr-2">
               <span class="y-label">{{ yAxisScale.labels[0] }}%</span>
               <span class="y-label text-[10px]">{{ yAxisScale.labels[1] }}%</span>
               <span class="y-label">{{ yAxisScale.labels[2] }}%</span>
             </div>
             
-            <!-- Chart SVG -->
             <div class="chart-svg-wrapper flex-1">
               <svg 
                 :viewBox="`0 0 ${chartWidth} ${chartHeight}`" 
@@ -41,18 +46,15 @@
                 <line 
                   v-for="i in 3" 
                   :key="`grid-${i}`"
-                  :x1="0" 
-                  :x2="chartWidth" 
+                  :x1="0" :x2="chartWidth" 
                   :y1="(chartHeight / 2) * (i - 1)" 
                   :y2="(chartHeight / 2) * (i - 1)"
-                  stroke="white" 
-                  stroke-opacity="0.08" 
-                  stroke-width="1"
+                  stroke="white" stroke-opacity="0.08" stroke-width="1"
                 />
                 
                 <!-- Data line -->
                 <polyline 
-                  :points="linePoints" 
+                  :points="getLinePoints(metric.values)" 
                   fill="none" 
                   stroke="url(#chartGradient)" 
                   stroke-width="3" 
@@ -60,15 +62,14 @@
                   stroke-linecap="round"
                 />
                 
-                <!-- Data points with glow -->
+                <!-- Data points -->
                 <circle 
-                  v-for="(point, idx) in dataPoints" 
-                  :key="`point-${idx}`"
-                  :cx="point.x" 
-                  :cy="point.y" 
+                  v-for="(val, vIdx) in metric.values" 
+                  :key="vIdx"
+                  :cx="getDataPoint(metric.values, vIdx).x" 
+                  :cy="getDataPoint(metric.values, vIdx).y" 
                   r="3.5" 
                   fill="white"
-                  class="chart-point"
                 />
 
                 <defs>
@@ -83,152 +84,75 @@
           
           <!-- Analysis and Insight -->
           <div class="space-y-4">
-            <div v-if="currentMetric.analysis" class="dynamics-analysis">
-              <p class="text-base opacity-90 leading-relaxed font-medium">{{ currentMetric.analysis }}</p>
+            <div v-if="metric.analysis" class="dynamics-analysis">
+              <p class="text-base opacity-90 leading-relaxed font-medium">{{ metric.analysis }}</p>
             </div>
-            <div v-if="currentMetric.insight" class="insight-box bg-white/5 rounded-xl p-4 border-l-4 border-yellow-400/60">
+            <div v-if="metric.insight" class="insight-box bg-white/5 rounded-xl p-4 border-l-4 border-yellow-400/60">
               <div class="flex gap-3">
                 <span class="text-xl">💡</span>
-                <p class="text-sm opacity-95 leading-snug italic">{{ currentMetric.insight }}</p>
+                <p class="text-sm opacity-95 leading-snug italic">{{ metric.insight }}</p>
               </div>
             </div>
           </div>
         </div>
-      </transition>
-    </div>
+      </SwiperSlide>
+    </Swiper>
     
     <!-- Pagination dots -->
-    <div class="pagination-dots">
-      <button
-        v-for="(metric, idx) in dynamics"
+    <div v-if="dynamics.length > 1" class="pagination-dots mt-4">
+      <div
+        v-for="(_, idx) in dynamics"
         :key="`dot-${idx}`"
         class="dot"
         :class="{ active: idx === currentIndex }"
-        @click="goToIndex(idx)"
-      >
-      </button>
+      ></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { Swiper, SwiperSlide } from 'swiper/vue'
+import { A11y, Keyboard } from 'swiper/modules'
+import 'swiper/css'
 
 interface DynamicMetric {
   metric: string
   values: number[]
   interpretation: string
+  analysis?: string
+  insight?: string
+  category?: string
 }
 
 const props = defineProps<{
   dynamics: DynamicMetric[]
-  userAge?: string // e.g., "25-34"
-  userGender?: string // "male" or "female"
+  userAge?: string
+  userGender?: string
 }>()
 
+const modules = [A11y, Keyboard]
+const swiperInstance = ref<any>(null)
 const currentIndex = ref(0)
-const touchStartX = ref(0)
-const touchEndX = ref(0)
-const transitionName = ref('slide-left')
 
 const chartWidth = 300
 const chartHeight = 80
-const padding = 6 // padding to prevent clipping circles
+const padding = 6
 
-const currentMetric = computed(() => props.dynamics[currentIndex.value] || { metric: '', values: [], interpretation: '' })
-const currentValues = computed(() => currentMetric.value.values || [])
+const onSwiper = (swiper: any) => {
+  swiperInstance.value = swiper
+}
 
-// Dynamic Y-axis scale based on ALL data across all metrics
-const yAxisScale = computed(() => {
-  if (!props.dynamics || props.dynamics.length === 0) {
-    return { min: 0, max: 10, labels: [10, 5, 0] }
+const onSlideChange = () => {
+  if (swiperInstance.value) {
+    currentIndex.value = swiperInstance.value.activeIndex
+    if (window.triggerHaptic) window.triggerHaptic('light')
   }
-  
-  // Collect all values from all metrics
-  const allValues: number[] = []
-  props.dynamics.forEach(metric => {
-    if (Array.isArray(metric.values)) {
-      allValues.push(...metric.values)
-    }
-  })
-  
-  if (allValues.length === 0) {
-    return { min: 0, max: 10, labels: [10, 5, 0] }
-  }
-  
-  const min = Math.floor(Math.min(...allValues))
-  const max = Math.ceil(Math.max(...allValues))
-  
-  // Calculate 3 labels (top, middle, bottom)
-  const labels = [
-    max,
-    Math.round((max + min) / 2),
-    min
-  ]
-  
-  return { min, max, labels }
-})
+}
 
-// Demographic norms (approximate averages by age/gender)
-const demographicNorm = computed(() => {
-  const metric = currentMetric.value.metric
-  if (!props.userAge || !props.userGender) return null
-  
-  // Simplified demographic norms for HVdC metrics
-  // These would ideally come from a database
-  const norms: Record<string, Record<string, Record<string, number>>> = {
-    'Персонажи': {
-      '18-24': { male: 6.5, female: 7.0 },
-      '25-34': { male: 6.0, female: 6.5 },
-      '35-44': { male: 5.5, female: 6.0 },
-      '45+': { male: 5.0, female: 5.5 }
-    },
-    'Эмоции': {
-      '18-24': { male: 6.0, female: 7.0 },
-      '25-34': { male: 5.5, female: 6.5 },
-      '35-44': { male: 5.0, female: 6.0 },
-      '45+': { male: 4.5, female: 5.5 }
-    },
-    'Действия': {
-      '18-24': { male: 7.0, female: 6.5 },
-      '25-34': { male: 6.5, female: 6.0 },
-      '35-44': { male: 6.0, female: 5.5 },
-      '45+': { male: 5.5, female: 5.0 }
-    },
-    'Сцены': {
-      '18-24': { male: 6.5, female: 6.5 },
-      '25-34': { male: 6.0, female: 6.0 },
-      '35-44': { male: 5.5, female: 5.5 },
-      '45+': { male: 5.0, female: 5.0 }
-    }
-  }
-  
-  const ageNorms = norms[metric]?.[props.userAge]
-  if (!ageNorms) return null
-  
-  const normValue = ageNorms[props.userGender]
-  if (normValue === undefined) return null
-  
-  return normValue
-})
-
-// Calculate demographic zone Y position
-const demographicZoneY = computed(() => {
-  const norm = demographicNorm.value
-  if (norm === null) return null
-  
-  const { min, max } = yAxisScale.value
-  const innerHeight = chartHeight - padding * 2
-  const normalizedValue = (norm - min) / (max - min)
-  
-  return padding + innerHeight - normalizedValue * innerHeight
-})
-
-// Calculate line points for SVG with padding and dynamic scale
-const dataPoints = computed(() => {
-  const values = currentValues.value
-  if (values.length === 0) return []
-  
+// Helpers for individual slide point calculation
+const getLinePoints = (values: number[]) => {
+  if (!values.length) return ''
   const { min, max } = yAxisScale.value
   const innerWidth = chartWidth - padding * 2
   const innerHeight = chartHeight - padding * 2
@@ -236,60 +160,34 @@ const dataPoints = computed(() => {
   
   return values.map((val, idx) => {
     const normalizedValue = (val - min) / (max - min)
-    return {
-      x: padding + idx * stepX,
-      y: padding + innerHeight - normalizedValue * innerHeight
-    }
-  })
-})
-
-const linePoints = computed(() => {
-  return dataPoints.value.map(p => `${p.x},${p.y}`).join(' ')
-})
-
-// Touch handlers for swipe navigation
-function handleTouchStart(e: TouchEvent) {
-  touchStartX.value = e.touches[0].clientX
+    const x = padding + idx * stepX
+    const y = padding + innerHeight - normalizedValue * innerHeight
+    return `${x},${y}`
+  }).join(' ')
 }
 
-function handleTouchMove(e: TouchEvent) {
-  touchEndX.value = e.touches[0].clientX
-}
-
-function handleTouchEnd() {
-  const diff = touchStartX.value - touchEndX.value
-  const threshold = 50 // minimum swipe distance
-  
-  if (Math.abs(diff) > threshold) {
-    if (diff > 0 && currentIndex.value < props.dynamics.length - 1) {
-      // Swipe left - next
-      transitionName.value = 'slide-left'
-      currentIndex.value++
-      triggerHaptic()
-    } else if (diff < 0 && currentIndex.value > 0) {
-      // Swipe right - previous
-      transitionName.value = 'slide-right'
-      currentIndex.value--
-      triggerHaptic()
-    }
-  }
-  
-  touchStartX.value = 0
-  touchEndX.value = 0
-}
-
-function goToIndex(idx: number) {
-  if (idx === currentIndex.value) return
-  transitionName.value = idx > currentIndex.value ? 'slide-left' : 'slide-right'
-  currentIndex.value = idx
-  triggerHaptic()
-}
-
-function triggerHaptic() {
-  if (window.triggerHaptic) {
-    window.triggerHaptic('light')
+const getDataPoint = (values: number[], idx: number) => {
+  const { min, max } = yAxisScale.value
+  const innerWidth = chartWidth - padding * 2
+  const innerHeight = chartHeight - padding * 2
+  const stepX = values.length > 1 ? innerWidth / (values.length - 1) : 0
+  const val = values[idx]
+  const normalizedValue = (val - min) / (max - min)
+  return {
+    x: padding + idx * stepX,
+    y: padding + innerHeight - normalizedValue * innerHeight
   }
 }
+
+const yAxisScale = computed(() => {
+  if (!props.dynamics || props.dynamics.length === 0) return { min: 0, max: 10, labels: [10, 5, 0] }
+  const allValues: number[] = []
+  props.dynamics.forEach(m => { if (Array.isArray(m.values)) allValues.push(...m.values) })
+  if (allValues.length === 0) return { min: 0, max: 10, labels: [10, 5, 0] }
+  const min = Math.floor(Math.min(...allValues))
+  const max = Math.ceil(Math.max(...allValues))
+  return { min, max, labels: [max, Math.round((max + min) / 2), min] }
+})
 </script>
 
 <style scoped>
