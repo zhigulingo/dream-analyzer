@@ -1,6 +1,7 @@
 {
   "buildCommand": "npm install && npm run build",
   "outputDirectory": "dist",
+  "ignoreBuildStep": "git diff --quiet HEAD^ HEAD .",
   "rewrites": [
     {
       "source": "/api/:path*",
