@@ -331,26 +331,30 @@
             @click.stop="toggleSection('funcExercise')"
           >
             <div class="flex items-center gap-3 text-white">
-              <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+              <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center shrink-0">
                 <Sparkles :size="18" class="text-yellow-400" />
               </div>
-              <span>Практика: Поработай со сном</span>
+              <span>Функциональное упражнение</span>
             </div>
             <ChevronRight 
               :size="20" 
-              class="transition-transform duration-300 opacity-30 text-white" 
+              class="transition-transform duration-300 opacity-30 text-white shrink-0" 
               :style="{ transform: expanded.funcExercise ? 'rotate(90deg)' : '' }"
             />
           </button>
           
-          <div v-show="expanded.funcExercise" class="px-5 pb-6 space-y-4">
-            <!-- Header Card -->
-            <div class="bg-white/5 rounded-xl p-4 border border-white/5">
-              <div class="flex items-center gap-3 mb-2">
-                <component :is="exerciseData.mainIcon" :size="20" class="text-yellow-400" />
-                <span class="font-bold text-lg text-white">{{ exerciseData.title }}</span>
+          <div v-show="expanded.funcExercise" class="px-5 pb-6 space-y-5">
+            <!-- Characteristic Badge (formerly Header Card) -->
+            <div class="flex flex-col gap-2 p-4 bg-white/5 rounded-xl border border-white/5 relative overflow-hidden">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 flex items-center gap-1.5 min-w-0">
+                  <component :is="exerciseData.mainIcon" :size="14" class="text-yellow-400 shrink-0" />
+                  <span class="text-[13px] font-bold text-white/90 uppercase tracking-wider truncate">{{ exerciseData.title }}</span>
+                </div>
               </div>
-              <p class="text-base opacity-80 text-white leading-relaxed">{{ exerciseData.description }}</p>
+              <p class="text-[15px] opacity-70 text-white leading-relaxed italic">
+                {{ exerciseData.description }}
+              </p>
             </div>
 
             <!-- Steps Grid/List -->
