@@ -8,8 +8,8 @@
         <div 
           class="tab-active-pill" 
           :style="{ 
-            transform: activeTab === 'deep' ? 'translateX(100%)' : 'translateX(0)',
-            width: '50%'
+            left: activeTab === 'deep' ? '50%' : '4px',
+            width: 'calc(50% - 4px)'
           }"
         ></div>
         
@@ -251,7 +251,7 @@ select { -webkit-appearance: auto; appearance: auto; }
   /* Используем белый цвет с более высокой прозрачностью для лучшей видимости */
   background: rgba(255, 255, 255, 0.18); 
   border-radius: 100px;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
 }
 
