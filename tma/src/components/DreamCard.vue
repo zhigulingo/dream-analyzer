@@ -318,19 +318,33 @@
         <template v-for="(sec, idx) in sections" :key="sec.key">
           <div v-if="sec.key === 'func'" class="rounded-lg bg-white/10">
             <h3 class="text-xl font-semibold px-4 py-3">{{ sec.title }}</h3>
-            <div class="px-4 pb-4 text-white/90 space-y-3">
-              <div v-html="sanitizeFuncHtml(sec.html)" class="text-lg leading-snug"></div>
+            <div class="px-4 pb-4 text-white/90 space-y-4">
+              <div v-if="sec.html" v-html="sec.html" class="text-lg leading-snug"></div>
               
-              <!-- Functional Exercise - collapsible -->
-              <div v-if="getFuncExercise(sec.html)" class="mt-3 pt-3 border-t border-white/10">
+              <!-- Functional Exercise - accordion style -->
+              <div v-if="sec.exerciseHtml" class="bg-white/5 rounded-2xl overflow-hidden border border-white/5">
                 <button 
+                  class="w-full px-5 py-4 flex items-center justify-between text-lg font-bold"
                   @click.stop="toggleSection('funcExercise')"
-                  class="w-full flex items-center justify-between text-left font-semibold hover:opacity-80 transition-opacity"
                 >
-                  <span>Функциональное упражнение</span>
-                  <span class="text-xl">{{ expanded.funcExercise ? '−' : '+' }}</span>
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                      <Sparkles :size="18" class="text-yellow-400" />
+                    </div>
+                    <span>Функциональное упражнение</span>
+                  </div>
+                  <ChevronRight 
+                    :size="20" 
+                    class="transition-transform duration-300 opacity-30" 
+                    :style="{ transform: expanded.funcExercise ? 'rotate(90deg)' : '' }"
+                  />
                 </button>
-                <div v-show="expanded.funcExercise" class="mt-3" v-html="getFuncExercise(sec.html)"></div>
+                <div 
+                  v-show="expanded.funcExercise" 
+                  class="px-5 pb-5 text-base opacity-80 leading-relaxed"
+                  v-html="sec.exerciseHtml"
+                >
+                </div>
               </div>
             </div>
           </div>
@@ -1073,13 +1087,7 @@ const sections = computed(() => {
   if (workHtml) {
     const funcIdx = res.findIndex(s=>s.key==='func')
     if (funcIdx !== -1) {
-      const wrapper = [
-        '<div class="mt-3 pt-2 border-t border-white/10 space-y-1">',
-        '<div class="font-semibold">Функциональное упражнение</div>',
-        workHtml,
-        '</div>'
-      ].join('')
-      res[funcIdx].html = (res[funcIdx].html || '') + wrapper
+      (res[funcIdx] as any).exerciseHtml = workHtml
     }
   }
   return res
@@ -1094,22 +1102,7 @@ const expanded = reactive<Record<string,boolean>>({
 function toggleSection(key:string){ expanded[key] = !expanded[key] }
 
 // Helper functions for restructured analysis
-function sanitizeFuncHtml(html: string): string {
-  // Remove functional exercise block from func html (we show it separately)
-  const exerciseStart = html.indexOf('<div class="mt-3 pt-2 border-t')
-  if (exerciseStart === -1) return html
-  return html.substring(0, exerciseStart)
-}
-
-function getFuncExercise(html: string): string {
-  // Extract functional exercise block from func html, removing title
-  const exerciseStart = html.indexOf('<div class="mt-3 pt-2 border-t')
-  if (exerciseStart === -1) return ''
-  let content = html.substring(exerciseStart, html.lastIndexOf('</div>') + 6)
-  // Remove the repeated "Функциональное упражнение" title inside
-  content = content.replace(/<div class="font-semibold">Функциональное упражнение<\/div>/g, '')
-  return content
-}
+// Helper functions removed as exercise is now handled via separate property
 
 // Debug output helpers (visible when ?debug=1 or localStorage.da_debug=1)
 const debugEnabled = computed(() => {
