@@ -318,37 +318,55 @@
         <template v-for="(sec, idx) in sections" :key="sec.key">
           <div v-if="sec.key === 'func'" class="rounded-lg bg-white/10">
             <h3 class="text-xl font-semibold px-4 py-3">{{ sec.title }}</h3>
-            <div class="px-4 pb-4 text-white/90 space-y-4">
+            <div class="px-4 pb-4 text-white/90">
               <div v-if="sec.html" v-html="sec.html" class="text-lg leading-snug"></div>
-              
-              <!-- Functional Exercise - accordion style -->
-              <div v-if="sec.exerciseHtml" class="bg-white/5 rounded-2xl overflow-hidden border border-white/5">
-                <button 
-                  class="w-full px-5 py-4 flex items-center justify-between text-lg font-bold"
-                  @click.stop="toggleSection('funcExercise')"
-                >
-                  <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                      <Sparkles :size="18" class="text-yellow-400" />
-                    </div>
-                    <span>Функциональное упражнение</span>
-                  </div>
-                  <ChevronRight 
-                    :size="20" 
-                    class="transition-transform duration-300 opacity-30" 
-                    :style="{ transform: expanded.funcExercise ? 'rotate(90deg)' : '' }"
-                  />
-                </button>
-                <div 
-                  v-show="expanded.funcExercise" 
-                  class="px-5 pb-5 text-base opacity-80 leading-relaxed"
-                  v-html="sec.exerciseHtml"
-                >
+            </div>
+          </div>
+        </template>
+
+        <!-- Functional Exercise - accordion style (moved outside for full width) -->
+        <div v-if="exerciseData" class="bg-white/10 rounded-2xl overflow-hidden border border-white/5">
+          <button 
+            class="w-full px-5 py-4 flex items-center justify-between text-lg font-bold"
+            @click.stop="toggleSection('funcExercise')"
+          >
+            <div class="flex items-center gap-3 text-white">
+              <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                <Sparkles :size="18" class="text-yellow-400" />
+              </div>
+              <span>Практика: Поработай со сном</span>
+            </div>
+            <ChevronRight 
+              :size="20" 
+              class="transition-transform duration-300 opacity-30 text-white" 
+              :style="{ transform: expanded.funcExercise ? 'rotate(90deg)' : '' }"
+            />
+          </button>
+          
+          <div v-show="expanded.funcExercise" class="px-5 pb-6 space-y-4">
+            <!-- Header Card -->
+            <div class="bg-white/5 rounded-xl p-4 border border-white/5">
+              <div class="flex items-center gap-3 mb-2">
+                <component :is="exerciseData.mainIcon" :size="20" class="text-yellow-400" />
+                <span class="font-bold text-lg text-white">{{ exerciseData.title }}</span>
+              </div>
+              <p class="text-base opacity-80 text-white leading-relaxed">{{ exerciseData.description }}</p>
+            </div>
+
+            <!-- Steps Grid/List -->
+            <div class="space-y-3">
+              <div v-for="(step, sIdx) in exerciseData.steps" :key="sIdx" class="bg-white/5 rounded-xl p-4 border border-white/5 flex gap-4">
+                <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                  <component :is="step.icon" :size="20" class="text-white opacity-90" />
+                </div>
+                <div class="space-y-1">
+                  <div class="font-bold text-white">{{ step.title }}</div>
+                  <p class="text-[15px] opacity-70 text-white leading-snug">{{ step.text }}</p>
                 </div>
               </div>
             </div>
           </div>
-        </template>
+        </div>
       </div>
 
       <!-- Psychoanalytic Approach Section -->
@@ -536,16 +554,15 @@ import { Swiper, SwiperSlide } from 'swiper/vue'
 import { A11y, Keyboard } from 'swiper/modules'
 import 'swiper/css'
 import { 
-  Puzzle, 
-  LineChart, 
-  Cpu, 
-  HeartHandshake, 
-  Sparkles, 
-  ThumbsUp, 
-  ThumbsDown, 
   Trash2, 
   ChevronRight, 
-  X 
+  X,
+  Lightbulb,
+  Zap,
+  Target,
+  Dizzy,
+  Link,
+  Milestone
 } from 'lucide-vue-next'
 
 const props = defineProps<{ dream: any; active?: boolean; overlayMode?: boolean }>()
@@ -975,75 +992,53 @@ function heuristicDreamType(text:string|undefined|null){
 
 const dreamType = computed(()=> props.dream?.deep_source?.dream_type || heuristicDreamType(props.dream?.dream_text) || null)
 
-function buildWorkHtml(){
+const exerciseData = computed(() => {
   const dt = dreamType.value
   const type = dt?.dominant ? String(dt.dominant).toLowerCase() : null
   
-  // Определяем контент в зависимости от типа сна
-  let emoji = '💭'
-  let title = 'Функциональное упражнение'
-  let description = 'Работа со сном для интеграции опыта'
-  let exercise1Title = 'Заметь'
-  let exercise1Text = 'Какие 2–3 образа из сна самые сильные? Запиши их коротко.'
-  let exercise2Title = 'Шаг'
-  let exercise2Text = 'Выбери один маленький шаг в реальности, который поддержит тебя по теме сна.'
-  
-  let exercise1Emoji = '✏️'
-  let exercise2Emoji = '🎯'
-  
   if (type === 'memory') {
-    emoji = '🌙'
-    title = 'Сон-Память'
-    description = 'Переработка недавнего опыта, соединение нового с прошлым'
-    exercise1Title = 'Отрази'
-    exercise1Emoji = '💭'
-    exercise1Text = 'Вспомни, что происходило последние 1–2 дня. Какие события могли попасть в сон?'
-    exercise2Title = 'Соедини'
-    exercise2Emoji = '🔗'
-    exercise2Text = 'Отметь, какие элементы сна перекликаются с реальностью — это завершает «архивацию» опыта.'
+    return {
+      title: 'Сон-Память',
+      description: 'Переработка недавнего опыта, соединение нового с прошлым',
+      mainIcon: Lightbulb,
+      steps: [
+        { icon: Dizzy, title: 'Отрази', text: 'Вспомни, что происходило последние 1–2 дня. Какие события могли попасть в сон?' },
+        { icon: Link, title: 'Соедини', text: 'Отметь, какие элементы сна перекликаются с реальностью — это завершает «архивацию» опыта.' }
+      ]
+    }
   } else if (type === 'emotion') {
-    emoji = '⚡️'
-    title = 'Сон-Эмоция'
-    description = 'Проживание и нейтрализация сильных чувств'
-    exercise1Title = 'Почувствуй'
-    exercise1Emoji = '✋'
-    exercise1Text = 'Определи, какая эмоция была самой сильной во сне. Где она чувствуется в теле сейчас?'
-    exercise2Title = 'Услышь'
-    exercise2Emoji = '💬'
-    exercise2Text = 'Представь, что главный персонаж сна говорит тебе что-то. Что он хочет, чтобы ты понял?'
+    return {
+      title: 'Сон-Эмоция',
+      description: 'Проживание и нейтрализация сильных чувств',
+      mainIcon: Zap,
+      steps: [
+        { icon: Sparkles, title: 'Почувствуй', text: 'Определи, какая эмоция была самой сильной во сне. Где она чувствуется в теле сейчас?' },
+        { icon: Target, title: 'Услышь', text: 'Представь, что главный персонаж сна говорит тебе что-то. Что он хочет, чтобы ты понял?' }
+      ]
+    }
   } else if (type === 'anticipation') {
-    emoji = '🔮'
-    title = 'Сон-Предвосхищение'
-    description = 'Тренировка будущих ситуаций и реакций'
-    exercise1Title = 'Представь'
-    exercise1Emoji = '⚡'
-    exercise1Text = 'Как бы ты хотел повести себя, если бы это произошло в реальности?'
-    exercise2Title = 'Расшифруй'
-    exercise2Emoji = '⭐'
-    exercise2Text = 'Какой символ кажется ключевым? Что он может говорить о твоих страхах или намерениях?'
+    return {
+      title: 'Сон-Предвосхищение',
+      description: 'Тренировка будущих ситуаций и реакций',
+      mainIcon: Milestone,
+      steps: [
+        { icon: Zap, title: 'Представь', text: 'Как бы ты хотел повести себя, если бы это произошло в реальности?' },
+        { icon: Lightbulb, title: 'Расшифруй', text: 'Какой символ кажется ключевым? Что он может говорить о твоих страхах или намерениях?' }
+      ]
+    }
   }
-  
-  // Генерируем HTML со структурой из трёх блоков
-  return [
-    '<div class="space-y-4">',
-    // Блок 1: Описание
-    '<div class="bg-white/10 rounded-xl p-4 space-y-2">',
-    `<div class="flex items-center gap-2"><span class="text-2xl">${emoji}</span><span class="font-bold text-xl">${title}</span></div>`,
-    `<p class="text-base opacity-90 leading-snug">${description}</p>`,
-    '</div>',
-    // Блок 2: Первое упражнение
-    '<div class="bg-white/10 rounded-xl p-4 space-y-2">',
-    `<div class="flex items-center gap-2"><span class="text-2xl">${exercise1Emoji}</span><span class="font-bold text-xl">${exercise1Title}</span></div>`,
-    `<p class="text-base opacity-90 leading-snug">${exercise1Text}</p>`,
-    '</div>',
-    // Блок 3: Второе упражнение
-    '<div class="bg-white/10 rounded-xl p-4 space-y-2">',
-    `<div class="flex items-center gap-2"><span class="text-2xl">${exercise2Emoji}</span><span class="font-bold text-xl">${exercise2Title}</span></div>`,
-    `<p class="text-base opacity-90 leading-snug">${exercise2Text}</p>`,
-    '</div>',
-    '</div>'
-  ].join('')
-}
+
+  // Default fallback
+  return {
+    title: 'Интеграция опыта',
+    description: 'Работа со сном для закрепления полезных выводов',
+    mainIcon: Lightbulb,
+    steps: [
+      { icon: Dizzy, title: 'Заметь', text: 'Какие 2–3 образа из сна самые сильные? Запиши их коротко.' },
+      { icon: Target, title: 'Шаг', text: 'Выбери один маленький шаг в реальности, который поддержит тебя по теме сна.' }
+    ]
+  }
+})
 
 const sections = computed(() => {
   const raw = sanitize(props.dream?.analysis || '')
@@ -1082,14 +1077,7 @@ const sections = computed(() => {
   if (archIdx !== -1) {
     res.splice(archIdx + 1, 0, { key:'hvdc', title:'Контент анализ', text:'', html:'' } as any)
   }
-  // Добавляем «Поработай со сном» ВНУТРЬ секции «Возможная функция сна», если есть тип сна
-  const workHtml = buildWorkHtml()
-  if (workHtml) {
-    const funcIdx = res.findIndex(s=>s.key==='func')
-    if (funcIdx !== -1) {
-      (res[funcIdx] as any).exerciseHtml = workHtml
-    }
-  }
+  // Removed exercise logic from here as it's now a standalone component
   return res
 })
 
