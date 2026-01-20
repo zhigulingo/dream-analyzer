@@ -1,48 +1,46 @@
 <template>
   <div>
     <!-- Табы для переключения режима -->
-    <div class="flex items-center gap-8 mb-6 border-b" style="border-color: var(--tg-theme-hint-color, rgba(255,255,255,0.1))">
-      <button
-        @click="switchTab('history')"
-        class="relative pb-3 text-lg font-semibold transition-all duration-200"
-        :class="[
-          activeTab === 'history' 
-            ? 'tab-active' 
-            : 'tab-inactive'
-        ]"
-      >
-        Дневник снов
-        <div
-          v-if="activeTab === 'history'"
-          class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-          style="background-color: var(--tg-theme-text-color, #ffffff)"
+    <!-- Селектор табов в стиле переключателя (Segmented Control) -->
+    <div class="tab-switcher-wrap mb-8">
+      <div class="tab-switcher">
+        <!-- Анимированная подложка активного таба -->
+        <div 
+          class="tab-active-pill" 
+          :style="{ 
+            transform: activeTab === 'deep' ? 'translateX(100%)' : 'translateX(0)',
+            width: '50%'
+          }"
         ></div>
-      </button>
-      <button
-        @click="switchTab('deep')"
-        class="relative pb-3 text-lg font-semibold transition-all duration-200"
-        :class="[
-          activeTab === 'deep' 
-            ? 'tab-active' 
-            : 'tab-inactive',
-          !hasDeepUnlocked ? 'opacity-60' : ''
-        ]"
-        :aria-disabled="!hasDeepUnlocked"
-      >
-        <span class="inline-flex items-center gap-2">
-          Глубокий анализ
-          <span v-if="!hasDeepUnlocked" class="inline-flex items-center gap-1 text-sm"
-                :style="{ color: 'var(--tg-theme-hint-color, rgba(255,255,255,0.6))' }">
-            <span class="lock-ico"></span>
-            <span>5 снов</span>
+        
+        <button
+          @click="switchTab('history')"
+          class="tab-btn"
+          :class="{ 'is-active': activeTab === 'history' }"
+        >
+          Дневник снов
+        </button>
+        
+        <button
+          @click="switchTab('deep')"
+          class="tab-btn"
+          :class="{ 
+            'is-active': activeTab === 'deep',
+            'is-locked': !hasDeepUnlocked 
+          }"
+        >
+          <span class="inline-flex items-center gap-2">
+            Глубокий анализ
+            <span v-if="!hasDeepUnlocked" class="lock-ico-small"></span>
           </span>
-        </span>
-        <div
-          v-if="activeTab === 'deep'"
-          class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-          style="background-color: var(--tg-theme-text-color, #ffffff)"
-        ></div>
-      </button>
+        </button>
+      </div>
+    </div>
+
+    <!-- Подсказка о блокировке (показывается при клике на заблокированный таб) -->
+    <div v-if="showDeepHint && !hasDeepUnlocked" class="mt-[-20px] mb-4 text-center text-sm"
+         :style="{ color: 'var(--tg-theme-hint-color, rgba(255,255,255,0.7))' }">
+      Доступно после 5 снов в дневнике
     </div>
     <div v-if="showDeepHint && !hasDeepUnlocked" class="mt-2 text-sm"
          :style="{ color: 'var(--tg-theme-hint-color, rgba(255,255,255,0.7))' }">
@@ -205,51 +203,74 @@ const closeOverlay = () => {
 /* Тематические бейджи и кнопки: слегка темнее на светлой теме и слегка светлее на тёмной */
 select { -webkit-appearance: auto; appearance: auto; }
 
-/* Tab styles that adapt to user theme */
-.tab-active {
+/* Новые стили для переключателя табов */
+.tab-switcher-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.tab-switcher {
+  position: relative;
+  display: flex;
+  background: rgba(255, 255, 255, 0.05); /* Темный фон контейнера */
+  background: var(--tg-theme-secondary-bg-color, rgba(255, 255, 255, 0.05));
+  border-radius: 100px;
+  padding: 4px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn {
+  position: relative;
+  flex: 1;
+  background: transparent !important;
+  border: none;
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.4));
+  z-index: 2;
+  transition: color 0.3s ease;
+  border-radius: 100px;
+}
+
+.tab-btn.is-active {
   color: var(--tg-theme-text-color, #ffffff);
 }
-.tab-inactive {
-  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.4));
-}
-.tab-inactive:hover {
-  color: var(--tg-theme-text-color, rgba(255, 255, 255, 0.6));
-  opacity: 0.8;
+
+.tab-btn.is-locked {
+  opacity: 0.5;
 }
 
-.themed-badge { position: relative; border: 1px solid transparent; }
-.themed-select { color: var(--tg-theme-text-color); padding-right: 26px; -webkit-appearance: none; appearance: none; }
-/* Кастомная стрелка селектора, цвет = var(--tg-theme-text-color) */
-.themed-badge::after {
-  content: "";
+.tab-active-pill {
   position: absolute;
-  right: 8px;
-  top: 50%;
-  width: 14px; height: 14px;
-  transform: translateY(-50%);
-  background-color: var(--tg-theme-text-color);
-  -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M7 10l5 5 5-5"/></svg>') no-repeat center / contain;
-          mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M7 10l5 5 5-5"/></svg>') no-repeat center / contain;
-  pointer-events: none;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(255, 255, 255, 0.15); /* Светлая подложка активного элемента */
+  background: var(--tg-theme-text-color, #ffffff);
+  opacity: 0.12; /* Делаем подложку полупрозрачной для сходства со скриншотом */
+  border-radius: 100px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
 }
 
-/* Иконка замка через CSS mask, цвет берём из var(--tg-theme-text-color) с пониженной непрозрачностью */
-.lock-ico { width: 14px; height: 14px; display: inline-block; background-color: var(--tg-theme-text-color, #fff); opacity: 0.7;
-  -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9z"/></svg>') no-repeat center / contain;
-          mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9z"/></svg>') no-repeat center / contain; }
-
+/* Переопределяем цвет подложки если используем сплошной цвет из темы */
 @media (prefers-color-scheme: dark) {
-  .themed-badge { background-color: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.12); }
-  .themed-select { color: var(--tg-theme-text-color, #fff); }
-  .themed-button { background-color: rgba(255, 255, 255, 0.12); color: var(--tg-theme-text-color, #fff); }
-  .themed-button:hover { background-color: rgba(255, 255, 255, 0.18); }
+  .tab-active-pill {
+    background: rgba(255, 255, 255, 0.2);
+  }
 }
 
-@media (prefers-color-scheme: light) {
-  .themed-badge { background-color: rgba(0, 0, 0, 0.06); border-color: rgba(0, 0, 0, 0.10); }
-  .themed-select { color: var(--tg-theme-text-color, #111); }
-  .themed-button { background-color: rgba(0, 0, 0, 0.08); color: var(--tg-theme-text-color, #111); }
-  .themed-button:hover { background-color: rgba(0, 0, 0, 0.12); }
+.lock-ico-small {
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  background-color: currentColor;
+  opacity: 0.6;
+  -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9z"/></svg>') no-repeat center / contain;
+          mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9z"/></svg>') no-repeat center / contain;
 }
 </style>
 

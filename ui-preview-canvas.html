@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Dream Analyzer UI Canvas</title>
+    <style>
+        :root {
+            /* Telegram Theme Variables Fallback */
+            --tg-theme-bg-color: #121a12;
+            --tg-theme-secondary-bg-color: #0c110c;
+            --tg-theme-button-color: #366832;
+            --tg-theme-button-text-color: #ffffff;
+            --tg-theme-text-color: #ffffff;
+            --tg-theme-hint-color: #b1c3d5;
+            --tg-theme-link-color: #366832;
+
+            /* DreamsTalk Design Tokens */
+            --color-bg: var(--tg-theme-bg-color);
+            --color-card: var(--tg-theme-secondary-bg-color);
+            --color-text: var(--tg-theme-text-color);
+            --color-muted: var(--tg-theme-hint-color);
+
+            --border-radius-lg: 60px;
+            --border-radius-md: 14px;
+            --border-radius-xl: 72px;
+            /* Figma: 72px for main cards */
+
+            --gradient-user: linear-gradient(135deg, #5461FF 0%, #4A58FF 100%);
+            --gradient-deep: linear-gradient(135deg, #BF62ED 0%, #701E99 85.23%);
+            --gradient-fact: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%);
+
+            /* Type-specific gradients (DreamCard) */
+            --gradient-emotion: from-[#FF4A4A] via-[#FF6B6B]/80 to-[#FF8A8A]/40;
+            --gradient-memory: from-[#FFB84A] via-[#FFC966]/80 to-[#FFDA82]/40;
+            --gradient-anticipation: from-[#4A9FFF] via-[#6BB3FF]/80 to-[#8AC7FF]/40;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+        }
+
+        .canvas-container {
+            width: 100%;
+            max-width: 440px;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .section-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--color-muted);
+            margin-bottom: -12px;
+            padding-left: 4px;
+            font-weight: 700;
+        }
+
+        /* Reusable Components Mockups */
+
+        /* Badge.vue */
+        .badge {
+            display: inline-flex;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            padding: 4px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            width: fit-content;
+        }
+
+        /* UserInfoCard.vue */
+        .user-info-card {
+            background: var(--gradient-user);
+            border-radius: 12px;
+            /* theme.css says xl but component uses rounded-xl (Tailwind 12px) */
+            padding: 16px 32px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 4.5rem;
+        }
+
+        .user-info-card .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #eee;
+        }
+
+        .user-info-card .badges {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: flex-end;
+        }
+
+        /* FactsCarouselV2.vue */
+        .facts-card {
+            background: var(--gradient-fact);
+            border-radius: 12px;
+            padding: 32px;
+            height: 224px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        /* DeepAnalysisCard.vue */
+        .deep-analysis-card {
+            background: var(--gradient-deep);
+            border-radius: 12px;
+            padding: 24px 32px;
+            color: white;
+            min-height: 8rem;
+            position: relative;
+        }
+
+        /* DreamCard.vue (collapsed) */
+        .dream-card {
+            background: linear-gradient(to bottom right, #4A58FF, #5664FF);
+            border-radius: 12px;
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-height: 4.5rem;
+        }
+
+        .dream-card.emotion {
+            background: linear-gradient(135deg, #FF4A4A 0%, rgba(255, 107, 107, 0.8) 50%, rgba(255, 138, 138, 0.4) 100%);
+        }
+
+        .dream-card.memory {
+            background: linear-gradient(135deg, #FFB84A 0%, rgba(255, 201, 102, 0.8) 50%, rgba(255, 218, 130, 0.4) 100%);
+        }
+
+        .dream-card.deep {
+            background: linear-gradient(135deg, #9C41FF 0%, rgba(176, 74, 255, 0.8) 50%, rgba(192, 58, 255, 0.4) 100%);
+        }
+
+        .emoji-circle {
+            font-size: 30px;
+            flex-shrink: 0;
+        }
+
+        /* AnalysisHistoryList.vue Tabs */
+        .tabs {
+            display: flex;
+            gap: 32px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab {
+            padding-bottom: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-muted);
+            position: relative;
+        }
+
+        .tab.active {
+            color: white;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: white;
+            border-radius: 2px;
+        }
+
+        /* Onboarding.vue Card Mockup */
+        .onboarding-mock {
+            background: var(--gradient-fact);
+            border-radius: 16px;
+            padding: 20px;
+            min-height: 72vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* Telegram Main Button Simulator */
+        .main-button {
+            background: #2481CC;
+            color: white;
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .chevron {
+            opacity: 0.4;
+            font-size: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="canvas-container">
+        <h1 style="font-size: 24px; margin-bottom: 0;">DreamsTalk UI Canvas</h1>
+        <p style="color: var(--color-muted); margin-top: -12px; font-size: 14px;">Actual implementation visual reference
+        </p>
+
+        <div class="section-label">User Profile (UserInfoCard)</div>
+        <div class="user-info-card">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div class="avatar"></div>
+                <span style="font-size: 16px;">Пользователь</span>
+            </div>
+            <div class="badges">
+                <div class="badge">Токенов: 5</div>
+                <div class="badge">Onboarding1</div>
+            </div>
+        </div>
+
+        <div class="section-label">Daily Inspiration (FactsCarouselV2)</div>
+        <div class="facts-card">
+            <div class="badge">Символ</div>
+            <p style="font-size: 18px; line-height: 1.25; margin: 0;">Вода во сне часто символизирует эмоции,
+                подсознание и внутренние переживания.</p>
+        </div>
+
+        <div class="section-label">Deep Analysis CTA (DeepAnalysisCard)</div>
+        <div class="deep-analysis-card">
+            <h3 style="font-size: 20px; font-weight: 700; margin: 0;">Глубокий Анализ</h3>
+            <p style="margin: 4px 0 0 0; font-size: 16px; opacity: 0.9;">Получите комплексный анализ ваших последних 5
+                снов.</p>
+        </div>
+
+        <div class="section-label">Diary Tabs (AnalysisHistoryList)</div>
+        <div
+            style="background: var(--color-card); border-radius: 100px; padding: 4px; display: flex; position: relative; border: 1px solid rgba(255,255,255,0.05);">
+            <div
+                style="position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); background: rgba(255,255,255,0.12); border-radius: 100px;">
+            </div>
+            <div style="flex: 1; text-align: center; padding: 10px; font-weight: 600; color: white; z-index: 1;">Дневник
+                снов</div>
+            <div
+                style="flex: 1; text-align: center; padding: 10px; font-weight: 600; color: var(--color-muted); z-index: 1;">
+                Глубокий анализ</div>
+        </div>
+
+        <div class="section-label">Dream Entries (DreamCard variants)</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="dream-card emotion">
+                <div class="emoji-circle">🏃‍♂️</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 16px;">Побег От Преследователя</div>
+                    <div style="font-size: 14px; opacity: 0.8;">вчера</div>
+                </div>
+                <div class="chevron">❯</div>
+            </div>
+            <div class="dream-card memory">
+                <div class="emoji-circle">🏠</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 16px;">Старый Дом Детства</div>
+                    <div style="font-size: 14px; opacity: 0.8;">2 дня назад</div>
+                </div>
+                <div class="chevron">❯</div>
+            </div>
+            <div class="dream-card deep">
+                <div class="emoji-circle">🌌</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; font-size: 16px;">Серия Снов: Переход</div>
+                    <div style="font-size: 14px; opacity: 0.8;">15 января</div>
+                </div>
+                <div class="chevron">❯</div>
+            </div>
+        </div>
+
+        <div class="section-label">Onboarding Mock (Onboarding.vue)</div>
+        <div class="onboarding-mock">
+            <div
+                style="width: 180px; height: 180px; background: rgba(255,255,255,0.1); border-radius: 50%; margin-bottom: 24px; display: flex; align-items: center; justify-content: center; font-size: 80px;">
+                🧙‍♂️</div>
+            <h2 style="font-size: 18px; line-height: 1.4; margin: 0; font-weight: 500;">Сюжеты снов часто отражают
+                эмоции,<br />а не реальные события.</h2>
+            <div class="main-button">Написать сон</div>
+        </div>
+    </div>
+</body>
+
+</html>
