@@ -213,12 +213,12 @@ select { -webkit-appearance: auto; appearance: auto; }
 .tab-switcher {
   position: relative;
   display: flex;
-  background: rgba(255, 255, 255, 0.05); /* Темный фон контейнера */
-  background: var(--tg-theme-secondary-bg-color, rgba(255, 255, 255, 0.05));
+  background: rgba(255, 255, 255, 0.06); /* Чуть более заметный фон */
+  background: var(--tg-theme-secondary-bg-color, rgba(255, 255, 255, 0.06));
   border-radius: 100px;
   padding: 4px;
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12); /* Яркая граница для видимости на черном */
 }
 
 .tab-btn {
@@ -229,7 +229,7 @@ select { -webkit-appearance: auto; appearance: auto; }
   padding: 10px 16px;
   font-size: 15px;
   font-weight: 600;
-  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.4));
+  color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.45));
   z-index: 2;
   transition: color 0.3s ease;
   border-radius: 100px;
@@ -240,7 +240,7 @@ select { -webkit-appearance: auto; appearance: auto; }
 }
 
 .tab-btn.is-locked {
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .tab-active-pill {
@@ -248,18 +248,20 @@ select { -webkit-appearance: auto; appearance: auto; }
   top: 4px;
   bottom: 4px;
   left: 4px;
-  background: rgba(255, 255, 255, 0.15); /* Светлая подложка активного элемента */
-  background: var(--tg-theme-text-color, #ffffff);
-  opacity: 0.12; /* Делаем подложку полупрозрачной для сходства со скриншотом */
+  /* Используем белый цвет с более высокой прозрачностью для лучшей видимости */
+  background: rgba(255, 255, 255, 0.18); 
   border-radius: 100px;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
 }
 
-/* Переопределяем цвет подложки если используем сплошной цвет из темы */
+/* На темной теме Telegram (или если переменная слишком темная) делаем подложку активнее */
 @media (prefers-color-scheme: dark) {
   .tab-active-pill {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.22);
+  }
+  .tab-switcher {
+    border-color: rgba(255, 255, 255, 0.15);
   }
 }
 
