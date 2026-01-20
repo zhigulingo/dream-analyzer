@@ -554,15 +554,19 @@ import { Swiper, SwiperSlide } from 'swiper/vue'
 import { A11y, Keyboard } from 'swiper/modules'
 import 'swiper/css'
 import { 
+  Puzzle, 
+  LineChart, 
+  Cpu, 
+  HeartHandshake, 
+  Sparkles, 
+  ThumbsUp, 
+  ThumbsDown, 
   Trash2, 
   ChevronRight, 
   X,
   Lightbulb,
   Zap,
-  Target,
-  Dizzy,
-  Link,
-  Milestone
+  Target
 } from 'lucide-vue-next'
 
 const props = defineProps<{ dream: any; active?: boolean; overlayMode?: boolean }>()
@@ -1002,8 +1006,8 @@ const exerciseData = computed(() => {
       description: 'Переработка недавнего опыта, соединение нового с прошлым',
       mainIcon: Lightbulb,
       steps: [
-        { icon: Dizzy, title: 'Отрази', text: 'Вспомни, что происходило последние 1–2 дня. Какие события могли попасть в сон?' },
-        { icon: Link, title: 'Соедини', text: 'Отметь, какие элементы сна перекликаются с реальностью — это завершает «архивацию» опыта.' }
+        { icon: Sparkles, title: 'Отрази', text: 'Вспомни, что происходило последние 1–2 дня. Какие события могли попасть в сон?' },
+        { icon: Puzzle, title: 'Соедини', text: 'Отметь, какие элементы сна перекликаются с реальностью — это завершает «архивацию» опыта.' }
       ]
     }
   } else if (type === 'emotion') {
@@ -1020,7 +1024,7 @@ const exerciseData = computed(() => {
     return {
       title: 'Сон-Предвосхищение',
       description: 'Тренировка будущих ситуаций и реакций',
-      mainIcon: Milestone,
+      mainIcon: Zap,
       steps: [
         { icon: Zap, title: 'Представь', text: 'Как бы ты хотел повести себя, если бы это произошло в реальности?' },
         { icon: Lightbulb, title: 'Расшифруй', text: 'Какой символ кажется ключевым? Что он может говорить о твоих страхах или намерениях?' }
@@ -1034,7 +1038,7 @@ const exerciseData = computed(() => {
     description: 'Работа со сном для закрепления полезных выводов',
     mainIcon: Lightbulb,
     steps: [
-      { icon: Dizzy, title: 'Заметь', text: 'Какие 2–3 образа из сна самые сильные? Запиши их коротко.' },
+      { icon: Sparkles, title: 'Заметь', text: 'Какие 2–3 образа из сна самые сильные? Запиши их коротко.' },
       { icon: Target, title: 'Шаг', text: 'Выбери один маленький шаг в реальности, который поддержит тебя по теме сна.' }
     ]
   }
