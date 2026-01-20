@@ -41,8 +41,8 @@
       <template v-if="isDeep">
         <!-- Period Themes (Moved Up) -->
         <div v-if="hasConclusion && conclusion.periodThemes" class="space-y-2">
-           <p class="text-xl opacity-90 leading-snug font-medium italic border-l-2 border-white/20 pl-4">
-             "{{ conclusion.periodThemes }}"
+           <p class="text-xl opacity-90 leading-snug font-medium italic">
+             {{ conclusion.periodThemes }}
            </p>
         </div>
 
@@ -1254,7 +1254,7 @@ const fullDate = computed(() => {
 const gradientClass = computed(() => {
   // Deep analysis: purple (as before)
   if (props.dream?.is_deep_analysis) {
-    return 'from-[#9C41FF] to-[#C03AFF]'
+    return 'from-[#9C41FF] via-[#B04AFF]/80 to-[#C03AFF]/40'
   }
   
   // Regular dreams: color-coded by dream type
