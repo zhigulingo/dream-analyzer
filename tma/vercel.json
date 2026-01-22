@@ -2,7 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
-  "ignoreBuildStep": "git diff --quiet HEAD^ HEAD .",
+  "ignoreBuildStep": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"gh-pages\" ]; then exit 0; fi; git diff --quiet $VERCEL_GIT_PREVIOUS_SHA HEAD .",
   "rewrites": [
     {
       "source": "/(.*)",
