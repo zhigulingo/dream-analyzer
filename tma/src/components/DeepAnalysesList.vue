@@ -10,9 +10,9 @@
         >Выполнить анализ</button>
         <button
           v-else
-          class="px-3 py-2 text-sm rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors"
+          class="px-3 py-2 text-sm rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors flex items-center gap-1"
           @click="payForDeepAnalysis"
-        >Получить анализ (1 ⭐️)</button>
+        >Получить анализ (1 <TStarIcon :size="14" />)</button>
       </div>
     </div>
 
@@ -41,6 +41,7 @@ import api from '@/services/api'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import DreamCard from '@/components/DreamCard.vue'
 import DreamOverlay from '@/components/DreamOverlay.vue'
+import TStarIcon from '@/components/TStarIcon.vue'
 
 const userStore = useUserStore()
 

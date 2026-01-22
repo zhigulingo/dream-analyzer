@@ -29,10 +29,15 @@
       :class="isOpen && userStore?.canAttemptDeepAnalysis ? 'bottom-4 opacity-100' : '-bottom-24 opacity-0 pointer-events-none'"
     >
       <button
-        class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors"
+        class="w-full bg-white/20 hover:bg-white/30 text-white rounded-xl py-3 font-semibold transition-colors flex items-center justify-center gap-1.5"
         @click.stop="requestAnalysis"
       >
-        {{ ((userStore?.profile?.deep_analysis_credits || 0) > 0) || ((userStore?.profile?.free_deep_analysis || 0) > 0) ? 'Выполнить анализ' : 'Получить анализ (1 ⭐️)' }}
+        <template v-if="((userStore?.profile?.deep_analysis_credits || 0) > 0) || ((userStore?.profile?.free_deep_analysis || 0) > 0)">
+          Выполнить анализ
+        </template>
+        <template v-else>
+          Получить анализ (1 <TStarIcon :size="16" />)
+        </template>
       </button>
     </div>
   </article>
@@ -42,6 +47,7 @@
 import { ref, computed, watch } from 'vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import ProgressBar from '@/components/ProgressBar.vue'
+import TStarIcon from '@/components/TStarIcon.vue'
 
 const props = defineProps(['userStore'])
 
