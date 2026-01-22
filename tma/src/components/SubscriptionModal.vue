@@ -71,8 +71,8 @@
                        >
                           <span class="text-3xl font-bold leading-none filter drop-shadow-sm">{{ duration }}</span>
                           <span class="text-[11px] opacity-90 uppercase tracking-widest font-bold">мес</span>
-                          <div v-if="getPlanDetails(userStore.selectedPlan, duration).price" class="mt-2 text-[13px] font-bold text-white drop-shadow-sm bg-black/20 px-2 py-0.5 rounded-full">
-                             {{ (getPlanDetails(userStore.selectedPlan, duration).price / duration).toFixed(0) }}⭐<span class="opacity-80 font-normal">/мес</span>
+                          <div v-if="getPlanDetails(userStore.selectedPlan, duration).price" class="mt-2 text-[13px] font-bold text-white drop-shadow-sm bg-black/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                             {{ (getPlanDetails(userStore.selectedPlan, duration).price / duration).toFixed(0) }} <TStarIcon :size="14" /><span class="opacity-80 font-normal">/мес</span>
                           </div>
                        </div>
                    </label>
@@ -113,6 +113,7 @@
 <script setup>
 import { useUserStore } from '@/stores/user';
 import { watchEffect, onUnmounted, ref, onMounted } from 'vue';
+import TStarIcon from '@/components/TStarIcon.vue';
 
 const userStore = useUserStore();
 const { getPlanDetails } = userStore;

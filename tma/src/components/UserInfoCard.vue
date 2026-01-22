@@ -42,11 +42,17 @@
       <!-- Обычное содержимое -->
        <template v-else>
         <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap fade-seq is-open seq-offset-0">
-          <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
+          <Badge class="whitespace-nowrap flex items-center gap-1.5">
+            <TStarIcon :size="14" />
+            <span>{{ userStore?.profile?.tokens || 0 }}</span>
+          </Badge>
           <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
         </div>
         <div v-else class="flex flex-col gap-1 ml-auto items-end">
-          <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
+          <Badge class="whitespace-nowrap flex items-center gap-1.5">
+            <TStarIcon :size="14" />
+            <span>{{ userStore?.profile?.tokens || 0 }}</span>
+          </Badge>
           <Badge class="whitespace-nowrap">{{ userStore?.profile?.subscription_type || 'Free' }}</Badge>
         </div>
        </template>
@@ -110,6 +116,7 @@ import { ref, computed } from 'vue'
 import Badge from '@/components/Badge.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import SkeletonLoader from '@/components/SkeletonLoader.vue'
+import TStarIcon from '@/components/TStarIcon.vue'
 
 const props = defineProps(['userStore'])
 
