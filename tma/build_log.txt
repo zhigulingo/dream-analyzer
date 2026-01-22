@@ -1,0 +1,32 @@
+
+> dream-analyzer-tma@0.1.1 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+
+warn - You have enabled experimental features: optimizeUniversalDefaults
+warn - Experimental features in Tailwind CSS are not covered by semver, may introduce breaking changes, and can change at any time.
+✓ 1877 modules transformed.
+x Build failed in 1.16s
+error during build:
+src/components/DreamCard.vue?vue&type=script&setup=true&lang.ts (246:2): "Dizzy" is not exported by "node_modules/lucide-vue-next/dist/esm/lucide-vue-next.js", imported by "src/components/DreamCard.vue?vue&type=script&setup=true&lang.ts".
+file: /Users/zhigulingo/Downloads/antigravity/dream-analyzer/tma/src/components/DreamCard.vue?vue&type=script&setup=true&lang.ts:246:2
+
+244:   Zap,
+245:   Target,
+246:   Dizzy,
+       ^
+247:   Link,
+248:   Milestone
+
+    at getRollupError (file:///Users/zhigulingo/Downloads/antigravity/dream-analyzer/tma/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at error (file:///Users/zhigulingo/Downloads/antigravity/dream-analyzer/tma/node_modules/rollup/dist/es/shared/parseAst.js:397:42)
+    at Module.error (file:///Users/zhigulingo/Downloads/antigravity/dream-analyzer/tma/node_modules/rollup/dist/es/shared/node-entry.js:17022:16)
+    at Module.traceVariable (file:///Users/zhigulingo/Downloads/antigravity/dream-analyzer/tma/node_modules/rollup/dist/es/shared/node-entry.js:17478:29)
+    at ModuleScope.findVariable (file:///Users/zhigulingo/Downloads/antigravity/dream-analyzer/tma/node_modules/rollup/dist/es/shared/node-entry.js:15141:39)
+    at ChildScope.findVariable (file:///Users/zhigulingo/Downloads/antigravity/dream-analyzer/tma/node_modules/rollup/dist/es/shared/node-entry.js:5688:38)
+    at FunctionScope.findVariable (file:///Users/zhigulingo/Downloads/antigravity/dream-analyzer/tma/node_modules/rollup/dist/es/shared/node-entry.js:5688:38)
+    at FunctionBodyScope.findVariable (file:///Users/zhigulingo/Downloads/antigravity/dream-analyzer/tma/node_modules/rollup/dist/es/shared/node-entry.js:5688:38)
+    at ReturnValueScope.findVariable (file:///Users/zhigulingo/Downloads/antigravity/dream-analyzer/tma/node_modules/rollup/dist/es/shared/node-entry.js:5688:38)
+    at FunctionBodyScope.findVariable (file:///Users/zhigulingo/Downloads/antigravity/dream-analyzer/tma/node_modules/rollup/dist/es/shared/node-entry.js:5688:38)

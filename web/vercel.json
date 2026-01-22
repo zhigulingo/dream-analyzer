@@ -1,7 +1,6 @@
 {
   "buildCommand": "npm install && npm run build",
   "outputDirectory": "dist",
-  "ignoreBuildStep": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"gh-pages\" ]; then exit 0; fi; git diff --quiet $VERCEL_GIT_PREVIOUS_SHA HEAD .",
   "rewrites": [
     {
       "source": "/api/:path*",
