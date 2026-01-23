@@ -222,7 +222,7 @@ watchEffect(() => {
 
   if (amount) {
     tg.MainButton.setParams({
-      text: `Оплатить ${amount} ⭐`,
+      text: `Оплатить ${amount} Telegram Stars`,
       color: buttonColor,
       text_color: buttonTextColor,
       is_active: true,
