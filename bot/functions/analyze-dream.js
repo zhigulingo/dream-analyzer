@@ -264,6 +264,15 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
             dreamType = await dreamTypeService.computeDreamType({ dreamText });
         } catch (_) { dreamType = null; }
     } catch (error) {
+        // Rollback token: return it to the user since analysis failed
+        // Uses increment_token RPC (see migration_add_increment_token.sql)
+        try {
+            const { error: rollbackError } = await supabase.rpc('increment_token', { user_tg_id: verifiedTgId });
+            if (rollbackError) throw rollbackError;
+            console.warn('[analyze-dream] Token rolled back for user', verifiedTgId, 'due to analysis error:', error.message);
+        } catch (rollbackErr) {
+            console.error('[analyze-dream] Failed to rollback token for user', verifiedTgId, rollbackErr?.message);
+        }
         throw createApiError(error.message || 'Analysis failed.', 500);
     }
 
