@@ -68,8 +68,10 @@ exports.handler = async (event) => {
     console.log(`[user-profile] Origin allowed:`, allowedOrigins.includes(requestOrigin));
     
     const corsHeaders = {
-        // Always echo back request origin to allow credentialed requests
-        'Access-Control-Allow-Origin': requestOrigin || allowedOrigins[0] || '*',
+        // Only echo back origin if it is in the allowed list (prevents any-origin credential leaks)
+        'Access-Control-Allow-Origin': allowedOrigins.includes(requestOrigin)
+            ? requestOrigin
+            : (allowedOrigins[0] || 'https://zhigulingo.github.io'),
         'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data, Authorization',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Credentials': 'true',
