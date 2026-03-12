@@ -101,6 +101,15 @@ exports.handler = async (event) => {
             console.error(`[analyses-history] InitData validation failed: ${validationResult.error || 'User data missing'}`);
             return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid Telegram InitData (${validationResult.error})` }) };
         }
+        // Check initData expiry (max 1 hour = 3600 seconds)
+        try {
+            const params = new URLSearchParams(initDataHeader);
+            const authDate = params.get('auth_date');
+            if (!authDate || (Math.floor(Date.now() / 1000) - parseInt(authDate, 10)) > 3600) {
+                console.error('[analyses-history] InitData expired');
+                return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: InitData expired. Please reopen the app.' }) };
+            }
+        } catch (_) {}
         verifiedTgId = validationResult.data.id;
         console.log(`[analyses-history] InitData validated for tg_id: ${verifiedTgId}`);
 

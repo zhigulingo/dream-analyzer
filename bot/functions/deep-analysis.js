@@ -4,7 +4,7 @@ const { createClient } = require("@supabase/supabase-js");
 const { DatabaseQueries, createOptimizedClient } = require('./shared/database/queries');
 const geminiService = require("./shared/services/gemini-service");
 const crypto = require('crypto');
-const { validateTelegramData } = require('./shared/auth/telegram-validator');
+const { validateTelegramData, isInitDataValid } = require('./shared/auth/telegram-validator');
 const { wrapApiHandler, createApiError } = require('./shared/middleware/api-wrapper');
 const { createSuccessResponse, createErrorResponse, parseJsonBody } = require('./shared/middleware/error-handler');
 
@@ -67,6 +67,12 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
     if (!validationResult.valid || !validationResult.data?.id) {
         requestLogger.authError('invalid_init_data', new Error(validationResult.error));
         throw createApiError(`Forbidden: Invalid InitData (${validationResult.error})`, 403);
+    }
+
+    // Check initData expiry (max 1 hour)
+    if (!isInitDataValid(initDataHeader, 3600)) {
+        requestLogger.authError('expired_init_data', new Error('InitData expired'));
+        throw createApiError('Unauthorized: InitData expired. Please reopen the app.', 401);
     }
 
     const verifiedUserId = validationResult.data.id;
