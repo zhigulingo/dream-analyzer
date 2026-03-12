@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-const surveyUrl = import.meta.env.VITE_SURVEY_URL || ''
+const surveyUrl = import.meta.env.VITE_SURVEY_URL || 'https://zhigulingo.github.io/dream-analyzer/survey/'
 
 function openSurvey() {
   try {
