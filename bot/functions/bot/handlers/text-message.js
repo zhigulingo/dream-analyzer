@@ -74,6 +74,15 @@ function createTextMessageHandler(userService, messageService, analysisService, 
             console.log(`[TextMessageHandler] Ignoring command.`);
             return;
         }
+
+        // Validate dream text length (max 2000 characters)
+        const MAX_DREAM_LENGTH = 2000;
+        if (dreamText.length > MAX_DREAM_LENGTH) {
+            try {
+                await messageService.sendReply(ctx, `Текст сна слишком длинный (${dreamText.length} символов). Пожалуйста, сократите до ${MAX_DREAM_LENGTH} символов и отправьте снова.`);
+            } catch (_) {}
+            return;
+        }
         
         console.log(`[TextMessageHandler] Processing dream for ${userId} (update ${updateId})`);
         const back = (dreamText || '').toString().slice(0, 3000) + ((dreamText || '').length > 3000 ? '…' : '');

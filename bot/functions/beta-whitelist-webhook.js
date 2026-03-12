@@ -25,11 +25,13 @@ exports.handler = async (event) => {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
       return { statusCode: 500, body: 'Server not configured' };
     }
-    if (WEBHOOK_SECRET) {
-      const sent = event.headers['x-webhook-secret'] || event.headers['X-Webhook-Secret'];
-      if (sent !== WEBHOOK_SECRET) {
-        return { statusCode: 403, body: 'Forbidden' };
-      }
+    if (!WEBHOOK_SECRET) {
+      console.error('[beta-whitelist-webhook] BETA_WEBHOOK_SECRET env var not configured');
+      return { statusCode: 500, body: 'Server not configured: missing BETA_WEBHOOK_SECRET' };
+    }
+    const sent = event.headers['x-webhook-secret'] || event.headers['X-Webhook-Secret'];
+    if (sent !== WEBHOOK_SECRET) {
+      return { statusCode: 403, body: 'Forbidden' };
     }
 
     const body = JSON.parse(event.body || '{}');
