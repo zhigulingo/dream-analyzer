@@ -17,13 +17,13 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-    UPDATE user_profile
+    UPDATE users
     SET deep_analysis_credits = COALESCE(deep_analysis_credits, 0) + amount,
         updated_at = NOW()
-    WHERE tg_user_id = user_tg_id;
+    WHERE tg_id = user_tg_id;
     
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'User with tg_user_id % not found', user_tg_id;
+        RAISE EXCEPTION 'User with tg_id % not found', user_tg_id;
     END IF;
 END;
 $$;
@@ -39,10 +39,10 @@ AS $$
 DECLARE
     updated_count INT;
 BEGIN
-    UPDATE user_profile
+    UPDATE users
     SET free_deep_used = FALSE,
         updated_at = NOW()
-    WHERE tg_user_id = user_tg_id
+    WHERE tg_id = user_tg_id
       AND free_deep_used = TRUE;
     
     GET DIAGNOSTICS updated_count = ROW_COUNT;
