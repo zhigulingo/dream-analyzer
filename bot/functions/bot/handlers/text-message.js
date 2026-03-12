@@ -269,7 +269,14 @@ function createTextMessageHandler(userService, messageService, analysisService, 
                 statusMessageId: statusMessage?.message_id || null,
                 dreamText
             };
-            await fetch(backgroundUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            await fetch(backgroundUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Internal-Secret': process.env.INTERNAL_SECRET || ''
+                },
+                body: JSON.stringify(payload)
+            });
             
             // NOTE: Background function will handle:
             // - Deleting status message

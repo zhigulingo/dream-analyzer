@@ -227,7 +227,10 @@ async function handleDeepAnalysis(event, context, corsHeaders) {
             // Await the fetch to ensure function is triggered
             await fetch(backgroundUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Internal-Secret': process.env.INTERNAL_SECRET || ''
+                },
                 body: JSON.stringify(backgroundPayload)
             });
             

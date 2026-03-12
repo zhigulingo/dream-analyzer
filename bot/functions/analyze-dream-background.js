@@ -74,6 +74,14 @@ function truncateDream(text, maxLen = 3000) {
 }
 
 exports.handler = async (event) => {
+    // Security: verify shared internal secret to prevent unauthorized invocations
+    const internalSecret = process.env.INTERNAL_SECRET;
+    const sentSecret = event.headers['x-internal-secret'];
+    if (!internalSecret || sentSecret !== internalSecret) {
+        console.warn('[analyze-dream-background] Unauthorized: invalid or missing X-Internal-Secret');
+        return { statusCode: 403, body: 'Forbidden' };
+    }
+
     if (String(process.env.BOT_PAUSED || 'true').toLowerCase() === 'true') {
         return { statusCode: 202, body: 'Paused' };
     }
