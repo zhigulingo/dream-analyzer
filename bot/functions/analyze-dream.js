@@ -250,15 +250,27 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
                 analysisResult.tags = Array.from(new Set(dbSymbols)).slice(0, 5);
             }
         } catch (_) {}
-        // Demographics for HVdC
+        // Demographics for HVdC (with retry if null is returned)
         try {
             const { data: demoRow } = await supabase
                 .from('users')
                 .select('age_range, gender')
                 .eq('id', userDbId)
                 .single();
-            hvdcResult = await hvdcService.computeHVDC({ supabase, dreamText, age_range: demoRow?.age_range, gender: demoRow?.gender });
-        } catch (_) { hvdcResult = null; }
+            const hvdcArgs = { supabase, dreamText, age_range: demoRow?.age_range, gender: demoRow?.gender };
+            hvdcResult = await hvdcService.computeHVDC(hvdcArgs);
+            if (hvdcResult === null) {
+                console.warn(`[analyze-dream] HVDC returned null on attempt 1 for tg_id=${verifiedTgId}, retrying in 1s...`);
+                await new Promise(r => setTimeout(r, 1000));
+                hvdcResult = await hvdcService.computeHVDC(hvdcArgs);
+            }
+            if (hvdcResult === null) {
+                console.error(`[analyze-dream] HVDC failed after 2 attempts. tg_id=${verifiedTgId}, dream_length=${dreamText.length}`);
+            }
+        } catch (hvdcErr) {
+            console.error(`[analyze-dream] HVDC exception. tg_id=${verifiedTgId}, dream_length=${dreamText.length}, error=${hvdcErr?.message || hvdcErr}`);
+            hvdcResult = null;
+        }
         // Dream Type classification (memory/emotion/anticipation)
         try {
             dreamType = await dreamTypeService.computeDreamType({ dreamText });

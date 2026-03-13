@@ -111,13 +111,52 @@ async function buildNormFromChunks(chunks) {
   return { norm: parsed, sourceIds: chunks.map(c => c.id).slice(0,3) };
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function callGeminiWithRetry(payload, promptKey, maxRetries = 2) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    try {
+      console.log(`[hvdc-service] Gemini attempt ${attempt}/${maxRetries + 1} for promptKey=${promptKey}`);
+      const raw = await geminiService.analyzeDream(payload, promptKey);
+      let obj;
+      try {
+        const cleaned = String(raw).trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+        obj = JSON.parse(cleaned);
+      } catch (_) {
+        // fallback: try to find first {...}
+        const s = String(raw);
+        const a = s.indexOf('{'); const b = s.lastIndexOf('}');
+        if (a !== -1 && b !== -1 && b > a) {
+          try { obj = JSON.parse(s.slice(a, b+1)); } catch (_) {}
+        }
+      }
+      if (!obj || typeof obj !== 'object') throw new Error('HVDC JSON parse failed: ' + String(raw).slice(0, 200));
+      return obj;
+    } catch (e) {
+      lastError = e;
+      console.error(`[hvdc-service] Attempt ${attempt} failed:`, e?.message || e);
+      if (attempt <= maxRetries) {
+        const delay = attempt * 1000; // 1s, 2s
+        console.log(`[hvdc-service] Retrying in ${delay}ms...`);
+        await sleep(delay);
+      }
+    }
+  }
+  throw lastError;
+}
+
 async function computeHVDC({ supabase, dreamText, age_range, gender }) {
-  try {
-    const hasDemo = Boolean(age_range && gender);
+  const hasDemo = Boolean(age_range && gender);
+
+  // Inner function: attempt HVDC computation with or without demographics
+  async function attemptCompute(useDemo) {
     let normCtxText = '';
     let norm = null; let normSourceIds = [];
 
-    if (hasDemo) {
+    if (useDemo) {
       // 1) Try explicit hvdc_norms table
       const fromTable = await retrieveNormFromTable(supabase, age_range, gender);
       if (fromTable?.norm) {
@@ -134,22 +173,11 @@ async function computeHVDC({ supabase, dreamText, age_range, gender }) {
       }
     }
 
-    const promptKey = hasDemo ? PROMPT_KEYS.WITH_DEMO : PROMPT_KEYS.NO_DEMO;
-    const payload = hasDemo && normCtxText ? `${dreamText}\n\n${normCtxText}` : dreamText;
-    const raw = await geminiService.analyzeDream(payload, promptKey);
-    let obj;
-    try {
-      const cleaned = String(raw).trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
-      obj = JSON.parse(cleaned);
-    } catch (_) {
-      // fallback: try to find first {...}
-      const s = String(raw);
-      const a = s.indexOf('{'); const b = s.lastIndexOf('}');
-      if (a !== -1 && b !== -1 && b > a) {
-        try { obj = JSON.parse(s.slice(a, b+1)); } catch (_) {}
-      }
-    }
-    if (!obj || typeof obj !== 'object') throw new Error('HVDC JSON parse failed');
+    const promptKey = useDemo ? PROMPT_KEYS.WITH_DEMO : PROMPT_KEYS.NO_DEMO;
+    const payload = useDemo && normCtxText ? `${dreamText}\n\n${normCtxText}` : dreamText;
+
+    const obj = await callGeminiWithRetry(payload, promptKey, 2);
+
     // Map any 5-bucket payloads to 4-bucket by ignoring 'symbols'
     const rawDist = obj.distribution || {};
     const four = {
@@ -162,10 +190,10 @@ async function computeHVDC({ supabase, dreamText, age_range, gender }) {
     const result = {
       schema: 'hvdc_v1',
       distribution,
-      demographic_used: hasDemo,
-      norm_group: hasDemo ? { age_range, gender } : null
+      demographic_used: useDemo,
+      norm_group: useDemo ? { age_range, gender } : null
     };
-    if (hasDemo) {
+    if (useDemo) {
       const rawNorm = obj.norm ? {
         characters: obj.norm.characters,
         emotions: obj.norm.emotions,
@@ -180,8 +208,31 @@ async function computeHVDC({ supabase, dreamText, age_range, gender }) {
       }
     }
     return result;
-  } catch (e) {
-    return null; // non-blocking
+  }
+
+  // Try with demographics first (if available), then fall back to no-demo
+  if (hasDemo) {
+    try {
+      console.log('[hvdc-service] Computing HVDC with demographics...');
+      return await attemptCompute(true);
+    } catch (e) {
+      console.error('[hvdc-service] WITH_DEMO failed, falling back to NO_DEMO:', e?.message || e);
+      try {
+        console.log('[hvdc-service] Computing HVDC without demographics (fallback)...');
+        return await attemptCompute(false);
+      } catch (e2) {
+        console.error('[hvdc-service] NO_DEMO fallback also failed:', e2?.message || e2);
+        return null; // non-blocking
+      }
+    }
+  } else {
+    try {
+      console.log('[hvdc-service] Computing HVDC without demographics...');
+      return await attemptCompute(false);
+    } catch (e) {
+      console.error('[hvdc-service] NO_DEMO computation failed:', e?.message || e);
+      return null; // non-blocking
+    }
   }
 }
 
