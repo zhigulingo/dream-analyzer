@@ -183,13 +183,31 @@ exports.handler = async (event) => {
                 userDbId
             });
             
+            // ROLLBACK: Return credit since analysis could not be saved
+            try {
+                if (usedFree) {
+                    await supabase.rpc('restore_free_deep_credit', { user_tg_id: tgUserId });
+                } else {
+                    await supabase.rpc('increment_deep_analysis_credits', { 
+                        user_tg_id: tgUserId,
+                        amount: 1
+                    });
+                }
+                console.log('[deep-analysis-background] Credit rolled back after save failure', { userId: tgUserId });
+            } catch (rollbackError) {
+                console.error('[deep-analysis-background] Failed to rollback credit after save failure', {
+                    error: rollbackError?.message,
+                    userId: tgUserId
+                });
+            }
+            
             // Notify user about save error
             await sendTelegramMessage(
                 chatId, 
-                '❌ <b>Ошибка сохранения</b>\n\nАнализ выполнен, но не удалось сохранить результат. Пожалуйста, обратитесь в поддержку.'
+                '❌ <b>Ошибка сохранения</b>\n\nАнализ выполнен, но не удалось сохранить результат. Ваш токен возвращён. Попробуйте позже.'
             );
             
-            return { statusCode: 202, body: 'Save error' };
+            return { statusCode: 202, body: 'Save error, credit rolled back' };
         }
 
         // Notify user about successful completion

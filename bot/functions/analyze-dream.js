@@ -310,6 +310,14 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
                 }
             });
         if (insertError) {
+            // Rollback token: analysis done but could not be saved
+            try {
+                const { error: rollbackError } = await supabase.rpc('increment_token', { user_tg_id: verifiedTgId });
+                if (rollbackError) throw rollbackError;
+                console.warn('[analyze-dream] Token rolled back for user', verifiedTgId, 'due to DB insert error:', insertError.message);
+            } catch (rollbackErr) {
+                console.error('[analyze-dream] Failed to rollback token for user', verifiedTgId, rollbackErr?.message);
+            }
             throw createApiError(`Error saving analysis: ${insertError.message}`, 500);
         }
         // Transition onboarding: if user is in onboarding2/stage2, mark as completed (stage3/free)

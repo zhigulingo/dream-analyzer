@@ -208,16 +208,30 @@ exports.handler = async (event) => {
         } catch (_) { dreamType = null; }
 
         // Save to DB
+        let analysisSaved = false;
         try {
-            await supabase.from('analyses').insert({
+            const { error: saveErr } = await supabase.from('analyses').insert({
                 user_id: userDbId,
                 dream_text: dreamText,
                 analysis: parsed.analysis || analysisText || '',
                 deep_source: { title: parsed.title || null, tags: parsed.tags || [], hvdc: hvdcResult || null, dream_type: dreamType || null }
             });
+            if (saveErr) {
+                console.warn('[analyze-dream-background] Save error', saveErr?.message);
+            } else {
+                analysisSaved = true;
+            }
         } catch (e) { console.warn('[analyze-dream-background] Save error', e?.message); }
 
-        // Decrement token after success
+        if (!analysisSaved) {
+            // Token not decremented yet — do NOT decrement it; notify user
+            if (statusMessageId) await deleteTelegramMessage(chatId, statusMessageId);
+            const back = truncateDream(dreamText);
+            await sendTelegramMessage(chatId, `Ошибка сохранения анализа. Ваш токен не списан, попробуйте ещё раз.\n\n${back}`);
+            return { statusCode: 202, body: 'Save error, token not decremented' };
+        }
+
+        // Decrement token only after successful save
         try {
             await supabase.rpc('decrement_token_if_available', { user_tg_id: tgUserId });
         } catch (e) { console.warn('[analyze-dream-background] Token decrement error', e?.message); }
