@@ -15,7 +15,15 @@ async function sendTelegramMessage(chatId, text) {
   await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => {});
 }
 
-exports.handler = async () => {
+exports.handler = async (event) => {
+  // Security: verify shared internal secret to prevent unauthorized invocations
+  const internalSecret = process.env.INTERNAL_SECRET;
+  const sentSecret = event && event.headers && event.headers['x-internal-secret'];
+  if (!internalSecret || sentSecret !== internalSecret) {
+    console.warn('[beta-whitelist-processor] Unauthorized: invalid or missing X-Internal-Secret');
+    return { statusCode: 403, body: 'Forbidden' };
+  }
+
   try {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !BOT_TOKEN) {
       return { statusCode: 500, body: 'Server not configured' };
