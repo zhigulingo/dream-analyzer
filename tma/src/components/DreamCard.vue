@@ -29,8 +29,8 @@
         <div class="text-base opacity-80">{{ fullDate }}</div>
         <!-- Tags badges for regular dreams (placed here, under title/date) -->
         <div v-if="displayTags.length && !isDeep" class="flex flex-wrap gap-2 pt-2">
-          <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-base font-medium bg-white/20 text-white">
-            {{ tag }}
+          <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white border border-white/10 backdrop-blur-sm">
+            🏷 {{ tag }}
           </span>
         </div>
       </div>
@@ -104,7 +104,7 @@
             <div class="px-3 py-2 font-semibold">Повторяющиеся символы</div>
             <div class="px-3 pb-3">
               <div class="flex flex-wrap gap-2">
-                <span v-for="tag in displayTags" :key="'deep-'+tag" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white/15 text-white">{{ tag }}</span>
+                <span v-for="tag in displayTags" :key="'deep-'+tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/15 text-white border border-white/10">🏷 {{ tag }}</span>
               </div>
             </div>
           </div>
@@ -234,9 +234,9 @@
                 <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block bg-white/70 shrink-0"></span> <span class="leading-tight">ваш сон</span></span>
                 <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block bg-white/20 shrink-0"></span> <span class="leading-tight">{{ hvdcLegend }}</span></span>
               </div>
-              <div class="text-base opacity-70 flex items-start gap-2 leading-tight">
+              <div class="text-sm opacity-65 flex items-start gap-2 leading-tight">
                 <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px] shrink-0 aspect-square mt-0.5">i</span>
-                <span>Контент‑анализ по схеме HVdC; сравнение с демографическими нормами (DreamBank, SDDB).</span>
+                <span>Контент‑анализ по методу HVdC; нормы по данным DreamBank и SDDB.</span>
               </div>
               <div v-if="!hasDemographics" class="mt-3 bg-white/10 rounded-lg p-3 text-sm flex items-center gap-3">
                 <span class="opacity-90 flex-1">Укажите возраст и пол, чтобы будущие анализы сравнивались с вашими нормами.</span>
