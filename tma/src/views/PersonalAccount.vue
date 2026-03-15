@@ -15,6 +15,13 @@
     </div>
 
     <main class="flex flex-col gap-6 px-4 sm:px-6 md:px-8 pb-safe-area items-center">
+      <!-- Contextual greeting -->
+      <section class="account-block w-full max-w-72r pt-1 pb-0">
+        <div class="greeting-line">
+          <span class="greeting-emoji">{{ greetingEmoji }}</span>
+          <span class="greeting-text">{{ greetingText }}</span>
+        </div>
+      </section>
       <section class="account-block w-full max-w-72r" data-user-anchor>
         <UserInfoCard :user-store="userStore" />
       </section>
@@ -101,6 +108,35 @@ const handleRetry = async () => {
 // Загрузка профиля/истории выполняется на уровне App.vue. Здесь не дублируем вызовы,
 // чтобы избежать повторных запросов и мигания прелоадера.
 
+// Contextual greeting
+const greetingEmoji = computed(() => {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) return '🌅'
+  if (hour >= 12 && hour < 18) return '☀️'
+  if (hour >= 18 && hour < 22) return '🌆'
+  return '🌙'
+})
+
+const greetingText = computed(() => {
+  const hour = new Date().getHours()
+  const tg = (window as any)?.Telegram?.WebApp
+  const firstName = tg?.initDataUnsafe?.user?.first_name || ''
+  const name = firstName ? `, ${firstName}` : ''
+  const dreams = userStore.history?.filter((d: any) => !d.is_deep_analysis)?.length || 0
+  
+  if (hour >= 5 && hour < 12) {
+    if (dreams === 0) return `Доброе утро${name}! Был интересный сон?`
+    return `Доброе утро${name}! Запиши свежий сон прямо сейчас`
+  }
+  if (hour >= 12 && hour < 18) {
+    return `Добрый день${name}! Дневник снов ждёт`
+  }
+  if (hour >= 18 && hour < 22) {
+    return `Добрый вечер${name}! Скоро время снов`
+  }
+  return `Ночь глубока${name}... Хорошие сны ✨`
+})
+
 const openBotChat = () => {
   if (window.triggerHaptic) window.triggerHaptic('medium')
   try {
@@ -126,6 +162,22 @@ const openBotChat = () => {
   margin-left: 0.5rem;
   font-size: 0.875rem;
   opacity: 0.8;
+}
+
+/* Greeting */
+.greeting-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.greeting-emoji { font-size: 20px; line-height: 1; }
+.greeting-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tg-theme-text-color, #fff);
+  opacity: 0.85;
+  letter-spacing: 0.01em;
 }
 
 /* Sticky FAB CTA */
