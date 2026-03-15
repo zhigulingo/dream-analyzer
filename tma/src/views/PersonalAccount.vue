@@ -14,7 +14,44 @@
       </span>
     </div>
 
-    <main class="flex flex-col gap-6 px-4 sm:px-6 md:px-8 pb-safe-area items-center">
+    <!-- Full-page skeleton on initial load -->
+    <div v-if="userStore.isLoadingProfile && !userStore.history?.length" class="flex flex-col gap-6 px-4 sm:px-6 md:px-8 pt-4 items-center w-full">
+      <!-- Greeting skeleton -->
+      <div class="w-full max-w-72r">
+        <div class="page-skeleton h-6 w-40 rounded-xl"></div>
+      </div>
+      <!-- Avatar + name skeleton (UserInfoCard) -->
+      <div class="w-full max-w-72r rounded-xl bg-white/10 p-5 flex items-center gap-4">
+        <div class="page-skeleton w-12 h-12 rounded-full shrink-0"></div>
+        <div class="flex-1 space-y-2">
+          <div class="page-skeleton h-4 w-32 rounded-lg"></div>
+          <div class="page-skeleton h-3 w-24 rounded-lg"></div>
+        </div>
+        <div class="flex flex-col gap-2">
+          <div class="page-skeleton h-5 w-16 rounded-full"></div>
+          <div class="page-skeleton h-5 w-12 rounded-full"></div>
+        </div>
+      </div>
+      <!-- Stats skeleton -->
+      <div class="w-full max-w-72r rounded-xl bg-white/10 p-4 space-y-3">
+        <div v-for="i in 4" :key="i" class="flex justify-between">
+          <div class="page-skeleton h-3 w-28 rounded"></div>
+          <div class="page-skeleton h-3 w-8 rounded"></div>
+        </div>
+      </div>
+      <!-- Cards skeleton -->
+      <div v-for="j in 2" :key="j" class="w-full max-w-72r rounded-xl bg-white/10 px-8 py-5">
+        <div class="flex items-center gap-3 py-2">
+          <div class="page-skeleton w-8 h-8 rounded-full shrink-0"></div>
+          <div class="space-y-2 flex-1">
+            <div class="page-skeleton h-4 w-36 rounded"></div>
+            <div class="page-skeleton h-3 w-20 rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main v-else class="flex flex-col gap-6 px-4 sm:px-6 md:px-8 pb-safe-area items-center">
       <!-- Contextual greeting -->
       <section class="account-block w-full max-w-72r pt-1 pb-0">
         <div class="greeting-line">
@@ -214,4 +251,15 @@ const openBotChat = () => {
 }
 .fab-icon { font-size: 18px; }
 .fab-label { letter-spacing: 0.01em; }
+
+/* Page-level skeleton shimmer */
+.page-skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.07) 25%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.07) 75%);
+  background-size: 400% 100%;
+  animation: page-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes page-shimmer {
+  0% { background-position: 0% 0; }
+  100% { background-position: -200% 0; }
+}
 </style>
