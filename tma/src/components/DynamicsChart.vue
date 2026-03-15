@@ -410,19 +410,19 @@ function triggerHaptic() {
 }
 
 .analysis-text {
-  font-size: 13px;
-  line-height: 1.6;
-  opacity: 0.9;
+  font-size: 14px;
+  line-height: 1.65;
+  opacity: 0.92;
   margin: 0;
 }
 
 .insight-box {
   display: flex;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 10px 12px;
-  border-left: 3px solid rgba(255, 223, 0, 0.6);
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  border-left: 3px solid rgba(255, 223, 0, 0.7);
 }
 
 .insight-icon {
@@ -432,9 +432,9 @@ function triggerHaptic() {
 }
 
 .insight-text {
-  font-size: 12px;
-  line-height: 1.5;
-  opacity: 0.95;
+  font-size: 13px;
+  line-height: 1.55;
+  opacity: 0.97;
   margin: 0;
   font-style: italic;
 }
