@@ -33,25 +33,25 @@
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">Каждую ночь твой мозг рассказывает историю.<br/>Пора её расшифровать.</h2>
+          <h2 class="headline centered">Твой сон расскажет о тебе<br/>больше, чем ты думаешь.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="thinking.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">DreamsTalk запоминает твои сны<br/>и находит скрытые паттерны —<br/>ты начнёшь понимать себя глубже.</h2>
+          <h2 class="headline centered">Со временем видишь паттерны —<br/>что тебя тревожит, радует<br/>или повторяется снова и снова.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">Просто напиши сон боту — как другу.<br/>ИИ найдёт символы и эмоции,<br/>о которых ты не задумывался.</h2>
+          <h2 class="headline centered">Напиши сон — любой, даже обрывок.<br/>ИИ найдёт символы и эмоции,<br/>которые ты не замечал.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">Подпишись на @TheDreamsHub —<br/>и получи первый анализ бесплатно.<br/>Токен начислим сразу.</h2>
+          <h2 class="headline centered">Подпишись на @TheDreamsHub —<br/>получи первый анализ прямо сейчас.<br/>Бесплатно. Сразу. 🎁</h2>
         </div>
       </SwiperSlide>
     </Swiper>
@@ -78,7 +78,7 @@
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">Отличный старт! 🎉<br/>Теперь — напиши свой первый сон боту.<br/>Анализ займёт меньше минуты.</h2>
+          <h2 class="headline centered">Токен твой! 🎉<br/>Напиши первый сон боту прямо сейчас.<br/>Анализ — меньше минуты.</h2>
         </div>
       </SwiperSlide>
     </Swiper>
@@ -106,20 +106,20 @@
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="wizard-happy.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">Первый сон расшифрован! 🌙<br/>Теперь у тебя есть личный дневник снов — всё в одном месте.</h2>
+          <h2 class="headline centered">Первый шаг сделан! 🌙<br/>Твой дневник снов ожил — уже есть что читать.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-body">
-          <h2 class="headline-24 centered">Все сны под рукой</h2>
-          <p class="headline-sub centered">Открывай приложение — история и символы всегда доступны.</p>
+          <h2 class="headline-24 centered">Твой личный архив снов</h2>
+          <p class="headline-sub centered">Дата, символы, эмоции — всё сохранено и доступно в любой момент.</p>
         </div>
         <div class="onboarding-media media-bottom"><img class="onboarding-media-img" :src="frame1" alt="onboarding-2" /></div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-body">
-          <h2 class="headline-24 centered">Узнавай новое о снах</h2>
-          <p class="headline-sub centered">Каждый день — интересный факт о том, как работает твой мозг ночью.</p>
+          <h2 class="headline-24 centered">Узнай, как работает твой мозг</h2>
+          <p class="headline-sub centered">Каждый день — неожиданный факт о снах. Спойлер: это удивит.</p>
         </div>
         <div class="onboarding-media media-bottom">
           <img class="onboarding-media-img" :src="frame2" alt="onboarding-3" />
@@ -127,8 +127,8 @@
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-body">
-          <h2 class="headline-24 centered">Дневник + глубокий анализ</h2>
-          <p class="headline-sub centered">После 5 снов откроется анализ паттернов — найдём, что тебя тревожит или радует.</p>
+          <h2 class="headline-24 centered">5 снов → глубокий разбор</h2>
+          <p class="headline-sub centered">ИИ найдёт, что повторяется в твоих снах и что это говорит о тебе.</p>
         </div>
         <div class="onboarding-media media-bottom">
           <img class="onboarding-media-img" :src="frame3" alt="onboarding-4" />
