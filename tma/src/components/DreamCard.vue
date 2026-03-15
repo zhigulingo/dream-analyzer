@@ -29,7 +29,18 @@
     <div v-if="active" class="mt-4 space-y-6 fade-seq is-open">
       <!-- Title and full date inside the opened card (only in overlay) -->
       <div v-if="overlayMode" class="space-y-2">
-        <h2 class="text-[32px] font-bold leading-tight">{{ displayTitle }}</h2>
+        <div class="flex items-start justify-between gap-2">
+          <h2 class="text-[32px] font-bold leading-tight flex-1">{{ displayTitle }}</h2>
+          <!-- Share button -->
+          <button
+            class="shrink-0 mt-1 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 transition-all text-sm font-medium"
+            @click.stop="handleShare"
+            aria-label="Поделиться"
+          >
+            <span>📤</span>
+            <span class="text-xs">Поделиться</span>
+          </button>
+        </div>
         <div class="flex items-center gap-3 flex-wrap">
           <div class="text-base opacity-80">{{ fullDate }}</div>
           <div v-if="readingTime > 0" class="inline-flex items-center gap-1 text-sm opacity-60 bg-white/10 rounded-full px-2.5 py-0.5">
@@ -477,6 +488,58 @@ const sendFeedback = async (target) => {
 const handleLike = () => sendFeedback(1)
 
 const handleDislike = () => sendFeedback(2)
+
+const handleShare = async () => {
+  if (window.triggerHaptic) window.triggerHaptic('light')
+  
+  // Build share text
+  const title = displayTitle.value
+  const dateStr = fullDate.value
+  const tags = displayTags.value.slice(0, 3).join(', ')
+  const snippet = props.dream?.dream_text
+    ? String(props.dream.dream_text).slice(0, 120).trim() + '...'
+    : ''
+  
+  const shareText = [
+    `🌙 ${title}`,
+    dateStr ? `📅 ${dateStr}` : '',
+    tags ? `🏷 ${tags}` : '',
+    snippet ? `\n💭 ${snippet}` : '',
+    '\n✨ DreamStalk — анализ твоих снов'
+  ].filter(Boolean).join('\n')
+  
+  try {
+    // Try native share API
+    if (navigator.share) {
+      await navigator.share({ title, text: shareText })
+      if (window.triggerHapticNotification) window.triggerHapticNotification('success')
+      return
+    }
+    
+    // Try Telegram switchInlineQuery
+    const tg = window.Telegram?.WebApp
+    if (tg?.switchInlineQuery) {
+      tg.switchInlineQuery(title.slice(0, 32), ['users', 'groups', 'channels'])
+      return
+    }
+    
+    // Fallback: copy to clipboard
+    await navigator.clipboard.writeText(shareText)
+    notificationStore.success('Скопировано в буфер обмена')
+    if (window.triggerHapticNotification) window.triggerHapticNotification('success')
+  } catch (e) {
+    // Last resort: show text in popup
+    try {
+      window.Telegram?.WebApp?.showPopup?.({
+        title: 'Поделиться',
+        message: shareText.slice(0, 200),
+        buttons: [{ id: 'ok', type: 'default', text: 'OK' }]
+      })
+    } catch (_) {
+      notificationStore.info('Скопируйте текст вручную')
+    }
+  }
+}
 
 const handleDelete = async () => {
   if (sending.delete) return
