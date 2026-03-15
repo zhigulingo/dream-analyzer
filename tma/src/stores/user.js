@@ -288,15 +288,15 @@ export const useUserStore = defineStore('user', {
                 tg.openInvoice(invoiceUrl, (status) => {
                     console.log("[UserStore:initiatePayment] Invoice callback status:", status);
                     if (tg?.MainButton) { tg.MainButton.hideProgress(); tg.MainButton.enable(); }
-                    if (status === 'paid') { this.notificationStore.success("Оплата прошла успешно! Профиль будет обновлен."); this.closeSubscriptionModal(); setTimeout(() => this.fetchProfile(), 4000); }
-                    else if (status === 'failed') { this.notificationStore.error(`Платеж не удался: ${status}`); }
-                    else if (status === 'cancelled') { this.notificationStore.warning("Платеж отменен."); }
-                    else { this.notificationStore.info(`Статус платежа: ${status}.`); } });
+                    if (status === 'paid') { this.notificationStore.success("🎉 Оплата прошла! Токены уже у тебя."); this.closeSubscriptionModal(); setTimeout(() => this.fetchProfile(), 4000); }
+                    else if (status === 'failed') { this.notificationStore.error('Оплата не прошла. Попробуй ещё раз или выбери другой способ.'); }
+                    else if (status === 'cancelled') { this.notificationStore.info('Оплата отменена. Можешь вернуться в любое время.'); }
+                    else { this.notificationStore.info(`Обрабатываем оплату...`); } });
             } else { throw new Error("Метод Telegram openInvoice недоступен."); }
         } catch (error) {
             console.error("[UserStore:initiatePayment] Error caught:", error);
-            let alertMessage = `Ошибка: ${error.message || 'Неизвестная ошибка'}`;
-            if (error instanceof TypeError && error.message.toLowerCase().includes('failed to fetch')) { alertMessage = 'Сетевая ошибка. Проверьте интернет.'; }
+            let alertMessage = 'Не удалось создать счёт. Попробуй ещё раз.';
+            if (error instanceof TypeError && error.message.toLowerCase().includes('failed to fetch')) { alertMessage = 'Нет соединения. Проверьте интернет и попробуй снова.'; }
             this.notificationStore.error(alertMessage);
             if (tg?.MainButton) { tg.MainButton.hideProgress(); tg.MainButton.enable(); }
         }
@@ -494,21 +494,21 @@ export const useUserStore = defineStore('user', {
                 tg.openInvoice(invoiceUrl, async (status) => {
                     console.log("[UserStore:initiateDeepPayment] Invoice status callback:", status);
                     if (status === 'paid') {
-                        this.notificationStore.success("Оплата прошла успешно! Начинаем глубокий анализ...");
+                        this.notificationStore.success("🔮 Оплата прошла! Запускаем глубокий анализ...");
                         // Обновляем профиль для получения новых кредитов
                         await this.fetchProfile();
                         // <<<--- ВЫЗЫВАЕМ АНАЛИЗ ПОСЛЕ ОПЛАТЫ ---
                         this.performDeepAnalysis();
                         // >>>------------------------------------
                     } else if (status === 'failed') {
-                        this.deepPaymentError = "Платеж не удался.";
-                        this.notificationStore.error("Платеж не удался.");
+                        this.deepPaymentError = "Оплата не прошла. Попробуй ещё раз.";
+                        this.notificationStore.error("Оплата не прошла. Попробуй ещё раз или выбери другой способ.");
                     } else if (status === 'cancelled') {
-                        this.deepPaymentError = "Платеж отменен.";
-                        // alert("Платеж отменен."); // Можно не показывать alert при отмене
+                        this.deepPaymentError = "";
+                        // Тихая отмена — не раздражаем пользователя
                     } else {
-                        this.deepPaymentError = `Неизвестный статус платежа: ${status}.`;
-                        this.notificationStore.info(`Статус платежа: ${status}.`);
+                        this.deepPaymentError = '';
+                        this.notificationStore.info('Обрабатываем оплату...');
                     }
                     // Сбрасываем флаг инициации в любом случае после закрытия окна
                     this.isInitiatingDeepPayment = false;
@@ -517,7 +517,7 @@ export const useUserStore = defineStore('user', {
 
         } catch (error) {
             console.error("[UserStore:initiateDeepPayment] Error caught:", error);
-            this.deepPaymentError = `Ошибка: ${error.message || 'Неизвестная ошибка'}`;
+            this.deepPaymentError = 'Не удалось создать счёт. Попробуй ещё раз.';
             this.notificationStore.error(this.deepPaymentError);
             this.isInitiatingDeepPayment = false; // Сбрасываем флаг при ошибке
         }
