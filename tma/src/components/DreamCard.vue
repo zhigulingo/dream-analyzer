@@ -235,9 +235,18 @@
                     </template>
                   </span>
                 </div>
-                <div class="relative h-2 w-full bg-white/10 rounded overflow-hidden">
+                <div class="relative h-2 w-full bg-white/10 rounded overflow-hidden"
+                     @mouseenter="hvdcTooltip = { key: row.key, label: row.label, value: row.value, norm: row.norm }"
+                     @mouseleave="hvdcTooltip = null"
+                     @touchstart.prevent="hvdcTooltip = { key: row.key, label: row.label, value: row.value, norm: row.norm }"
+                     @touchend.prevent="setTimeout(() => hvdcTooltip = null, 1200)">
                   <div v-if="row.norm !== null" class="absolute inset-y-0 left-0 bg-white/20" :style="{ width: row.norm+'%' }"></div>
-                  <div class="relative h-full bg-white/70" :style="{ width: row.value+'%' }"></div>
+                  <div class="relative h-full bg-white/70 hvdc-bar" :style="{ '--bar-w': row.value+'%' }"></div>
+                </div>
+                <!-- Tooltip for this bar -->
+                <div v-if="hvdcTooltip?.key === row.key" class="text-xs opacity-90 bg-white/15 rounded-lg px-2 py-1 mt-0.5 inline-block">
+                  {{ row.label }}: <strong>{{ row.value }}%</strong>
+                  <template v-if="row.norm !== null"> · норма: {{ row.norm }}%</template>
                 </div>
               </div>
               <div class="pt-1 text-base opacity-80 flex flex-wrap items-center gap-3">
@@ -903,6 +912,8 @@ const sections = computed(() => {
   return res
 })
 
+const hvdcTooltip = ref<{key:string,label:string,value:number,norm:number|null}|null>(null)
+
 const expanded = reactive<Record<string,boolean>>({ 
   arch:false, hvdc:false, func:false, freud:false, jung:false,
   symbols:true, dynamics:true, conclusion:true,  // New deep analysis blocks - open by default
@@ -1124,6 +1135,17 @@ const gradientClass = computed(() => {
 </script>
 
 <style scoped>
+/* HVdC bar entrance animation */
+.hvdc-bar {
+  width: 0;
+  animation: hvdc-bar-grow 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.15s;
+}
+@keyframes hvdc-bar-grow {
+  from { width: 0; }
+  to { width: var(--bar-w, 0%); }
+}
+
 .clamp-5 {
   display: -webkit-box;
   -webkit-line-clamp: 5;

@@ -76,20 +76,42 @@
                   stroke-linecap="round"
                 />
                 
-                <!-- Data points -->
+                <!-- Data points (interactive) -->
                 <circle 
                   v-for="(point, idx) in dataPoints" 
                   :key="`point-${idx}`"
                   :cx="point.x" 
                   :cy="point.y" 
-                  r="4" 
+                  r="5" 
                   fill="white"
                   vector-effect="non-scaling-stroke"
+                  class="cursor-pointer"
+                  @mouseenter="showTooltip(idx, $event)"
+                  @mouseleave="hideTooltip"
+                  @touchstart.prevent="showTooltip(idx, $event)"
+                  @touchend.prevent="hideTooltip"
                 />
               </svg>
             </div>
           </div>
           
+          <!-- Tooltip -->
+          <div v-if="tooltip.visible" class="tooltip-bubble" :style="{ left: tooltip.x + 'px' }">
+            <span class="font-semibold">{{ tooltip.value }}</span>
+            <span class="text-xs opacity-75 ml-1">{{ tooltip.label }}</span>
+          </div>
+
+          <!-- X-axis labels (dream numbers) -->
+          <div class="x-axis-labels" v-if="currentValues.length > 1">
+            <span v-for="(_, idx) in currentValues" :key="`x-${idx}`" class="x-label">{{ idx + 1 }}</span>
+          </div>
+
+          <!-- Legend -->
+          <div class="chart-legend">
+            <span class="legend-line"></span>
+            <span class="legend-text">{{ currentMetric.category || currentMetric.metric }}</span>
+          </div>
+
           <!-- Analysis (new format) or Interpretation (legacy) -->
           <div v-if="currentMetric.analysis" class="mt-4">
             <div class="dynamics-analysis">
@@ -140,6 +162,32 @@ const currentIndex = ref(0)
 const touchStartX = ref(0)
 const touchEndX = ref(0)
 const transitionName = ref('slide-left')
+
+// Tooltip state
+const tooltip = ref({ visible: false, x: 0, value: 0, label: '' })
+
+function showTooltip(idx: number, event: MouseEvent | TouchEvent) {
+  const values = currentValues.value
+  if (!values[idx] === undefined) return
+  const containerEl = (event.target as SVGElement)?.closest('.chart-svg-wrapper')
+  const rect = containerEl?.getBoundingClientRect()
+  const point = dataPoints.value[idx]
+  if (!rect || !point) return
+  // x ratio from 0..chartWidth → real px width
+  const xRatio = point.x / chartWidth
+  const xPx = xRatio * rect.width
+  tooltip.value = {
+    visible: true,
+    x: Math.min(Math.max(xPx, 20), rect.width - 50),
+    value: values[idx],
+    label: `сон ${idx + 1}`
+  }
+  if (window.triggerHaptic) window.triggerHaptic('light')
+}
+
+function hideTooltip() {
+  tooltip.value.visible = false
+}
 
 const chartWidth = 300
 const chartHeight = 80
@@ -344,6 +392,56 @@ function triggerHaptic() {
   flex: 0 0 80%;
   display: flex;
   align-items: center;
+  position: relative;
+}
+
+.x-axis-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0 0 28px; /* offset for y-axis */
+  margin-top: 2px;
+}
+
+.x-label {
+  font-size: 0.65rem;
+  opacity: 0.5;
+  line-height: 1;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  opacity: 0.75;
+}
+
+.legend-line {
+  display: inline-block;
+  width: 20px;
+  height: 2px;
+  background: white;
+  border-radius: 2px;
+}
+
+.legend-text {
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.tooltip-bubble {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 13px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+  backdrop-filter: blur(4px);
 }
 
 .chart-svg {
