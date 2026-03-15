@@ -193,15 +193,38 @@ input, textarea, select {
   background-color: transparent;
 }
 
-/* Ensure icon-only buttons are visible */
-svg path, svg circle, svg rect {
-  /* Icons inherit stroke/fill from parent color */
-}
-
 /* Backdrop modals dark mode */
 .dark-modal-bg {
   background: var(--tg-theme-secondary-bg-color, #1c1c1e);
   color: var(--tg-theme-text-color, #ffffff);
+}
+
+/* Tab-active adapts to both light and dark — ensure readable */
+.tab-active {
+  color: var(--tg-theme-text-color, #ffffff);
+}
+
+/* Badge component dark compatibility */
+.badge-default {
+  background: rgba(255,255,255,0.12);
+  color: var(--tg-theme-text-color, #ffffff);
+}
+
+/* Empty state title adapts */
+.empty-state-title {
+  color: var(--tg-theme-text-color, #ffffff) !important;
+}
+
+/* Hint text in dark — uses hint-color variable */
+.empty-state-desc,
+.empty-state-hint {
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.7));
+}
+
+/* Deep progress steps in dark */
+.deep-step-empty {
+  background: rgba(255,255,255,0.08);
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.6));
 }
 
 /* Micro-animations */
