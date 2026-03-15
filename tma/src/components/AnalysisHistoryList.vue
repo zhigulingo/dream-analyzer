@@ -92,12 +92,15 @@
         </button>
       </div>
       <div v-else class="flex flex-col gap-4 pb-[5vh]">
-        <DreamCard
-          v-for="dream in visibleRegularDreams"
-          :key="dream.id"
-          :dream="dream"
-          @open="(payload) => openOverlay(dream, payload)"
-        />
+        <TransitionGroup name="card-stagger" tag="div" class="flex flex-col gap-4">
+          <DreamCard
+            v-for="(dream, index) in visibleRegularDreams"
+            :key="dream.id"
+            :dream="dream"
+            :style="{ '--stagger-delay': `${index * 70}ms` }"
+            @open="(payload) => openOverlay(dream, payload)"
+          />
+        </TransitionGroup>
         <button
           v-if="canLoadMoreRegular"
           class="self-center rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 my-2 themed-button flex items-center gap-2"
@@ -113,28 +116,50 @@
     <div v-else-if="activeTab === 'deep'">
       <div v-if="!deepAnalyses?.length" class="empty-state py-10 flex flex-col items-center gap-4">
         <div class="empty-state-icon">🔮</div>
-        <div class="empty-state-title">Глубокий анализ не запущен</div>
+        <div class="empty-state-title">Глубокий анализ недоступен</div>
         <div class="empty-state-desc">
           <template v-if="hasDeepUnlocked">
             Запроси глубокий анализ у бота — ИИ найдёт повторяющиеся паттерны в твоих снах.
           </template>
           <template v-else>
-            Ещё {{ 5 - regularCount }} {{ pluralSny(5 - regularCount) }} — и ИИ сможет найти паттерны<br/>
-            и рассказать, что беспокоит тебя глубже всего.
+            Запиши ещё {{ 5 - regularCount }} {{ pluralSny(5 - regularCount) }} — и ИИ раскроет<br/>
+            повторяющиеся паттерны твоих снов.
           </template>
         </div>
-        <div v-if="!hasDeepUnlocked" class="deep-progress-bar">
-          <div class="deep-progress-fill" :style="{ width: (regularCount / 5 * 100) + '%' }"></div>
-        </div>
-        <div v-if="!hasDeepUnlocked" class="empty-state-hint">{{ regularCount }} / 5 снов</div>
+        <template v-if="!hasDeepUnlocked">
+          <div class="deep-unlock-progress">
+            <div class="deep-unlock-header">
+              <span class="deep-unlock-label">Прогресс разблокировки</span>
+              <span class="deep-unlock-count">{{ regularCount }} / 5</span>
+            </div>
+            <div class="deep-progress-bar">
+              <div class="deep-progress-fill" :style="{ width: (regularCount / 5 * 100) + '%' }"></div>
+            </div>
+            <div class="deep-unlock-steps">
+              <span
+                v-for="i in 5"
+                :key="i"
+                class="deep-step-dot"
+                :class="i <= regularCount ? 'deep-step-done' : 'deep-step-empty'"
+              >{{ i <= regularCount ? '✓' : i }}</span>
+            </div>
+          </div>
+          <div class="empty-state-hint">🔒 Ещё {{ 5 - regularCount }} {{ pluralSny(5 - regularCount) }} до глубокого анализа</div>
+        </template>
+        <button v-if="hasDeepUnlocked" class="empty-state-cta" @click="openBot">
+          🔮 Запросить анализ
+        </button>
       </div>
       <div v-else class="flex flex-col gap-4 pb-[5vh]">
-        <DreamCard
-          v-for="dream in visibleDeepAnalyses"
-          :key="dream.id"
-          :dream="dream"
-          @open="(payload) => openOverlay(dream, payload)"
-        />
+        <TransitionGroup name="card-stagger" tag="div" class="flex flex-col gap-4">
+          <DreamCard
+            v-for="(dream, index) in visibleDeepAnalyses"
+            :key="dream.id"
+            :dream="dream"
+            :style="{ '--stagger-delay': `${index * 70}ms` }"
+            @open="(payload) => openOverlay(dream, payload)"
+          />
+        </TransitionGroup>
         <button
           v-if="canLoadMoreDeep"
           class="self-center rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 my-2 themed-button flex items-center gap-2"
@@ -332,6 +357,29 @@ select { -webkit-appearance: auto; appearance: auto; }
 .empty-state-hint { font-size: 13px; color: #a78bfa; font-weight: 500; background: rgba(167,139,250,0.12); border-radius: 20px; padding: 6px 16px; }
 .empty-state-cta { background: linear-gradient(135deg, #7C3AED 0%, #9C41FF 100%); color: #fff; border: none; border-radius: 20px; padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 16px rgba(124,58,237,0.35); transition: transform 0.15s ease, box-shadow 0.15s ease; }
 .empty-state-cta:active { transform: scale(0.96); box-shadow: 0 2px 8px rgba(124,58,237,0.25); }
-.deep-progress-bar { width: 120px; height: 6px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden; }
-.deep-progress-fill { height: 100%; background: linear-gradient(90deg, #7C3AED, #a78bfa); border-radius: 999px; transition: width 0.4s ease; }
+.deep-progress-bar { width: 100%; max-width: 260px; height: 8px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden; }
+.deep-progress-fill { height: 100%; background: linear-gradient(90deg, #7C3AED, #a78bfa); border-radius: 999px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+
+/* Deep unlock progress block */
+.deep-unlock-progress { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; max-width: 280px; background: rgba(124,58,237,0.10); border: 1px solid rgba(167,139,250,0.2); border-radius: 16px; padding: 16px 20px; }
+.deep-unlock-header { display: flex; justify-content: space-between; width: 100%; align-items: center; }
+.deep-unlock-label { font-size: 13px; color: rgba(255,255,255,0.65); }
+.deep-unlock-count { font-size: 14px; font-weight: 700; color: #a78bfa; }
+.deep-unlock-steps { display: flex; gap: 8px; margin-top: 4px; }
+.deep-step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; transition: all 0.3s ease; }
+.deep-step-done { background: linear-gradient(135deg,#7C3AED,#a78bfa); color: #fff; }
+.deep-step-empty { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.12); }
+
+/* Stagger animation */
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.card-stagger-enter-active {
+  animation: card-enter 0.4s cubic-bezier(0.4,0,0.2,1) both;
+  animation-delay: var(--stagger-delay, 0ms);
+}
+.card-stagger-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
+.card-stagger-leave-to { opacity: 0; transform: translateY(-10px); }
+.card-stagger-move { transition: transform 0.35s ease; }
 </style>
