@@ -27,13 +27,13 @@ export function useOfflineDetection() {
   
   const handleConnectionLost = () => {
     wasOffline.value = true;
-    notificationStore.warning('Соединение с интернетом потеряно. Некоторые функции могут быть недоступны.');
+    notificationStore.warning('Нет соединения. Проверьте интернет.');
     console.log('Connection lost - switching to offline mode');
   };
   
   const handleConnectionRestored = () => {
     if (wasOffline.value) {
-      notificationStore.success('Соединение восстановлено!');
+      notificationStore.success('Соединение восстановлено ✓');
       console.log('Connection restored - executing pending operations');
       
       // Выполняем отложенные операции
@@ -50,7 +50,7 @@ export function useOfflineDetection() {
       timestamp: new Date().toISOString()
     });
     
-    notificationStore.info(`${description} будет выполнена при восстановлении соединения`);
+    notificationStore.info(`Сохранили. Выполним как только появится интернет.`);
   };
   
   const executePendingOperations = async () => {
@@ -65,7 +65,7 @@ export function useOfflineDetection() {
         console.log(`Pending operation executed: ${description}`);
       } catch (error) {
         console.error(`Failed to execute pending operation: ${description}`, error);
-        notificationStore.error(`Не удалось выполнить: ${description}`);
+        notificationStore.error(`Не удалось выполнить. Потяни вниз чтобы попробовать снова.`);
       }
     }
   };
@@ -120,7 +120,7 @@ export function useOfflineDetection() {
       }
       
       addPendingOperation(operation, description);
-      throw new Error('Нет подключения к интернету. Операция будет выполнена при восстановлении соединения.');
+      throw new Error('Нет соединения. Проверьте интернет.');
     }
     
     try {
@@ -129,7 +129,7 @@ export function useOfflineDetection() {
       // Проверяем, не является ли ошибка сетевой
       if (isNetworkError(error)) {
         addPendingOperation(operation, description);
-        throw new Error('Проблемы с сетью. Операция будет выполнена при восстановлении соединения.');
+        throw new Error('Нет соединения. Проверьте интернет и потяните вниз чтобы попробовать снова.');
       }
       throw error;
     }
