@@ -1,15 +1,15 @@
 <template>
-  <div class="rounded-2xl border border-white/10 bg-white/5 text-white p-4">
+  <div class="rounded-2xl border border-purple-500/25 bg-purple-500/10 text-white p-4">
     <div class="flex items-start gap-3">
-      <div class="text-2xl">🧭</div>
+      <div class="text-2xl">🎯</div>
       <div class="flex-1 min-w-0">
-        <div class="font-semibold">Повысим точность анализа</div>
-        <div class="text-sm opacity-90 mt-1">
-          Укажите возраст и пол — будущие анализы будут сравниваться с демографическими нормами.
+        <div class="font-semibold text-base">Сделай анализ точнее</div>
+        <div class="text-sm opacity-85 mt-1 leading-snug">
+          Укажи возраст и пол — анализ будет сравниваться с твоими демографическими нормами снов.
         </div>
         <div class="mt-3 flex flex-wrap gap-2">
-          <button class="px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-sm" @click="open()">Указать данные</button>
-          <button class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-sm" @click="$emit('dismiss')">Скрыть</button>
+          <button class="px-4 py-2 rounded-xl bg-purple-500/30 hover:bg-purple-500/45 text-sm font-medium transition-colors" @click="open()">✓ Указать данные</button>
+          <button class="px-4 py-2 rounded-xl bg-white/8 hover:bg-white/15 text-sm opacity-70 transition-colors" @click="$emit('dismiss')">Не сейчас</button>
         </div>
       </div>
     </div>
