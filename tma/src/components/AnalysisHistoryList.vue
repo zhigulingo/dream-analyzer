@@ -215,11 +215,13 @@ const switchTab = (tab) => {
   if (tab === 'deep' && !hasDeepUnlocked.value) {
     // Показать подсказку и не переключать
     showDeepHint.value = true
-    setTimeout(() => { showDeepHint.value = false }, 1800)
+    setTimeout(() => { showDeepHint.value = false }, 2200)
     return
   }
   activeTab.value = tab
   selectedItem.value = null // Закрываем оверлей
+  // Плавный скролл вверх при переключении вкладки
+  try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch (_) {}
 }
 
 const openOverlay = (dream:any, payload?: any) => {
