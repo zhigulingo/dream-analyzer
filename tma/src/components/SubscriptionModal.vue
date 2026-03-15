@@ -1,7 +1,22 @@
 <template>
   <div class="modal-container">
     <div class="modal-content">
-      <h2 class="text-[32px] font-bold mb-6 text-center">Выберите план подписки</h2>
+      <!-- Header with current tokens -->
+      <div class="tokens-header">
+        <div class="tokens-display">
+          <div class="tokens-counter">
+            <span class="tokens-icon">🪙</span>
+            <span class="tokens-count">{{ userStore.profile?.tokens ?? 0 }}</span>
+          </div>
+          <div class="tokens-label">токен = 1 анализ сна</div>
+        </div>
+        <div class="tokens-desc">
+          Каждый токен — это один полный анализ твоего сна с символами, эмоциями и интерпретацией.
+        </div>
+      </div>
+
+      <h2 class="modal-title">Пополнить токены</h2>
+      <p class="modal-subtitle">Выбери план — токены зачислятся сразу</p>
 
       <!-- Табы Basic/Premium -->
       <div class="tabs">
@@ -9,13 +24,13 @@
           :class="{ active: userStore.selectedPlan === 'basic' }"
           @click="userStore.selectPlan('basic')"
         >
-          Basic
+          🌙 Базовый
         </button>
         <button
           :class="{ active: userStore.selectedPlan === 'premium' }"
           @click="userStore.selectPlan('premium')"
         >
-          Premium
+          ✨ Премиум
         </button>
       </div>
 
@@ -31,27 +46,33 @@
             @change="userStore.selectDuration(duration)"
           />
           <div class="duration-card" :class="{ disabled: !getPlanDetails(userStore.selectedPlan, duration).price }">
-             <span class="months">{{ duration }} {{ duration > 1 ? (duration < 5 ? 'мес' : 'мес') : 'мес' }}</span>
-             <template v-if="getPlanDetails(userStore.selectedPlan, duration).price">
-               <span class="price">
-                 {{ (getPlanDetails(userStore.selectedPlan, duration).price / duration).toFixed(0) }}⭐/мес
-               </span>
-             </template>
-             <template v-else>
-               <span class="price-disabled">—</span>
-             </template>
+            <span v-if="duration === 12" class="best-value-badge">Выгодно</span>
+            <span class="months">{{ duration }} {{ duration === 1 ? 'месяц' : duration < 5 ? 'месяца' : 'месяцев' }}</span>
+            <template v-if="getPlanDetails(userStore.selectedPlan, duration).price">
+              <span class="price">
+                {{ (getPlanDetails(userStore.selectedPlan, duration).price / duration).toFixed(0) }}⭐/мес
+              </span>
+            </template>
+            <template v-else>
+              <span class="price-disabled">—</span>
+            </template>
           </div>
         </label>
       </div>
 
-       <!-- Описание фич -->
+      <!-- Описание фич -->
       <div class="features-list">
-        <h3 class="text-2xl font-bold mb-4">Что вы получаете:</h3>
+        <h3 class="features-title">Что входит:</h3>
         <ul>
           <li v-for="(feature, index) in getPlanDetails(userStore.selectedPlan, userStore.selectedDuration).features" :key="index">
-            <span class="checkmark">✔️</span> {{ feature }}
+            <span class="checkmark">✅</span> {{ feature }}
           </li>
         </ul>
+      </div>
+
+      <!-- CTA hint -->
+      <div class="cta-hint">
+        Оплата через Telegram Stars — безопасно и мгновенно
       </div>
     </div>
   </div>
@@ -167,6 +188,100 @@ onUnmounted(() => {
   color: white;
 }
 
+/* Tokens header */
+.tokens-header {
+  background: rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255,255,255,0.18);
+}
+
+.tokens-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.tokens-counter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 6px 14px;
+}
+
+.tokens-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.tokens-count {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.tokens-label {
+  font-size: 13px;
+  color: rgba(255,255,255,0.75);
+  font-weight: 500;
+}
+
+.tokens-desc {
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  line-height: 1.5;
+}
+
+.modal-title {
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  color: white;
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  text-align: center;
+  color: rgba(255,255,255,0.65);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.features-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 12px;
+}
+
+.cta-hint {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 16px;
+  padding-bottom: 8px;
+}
+
+/* Best value badge */
+.best-value-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #1a0f00;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
 h2 {
   text-align: center;
   color: white !important;
@@ -228,6 +343,7 @@ h2 {
   transition: all 0.2s ease;
   background-color: rgba(255, 255, 255, 0.05);
   min-height: 70px;
+  position: relative;
 }
 
 .duration-card:hover {
@@ -265,6 +381,9 @@ h2 {
 
 .features-list {
   margin-bottom: 0;
+  background: rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 16px 18px;
 }
 
 .features-list h3 {
