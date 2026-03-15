@@ -37,6 +37,14 @@
         @close="userStore.closeSubscriptionModal"
       />
     </main>
+
+    <!-- Sticky CTA: Записать сон (открывает бот) -->
+    <div class="fab-wrapper">
+      <button class="fab-cta" @click="openBotChat" aria-label="Записать сон">
+        <span class="fab-icon">✍️</span>
+        <span class="fab-label">Записать сон</span>
+      </button>
+    </div>
   </ErrorBoundary>
 </template>
 
@@ -92,6 +100,14 @@ const handleRetry = async () => {
 
 // Загрузка профиля/истории выполняется на уровне App.vue. Здесь не дублируем вызовы,
 // чтобы избежать повторных запросов и мигания прелоадера.
+
+const openBotChat = () => {
+  if (window.triggerHaptic) window.triggerHaptic('medium')
+  try {
+    const tg = (window as any)?.Telegram?.WebApp
+    if (tg?.close) { tg.close(); return }
+  } catch (_) {}
+}
 </script>
 
 <style scoped>
@@ -111,4 +127,37 @@ const handleRetry = async () => {
   font-size: 0.875rem;
   opacity: 0.8;
 }
+
+/* Sticky FAB CTA */
+.fab-wrapper {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  pointer-events: none;
+}
+.fab-cta {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #7C3AED 0%, #9C41FF 100%);
+  color: #fff;
+  border: none;
+  border-radius: 28px;
+  padding: 14px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.45), 0 2px 8px rgba(0,0,0,0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+.fab-cta:active {
+  transform: scale(0.96);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+}
+.fab-icon { font-size: 18px; }
+.fab-label { letter-spacing: 0.01em; }
 </style>
