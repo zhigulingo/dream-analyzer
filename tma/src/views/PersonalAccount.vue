@@ -51,7 +51,19 @@
       </div>
     </div>
 
-    <main v-else class="flex flex-col gap-6 px-4 sm:px-6 md:px-8 pb-safe-area items-center">
+    <template v-else>
+    <!-- Progress bar under header -->
+    <div v-if="regularDreamsCount > 0 && regularDreamsCount < 10" class="progress-header-bar-wrapper">
+      <div class="progress-header-bar-track">
+        <div class="progress-header-bar-fill" :style="{ width: progressPercent + '%' }"></div>
+      </div>
+      <div class="progress-header-label">
+        <span>{{ regularDreamsCount }} из 10 снов для разблокировки статистики</span>
+        <span class="progress-header-pct">{{ progressPercent }}%</span>
+      </div>
+    </div>
+
+    <main class="flex flex-col gap-6 px-4 sm:px-6 md:px-8 pb-safe-area items-center">
       <!-- Contextual greeting -->
       <section class="account-block w-full max-w-72r pt-1 pb-0">
         <div class="greeting-line">
@@ -81,6 +93,7 @@
         @close="userStore.closeSubscriptionModal"
       />
     </main>
+    </template>
 
     <!-- Sticky CTA: Записать сон (открывает бот) -->
     <div class="fab-wrapper">
@@ -115,6 +128,12 @@ const userStore = useUserStore()
 const { isOnline, pendingOperations } = useOfflineDetection()
 
 const showDeepAnalysisBanner = computed(() => userStore.history && userStore.history.length >= 5)
+
+// Progress bar computeds
+const regularDreamsCount = computed(() => {
+  return (userStore.history || []).filter((d: any) => !d.is_deep_analysis).length
+})
+const progressPercent = computed(() => Math.round(Math.min(100, (regularDreamsCount.value / 10) * 100)))
 const dismissedDemo = ref(false)
 const showDemographicsBanner = computed(() => {
   const p: any = userStore.profile || {}
@@ -251,6 +270,36 @@ const openBotChat = () => {
 }
 .fab-icon { font-size: 18px; }
 .fab-label { letter-spacing: 0.01em; }
+
+/* Header progress bar */
+.progress-header-bar-wrapper {
+  width: 100%;
+  padding: 0 16px 8px;
+}
+.progress-header-bar-track {
+  height: 3px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-header-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7C3AED, #a78bfa);
+  border-radius: 999px;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+.progress-header-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.5));
+}
+.progress-header-pct {
+  font-weight: 600;
+  color: #a78bfa;
+}
 
 /* Page-level skeleton shimmer */
 .page-skeleton {
