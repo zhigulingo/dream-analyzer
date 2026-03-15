@@ -91,8 +91,27 @@
       </button>
     </div>
     
+    <!-- Фильтры истории снов -->
+    <div v-if="activeTab === 'history' && regularDreams?.length > 0" class="mb-4">
+      <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <button
+          v-for="filter in dreamFilters"
+          :key="filter.key"
+          @click="selectFilter(filter.key)"
+          class="filter-chip shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200"
+          :class="activeFilter === filter.key ? 'filter-chip-active' : 'filter-chip-inactive'"
+        >
+          {{ filter.label }}
+        </button>
+      </div>
+      <div v-if="activeFilter !== 'all' && filteredRegularDreams.length === 0" class="text-center text-sm py-3 opacity-60">
+        Снов этого типа пока нет
+      </div>
+    </div>
+
     <!-- Вкладка История снов -->
-    <div v-else-if="activeTab === 'history'">
+    <div v-else-if="activeTab === 'history' && !regularDreams?.length" class="empty-state-container"></div>
+    <div v-if="activeTab === 'history'">
       <div v-if="!regularDreams?.length" class="empty-state py-10 flex flex-col items-center gap-4">
         <div class="empty-state-icon">🌙</div>
         <div class="empty-state-title">Первый сон ещё впереди</div>
@@ -108,7 +127,7 @@
       <div v-else class="flex flex-col gap-4 pb-[5vh]">
         <TransitionGroup name="card-stagger" tag="div" class="flex flex-col gap-4">
           <DreamCard
-            v-for="(dream, index) in visibleRegularDreams"
+            v-for="(dream, index) in visibleFilteredDreams"
             :key="dream.id"
             :dream="dream"
             :style="{ '--stagger-delay': `${index * 70}ms` }"
@@ -116,12 +135,12 @@
           />
         </TransitionGroup>
         <button
-          v-if="canLoadMoreRegular"
+          v-if="canLoadMoreFiltered"
           class="self-center rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 my-2 themed-button flex items-center gap-2"
           @click="loadMoreRegular"
         >
           <span>↓</span>
-          <span>Загрузить ещё ({{ regularDreams.length - regularPageSize }} снов)</span>
+          <span>Загрузить ещё ({{ filteredRegularDreams.length - regularPageSize }} снов)</span>
         </button>
       </div>
     </div>
@@ -195,6 +214,37 @@ import DreamOverlay from '@/components/DreamOverlay.vue'
 
 const props = defineProps(['userStore'])
 
+// Dream type filter
+const activeFilter = ref('all')
+const dreamFilters = [
+  { key: 'all', label: '✨ Все' },
+  { key: 'emotion', label: 'Эмоциональные 💫' },
+  { key: 'memory', label: 'По памяти 🧠' },
+  { key: 'anticipation', label: 'Ожидание ✨' },
+]
+
+function heuristicDreamTypeDominant(text: string | undefined | null): string | null {
+  try {
+    const s = String(text || '').toLowerCase()
+    const count = (arr: string[]) => arr.reduce((a, k) => a + (s.includes(k) ? 1 : 0), 0)
+    const emotion = ['страх','ужас','паник','тревог','стыд','гнев','плак','слез','кошмар','тоска','грусть']
+    const anticip = ['экзам','выступл','собесед','защит','проект','подготов','завтра','ожидан','волнен','поездк','путешеств','нов','интервью']
+    const memory  = ['вчера','сегодня','работ','школ','универ','дом','улиц','друг','родител','коллег','город']
+    const e = count(emotion), a = count(anticip), m = count(memory)
+    const scores: [string, number][] = [['emotion', e], ['anticipation', a], ['memory', m]]
+    scores.sort((x, y) => y[1] - x[1])
+    if (scores[0][1] === 0) return 'memory'
+    return scores[0][0]
+  } catch { return null }
+}
+
+const selectFilter = (key: string) => {
+  if (window.triggerHaptic) window.triggerHaptic('light')
+  activeFilter.value = key
+  // Reset page size when filter changes
+  regularPageSize.value = 5
+}
+
 // Pull-to-refresh
 const pullStartY = ref(0)
 const pullDistance = ref(0)
@@ -248,8 +298,20 @@ const deepAnalyses = computed(() => {
   return props.userStore.history.filter(dream => dream.is_deep_analysis)
 })
 
+const filteredRegularDreams = computed(() => {
+  if (activeFilter.value === 'all') return regularDreams.value
+  return regularDreams.value.filter(dream => {
+    const dominant = dream?.deep_source?.dream_type?.dominant || heuristicDreamTypeDominant(dream?.dream_text)
+    return dominant === activeFilter.value
+  })
+})
+
 const visibleRegularDreams = computed(() => {
   return regularDreams.value.slice(0, regularPageSize.value)
+})
+
+const visibleFilteredDreams = computed(() => {
+  return filteredRegularDreams.value.slice(0, regularPageSize.value)
 })
 
 const visibleDeepAnalyses = computed(() => {
@@ -258,6 +320,10 @@ const visibleDeepAnalyses = computed(() => {
 
 const canLoadMoreRegular = computed(() => {
   return regularDreams.value.length > regularPageSize.value
+})
+
+const canLoadMoreFiltered = computed(() => {
+  return filteredRegularDreams.value.length > regularPageSize.value
 })
 
 const canLoadMoreDeep = computed(() => {
@@ -338,6 +404,24 @@ const pluralSny = (n: number): string => {
 <style scoped>
 /* Тематические бейджи и кнопки: слегка темнее на светлой теме и слегка светлее на тёмной */
 select { -webkit-appearance: auto; appearance: auto; }
+
+/* Filter chips */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.filter-chip { cursor: pointer; }
+.filter-chip-active {
+  background: linear-gradient(135deg, #7C3AED 0%, #9C41FF 100%);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(124,58,237,0.4);
+}
+.filter-chip-inactive {
+  background: rgba(255,255,255,0.08);
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.65));
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.filter-chip-inactive:active {
+  background: rgba(255,255,255,0.14);
+}
 
 /* Tab styles that adapt to user theme */
 .tab-active {
