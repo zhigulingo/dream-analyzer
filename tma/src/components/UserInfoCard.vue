@@ -42,11 +42,11 @@
       <!-- Обычное содержимое -->
        <template v-else>
         <div v-if="isOpen" class="mb-4 flex gap-2 flex-wrap fade-seq is-open seq-offset-0">
-          <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
+          <Badge class="whitespace-nowrap">{{ `🪙 ${userStore?.profile?.tokens || 0} токен${tokenSuffix}` }}</Badge>
           <Badge class="whitespace-nowrap">{{ subscriptionInfo }}</Badge>
         </div>
         <div v-else class="flex flex-col gap-1 ml-auto items-end">
-          <Badge class="whitespace-nowrap">{{ `Токенов: ${userStore?.profile?.tokens || 0}` }}</Badge>
+          <Badge class="whitespace-nowrap">{{ `🪙 ${userStore?.profile?.tokens || 0} токен${tokenSuffix}` }}</Badge>
           <Badge class="whitespace-nowrap">{{ userStore?.profile?.subscription_type || 'Free' }}</Badge>
         </div>
        </template>
@@ -93,7 +93,7 @@
           variant="white"
           class="mr-2"
         />
-        Сменить тариф
+        🪙 Пополнить токены
       </button>
       <button
         class="w-full bg-white/10 text-white/60 rounded-xl py-3 font-semibold transition-all fade-seq is-open seq-offset-600 relative"
@@ -138,6 +138,16 @@ const userDisplayName = computed(() => {
     return name
   }
   return 'Пользователь'
+})
+
+const tokenSuffix = computed(() => {
+  const n = props.userStore?.profile?.tokens || 0
+  const abs = Math.abs(n) % 100
+  const n1 = abs % 10
+  if (abs > 10 && abs < 20) return 'ов'
+  if (n1 > 1 && n1 < 5) return 'а'
+  if (n1 === 1) return ''
+  return 'ов'
 })
 
 const toggle = () => {
