@@ -3,13 +3,13 @@
     <div class="flex items-start gap-3">
       <div class="text-2xl">🎯</div>
       <div class="flex-1 min-w-0">
-        <div class="font-semibold text-base">Сделай анализ точнее</div>
+        <div class="font-semibold text-base">Твои сны уникальны</div>
         <div class="text-sm opacity-85 mt-1 leading-snug">
-          Укажи возраст и пол — анализ будет сравниваться с твоими демографическими нормами снов.
+          Укажи возраст и пол — анализ станет персональным и точнее.
         </div>
         <div class="mt-3 flex flex-wrap gap-2">
-          <button class="px-4 py-2 rounded-xl bg-purple-500/30 hover:bg-purple-500/45 text-sm font-medium transition-colors" @click="open()">✓ Указать данные</button>
-          <button class="px-4 py-2 rounded-xl bg-white/8 hover:bg-white/15 text-sm opacity-70 transition-colors" @click="$emit('dismiss')">Не сейчас</button>
+          <button class="px-4 py-2 rounded-xl bg-purple-500/30 hover:bg-purple-500/45 text-sm font-medium transition-colors" @click="open()">✨ Уточнить</button>
+          <button class="px-4 py-2 rounded-xl bg-white/8 hover:bg-white/15 text-sm opacity-70 transition-colors" @click="$emit('dismiss')">Потом</button>
         </div>
       </div>
     </div>
@@ -18,9 +18,9 @@
     <Teleport to="body">
       <div v-if="show" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70" @click.self="close" @wheel.prevent @touchmove.prevent>
         <div class="w-[92vw] max-w-[440px] rounded-2xl bg-[var(--tg-theme-secondary-bg-color,#0c110c)] text-white p-4 shadow-2xl border border-white/10" @click.stop>
-          <h3 class="text-lg font-semibold mb-2">Уточнить данные</h3>
+          <h3 class="text-lg font-semibold mb-2">Пара вопросов о тебе</h3>
           <div v-if="step===1" class="space-y-3">
-            <p class="opacity-90">Ваш возрастной диапазон:</p>
+            <p class="opacity-90">Сколько тебе лет?</p>
             <div class="grid grid-cols-2 gap-2">
               <button v-for="a in ages" :key="a" :class="['px-4 py-3 rounded-xl text-sm', age===a ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15']" @click="age=a">{{ a }}</button>
             </div>
@@ -30,7 +30,7 @@
             </div>
           </div>
           <div v-else class="space-y-3">
-            <p class="opacity-90">Ваш пол:</p>
+            <p class="opacity-90">Твой пол?</p>
             <div class="grid grid-cols-2 gap-2">
               <button :class="['px-4 py-3 rounded-xl text-sm', gender==='male' ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15']" @click="gender='male'">Мужской</button>
               <button :class="['px-4 py-3 rounded-xl text-sm', gender==='female' ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15']" @click="gender='female'">Женский</button>
@@ -38,8 +38,8 @@
             <div class="flex justify-end gap-2 pt-2">
               <button class="px-4 py-2 rounded-xl bg-white/10" @click="close">Отмена</button>
               <button class="px-4 py-2 rounded-xl bg-white/20" :disabled="!gender || saving" @click="save">
-                <span v-if="!saving">Сохранить</span>
-                <span v-else>Сохранение…</span>
+                <span v-if="!saving">Готово ✓</span>
+                <span v-else>Сохраняем…</span>
               </button>
             </div>
           </div>
