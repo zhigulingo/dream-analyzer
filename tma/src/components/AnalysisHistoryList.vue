@@ -73,8 +73,14 @@
     
     <!-- Вкладка История снов -->
     <div v-else-if="activeTab === 'history'">
-      <div v-if="!regularDreams?.length" class="text-center text-white/60 py-8">
-        У вас пока нет сохраненных анализов
+      <div v-if="!regularDreams?.length" class="empty-state py-10 flex flex-col items-center gap-4">
+        <div class="empty-state-icon">🌙</div>
+        <div class="empty-state-title">Дневник снов пуст</div>
+        <div class="empty-state-desc">
+          Напиши боту свой первый сон — любой, даже обрывок.<br/>
+          ИИ найдёт символы и расскажет, что скрывает твой мозг.
+        </div>
+        <div class="empty-state-hint">✨ Первый анализ уже ждёт тебя</div>
       </div>
       <div v-else class="flex flex-col gap-4 pb-[5vh]">
         <DreamCard
@@ -95,8 +101,13 @@
     
     <!-- Вкладка Глубокий анализ -->
     <div v-else-if="activeTab === 'deep'">
-      <div v-if="!deepAnalyses?.length" class="text-center text-white/60 py-8">
-        Пока нет глубоких анализов
+      <div v-if="!deepAnalyses?.length" class="empty-state py-10 flex flex-col items-center gap-4">
+        <div class="empty-state-icon">🔮</div>
+        <div class="empty-state-title">Глубокий анализ не запущен</div>
+        <div class="empty-state-desc">
+          После {{ hasDeepUnlocked ? 'первого запроса' : `${5 - regularCount} снов` }} ИИ сможет найти повторяющиеся паттерны<br/>
+          и рассказать, что беспокоит тебя глубже всего.
+        </div>
       </div>
       <div v-else class="flex flex-col gap-4 pb-[5vh]">
         <DreamCard
@@ -270,4 +281,11 @@ select { -webkit-appearance: auto; appearance: auto; }
   animation: shimmer 1.2s ease-in-out infinite;
 }
 @keyframes shimmer { 0% { background-position: 0% 0; } 100% { background-position: -200% 0; } }
+
+/* Empty state */
+.empty-state { text-align: center; }
+.empty-state-icon { font-size: 48px; line-height: 1; filter: drop-shadow(0 0 16px rgba(154,60,255,0.5)); }
+.empty-state-title { font-size: 20px; font-weight: 600; color: var(--tg-theme-text-color, #fff); }
+.empty-state-desc { font-size: 14px; line-height: 1.6; color: var(--tg-theme-hint-color, rgba(255,255,255,0.65)); max-width: 280px; }
+.empty-state-hint { font-size: 13px; color: #a78bfa; font-weight: 500; background: rgba(167,139,250,0.12); border-radius: 20px; padding: 6px 16px; }
 </style>
