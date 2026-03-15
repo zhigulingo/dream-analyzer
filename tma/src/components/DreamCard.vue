@@ -39,9 +39,22 @@
         </div>
         <!-- Tags badges for regular dreams (placed here, under title/date) -->
         <div v-if="displayTags.length && !isDeep" class="flex flex-wrap gap-2 pt-2">
-          <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white border border-white/10 backdrop-blur-sm">
+          <button 
+            v-for="tag in displayTags" 
+            :key="tag" 
+            class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium border border-white/10 backdrop-blur-sm transition-all duration-200"
+            :class="activeTag === tag ? 'bg-white/35 scale-105' : 'bg-white/20'"
+            @click.stop="toggleTag(tag)"
+          >
             🏷 {{ tag }}
-          </span>
+          </button>
+          <!-- Tag explanation popup -->
+          <div v-if="activeTag && tagExplanation" class="w-full mt-1 text-sm opacity-90 bg-white/15 rounded-xl px-3 py-2 leading-snug">
+            <span class="font-semibold">{{ activeTag }}:</span> {{ tagExplanation }}
+          </div>
+          <div v-else-if="activeTag" class="w-full mt-1 text-xs opacity-60 bg-white/10 rounded-xl px-3 py-1.5">
+            Символ «{{ activeTag }}» — тап для закрытия
+          </div>
         </div>
       </div>
       
@@ -913,6 +926,26 @@ const sections = computed(() => {
 })
 
 const hvdcTooltip = ref<{key:string,label:string,value:number,norm:number|null}|null>(null)
+
+// Tag interactivity
+const activeTag = ref<string|null>(null)
+
+const tagExplanation = computed(() => {
+  if (!activeTag.value) return null
+  // Try to find in recurringSymbols (deep analysis data)
+  const sym = recurringSymbols.value.find(s => {
+    const sName = String(s.symbol || '').toLowerCase()
+    const aName = activeTag.value!.toLowerCase()
+    return sName.includes(aName) || aName.includes(sName)
+  })
+  if (sym?.description) return sym.description
+  return null
+})
+
+function toggleTag(tag: string) {
+  if (window.triggerHaptic) window.triggerHaptic('light')
+  activeTag.value = activeTag.value === tag ? null : tag
+}
 
 const expanded = reactive<Record<string,boolean>>({ 
   arch:false, hvdc:false, func:false, freud:false, jung:false,
