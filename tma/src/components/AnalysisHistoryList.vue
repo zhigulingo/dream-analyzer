@@ -1,5 +1,19 @@
 <template>
-  <div>
+  <div
+    @touchstart="onPullStart"
+    @touchmove="onPullMove"
+    @touchend="onPullEnd"
+  >
+    <!-- Pull-to-refresh indicator -->
+    <div 
+      v-if="pullDistance > 0 || isRefreshing"
+      class="pull-refresh-indicator"
+      :class="{ 'is-refreshing': isRefreshing }"
+      :style="{ height: Math.min(pullDistance * 0.5, 48) + 'px' }"
+    >
+      <span v-if="isRefreshing" class="pull-spinner">⟳</span>
+      <span v-else class="pull-arrow" :class="{ 'pull-ready': pullDistance > 80 }">↓</span>
+    </div>
     <!-- Табы для переключения режима -->
     <div class="flex items-center gap-8 mb-6 border-b" style="border-color: var(--tg-theme-hint-color, rgba(255,255,255,0.1))">
       <button
@@ -180,6 +194,41 @@ import DreamCard from '@/components/DreamCard.vue'
 import DreamOverlay from '@/components/DreamOverlay.vue'
 
 const props = defineProps(['userStore'])
+
+// Pull-to-refresh
+const pullStartY = ref(0)
+const pullDistance = ref(0)
+const isRefreshing = ref(false)
+const PULL_THRESHOLD = 80
+
+function onPullStart(e: TouchEvent) {
+  // Only allow pull-to-refresh when scrolled to the top
+  if (window.scrollY > 10) return
+  pullStartY.value = e.touches[0].clientY
+}
+
+function onPullMove(e: TouchEvent) {
+  if (!pullStartY.value || window.scrollY > 10) return
+  const diff = e.touches[0].clientY - pullStartY.value
+  if (diff > 0) {
+    pullDistance.value = diff
+  }
+}
+
+async function onPullEnd() {
+  if (pullDistance.value > PULL_THRESHOLD && !isRefreshing.value) {
+    isRefreshing.value = true
+    if (window.triggerHaptic) window.triggerHaptic('medium')
+    try {
+      await props.userStore?.fetchHistory?.()
+      await props.userStore?.fetchProfile?.()
+      if (window.triggerHapticNotification) window.triggerHapticNotification('success')
+    } catch (_) {}
+    isRefreshing.value = false
+  }
+  pullDistance.value = 0
+  pullStartY.value = 0
+}
 
 const selectedItem = ref<any|null>(null)
 const anchorY = ref<number|null>(null)
@@ -382,4 +431,35 @@ select { -webkit-appearance: auto; appearance: auto; }
 .card-stagger-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
 .card-stagger-leave-to { opacity: 0; transform: translateY(-10px); }
 .card-stagger-move { transition: transform 0.35s ease; }
+
+/* Pull-to-refresh */
+.pull-refresh-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: height 0.2s ease;
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pull-arrow {
+  display: inline-block;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.pull-ready {
+  transform: rotate(180deg);
+  color: #a78bfa;
+}
+
+.pull-spinner {
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 </style>
