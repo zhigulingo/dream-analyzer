@@ -30,7 +30,7 @@
             {{ fact.type === 'Факт' ? '🔬 Факт' : fact.type === 'Символ' ? '🌀 Символ' : '💭 Миф' }}
           </span>
         </div>
-        <p class="text-lg leading-tight">{{ fact.text }}</p>
+        <p class="text-base leading-snug opacity-95">{{ fact.text }}</p>
       </SwiperSlide>
     </Swiper>
   </section>
