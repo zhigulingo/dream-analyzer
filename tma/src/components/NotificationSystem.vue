@@ -58,7 +58,15 @@ function getNotificationClasses(notification) {
     info: 'notification-info'
   }
   
-  return [baseClasses, typeClasses[notification.type] || typeClasses.info]
+  const classes = [baseClasses, typeClasses[notification.type] || typeClasses.info]
+  
+  // Deep analysis ready gets special treatment
+  const msg = String(notification.message || '').toLowerCase()
+  if (msg.includes('анализ') || msg.includes('глубокий') || notification.isDeepAnalysis) {
+    classes.push('notification-deep')
+  }
+  
+  return classes
 }
 
 function getIcon(type) {
@@ -139,6 +147,28 @@ const InformationCircleIcon = {
   color: var(--tg-theme-text-color);
   transform: translateX(0);
   width: 100%;
+}
+
+/* Deep analysis special style */
+.notification-deep {
+  background: linear-gradient(135deg, rgba(124,58,237,0.3) 0%, rgba(156,65,255,0.2) 100%) !important;
+  border-color: rgba(167,139,250,0.5) !important;
+  box-shadow: 0 8px 32px rgba(124,58,237,0.35), 0 0 0 1px rgba(167,139,250,0.3) !important;
+  animation: notif-bounce 0.6s cubic-bezier(0.36,0.07,0.19,0.97) both, notif-pulse 2s ease-in-out 0.6s infinite;
+}
+
+@keyframes notif-bounce {
+  0%  { transform: translateX(-50%) scale(0.6); opacity: 0; }
+  30% { transform: translateX(-50%) scale(1.08); opacity: 1; }
+  55% { transform: translateX(-50%) scale(0.95); }
+  75% { transform: translateX(-50%) scale(1.03); }
+  90% { transform: translateX(-50%) scale(0.98); }
+  100%{ transform: translateX(-50%) scale(1); }
+}
+
+@keyframes notif-pulse {
+  0%, 100% { box-shadow: 0 8px 32px rgba(124,58,237,0.35); }
+  50%       { box-shadow: 0 8px 40px rgba(124,58,237,0.55), 0 0 0 4px rgba(167,139,250,0.15); }
 }
 
 .notification-success {
@@ -257,17 +287,22 @@ const InformationCircleIcon = {
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.notification-enter-active.notification-deep {
+  /* Deep analysis uses bounce keyframe, skip base transition */
+  transition: none;
+}
+
 .notification-leave-active {
   transition: all 0.3s cubic-bezier(0.4, 0, 1, 1);
 }
 
 .notification-enter-from {
-  transform: translateX(100%);
+  transform: translateY(20px) scale(0.9);
   opacity: 0;
 }
 
 .notification-leave-to {
-  transform: translateX(100%);
+  transform: translateY(20px) scale(0.9);
   opacity: 0;
 }
 
