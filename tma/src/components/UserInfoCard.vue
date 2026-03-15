@@ -1,4 +1,22 @@
 <template>
+  <!-- Mini-dashboard strip (visible when card is closed) -->
+  <div v-if="showMiniDashboard && !isOpen" class="flex gap-2 mb-3 overflow-x-auto no-scrollbar">
+    <div class="mini-stat-chip shrink-0">
+      <span class="mini-stat-icon">🔥</span>
+      <span class="mini-stat-value">{{ currentStreak }}</span>
+      <span class="mini-stat-label">{{ currentStreak === 1 ? 'день' : (currentStreak < 5 ? 'дня' : 'дней') }} подряд</span>
+    </div>
+    <div v-if="topDreamType" class="mini-stat-chip shrink-0">
+      <span class="mini-stat-icon">{{ topDreamType.emoji }}</span>
+      <span class="mini-stat-label">{{ topDreamType.label }}</span>
+    </div>
+    <div class="mini-stat-chip shrink-0">
+      <span class="mini-stat-icon">🔮</span>
+      <span class="mini-stat-value">{{ userStore?.profile?.deep_analyses_count || 0 }}</span>
+      <span class="mini-stat-label">{{ (userStore?.profile?.deep_analyses_count || 0) === 1 ? 'анализ' : ((userStore?.profile?.deep_analyses_count || 0) < 5 ? 'анализа' : 'анализов') }}</span>
+    </div>
+  </div>
+
   <article
     class="relative rounded-xl bg-gradient-to-br from-[#5461FF] to-[#4857FF] text-white overflow-hidden transition-all duration-500"
     :class="[isOpen ? 'pb-32' : 'min-h-[4.5rem]']"
@@ -120,6 +138,71 @@ const props = defineProps(['userStore'])
 const isOpen = ref(false)
 const tokensHintVisible = ref(false)
 
+// Mini-dashboard computeds
+const regularDreams = computed(() => {
+  return (props.userStore?.history || []).filter((d: any) => !d.is_deep_analysis)
+})
+
+const showMiniDashboard = computed(() => regularDreams.value.length >= 3)
+
+const currentStreak = computed(() => {
+  const dreams = regularDreams.value
+  if (!dreams.length) return 0
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const dreamDates = dreams.map((d: any) => {
+    const dt = new Date(d.created_at)
+    dt.setHours(0, 0, 0, 0)
+    return dt.getTime()
+  }).sort((a, b) => b - a)
+  const uniqueDates = [...new Set(dreamDates)]
+  let streak = 0
+  let checkDate = today.getTime()
+  // Allow today or yesterday as start
+  if (uniqueDates[0] !== checkDate) checkDate -= 86400000
+  for (const date of uniqueDates) {
+    if (date === checkDate) {
+      streak++
+      checkDate -= 86400000
+    } else {
+      break
+    }
+  }
+  return streak
+})
+
+function heuristicTypeDominant(text: string | undefined | null): string | null {
+  try {
+    const s = String(text || '').toLowerCase()
+    const count = (arr: string[]) => arr.reduce((a, k) => a + (s.includes(k) ? 1 : 0), 0)
+    const e = count(['страх','ужас','паник','тревог','стыд','гнев','плак','слез','кошмар'])
+    const a = count(['экзам','выступл','собесед','защит','завтра','ожидан','волнен','нов','интервью'])
+    const m = count(['вчера','сегодня','работ','школ','универ','дом','улиц','друг','родител'])
+    const scores: [string, number][] = [['emotion', e], ['anticipation', a], ['memory', m]]
+    scores.sort((x, y) => y[1] - x[1])
+    if (scores[0][1] === 0) return 'memory'
+    return scores[0][0]
+  } catch { return null }
+}
+
+const topDreamType = computed(() => {
+  const dreams = regularDreams.value
+  if (!dreams.length) return null
+  const counts: Record<string, number> = { emotion: 0, memory: 0, anticipation: 0 }
+  for (const d of dreams) {
+    const t = d?.deep_source?.dream_type?.dominant || heuristicTypeDominant(d?.dream_text)
+    if (t && counts[t] !== undefined) counts[t]++
+  }
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
+  if (!top || top[1] === 0) return null
+  const map: Record<string, { label: string, emoji: string }> = {
+    emotion: { label: 'Эмоциональные', emoji: '💫' },
+    memory: { label: 'По памяти', emoji: '🧠' },
+    anticipation: { label: 'Ожидание', emoji: '✨' },
+  }
+  return map[top[0]] || null
+})
+
 const userAvatar = computed(() => {
   const tg = window.Telegram?.WebApp
   if (tg?.initDataUnsafe?.user?.photo_url) {
@@ -223,4 +306,22 @@ const openTariff = () => {
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
 }
+
+/* Mini-dashboard */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.mini-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+  font-size: 13px;
+  color: var(--tg-theme-text-color, #fff);
+}
+.mini-stat-icon { font-size: 15px; line-height: 1; }
+.mini-stat-value { font-weight: 700; color: var(--tg-theme-text-color, #fff); }
+.mini-stat-label { opacity: 0.7; }
 </style>
