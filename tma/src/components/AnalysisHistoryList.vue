@@ -11,11 +11,10 @@
             : 'tab-inactive'
         ]"
       >
-        Дневник снов
+        🌙 Дневник снов
         <div
           v-if="activeTab === 'history'"
-          class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-          style="background-color: var(--tg-theme-text-color, #ffffff)"
+          class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full tab-underline"
         ></div>
       </button>
       <button
@@ -30,23 +29,22 @@
         :aria-disabled="!hasDeepUnlocked"
       >
         <span class="inline-flex items-center gap-2">
-          Глубокий анализ
+          🔮 Анализ
           <span v-if="!hasDeepUnlocked" class="inline-flex items-center gap-1 text-sm"
                 :style="{ color: 'var(--tg-theme-hint-color, rgba(255,255,255,0.6))' }">
             <span class="lock-ico"></span>
-            <span>5 снов</span>
+            <span>{{ regularCount }}/5</span>
           </span>
         </span>
         <div
           v-if="activeTab === 'deep'"
-          class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-          style="background-color: var(--tg-theme-text-color, #ffffff)"
+          class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full tab-underline"
         ></div>
       </button>
     </div>
-    <div v-if="showDeepHint && !hasDeepUnlocked" class="mt-2 text-sm"
-         :style="{ color: 'var(--tg-theme-hint-color, rgba(255,255,255,0.7))' }">
-      Доступно после 5 снов в дневнике
+    <div v-if="showDeepHint && !hasDeepUnlocked" class="mt-2 text-sm px-2 py-2 bg-purple-500/15 rounded-xl text-center"
+         :style="{ color: 'var(--tg-theme-text-color, rgba(255,255,255,0.85))' }">
+      🔒 Ещё {{ 5 - regularCount }} {{ pluralSny(5 - regularCount) }} — и откроется глубокий анализ
     </div>
     <!-- Контент вкладок -->
     <div v-if="userStore?.isLoadingHistory" class="flex flex-col gap-4 pb-[5vh]">
@@ -275,6 +273,9 @@ select { -webkit-appearance: auto; appearance: auto; }
 .tab-inactive:hover {
   color: var(--tg-theme-text-color, rgba(255, 255, 255, 0.6));
   opacity: 0.8;
+}
+.tab-underline {
+  background: linear-gradient(90deg, #7C3AED, #a78bfa);
 }
 
 .themed-badge { position: relative; border: 1px solid transparent; }
