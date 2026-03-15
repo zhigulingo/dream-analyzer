@@ -1,10 +1,13 @@
 // tma/src/App.vue
 <template>
   <div class="tma-app-container">
-    <BetaGate v-if="!onboardingVisible && appReady && !userStore.profile?.beta_whitelisted" />
-    <BetaTimer v-else-if="!onboardingVisible && appReady && userStore.profile?.beta_whitelisted && userStore.profile?.beta_access_at && (new Date(userStore.profile.beta_access_at).getTime() > Date.now())" />
-    <BetaReady v-else-if="!onboardingVisible && appReady && (String(userStore.profile?.subscription_type || '').toLowerCase() === 'beta')" />
-    <PersonalAccount v-else-if="!onboardingVisible && appReady" />
+    <Transition name="screen-fade" mode="out-in">
+      <BetaGate v-if="!onboardingVisible && appReady && !userStore.profile?.beta_whitelisted" key="beta-gate" />
+      <BetaTimer v-else-if="!onboardingVisible && appReady && userStore.profile?.beta_whitelisted && userStore.profile?.beta_access_at && (new Date(userStore.profile.beta_access_at).getTime() > Date.now())" key="beta-timer" />
+      <BetaReady v-else-if="!onboardingVisible && appReady && (String(userStore.profile?.subscription_type || '').toLowerCase() === 'beta')" key="beta-ready" />
+      <PersonalAccount v-else-if="!onboardingVisible && appReady" key="personal-account" />
+      <div v-else key="empty" />
+    </Transition>
     <NotificationSystem v-if="!onboardingVisible" />
     <Onboarding @visible-change="onboardingVisible = $event" />
     <LoadingOverlay :visible="isLoadingGlobal && !onboardingVisible" />
@@ -149,5 +152,17 @@ body {
   box-sizing: border-box;
   min-height: 100vh;
   overflow-y: auto;
+}
+
+/* Screen transition */
+.screen-fade-enter-active { animation: screen-slide-in 0.35s cubic-bezier(0.4,0,0.2,1) both; }
+.screen-fade-leave-active { animation: screen-slide-out 0.25s cubic-bezier(0.4,0,0.2,1) both; }
+@keyframes screen-slide-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes screen-slide-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-16px); }
 }
 </style>
