@@ -96,10 +96,14 @@
         Сменить тариф
       </button>
       <button
-        class="w-full bg-white/10 text-white/60 rounded-xl py-3 font-semibold cursor-not-allowed transition-all fade-seq is-open seq-offset-600"
-        disabled
+        class="w-full bg-white/10 text-white/60 rounded-xl py-3 font-semibold transition-all fade-seq is-open seq-offset-600 relative"
+        @click.stop="showTokensHint"
+        :class="tokensHintVisible ? 'bg-white/15' : ''"
       >
-        Получить токены
+        <span v-if="tokensHintVisible" class="absolute inset-x-0 -top-9 text-center text-xs bg-white/20 rounded-lg py-1.5 px-2 backdrop-blur-sm">
+          🔜 Скоро появится!
+        </span>
+        🪙 Получить токены
       </button>
     </div>
   </article>
@@ -114,14 +118,16 @@ import SkeletonLoader from '@/components/SkeletonLoader.vue'
 const props = defineProps(['userStore'])
 
 const isOpen = ref(false)
+const tokensHintVisible = ref(false)
 
 const userAvatar = computed(() => {
   const tg = window.Telegram?.WebApp
   if (tg?.initDataUnsafe?.user?.photo_url) {
     return tg.initDataUnsafe.user.photo_url
   }
-  // Fallback to generic avatar
-  return 'https://via.placeholder.com/40/5461FF/ffffff?text=U'
+  // Offline-safe SVG fallback avatar
+  const initials = userDisplayName.value?.charAt(0)?.toUpperCase() || 'U'
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#5461FF"/><text x="20" y="26" font-family="system-ui,sans-serif" font-size="18" font-weight="600" fill="white" text-anchor="middle">${initials}</text></svg>`)}`
 })
 
 const userDisplayName = computed(() => {
@@ -183,6 +189,12 @@ const userExperienceTime = computed(() => {
     return `${years} год${years === 1 ? '' : years < 5 ? 'а' : 'ов'}`
   }
 })
+
+const showTokensHint = () => {
+  if (window.triggerHaptic) window.triggerHaptic('light')
+  tokensHintVisible.value = true
+  setTimeout(() => { tokensHintVisible.value = false }, 2000)
+}
 
 const openTariff = () => {
   if (window.triggerHaptic) {
