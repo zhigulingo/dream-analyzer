@@ -5,23 +5,24 @@
     @click="toggle"
   >
     <div class="px-8 md:px-16 py-2">
-      <h3 class="text-xl font-bold">Глубокий Анализ</h3>
-      <p class="mt-1">Получите комплексный анализ ваших последних 5 снов.</p>
+      <h3 class="text-xl font-bold">🔮 Глубокий анализ</h3>
+      <p class="mt-1 opacity-90 text-sm leading-snug">ИИ проанализирует паттерны из твоих последних снов и найдёт, что скрывает подсознание.</p>
       <!-- Количество токенов/кредитов не показываем в ТМА (мобильный UX) -->
       
       <div v-if="userStore?.isInitiatingDeepPayment" class="mt-4">
         <LoadingSpinner size="xs" variant="white" label="Создаем счёт..." />
       </div>
       <!-- Сообщения внутри баннера -->
-      <div v-if="userStore?.deepAnalysisProcessing" class="mt-4 p-4 bg-blue-500/20 rounded-lg text-sm flex items-center gap-2">
+      <div v-if="userStore?.deepAnalysisProcessing" class="mt-4 p-4 bg-blue-500/20 rounded-lg text-sm flex items-center gap-3">
         <LoadingSpinner size="xs" variant="white" />
-        <span>Анализ запущен! Вы получите уведомление в боте, когда анализ будет готов. Обычно это занимает 1-2 минуты.</span>
+        <span class="leading-snug">Анализ запущен! Бот пришлёт уведомление, когда всё будет готово. Обычно — 1–2 минуты.</span>
       </div>
-      <div v-else-if="userStore?.deepAnalysisError" class="mt-4 p-4 bg-red-500/20 rounded-lg text-sm">
-        ⚠️ {{ userStore.deepAnalysisError }}
+      <div v-else-if="userStore?.deepAnalysisError" class="mt-4 p-4 bg-red-500/20 rounded-lg text-sm leading-snug">
+        😔 Что-то пошло не так: {{ userStore.deepAnalysisError }}. Попробуй ещё раз.
       </div>
-      <div v-else-if="userStore?.deepAnalysisSuccess" class="mt-4 p-4 bg-green-500/20 rounded-lg text-sm">
-        ✅ Глубокий анализ готов! Результат доступен во вкладке «Глубокий анализ» ниже.
+      <div v-else-if="userStore?.deepAnalysisSuccess" class="mt-4 p-4 bg-green-500/20 rounded-lg text-sm leading-snug flex items-center gap-2">
+        <span>✨</span>
+        <span>Глубокий анализ готов! Загляни во вкладку «Глубокий анализ» ниже.</span>
       </div>
     </div>
     <div
