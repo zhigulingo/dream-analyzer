@@ -417,6 +417,8 @@ export const useUserStore = defineStore('user', {
                     // Устанавливаем флаг успеха для показа в баннере
                     this.deepAnalysisSuccess = true;
                     this.deepAnalysisProcessing = false;
+                    // Haptic: анализ готов
+                    if (window.triggerHapticNotification) window.triggerHapticNotification('success');
                 }
             } catch (error) {
                 console.error("[UserStore:polling] Error checking analysis status:", error);

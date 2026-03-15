@@ -909,7 +909,16 @@ const expanded = reactive<Record<string,boolean>>({
   dreamText: false,  // Dream text collapsed by default (show 3 lines)
   funcExercise: false  // Functional exercise collapsed by default
 })
-function toggleSection(key:string){ expanded[key] = !expanded[key] }
+function toggleSection(key:string){ 
+  expanded[key] = !expanded[key]
+  // Haptic feedback on accordion open/close
+  const accordionKeys = ['arch', 'hvdc', 'func', 'freud', 'jung', 'symbols', 'dynamics', 'conclusion']
+  if (accordionKeys.includes(key)) {
+    if (window.triggerHaptic) window.triggerHaptic('medium')
+  } else {
+    if (window.triggerHaptic) window.triggerHaptic('light')
+  }
+}
 
 // Helper functions for restructured analysis
 function sanitizeFuncHtml(html: string): string {

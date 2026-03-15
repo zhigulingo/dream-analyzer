@@ -213,10 +213,15 @@ if (initTelegram()) {
     
     console.log("Telegram WebApp is ready.");
     
-    // Создаем глобальную функцию для хаптиков
+    // Создаем глобальные функции для хаптиков
     window.triggerHaptic = (type = 'light') => {
         if (tg?.HapticFeedback) {
             tg.HapticFeedback.impactOccurred(type);
+        }
+    };
+    window.triggerHapticNotification = (type = 'success') => {
+        if (tg?.HapticFeedback) {
+            tg.HapticFeedback.notificationOccurred(type);
         }
     };
     
@@ -255,6 +260,7 @@ if (initTelegram()) {
         console.warn("Telegram WebApp script not loaded. Running in fallback mode.");
         // Fallback для тестирования вне Telegram
         window.triggerHaptic = () => {};
+        window.triggerHapticNotification = () => {};
       }
     }, 100);
 }
