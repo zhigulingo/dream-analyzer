@@ -71,6 +71,56 @@
       
       <!-- Deep analysis specific layout -->
       <template v-if="isDeep">
+        <!-- ═══ КЛЮЧЕВЫЕ ИНСАЙТЫ (саммари) ═══ -->
+        <div v-if="overlayMode && (hasRecurringSymbols || hasConclusion || hasDynamicsContext)" class="rounded-2xl bg-white/10 border border-white/15 overflow-hidden">
+          <!-- Заголовок + Sleep Richness Score -->
+          <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/10">
+            <h3 class="text-lg font-bold flex items-center gap-2">💡 Ключевые инсайты</h3>
+            <div v-if="sleepRichnessScore > 0" class="flex items-center gap-1.5">
+              <span class="text-sm opacity-70">Активность снов:</span>
+              <div class="flex items-center gap-1">
+                <span
+                  v-for="i in 5"
+                  :key="i"
+                  class="w-2 h-2 rounded-full transition-all"
+                  :class="i <= sleepRichnessScore ? 'bg-yellow-300' : 'bg-white/20'"
+                ></span>
+              </div>
+              <span class="text-sm font-bold text-yellow-300">{{ sleepRichnessScore }}/5</span>
+            </div>
+          </div>
+          <div class="px-4 py-3 space-y-3">
+            <!-- Топ символы -->
+            <div v-if="filteredRecurringSymbols.length" class="space-y-1.5">
+              <div class="text-xs opacity-60 uppercase tracking-wide font-semibold">Частые символы</div>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  v-for="sym in filteredRecurringSymbols.slice(0, 3)"
+                  :key="sym.symbol"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/15 text-sm"
+                >
+                  <span class="font-medium">{{ sym.symbol }}</span>
+                  <span class="opacity-60 text-xs">×{{ sym.frequency }}</span>
+                </span>
+              </div>
+            </div>
+            <!-- Краткое резюме из заключения -->
+            <div v-if="insightsSummary" class="space-y-1">
+              <div class="text-xs opacity-60 uppercase tracking-wide font-semibold">Главная тема</div>
+              <p class="text-sm opacity-90 leading-snug line-clamp-3">{{ insightsSummary }}</p>
+            </div>
+            <!-- Рекомендация-флаг из integrationExercise -->
+            <div v-if="conclusion?.integrationExercise?.title" class="flex items-start gap-2 bg-white/10 rounded-xl p-3">
+              <span class="text-lg shrink-0">💫</span>
+              <div>
+                <div class="text-sm font-semibold">{{ conclusion.integrationExercise.title }}</div>
+                <div class="text-xs opacity-70 leading-snug line-clamp-2 mt-0.5">{{ conclusion.integrationExercise.description }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- ══════════════════════════════════ -->
+
         <!-- Повторяющиеся символы -->
         <div v-if="hasRecurringSymbols" class="space-y-4">
           <h3 class="text-2xl font-bold flex items-center gap-2">🔁 <span>Повторяющиеся символы</span></h3>
@@ -681,6 +731,34 @@ const filteredRecurringSymbols = computed(() => {
 })
 
 const hasRecurringSymbols = computed(() => filteredRecurringSymbols.value.length > 0)
+
+// Sleep Richness Score (1-5) for deep analyses
+// Computed from: number of symbols, whether dynamics available, emotional spread in HVdC
+const sleepRichnessScore = computed(() => {
+  if (!isDeep.value) return 0
+  let score = 0
+  // +1 if symbols exist
+  if (recurringSymbols.value.length > 0) score++
+  // +1 if multiple unique symbols
+  if (recurringSymbols.value.length >= 3) score++
+  // +1 if dynamics context
+  if (hasDynamicsContext.value) score++
+  // +1 if conclusion with period themes
+  if (hasConclusion.value && conclusion.value?.periodThemes) score++
+  // +1 if integration exercise
+  if (conclusion.value?.integrationExercise?.description) score++
+  return Math.max(0, Math.min(5, score))
+})
+
+// Short summary for key insights block
+const insightsSummary = computed(() => {
+  if (!isDeep.value) return ''
+  const c = conclusion.value
+  if (c?.periodThemes) return c.periodThemes
+  if (c?.dreamFunctionsAnalysis) return c.dreamFunctionsAnalysis
+  if (symbolsIntro.value) return symbolsIntro.value
+  return ''
+})
 
 // New dynamics context with analysis and insights
 const dynamicsContext = computed(() => {
