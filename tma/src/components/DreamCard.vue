@@ -43,7 +43,7 @@
       <template v-if="isDeep">
         <!-- Повторяющиеся символы -->
         <div v-if="hasRecurringSymbols" class="space-y-4">
-          <h3 class="text-2xl font-bold">Повторяющиеся символы</h3>
+          <h3 class="text-2xl font-bold flex items-center gap-2">🔁 <span>Повторяющиеся символы</span></h3>
           <div class="text-white/90 space-y-5">
             <!-- Вводный текст о значении повторений -->
             <p v-if="symbolsIntro" class="text-lg opacity-90 leading-snug pb-4 border-b border-white/10">{{ symbolsIntro }}</p>
@@ -64,7 +64,7 @@
 
         <!-- Динамика контекста -->
         <div v-if="hasDynamicsContext" class="space-y-4">
-          <h3 class="text-2xl font-bold">Динамика контекста</h3>
+          <h3 class="text-2xl font-bold flex items-center gap-2">📈 <span>Динамика контекста</span></h3>
           <div class="text-white/90">
             <DynamicsChart 
               :dynamics="dynamicsContext" 
@@ -76,7 +76,7 @@
 
         <!-- Заключение -->
         <div v-if="hasConclusion" class="space-y-4">
-          <h3 class="text-2xl font-bold">Заключение</h3>
+          <h3 class="text-2xl font-bold flex items-center gap-2">✨ <span>Заключение</span></h3>
           <div class="text-white/90 space-y-5">
             <p v-if="conclusion.periodThemes" class="text-lg opacity-90 leading-snug">{{ conclusion.periodThemes }}</p>
             <p v-if="conclusion.dreamFunctionsAnalysis" class="text-lg opacity-90 leading-snug">{{ conclusion.dreamFunctionsAnalysis }}</p>
