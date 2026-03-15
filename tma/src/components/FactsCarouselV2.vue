@@ -26,7 +26,9 @@
         :style="{ height: maxCardHeight + 'px', width: slideWidthPx + 'px' }"
       >
         <div class="mb-4">
-          <Badge>{{ fact.type }}</Badge>
+          <span class="fact-badge" :class="`fact-badge--${fact.type === 'Факт' ? 'fact' : fact.type === 'Символ' ? 'symbol' : 'myth'}`">
+            {{ fact.type === 'Факт' ? '🔬 Факт' : fact.type === 'Символ' ? '🌀 Символ' : '💭 Миф' }}
+          </span>
         </div>
         <p class="text-lg leading-tight">{{ fact.text }}</p>
       </SwiperSlide>
@@ -121,6 +123,21 @@ onBeforeUnmount(() => {
 /* Специальных стилей немного: всё через утилитарные классы */
 :deep(.swiper) { margin-bottom: 0 !important; padding-bottom: 0 !important; }
 :deep(.swiper-wrapper) { margin-bottom: 0 !important; transition-timing-function: ease-in-out !important; }
+
+/* Цветные бейджи по типу факта */
+.fact-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.fact-badge--fact { background: rgba(59, 130, 246, 0.25); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); }
+.fact-badge--symbol { background: rgba(167, 139, 250, 0.25); color: #c4b5fd; border: 1px solid rgba(167,139,250,0.3); }
+.fact-badge--myth { background: rgba(251, 191, 36, 0.2); color: #fcd34d; border: 1px solid rgba(251,191,36,0.3); }
 </style>
 
 
