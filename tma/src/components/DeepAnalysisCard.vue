@@ -2,6 +2,9 @@
   <article
     class="relative rounded-xl bg-gradient-to-br from-[#9C41FF] to-[#C03AFF] text-white overflow-hidden transition-all cursor-pointer py-6"
     :class="[isOpen ? 'pb-20' : 'min-h-[8rem]']"
+    role="button"
+    :aria-expanded="isOpen"
+    aria-label="Запросить глубокий анализ"
     @click="toggle"
   >
     <div class="px-8 md:px-16 py-2">

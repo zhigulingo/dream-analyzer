@@ -174,6 +174,36 @@ button:disabled {
   }
 }
 
+/* ── Dark Mode Polish ─────────────────────────────────────────── */
+/* Ensure proper contrast when Telegram sends dark theme variables */
+[data-theme="dark"],
+.tg-dark {
+  --color-card-text: #ffffff;
+}
+
+/* Prevent white text on white background in any theme-aware blocks */
+.filter-chip-inactive,
+.tab-inactive {
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.6));
+}
+
+/* Ensure search inputs stay visible in dark mode */
+input, textarea, select {
+  color: var(--tg-theme-text-color, #ffffff);
+  background-color: transparent;
+}
+
+/* Ensure icon-only buttons are visible */
+svg path, svg circle, svg rect {
+  /* Icons inherit stroke/fill from parent color */
+}
+
+/* Backdrop modals dark mode */
+.dark-modal-bg {
+  background: var(--tg-theme-secondary-bg-color, #1c1c1e);
+  color: var(--tg-theme-text-color, #ffffff);
+}
+
 /* Micro-animations */
 @keyframes pulseScale {
   0%, 100% { transform: translateX(-50%) scale(1); }

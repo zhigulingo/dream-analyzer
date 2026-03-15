@@ -91,8 +91,36 @@
       </button>
     </div>
     
+    <!-- Поиск по истории снов -->
+    <div v-if="activeTab === 'history' && regularDreams?.length > 0" class="mb-3">
+      <div 
+        class="search-bar flex items-center gap-2 px-3 py-2.5 rounded-xl transition-all duration-200"
+        :class="searchQuery ? 'search-bar-active' : 'search-bar-idle'"
+      >
+        <span class="text-base opacity-50 shrink-0" aria-hidden="true">🔍</span>
+        <input
+          v-model="searchQuery"
+          type="search"
+          placeholder="Поиск по снам..."
+          class="flex-1 bg-transparent outline-none text-sm"
+          style="color: var(--tg-theme-text-color, #fff);"
+          aria-label="Поиск по истории снов"
+          @input="onSearchInput"
+        />
+        <button
+          v-if="searchQuery"
+          class="shrink-0 opacity-60 hover:opacity-100 transition-opacity min-w-[32px] min-h-[32px] flex items-center justify-center"
+          @click="searchQuery = ''"
+          aria-label="Очистить поиск"
+        >✕</button>
+      </div>
+      <div v-if="searchQuery && searchResults.length === 0" class="text-center text-sm py-3 opacity-60">
+        Ничего не найдено по запросу «{{ searchQuery }}»
+      </div>
+    </div>
+
     <!-- Фильтры истории снов -->
-    <div v-if="activeTab === 'history' && regularDreams?.length > 0" class="mb-4">
+    <div v-if="activeTab === 'history' && regularDreams?.length > 0 && !searchQuery" class="mb-4">
       <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
         <button
           v-for="filter in dreamFilters"
@@ -124,6 +152,20 @@
           ✍️ Написать первый сон
         </button>
       </div>
+      <!-- Search results -->
+      <div v-else-if="searchQuery" class="flex flex-col gap-4 pb-[5vh]">
+        <div class="text-xs opacity-50 px-1">Найдено: {{ searchResults.length }}</div>
+        <TransitionGroup name="card-stagger" tag="div" class="flex flex-col gap-4">
+          <DreamCard
+            v-for="(dream, index) in searchResults"
+            :key="dream.id"
+            :dream="dream"
+            :style="{ '--stagger-delay': `${index * 50}ms` }"
+            @open="(payload) => openOverlay(dream, payload)"
+          />
+        </TransitionGroup>
+      </div>
+      <!-- Normal filtered list -->
       <div v-else class="flex flex-col gap-4 pb-[5vh]">
         <TransitionGroup name="card-stagger" tag="div" class="flex flex-col gap-4">
           <DreamCard
@@ -213,6 +255,27 @@ import DreamCard from '@/components/DreamCard.vue'
 import DreamOverlay from '@/components/DreamOverlay.vue'
 
 const props = defineProps(['userStore'])
+
+// ── Search ───────────────────────────────────────────────────────
+const searchQuery = ref('')
+
+function onSearchInput() {
+  // reset page on new search
+  regularPageSize.value = 5
+}
+
+const searchResults = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return []
+  return regularDreams.value.filter((dream: any) => {
+    const text = [
+      dream?.dream_text || '',
+      dream?.deep_source?.title || '',
+      (dream?.deep_source?.tags || []).join(' ')
+    ].join(' ').toLowerCase()
+    return text.includes(q)
+  }).slice(0, 20)
+})
 
 // Dream type filter
 const activeFilter = ref('all')
@@ -404,6 +467,21 @@ const pluralSny = (n: number): string => {
 <style scoped>
 /* Тематические бейджи и кнопки: слегка темнее на светлой теме и слегка светлее на тёмной */
 select { -webkit-appearance: auto; appearance: auto; }
+
+/* Search bar */
+.search-bar {
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.search-bar-idle {
+  background: rgba(255,255,255,0.06);
+}
+.search-bar-active {
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(167,139,250,0.4);
+  box-shadow: 0 0 0 2px rgba(167,139,250,0.15);
+}
+input[type="search"]::-webkit-search-cancel-button { display: none; }
+input::placeholder { color: var(--tg-theme-hint-color, rgba(255,255,255,0.4)); }
 
 /* Filter chips */
 .no-scrollbar::-webkit-scrollbar { display: none; }

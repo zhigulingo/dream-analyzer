@@ -1,29 +1,124 @@
 <template>
-  <article
-    ref="rootRef"
-    class="rounded-xl bg-gradient-to-br text-white px-8 md:px-16 transition-all overflow-hidden py-4"
-    :class="[gradientClass, overlayMode ? '' : 'cursor-pointer min-h-[4.5rem]']"
-    @click="handleOpen"
+  <!-- Swipe-to-delete wrapper -->
+  <div 
+    v-if="!overlayMode"
+    class="swipe-wrapper relative overflow-hidden rounded-xl"
+    ref="swipeWrapper"
+    @touchstart.passive="onSwipeStart"
+    @touchmove.passive="onSwipeMove"
+    @touchend.passive="onSwipeEnd"
+    @touchcancel.passive="onSwipeCancel"
   >
-    <!-- Collapsed header (card list view) -->
-    <div v-if="!overlayMode" class="flex items-center gap-4 py-2 min-h-[3.5rem]">
-      <div class="text-3xl shrink-0">{{ emoji }}</div>
-      <div class="flex-1 min-w-0">
-        <div class="truncate font-semibold leading-tight text-base">{{ displayTitle }}</div>
-        <div class="flex items-center gap-2 mt-0.5">
-          <span class="text-sm opacity-70 leading-tight">{{ relativeDate }}</span>
-          <span v-if="displayTags.length" class="text-xs opacity-50">·</span>
-          <span v-if="displayTags.length" class="text-xs opacity-60 truncate">{{ displayTags[0] }}</span>
-        </div>
-      </div>
-      <button class="shrink-0 w-8 h-8 opacity-50 hover:opacity-90 flex items-center justify-center transition-all rounded-lg hover:bg-white/10"
-              @click.stop="emitOpen()"
-              aria-label="Открыть">
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+    <!-- Delete button revealed on swipe -->
+    <div 
+      class="swipe-delete-bg absolute inset-y-0 right-0 flex items-center justify-end pr-4 rounded-xl"
+      :style="{ width: swipeDeleteVisible ? '80px' : '0', opacity: swipeDeleteVisible ? 1 : 0 }"
+      aria-hidden="true"
+    >
+      <button 
+        class="flex flex-col items-center justify-center gap-1 text-white min-w-[44px] min-h-[44px]"
+        @click.stop="handleDelete"
+        aria-label="Удалить сон"
+      >
+        <span class="text-xl">🗑️</span>
+        <span class="text-xs font-medium">Удалить</span>
       </button>
     </div>
+
+    <!-- Main card content (shifted on swipe) -->
+    <article
+      ref="rootRef"
+      class="rounded-xl bg-gradient-to-br text-white px-8 md:px-16 transition-all overflow-hidden py-4 relative"
+      :class="[gradientClass, 'cursor-pointer min-h-[4.5rem]']"
+      :style="swipeTranslateStyle"
+      @click="handleOpen"
+      @pointerdown="onLongPressStart"
+      @pointerup="onLongPressEnd"
+      @pointercancel="onLongPressEnd"
+      @contextmenu.prevent="showContextMenu"
+    >
+      <!-- Collapsed header (card list view) -->
+      <div class="flex items-center gap-4 py-2 min-h-[3.5rem]">
+        <div class="text-3xl shrink-0" aria-hidden="true">{{ emoji }}</div>
+        <div class="flex-1 min-w-0">
+          <div class="truncate font-semibold leading-tight text-base">{{ displayTitle }}</div>
+          <div class="flex items-center gap-2 mt-0.5">
+            <span class="text-sm opacity-70 leading-tight">{{ relativeDate }}</span>
+            <span v-if="displayTags.length" class="text-xs opacity-50" aria-hidden="true">·</span>
+            <span v-if="displayTags.length" class="text-xs opacity-60 truncate">{{ displayTags[0] }}</span>
+            <!-- Dream type badge -->
+            <span v-if="dreamTypeBadge" class="text-xs opacity-60 ml-auto shrink-0" :title="dreamTypeBadge.label">
+              {{ dreamTypeBadge.icon }}
+            </span>
+          </div>
+        </div>
+        <button class="shrink-0 min-w-[44px] min-h-[44px] opacity-50 hover:opacity-90 flex items-center justify-center transition-all rounded-lg hover:bg-white/10"
+                @click.stop="emitOpen()"
+                aria-label="Открыть карточку сна">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </article>
+
+    <!-- Long press context menu -->
+    <Teleport to="body">
+      <div 
+        v-if="contextMenuVisible"
+        class="fixed inset-0 z-[9998]"
+        @click="hideContextMenu"
+        aria-hidden="true"
+      ></div>
+      <div
+        v-if="contextMenuVisible"
+        class="context-menu fixed z-[9999] rounded-2xl shadow-2xl overflow-hidden"
+        :style="contextMenuStyle"
+        role="menu"
+        aria-label="Действия со сном"
+      >
+        <div class="context-menu-header px-4 py-3 border-b border-white/10">
+          <div class="text-sm font-semibold truncate opacity-90">{{ displayTitle }}</div>
+        </div>
+        <button
+          class="context-menu-item w-full flex items-center gap-3 px-4 py-3.5 text-left min-h-[44px] transition-colors hover:bg-white/10 active:bg-white/15"
+          @click.stop="contextShare"
+          role="menuitem"
+          aria-label="Поделиться"
+        >
+          <span class="text-xl" aria-hidden="true">📤</span>
+          <span class="font-medium">Поделиться</span>
+        </button>
+        <button
+          class="context-menu-item w-full flex items-center gap-3 px-4 py-3.5 text-left min-h-[44px] transition-colors hover:bg-white/10 active:bg-white/15 border-t border-white/10"
+          @click.stop="contextCopy"
+          role="menuitem"
+          aria-label="Копировать текст сна"
+        >
+          <span class="text-xl" aria-hidden="true">📋</span>
+          <span class="font-medium">Копировать текст</span>
+        </button>
+        <button
+          class="context-menu-item w-full flex items-center gap-3 px-4 py-3.5 text-left min-h-[44px] transition-colors hover:bg-red-500/20 active:bg-red-500/30 border-t border-white/10 text-red-300"
+          @click.stop="contextDelete"
+          role="menuitem"
+          aria-label="Удалить сон"
+        >
+          <span class="text-xl" aria-hidden="true">🗑️</span>
+          <span class="font-medium">Удалить</span>
+        </button>
+      </div>
+    </Teleport>
+  </div>
+
+  <!-- Overlay mode (no swipe wrapper) -->
+  <article
+    v-if="overlayMode"
+    ref="rootRef"
+    class="rounded-xl bg-gradient-to-br text-white px-8 md:px-16 transition-all overflow-hidden py-4"
+    :class="[gradientClass]"
+    @click="handleOpen"
+  >
 
     <!-- Expanded content (used by overlay mode) -->
     <div v-if="active" class="mt-4 space-y-6 fade-seq is-open">
@@ -287,6 +382,39 @@
         </div>
       </div>
 
+      <!-- Dream Type Visual Block -->
+      <div v-if="dreamTypeInfo && !isDeep" class="rounded-2xl bg-white/10 border border-white/15 overflow-hidden">
+        <div class="px-4 pt-4 pb-3 border-b border-white/10">
+          <h3 class="text-lg font-bold flex items-center gap-2">
+            <span aria-hidden="true">{{ dreamTypeInfo.dominant?.icon || '💭' }}</span>
+            <span>Тип сна: {{ dreamTypeInfo.dominant?.label || 'Смешанный' }}</span>
+          </h3>
+          <p class="text-sm opacity-70 mt-0.5 leading-snug">{{ dreamTypeInfo.dominant?.desc }}</p>
+        </div>
+        <div class="px-4 py-3 space-y-2.5">
+          <div
+            v-for="t in dreamTypeInfo.types"
+            :key="t.key"
+            class="space-y-1"
+          >
+            <div class="flex items-center justify-between text-sm">
+              <span class="flex items-center gap-1.5">
+                <span aria-hidden="true">{{ t.icon }}</span>
+                <span :class="t.isDominant ? 'font-semibold' : 'opacity-80'">{{ t.label }}</span>
+                <span v-if="t.isDominant" class="text-xs px-1.5 py-0.5 rounded-full bg-white/20 font-medium">доминирует</span>
+              </span>
+              <span class="opacity-70 text-xs">{{ t.score }}%</span>
+            </div>
+            <div class="relative h-2 w-full bg-white/10 rounded-full overflow-hidden">
+              <div 
+                class="dream-type-bar h-full rounded-full"
+                :style="{ '--bar-color': t.color, '--bar-w': t.score + '%' }"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Scientific Approach Section -->
       <div class="space-y-3">
         <h2 class="text-2xl font-bold flex items-center gap-2">🔬 <span>Научный подход</span></h2>
@@ -454,7 +582,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, onBeforeUnmount } from 'vue'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import utc from 'dayjs/plugin/utc'
@@ -470,6 +598,118 @@ const props = defineProps<{ dream: any; active?: boolean; overlayMode?: boolean 
 const emit = defineEmits(['toggle','open'])
 
 const rootRef = ref<HTMLElement | null>(null)
+const swipeWrapper = ref<HTMLElement | null>(null)
+
+// ── Swipe-to-delete ──────────────────────────────────────────────
+const swipeStartX = ref(0)
+const swipeCurrentX = ref(0)
+const swipeActive = ref(false)
+const swipeDeleteVisible = ref(false)
+const SWIPE_THRESHOLD = 60
+
+const swipeTranslateStyle = computed(() => {
+  if (!swipeActive.value) return swipeDeleteVisible.value ? { transform: 'translateX(-80px)' } : {}
+  const delta = Math.min(0, swipeCurrentX.value - swipeStartX.value)
+  const capped = Math.max(-120, delta)
+  return { transform: `translateX(${capped}px)`, transition: 'none' }
+})
+
+function onSwipeStart(e: TouchEvent) {
+  if (props.overlayMode) return
+  swipeStartX.value = e.touches[0].clientX
+  swipeCurrentX.value = e.touches[0].clientX
+  swipeActive.value = true
+}
+
+function onSwipeMove(e: TouchEvent) {
+  if (!swipeActive.value) return
+  swipeCurrentX.value = e.touches[0].clientX
+}
+
+function onSwipeEnd() {
+  if (!swipeActive.value) return
+  swipeActive.value = false
+  const delta = swipeCurrentX.value - swipeStartX.value
+  if (delta < -SWIPE_THRESHOLD) {
+    swipeDeleteVisible.value = true
+    if (window.triggerHaptic) window.triggerHaptic('light')
+  } else {
+    swipeDeleteVisible.value = false
+  }
+}
+
+function onSwipeCancel() {
+  swipeActive.value = false
+  swipeDeleteVisible.value = false
+}
+
+// ── Long press context menu ──────────────────────────────────────
+const contextMenuVisible = ref(false)
+const contextMenuStyle = ref<Record<string,string>>({})
+let longPressTimer: ReturnType<typeof setTimeout> | null = null
+const LONG_PRESS_MS = 500
+
+function onLongPressStart(e: PointerEvent) {
+  if (props.overlayMode) return
+  longPressTimer = setTimeout(() => {
+    showContextMenuAt(e.clientX, e.clientY)
+  }, LONG_PRESS_MS)
+}
+
+function onLongPressEnd() {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null }
+}
+
+function showContextMenu(e: MouseEvent) {
+  showContextMenuAt(e.clientX, e.clientY)
+}
+
+function showContextMenuAt(x: number, y: number) {
+  if (window.triggerHaptic) window.triggerHaptic('medium')
+  const menuW = 220
+  const menuH = 180
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const left = Math.min(x, vw - menuW - 8)
+  const top = y + menuH > vh ? y - menuH : y
+  contextMenuStyle.value = {
+    left: left + 'px',
+    top: Math.max(8, top) + 'px',
+    minWidth: menuW + 'px'
+  }
+  contextMenuVisible.value = true
+}
+
+function hideContextMenu() {
+  contextMenuVisible.value = false
+}
+
+async function contextShare() {
+  hideContextMenu()
+  await handleShare()
+}
+
+async function contextCopy() {
+  hideContextMenu()
+  const text = props.dream?.dream_text || displayTitle.value
+  try {
+    await navigator.clipboard.writeText(String(text))
+    notificationStore.success('Текст сна скопирован')
+    if (window.triggerHapticNotification) window.triggerHapticNotification('success')
+  } catch {
+    notificationStore.info('Не удалось скопировать')
+  }
+}
+
+async function contextDelete() {
+  hideContextMenu()
+  await handleDelete()
+}
+
+onBeforeUnmount(() => {
+  if (longPressTimer) clearTimeout(longPressTimer)
+})
+
 const emitOpen = () => {
   const y = (() => {
     try { return Math.round(rootRef.value?.getBoundingClientRect().top ?? 0) } catch { return 0 }
@@ -942,6 +1182,42 @@ function heuristicDreamType(text:string|undefined|null){
 
 const dreamType = computed(()=> props.dream?.deep_source?.dream_type || heuristicDreamType(props.dream?.dream_text) || null)
 
+// Dream type badge for compact card view
+const dreamTypeBadge = computed(() => {
+  const dt = dreamType.value
+  if (!dt?.dominant) return null
+  const type = String(dt.dominant).toLowerCase()
+  const map: Record<string, { icon: string; label: string }> = {
+    emotion: { icon: '⚡️', label: 'Эмоциональный' },
+    memory: { icon: '🧠', label: 'По памяти' },
+    anticipation: { icon: '🔮', label: 'Ожидание' }
+  }
+  return map[type] || null
+})
+
+// Dream type info for expanded overlay — full visual block
+const dreamTypeInfo = computed(() => {
+  const dt = dreamType.value
+  if (!dt) return null
+  const scores = dt.scores || {}
+  const dominant = String(dt.dominant || '').toLowerCase()
+  const types = [
+    { key: 'memory', icon: '🧠', label: 'Память', color: '#FFB84A', desc: 'Переработка недавних событий и впечатлений' },
+    { key: 'emotion', icon: '⚡️', label: 'Эмоция', color: '#FF6B6B', desc: 'Проживание и нейтрализация сильных чувств' },
+    { key: 'anticipation', icon: '🔮', label: 'Ожидание', color: '#6BB3FF', desc: 'Тренировка ума к предстоящим событиям' }
+  ]
+  const dominantType = types.find(t => t.key === dominant)
+  return {
+    types: types.map(t => ({
+      ...t,
+      score: Math.round((scores[t.key] || 0) * 100),
+      isDominant: t.key === dominant
+    })),
+    dominant: dominantType,
+    confidence: dt.confidence || 0
+  }
+})
+
 function buildWorkHtml(){
   const dt = dreamType.value
   const type = dt?.dominant ? String(dt.dominant).toLowerCase() : null
@@ -1351,5 +1627,50 @@ article.bg-gradient-to-br button {
   max-height: 0;
   opacity: 0;
   pointer-events: none;
+}
+
+/* Dream type bars */
+.dream-type-bar {
+  width: 0;
+  background-color: var(--bar-color, #fff);
+  animation: dream-bar-grow 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.1s;
+}
+@keyframes dream-bar-grow {
+  from { width: 0; }
+  to { width: var(--bar-w, 0%); }
+}
+
+/* Swipe wrapper */
+.swipe-wrapper {
+  position: relative;
+}
+.swipe-delete-bg {
+  background: rgba(239, 68, 68, 0.85);
+  transition: width 0.2s ease, opacity 0.2s ease;
+}
+
+/* Context menu */
+.context-menu {
+  background: var(--tg-theme-secondary-bg-color, #1c1c1e);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(12px);
+  color: var(--tg-theme-text-color, #fff);
+  animation: ctx-pop 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes ctx-pop {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+.context-menu-header {
+  background: rgba(255,255,255,0.05);
+}
+.context-menu-item {
+  background: transparent;
+  border-radius: 0;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  font-size: 0.9375rem;
+  color: var(--tg-theme-text-color, #fff);
 }
 </style>
