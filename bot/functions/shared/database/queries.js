@@ -199,7 +199,9 @@ class DatabaseQueries {
                 age_range,
                 gender,
                 channel_reward_claimed,
-                deep_analysis_credits
+                deep_analysis_credits,
+                referral_code,
+                referrals_count
             `)
             .eq('tg_id', tgUserId)
             .single();

@@ -32,8 +32,10 @@ async function getOrCreateUser(supabase, userId) {
             return { id: existingUser.id, claimed: existingUser.channel_reward_claimed ?? false, lastMessageId: existingUser.last_start_message_id };
         } else {
             console.log(`[getOrCreateUser] User ${userId} not found. Creating...`);
+            // Generate a unique referral code from tg_id
+            const refCode = require('crypto').createHash('md5').update(String(userId) + 'dreamstalk').digest('hex').slice(0, 8).toUpperCase();
             const { data: newUser, error: insertError } = await supabase
-                .from('users').insert({ tg_id: userId, subscription_type: 'guest', tokens: 0, channel_reward_claimed: false }).select('id').single();
+                .from('users').insert({ tg_id: userId, subscription_type: 'guest', tokens: 0, channel_reward_claimed: false, referral_code: refCode }).select('id').single();
 
             if (insertError) {
                  console.error(`[getOrCreateUser] Supabase INSERT error: ${insertError.message}`);

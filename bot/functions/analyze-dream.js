@@ -339,6 +339,20 @@ async function handleAnalyzeDream(event, context, corsHeaders) {
         try {
             await supabase.rpc('grant_free_deep_if_eligible', { user_tg_id: verifiedTgId });
         } catch (_) {}
+        // Activate referral: if this is user's first analysis, credit referrer +3 tokens
+        try {
+            const { count: analysisCount } = await supabase
+                .from('analyses')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userDbId);
+            if (analysisCount === 1) {
+                // This is the first analysis - activate referral if exists
+                await supabase.rpc('activate_referral', { p_referred_tg_id: verifiedTgId });
+                console.log(`[analyze-dream] Referral activation attempted for tg_id=${verifiedTgId}`);
+            }
+        } catch (refErr) {
+            console.warn('[analyze-dream] Referral activation failed (non-critical):', refErr?.message);
+        }
     } catch (error) {
         if (error.statusCode) throw error; // Re-throw our own errors
         throw createApiError('Internal Server Error while saving analysis.', 500);

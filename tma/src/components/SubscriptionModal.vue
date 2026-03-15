@@ -1,409 +1,630 @@
 <template>
-  <div class="modal-container">
-    <div class="modal-content">
-      <!-- Header with current tokens -->
-      <div class="tokens-header">
-        <div class="tokens-display">
-          <div class="tokens-counter">
-            <span class="tokens-icon">🪙</span>
-            <span class="tokens-count">{{ userStore.profile?.tokens ?? 0 }}</span>
-          </div>
-          <div class="tokens-label">токен = 1 анализ сна</div>
+  <div class="modal-overlay" @click.self="emit('close')">
+    <div class="modal-sheet">
+      <!-- Handle bar -->
+      <div class="handle-bar"></div>
+
+      <!-- Header -->
+      <div class="modal-header">
+        <div class="tokens-badge">
+          <span class="tokens-badge-icon">🪙</span>
+          <span class="tokens-badge-count">{{ userStore.profile?.tokens ?? 0 }}</span>
+          <span class="tokens-badge-label">токенов</span>
         </div>
-        <div class="tokens-desc">
-          Каждый токен — это один полный анализ твоего сна с символами, эмоциями и интерпретацией.
-        </div>
+        <button class="close-btn" @click="emit('close')" aria-label="Закрыть">✕</button>
       </div>
 
-      <h2 class="modal-title">Пополнить токены</h2>
-      <p class="modal-subtitle">Выбери план — токены зачислятся сразу</p>
-
-      <!-- Табы Basic/Premium -->
-      <div class="tabs">
+      <!-- Tab switcher -->
+      <div class="tab-switcher">
         <button
-          :class="{ active: userStore.selectedPlan === 'basic' }"
-          @click="userStore.selectPlan('basic')"
+          class="tab-btn"
+          :class="{ active: activeTab === 'buy' }"
+          @click="activeTab = 'buy'"
         >
-          🌙 Базовый
+          💳 Купить
         </button>
         <button
-          :class="{ active: userStore.selectedPlan === 'premium' }"
-          @click="userStore.selectPlan('premium')"
+          class="tab-btn"
+          :class="{ active: activeTab === 'free' }"
+          @click="activeTab = 'free'"
         >
-          ✨ Премиум
+          🎁 Бесплатно
         </button>
       </div>
 
-      <!-- Опции длительности в одну строку -->
-      <div class="duration-options">
-        <label v-for="duration in [1, 3, 12]" :key="duration" class="duration-label">
-          <input
-            type="radio"
-            name="duration"
-            :value="duration"
-            :checked="userStore.selectedDuration === duration"
-            :disabled="!getPlanDetails(userStore.selectedPlan, duration).price"
-            @change="userStore.selectDuration(duration)"
-          />
-          <div class="duration-card" :class="{ disabled: !getPlanDetails(userStore.selectedPlan, duration).price }">
-            <span v-if="duration === 12" class="best-value-badge">Выгодно</span>
-            <span class="months">{{ duration }} {{ duration === 1 ? 'месяц' : duration < 5 ? 'месяца' : 'месяцев' }}</span>
-            <template v-if="getPlanDetails(userStore.selectedPlan, duration).price">
-              <span class="price">
-                {{ (getPlanDetails(userStore.selectedPlan, duration).price / duration).toFixed(0) }}⭐/мес
-              </span>
-            </template>
-            <template v-else>
-              <span class="price-disabled">—</span>
-            </template>
+      <!-- Tab: Buy tokens -->
+      <div v-if="activeTab === 'buy'" class="tab-content">
+        <div class="section-title">Выбери количество токенов</div>
+
+        <!-- Token packages -->
+        <div class="packages-grid">
+          <label
+            v-for="pkg in tokenPackages"
+            :key="pkg.tokens"
+            class="package-card"
+            :class="{ selected: selectedPackage?.tokens === pkg.tokens, popular: pkg.popular }"
+          >
+            <input type="radio" name="package" :value="pkg" v-model="selectedPackage" style="display:none" />
+            <span v-if="pkg.popular" class="popular-badge">Популярное</span>
+            <div class="package-tokens">{{ pkg.tokens }}</div>
+            <div class="package-token-label">токенов</div>
+            <div class="package-price">{{ pkg.stars }} ⭐</div>
+            <div class="package-per-token">{{ (pkg.stars / pkg.tokens).toFixed(1) }} ⭐/анализ</div>
+          </label>
+        </div>
+
+        <!-- What's included -->
+        <div class="features-block">
+          <div class="features-item">
+            <span class="features-check">✓</span>
+            <span>Каждый токен — 1 полный анализ сна</span>
           </div>
-        </label>
+          <div class="features-item">
+            <span class="features-check">✓</span>
+            <span>Символы, эмоции и интерпретация</span>
+          </div>
+          <div class="features-item">
+            <span class="features-check">✓</span>
+            <span>Токены не сгорают — используй когда удобно</span>
+          </div>
+        </div>
+
+        <div class="pay-hint">Оплата через Telegram Stars — безопасно и мгновенно</div>
+
+        <!-- Pay button -->
+        <button
+          class="pay-btn"
+          :disabled="!selectedPackage"
+          @click="handlePay"
+        >
+          <span v-if="selectedPackage">Оплатить {{ selectedPackage.stars }} ⭐</span>
+          <span v-else>Выбери пакет</span>
+        </button>
       </div>
 
-      <!-- Описание фич -->
-      <div class="features-list">
-        <h3 class="features-title">Что входит:</h3>
-        <ul>
-          <li v-for="(feature, index) in getPlanDetails(userStore.selectedPlan, userStore.selectedDuration).features" :key="index">
-            <span class="checkmark">✅</span> {{ feature }}
-          </li>
-        </ul>
-      </div>
+      <!-- Tab: Get free -->
+      <div v-if="activeTab === 'free'" class="tab-content">
+        <div class="section-title">Получи токены бесплатно</div>
 
-      <!-- CTA hint -->
-      <div class="cta-hint">
-        Оплата через Telegram Stars — безопасно и мгновенно
+        <!-- Telegram channel -->
+        <div class="earn-card" :class="{ done: channelClaimed }">
+          <div class="earn-card-icon">📢</div>
+          <div class="earn-card-body">
+            <div class="earn-card-title">Подпишись на канал</div>
+            <div class="earn-card-desc">The Dreams Hub — советы, символы, истории снов</div>
+          </div>
+          <div class="earn-card-reward">+1 🪙</div>
+          <button
+            v-if="!channelClaimed"
+            class="earn-btn"
+            :disabled="isClaimingChannel"
+            @click="handleChannelClaim"
+          >
+            {{ isClaimingChannel ? '...' : 'Получить' }}
+          </button>
+          <div v-else class="earn-done-badge">✓</div>
+        </div>
+
+        <!-- YouTube -->
+        <div class="earn-card" :class="{ done: youtubeClaimed }">
+          <div class="earn-card-icon">▶️</div>
+          <div class="earn-card-body">
+            <div class="earn-card-title">Подпишись на YouTube</div>
+            <div class="earn-card-desc">Видео о снах, психологии и толкованиях</div>
+          </div>
+          <div class="earn-card-reward">+1 🪙</div>
+          <button
+            v-if="!youtubeClaimed"
+            class="earn-btn"
+            @click="handleYouTubeClaim"
+          >
+            Подписаться
+          </button>
+          <div v-else class="earn-done-badge">✓</div>
+        </div>
+
+        <!-- Referral -->
+        <div class="earn-card referral-card">
+          <div class="earn-card-icon">👥</div>
+          <div class="earn-card-body">
+            <div class="earn-card-title">Пригласи друга</div>
+            <div class="earn-card-desc">+3 токена за каждого, кто сделает первый анализ</div>
+          </div>
+          <div class="earn-card-reward">+3 🪙</div>
+
+          <div class="referral-section">
+            <div class="referral-stats">
+              <span>Приглашено: <b>{{ referralStats.invited }}</b></span>
+              <span>Заработано: <b>{{ referralStats.earned }} 🪙</b></span>
+            </div>
+            <div class="referral-link-row">
+              <div class="referral-link-box">
+                <span class="referral-link-text">{{ referralLink }}</span>
+              </div>
+              <button class="copy-btn" @click="copyReferralLink">
+                {{ copied ? '✓' : '📋' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Future activities placeholder -->
+        <div class="future-activities">
+          <div class="future-title">Скоро больше способов</div>
+          <div class="future-desc">Задания, ачивки и партнёрские активности появятся здесь</div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { useUserStore } from '@/stores/user';
-import { watchEffect, onUnmounted, ref, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useUserStore } from '@/stores/user'
 
-const userStore = useUserStore();
-const { getPlanDetails } = userStore;
-const tg = window.Telegram?.WebApp;
-const emit = defineEmits(['close']);
+const userStore = useUserStore()
+const emit = defineEmits(['close'])
+const tg = window.Telegram?.WebApp
 
-const isMounted = ref(false);
+const activeTab = ref('buy')
+const copied = ref(false)
+const isClaimingChannel = ref(false)
 
-onMounted(() => {
-    isMounted.value = true;
-    console.log("[SubscriptionModal] Component mounted");
-    
-    // Setup Telegram Back Button
-    if (tg?.BackButton) {
-        tg.BackButton.show();
-        tg.BackButton.onClick(closeModal);
-    }
-});
+// Статус выполненных заданий (из профиля)
+const channelClaimed = computed(() => userStore.profile?.channel_reward_claimed || false)
+const youtubeClaimed = computed(() => userStore.profile?.youtube_reward_claimed || false)
 
-const closeModal = () => {
-  emit('close');
-};
+// Реферальная ссылка
+const referralCode = computed(() => userStore.profile?.referral_code || '')
+const referralLink = computed(() => {
+  if (!referralCode.value) return 'Загрузка...'
+  return `https://t.me/dreamtestaibot?start=ref_${referralCode.value}`
+})
 
-// Обработчик нажатия Main Button
-const handleMainButtonClick = () => {
-    console.log("[SubscriptionModal] Main Button clicked!");
-    if (tg?.MainButton?.isActive) {
-        userStore.initiatePayment();
+const referralStats = computed(() => ({
+  invited: userStore.profile?.referrals_count || 0,
+  earned: (userStore.profile?.referrals_count || 0) * 3
+}))
+
+// Token packages
+const tokenPackages = ref([
+  { tokens: 5,  stars: 50,  popular: false },
+  { tokens: 15, stars: 120, popular: true  },
+  { tokens: 30, stars: 200, popular: false },
+])
+const selectedPackage = ref(tokenPackages.value[1]) // Default: popular
+
+const handlePay = () => {
+  if (!selectedPackage.value) return
+  if (window.triggerHaptic) window.triggerHaptic('medium')
+  // Use existing payment flow through Telegram MainButton or direct invoice
+  userStore.initiateTokenPayment?.(selectedPackage.value) || userStore.initiatePayment?.()
+}
+
+const handleChannelClaim = async () => {
+  isClaimingChannel.value = true
+  try {
+    // Open channel first
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink('https://t.me/thedreamshub')
     } else {
-        console.warn("[SubscriptionModal] Main Button clicked but it was inactive.");
+      window.open('https://t.me/thedreamshub', '_blank')
     }
-};
-
-// Следим за изменениями для управления Main Button
-watchEffect(() => {
-  if (!tg || !isMounted.value) {
-      if (tg?.MainButton?.isVisible) {
-          console.log("[SubscriptionModal] Hiding Main Button (not mounted or no tg)");
-           tg.MainButton.hide();
-           tg.MainButton.offClick(handleMainButtonClick);
-      }
-      return;
+    // Then claim reward via existing endpoint
+    await userStore.claimChannelReward?.()
+  } catch (e) {
+    console.error('Channel claim failed:', e)
+  } finally {
+    isClaimingChannel.value = false
   }
+}
 
-  const amount = userStore.selectedInvoiceAmount;
-
-  if (amount) {
-    console.log(`[SubscriptionModal] Setting Main Button: Pay ${amount} Stars`);
-    tg.MainButton.setParams({
-      text: `Оплатить ${amount} ⭐`,
-      color: tg.themeParams.button_color || '#2481CC',
-      text_color: tg.themeParams.button_text_color || '#ffffff',
-      is_active: true,
-      is_visible: true,
-    });
-    tg.MainButton.offClick(handleMainButtonClick);
-    tg.MainButton.onClick(handleMainButtonClick);
+const handleYouTubeClaim = () => {
+  // Mark as claimed + open YouTube (placeholder)
+  if (tg?.openLink) {
+    tg.openLink('https://youtube.com/@dreamstalk', { try_instant_view: false })
   } else {
-     console.log("[SubscriptionModal] Setting Main Button: Inactive (no amount)");
-    tg.MainButton.setParams({
-        text: 'Выберите план',
-        is_active: false,
-        is_visible: true
-    });
-     tg.MainButton.offClick(handleMainButtonClick);
+    window.open('https://youtube.com/@dreamstalk', '_blank')
   }
-});
+}
+
+const copyReferralLink = async () => {
+  if (!referralLink.value || referralLink.value === 'Загрузка...') return
+  try {
+    await navigator.clipboard.writeText(referralLink.value)
+    if (window.triggerHaptic) window.triggerHaptic('light')
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 2000)
+  } catch (e) {
+    // Fallback
+    if (tg?.switchInlineQuery) {
+      tg.switchInlineQuery(referralLink.value)
+    }
+  }
+}
+
+// Telegram Back Button
+onMounted(() => {
+  if (tg?.BackButton) {
+    tg.BackButton.show()
+    tg.BackButton.onClick(() => emit('close'))
+  }
+})
 
 onUnmounted(() => {
-  // Hide and cleanup Main Button
-  if (tg?.MainButton?.isVisible) {
-    tg.MainButton.hide();
-    tg.MainButton.offClick(handleMainButtonClick);
-     console.log("[SubscriptionModal] Main Button hidden on modal unmount.");
-  }
-  
-  // Hide and cleanup Back Button
   if (tg?.BackButton?.isVisible) {
-    tg.BackButton.hide();
-    tg.BackButton.offClick(closeModal);
-    console.log("[SubscriptionModal] Back Button hidden on modal unmount.");
+    tg.BackButton.hide()
   }
-  
-  isMounted.value = false;
-});
+})
 </script>
 
 <style scoped>
-/* Full-screen container like dream card */
-.modal-container {
+.modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   z-index: 1000;
-  overflow-y: auto;
-  background: linear-gradient(to bottom right, #5461FF, #4857FF);
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
 }
 
-.modal-content {
+.modal-sheet {
   width: 100%;
-  min-height: 100%;
-  padding: 24px 32px 100px;
-  color: white;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--tg-theme-bg-color, #18181b);
+  border-radius: 20px 20px 0 0;
+  padding: 0 0 40px;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Tokens header */
-.tokens-header {
-  background: rgba(255,255,255,0.12);
-  border-radius: 16px;
-  padding: 16px 20px;
-  margin-bottom: 24px;
-  border: 1px solid rgba(255,255,255,0.18);
+.handle-bar {
+  width: 36px;
+  height: 4px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  margin: 12px auto 0;
+  flex-shrink: 0;
 }
 
-.tokens-display {
+.modal-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  justify-content: space-between;
+  padding: 16px 20px 8px;
 }
 
-.tokens-counter {
-  display: flex;
+.tokens-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(255,255,255,0.15);
+  gap: 6px;
+  background: rgba(167,139,250,0.15);
+  border: 1px solid rgba(167,139,250,0.3);
   border-radius: 20px;
   padding: 6px 14px;
 }
+.tokens-badge-icon { font-size: 18px; line-height: 1; }
+.tokens-badge-count { font-size: 20px; font-weight: 800; color: var(--tg-theme-text-color, #fff); }
+.tokens-badge-label { font-size: 12px; color: var(--tg-theme-hint-color, rgba(255,255,255,0.6)); }
 
-.tokens-icon {
-  font-size: 20px;
-  line-height: 1;
-}
-
-.tokens-count {
-  font-size: 24px;
-  font-weight: 800;
-  color: #fff;
-  line-height: 1;
-}
-
-.tokens-label {
-  font-size: 13px;
-  color: rgba(255,255,255,0.75);
-  font-weight: 500;
-}
-
-.tokens-desc {
-  font-size: 13px;
-  color: rgba(255,255,255,0.6);
-  line-height: 1.5;
-}
-
-.modal-title {
-  font-size: 24px;
-  font-weight: 700;
-  text-align: center;
-  color: white;
-  margin-bottom: 4px;
-}
-
-.modal-subtitle {
-  text-align: center;
-  color: rgba(255,255,255,0.65);
-  font-size: 14px;
-  margin-bottom: 20px;
-}
-
-.features-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: white;
-  margin-bottom: 12px;
-}
-
-.cta-hint {
-  text-align: center;
-  font-size: 13px;
-  color: rgba(255,255,255,0.65);
-  margin-top: 16px;
-  padding-bottom: 8px;
-}
-
-/* Best value badge */
-.best-value-badge {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(135deg, #f59e0b, #fbbf24);
-  color: #1a0f00;
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 6px;
-  padding: 2px 7px;
-  white-space: nowrap;
-}
-
-h2 {
-  text-align: center;
-  color: white !important;
-}
-
-.tabs {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 6px;
-}
-
-.tabs button {
-  flex: 1;
-  padding: 12px;
+.close-btn {
+  background: rgba(255,255,255,0.1);
   border: none;
-  background-color: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.6));
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 14px;
   cursor: pointer;
-  border-radius: 8px;
-  font-size: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tab switcher */
+.tab-switcher {
+  display: flex;
+  gap: 0;
+  margin: 12px 20px 0;
+  background: rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 4px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 10px 8px;
+  border: none;
+  background: transparent;
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.55));
+  border-radius: 9px;
+  font-size: 14px;
   font-weight: 500;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
-
-.tabs button.active {
-  background-color: rgba(255, 255, 255, 0.25);
-  color: white;
+.tab-btn.active {
+  background: rgba(124,58,237,0.7);
+  color: #fff;
   font-weight: 600;
 }
 
-/* Compact single-line duration options */
-.duration-options {
+/* Tab content */
+.tab-content {
+  padding: 20px 20px 0;
   display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.duration-label {
-  flex: 1;
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tg-theme-text-color, #fff);
 }
 
-.duration-label input[type="radio"] {
-  display: none;
+/* Packages grid */
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
 
-.duration-card {
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  padding: 12px 8px;
+.package-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
+  padding: 14px 8px;
+  border: 2px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
   cursor: pointer;
   transition: all 0.2s ease;
-  background-color: rgba(255, 255, 255, 0.05);
-  min-height: 70px;
-  position: relative;
+  text-align: center;
+}
+.package-card.selected {
+  border-color: #7C3AED;
+  background: rgba(124,58,237,0.18);
+}
+.package-card.popular {
+  border-color: rgba(167,139,250,0.4);
+}
+.popular-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #7C3AED, #9C41FF);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.package-tokens {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--tg-theme-text-color, #fff);
+  line-height: 1;
+}
+.package-token-label {
+  font-size: 11px;
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.5));
+}
+.package-price {
+  font-size: 15px;
+  font-weight: 600;
+  color: #a78bfa;
+  margin-top: 4px;
+}
+.package-per-token {
+  font-size: 10px;
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.4));
 }
 
-.duration-card:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+/* Features block */
+.features-block {
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.features-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--tg-theme-text-color, rgba(255,255,255,0.85));
+  line-height: 1.5;
+}
+.features-check {
+  color: #a78bfa;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
-.duration-card.disabled {
+.pay-hint {
+  font-size: 12px;
+  text-align: center;
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.45));
+}
+
+.pay-btn {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #7C3AED 0%, #9C41FF 100%);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 4px 16px rgba(124,58,237,0.4);
+}
+.pay-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
-.duration-label input[type="radio"]:checked + .duration-card {
-  border-color: rgba(255, 255, 255, 0.5);
-  background-color: rgba(255, 255, 255, 0.15);
+.pay-btn:not(:disabled):active {
+  transform: scale(0.98);
 }
 
-.months {
-  font-weight: 600;
-  font-size: 1em;
-  color: white;
-  text-align: center;
-}
-
-.price {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.85em;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.price-disabled {
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 1.2em;
-}
-
-.features-list {
-  margin-bottom: 0;
-  background: rgba(255,255,255,0.07);
+/* Earn cards */
+.earn-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 14px;
-  padding: 16px 18px;
+  padding: 14px 16px;
+  flex-wrap: wrap;
+}
+.earn-card.done {
+  opacity: 0.6;
+}
+.earn-card-icon { font-size: 24px; flex-shrink: 0; }
+.earn-card-body { flex: 1; min-width: 0; }
+.earn-card-title { font-size: 14px; font-weight: 600; color: var(--tg-theme-text-color, #fff); }
+.earn-card-desc { font-size: 12px; color: var(--tg-theme-hint-color, rgba(255,255,255,0.55)); margin-top: 2px; line-height: 1.4; }
+.earn-card-reward {
+  font-size: 14px;
+  font-weight: 700;
+  color: #a78bfa;
+  flex-shrink: 0;
 }
 
-.features-list h3 {
-  color: white;
+.earn-btn {
+  background: rgba(124,58,237,0.25);
+  border: 1px solid rgba(124,58,237,0.5);
+  color: #a78bfa;
+  border-radius: 10px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.earn-btn:hover { background: rgba(124,58,237,0.35); }
+.earn-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.earn-done-badge {
+  width: 28px;
+  height: 28px;
+  background: rgba(52,211,153,0.2);
+  border: 1px solid rgba(52,211,153,0.4);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #34d399;
+  flex-shrink: 0;
 }
 
-.features-list ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+/* Referral */
+.referral-card { flex-direction: column; align-items: flex-start; }
+.referral-card > * { width: 100%; }
+.referral-card .earn-card-icon,
+.referral-card .earn-card-reward { width: auto; }
+
+.referral-section {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
 }
 
-.features-list li {
-  margin-bottom: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.6;
-  font-size: 1.125rem;
+.referral-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.6));
+}
+.referral-stats b { color: var(--tg-theme-text-color, #fff); }
+
+.referral-link-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.referral-link-box {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 8px 12px;
+  overflow: hidden;
+}
+.referral-link-text {
+  font-size: 12px;
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.5));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
 
-.checkmark {
-  margin-right: 8px;
+.copy-btn {
+  background: rgba(124,58,237,0.2);
+  border: 1px solid rgba(124,58,237,0.4);
+  color: #a78bfa;
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+.copy-btn:hover { background: rgba(124,58,237,0.35); }
+
+/* Referral top row */
+.referral-card > .earn-card-icon,
+.referral-card > .earn-card-body,
+.referral-card > .earn-card-reward {
+  width: auto;
+  flex: unset;
+}
+.referral-card > .earn-card-body { flex: 1; }
+
+/* Top row flex */
+.referral-top-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Future activities */
+.future-activities {
+  background: rgba(255,255,255,0.04);
+  border: 1px dashed rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+}
+.future-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.5));
+}
+.future-desc {
+  font-size: 12px;
+  color: var(--tg-theme-hint-color, rgba(255,255,255,0.35));
+  margin-top: 4px;
+  line-height: 1.5;
 }
 </style>

@@ -51,8 +51,48 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
             console.warn('[StartCommandHandler] Idempotency/debounce cache failed:', e?.message);
         }
         
+        // Parse referral code from startParam (e.g., "ref_ABCD1234")
+        let referralCode = null;
+        if (startParam && startParam.startsWith('ref_')) {
+            referralCode = startParam.slice(4); // strip "ref_" prefix
+            console.log(`[StartCommandHandler] Referral code detected: ${referralCode}`);
+        }
+
         try {
             const userData = await userService.getOrCreateUser(userId);
+            
+            // Process referral: link referred user to referrer if new user
+            if (referralCode && !userData.claimed) {
+                try {
+                    const supabaseUrl = process.env.SUPABASE_URL;
+                    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+                    if (supabaseUrl && supabaseKey) {
+                        const { createClient } = require('@supabase/supabase-js');
+                        const supabase = createClient(supabaseUrl, supabaseKey, { auth: { autoRefreshToken: false, persistSession: false } });
+                        
+                        // Find referrer by referral code
+                        const { data: referrer } = await supabase
+                            .from('users')
+                            .select('id')
+                            .eq('referral_code', referralCode.toUpperCase())
+                            .single();
+                        
+                        if (referrer && referrer.id !== userData.id) {
+                            // Link referral (ignore if already referred)
+                            await supabase
+                                .from('referrals')
+                                .upsert({
+                                    referrer_id: referrer.id,
+                                    referred_id: userData.id
+                                }, { onConflict: 'referred_id', ignoreDuplicates: true });
+                            
+                            console.log(`[StartCommandHandler] Referral linked: referrer=${referrer.id}, referred=${userData.id}`);
+                        }
+                    }
+                } catch (refErr) {
+                    console.warn('[StartCommandHandler] Referral processing failed (non-critical):', refErr?.message);
+                }
+            }
             console.log(`[StartCommandHandler] User data received: ID=${userData.id}, Claimed=${userData.claimed}, LastMsgId=${userData.lastMessageId}`);
             // Auto-transition to beta if timer passed
             try {
