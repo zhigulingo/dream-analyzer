@@ -61,21 +61,21 @@
         
         <!-- Обычная статистика -->
         <template v-else>
-          <div class="flex justify-between">
-            <span class="opacity-80">Пользователь уже:</span>
-            <span>{{ userExperienceTime }}</span>
+          <div class="flex justify-between items-center">
+            <span class="opacity-75">🗓 В дневнике уже:</span>
+            <span class="font-medium">{{ userExperienceTime }}</span>
           </div>
-          <div class="flex justify-between">
-            <span class="opacity-80">Проанализировано снов:</span>
-            <span>{{ userStore?.profile?.total_dreams_count || 0 }}</span>
+          <div class="flex justify-between items-center">
+            <span class="opacity-75">💭 Снов записано:</span>
+            <span class="font-medium">{{ userStore?.profile?.total_dreams_count || 0 }}</span>
           </div>
-          <div class="flex justify-between">
-            <span class="opacity-80">Глубоких анализов:</span>
-            <span>{{ userStore?.profile?.deep_analyses_count || 0 }}</span>
+          <div class="flex justify-between items-center">
+            <span class="opacity-75">🔮 Глубоких анализов:</span>
+            <span class="font-medium">{{ userStore?.profile?.deep_analyses_count || 0 }}</span>
           </div>
-          <div class="flex justify-between">
-            <span class="opacity-80">Приглашено друзей:</span>
-            <span>{{ userStore?.profile?.invited_friends_count || 0 }}</span>
+          <div class="flex justify-between items-center">
+            <span class="opacity-75">👥 Приглашено друзей:</span>
+            <span class="font-medium">{{ userStore?.profile?.invited_friends_count || 0 }}</span>
           </div>
         </template>
       </div>
