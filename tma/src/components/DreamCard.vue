@@ -126,7 +126,7 @@
             <div class="px-3 py-2 font-semibold">Ключевые инсайты</div>
             <div class="px-3 pb-3 text-white/90 leading-snug">
               <ol class="list-decimal pl-5 space-y-2">
-                <li v-for="(it, i) in insights" :key="'in'+i" class="text-xs leading-relaxed">{{ it }}</li>
+                <li v-for="(it, i) in insights" :key="'in'+i" class="text-sm leading-relaxed">{{ it }}</li>
               </ol>
             </div>
           </div>
@@ -135,7 +135,7 @@
             <div class="px-3 py-2 font-semibold">Рекомендации</div>
             <div class="px-3 pb-3 text-white/90 leading-snug">
               <ol class="list-decimal pl-5 space-y-3">
-                <li v-for="(r, i) in recommendations" :key="'rec'+i" class="text-xs leading-relaxed">
+                <li v-for="(r, i) in recommendations" :key="'rec'+i" class="text-sm leading-relaxed">
                   <div v-if="typeof r === 'object' && r.title">
                     <div class="font-semibold mb-1">{{ r.title }}</div>
                     <div class="opacity-90">{{ r.description }}</div>
@@ -154,7 +154,7 @@
             <div class="px-3 py-2 font-semibold">Ключевые инсайты</div>
             <div class="px-3 pb-3 text-white/90 leading-snug">
               <ol class="list-decimal pl-5 space-y-2">
-                <li v-for="(it, i) in insights" :key="'in'+i" class="text-xs leading-relaxed">{{ it }}</li>
+                <li v-for="(it, i) in insights" :key="'in'+i" class="text-sm leading-relaxed">{{ it }}</li>
               </ol>
             </div>
           </div>
@@ -163,7 +163,7 @@
             <div class="px-3 py-2 font-semibold">Рекомендации</div>
             <div class="px-3 pb-3 text-white/90 leading-snug">
               <ol class="list-decimal pl-5 space-y-3">
-                <li v-for="(r, i) in recommendations" :key="'rec'+i" class="text-xs leading-relaxed">
+                <li v-for="(r, i) in recommendations" :key="'rec'+i" class="text-sm leading-relaxed">
                   <div v-if="typeof r === 'object' && r.title">
                     <div class="font-semibold mb-1">{{ r.title }}</div>
                     <div class="opacity-90">{{ r.description }}</div>
@@ -196,9 +196,9 @@
         <div class="flex justify-end pt-1">
           <button 
             @click.stop="toggleSection('dreamText')"
-            class="text-base opacity-70 hover:opacity-100 transition-opacity"
+            class="text-sm font-medium opacity-75 hover:opacity-100 transition-opacity bg-white/10 hover:bg-white/20 rounded-lg px-3 py-1.5"
           >
-            {{ expanded.dreamText ? 'Свернуть ↑' : 'Развернуть ↓' }}
+            {{ expanded.dreamText ? '↑ Свернуть' : '↓ Читать полностью' }}
           </button>
         </div>
       </div>
@@ -286,24 +286,30 @@
 
       <div class="mt-4 flex gap-2">
         <button 
-          class="flex-1 rounded-xl py-2 text-sm font-medium text-center transition-colors"
-          :class="localFeedback === 1 ? 'bg-green-500/30 text-white ring-2 ring-green-400/60' : 'bg-white/20 hover:bg-white/30 text-white'"
+          class="flex-1 rounded-xl py-3 text-sm font-medium text-center transition-all duration-200 flex items-center justify-center gap-1.5"
+          :class="localFeedback === 1 ? 'bg-green-500/30 text-white ring-2 ring-green-400/60 scale-[1.02]' : 'bg-white/20 hover:bg-white/30 text-white'"
           @click.stop="handleLike"
+          aria-label="Нравится"
         >
-          👍
+          <span>👍</span>
+          <span class="text-xs opacity-90">{{ localFeedback === 1 ? 'Нравится' : 'Класс' }}</span>
         </button>
         <button 
-          class="flex-1 rounded-xl py-2 text-sm font-medium text-center transition-colors"
-          :class="localFeedback === 2 ? 'bg-red-500/30 text-white ring-2 ring-red-400/60' : 'bg-white/20 hover:bg-white/30 text-white'"
+          class="flex-1 rounded-xl py-3 text-sm font-medium text-center transition-all duration-200 flex items-center justify-center gap-1.5"
+          :class="localFeedback === 2 ? 'bg-red-500/30 text-white ring-2 ring-red-400/60 scale-[1.02]' : 'bg-white/20 hover:bg-white/30 text-white'"
           @click.stop="handleDislike"
+          aria-label="Не нравится"
         >
-          👎
+          <span>👎</span>
+          <span class="text-xs opacity-90">{{ localFeedback === 2 ? 'Плохо' : 'Мимо' }}</span>
         </button>
         <button 
-          class="flex-1 bg-red-500/20 hover:bg-red-500/30 text-white rounded-xl py-2 text-sm font-medium text-center transition-colors"
+          class="flex-none bg-red-500/15 hover:bg-red-500/30 text-white rounded-xl py-3 px-4 text-sm font-medium text-center transition-all duration-200 flex items-center justify-center gap-1.5"
           @click.stop="handleDelete"
+          aria-label="Удалить"
         >
-          🗑️
+          <span>🗑️</span>
+          <span class="text-xs opacity-80">Удалить</span>
         </button>
       </div>
 
