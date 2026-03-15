@@ -205,10 +205,12 @@ const openBotChat = () => {
   box-shadow: 0 8px 24px rgba(124, 58, 237, 0.45), 0 2px 8px rgba(0,0,0,0.25);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   white-space: nowrap;
+  animation: glowPulse 3s ease-in-out infinite;
 }
 .fab-cta:active {
-  transform: scale(0.96);
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+  transform: scale(0.96) !important;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35) !important;
+  animation: none;
 }
 .fab-icon { font-size: 18px; }
 .fab-label { letter-spacing: 0.01em; }

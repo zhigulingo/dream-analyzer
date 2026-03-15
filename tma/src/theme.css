@@ -172,4 +172,33 @@ button:disabled {
   to {
     transform: rotate(360deg);
   }
-} 
+}
+
+/* Micro-animations */
+@keyframes pulseScale {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.04); }
+}
+
+@keyframes floatIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 8px 24px rgba(124, 58, 237, 0.45), 0 2px 8px rgba(0,0,0,0.25); }
+  50% { box-shadow: 0 8px 32px rgba(124, 58, 237, 0.65), 0 2px 12px rgba(0,0,0,0.3); }
+}
+
+/* Entrance animations for sections */
+.section-enter {
+  animation: floatIn 0.4s ease forwards;
+}
+
+/* Consistent scale on tap */
+.tap-scale {
+  transition: transform 0.15s ease;
+}
+.tap-scale:active {
+  transform: scale(0.97);
+}
