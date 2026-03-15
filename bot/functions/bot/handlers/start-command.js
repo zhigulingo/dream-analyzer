@@ -61,8 +61,11 @@ function createStartCommandHandler(userService, messageService, TMA_URL) {
         try {
             const userData = await userService.getOrCreateUser(userId);
             
-            // Process referral: link referred user to referrer if new user
-            if (referralCode && !userData.claimed) {
+            // Process referral: link referred user to referrer
+            // Note: We do not check userData.claimed (channel_reward_claimed) here —
+            // referral processing is independent of channel reward status.
+            // The upsert below uses ignoreDuplicates:true so it's safe to always attempt.
+            if (referralCode) {
                 try {
                     const supabaseUrl = process.env.SUPABASE_URL;
                     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

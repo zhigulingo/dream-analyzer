@@ -272,8 +272,11 @@ onUnmounted(() => {
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  background: var(--tg-theme-bg-color, #18181b);
+  background: rgba(18, 18, 23, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-radius: 20px 20px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: 0 0 40px;
   display: flex;
   flex-direction: column;
@@ -378,12 +381,18 @@ onUnmounted(() => {
   justify-content: center;
   gap: 2px;
   padding: 14px 8px;
-  border: 2px solid rgba(255,255,255,0.12);
-  border-radius: 14px;
-  background: rgba(255,255,255,0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
+}
+.package-card:active {
+  transform: scale(0.97);
+  background: rgba(255, 255, 255, 0.1);
 }
 .package-card.selected {
   border-color: #7C3AED;
@@ -428,8 +437,11 @@ onUnmounted(() => {
 
 /* Features block */
 .features-block {
-  background: rgba(255,255,255,0.05);
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -481,11 +493,18 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   padding: 14px 16px;
   flex-wrap: wrap;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.earn-card:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 .earn-card.done {
   opacity: 0.6;

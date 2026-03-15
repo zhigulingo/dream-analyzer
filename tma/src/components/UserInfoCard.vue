@@ -96,7 +96,7 @@
           </div>
           <div class="flex justify-between items-center">
             <span class="opacity-75">👥 Приглашено друзей:</span>
-            <span class="font-medium">{{ userStore?.profile?.invited_friends_count || 0 }}</span>
+            <span class="font-medium">{{ userStore?.profile?.referrals_count || userStore?.profile?.invited_friends_count || 0 }}</span>
           </div>
         </template>
       </div>
@@ -319,10 +319,17 @@ const openTariff = () => {
   gap: 5px;
   padding: 6px 12px;
   border-radius: 20px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 13px;
   color: var(--tg-theme-text-color, #fff);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.mini-stat-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 .mini-stat-icon { font-size: 15px; line-height: 1; }
 .mini-stat-value { font-weight: 700; color: var(--tg-theme-text-color, #fff); }

@@ -263,7 +263,10 @@ onBeforeUnmount(() => {
   width: 100%;
   max-height: 80vh;
   overflow-y: auto;
-  background: linear-gradient(160deg, #2d1b7a 0%, #1a0f4a 100%);
+  background: rgba(22, 12, 58, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px 20px 0 0;
   padding: 0 0 48px;
   display: flex;
