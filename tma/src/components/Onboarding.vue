@@ -1,5 +1,15 @@
 <template>
   <div v-if="visible" class="onboarding-overlay opaque">
+    <!-- Step dots indicator -->
+    <div class="onboarding-dots" v-if="flow !== 'none' && totalSteps > 1">
+      <span
+        v-for="i in totalSteps"
+        :key="i"
+        class="onboarding-dot"
+        :class="{ active: i === step }"
+      ></span>
+    </div>
+
     <!-- Первый онбординг: вертикальный Swiper -->
     <Swiper
       v-if="isNewFlow"
@@ -161,6 +171,13 @@ const isNewFlow = computed(() => flow.value === 'new')
 const isFreeFlow = computed(() => flow.value === 'free')
 const isPostClaimFlow = computed(() => flow.value === 'post_claim')
 // классы смещения больше не используются (Swiper управляет)
+
+const totalSteps = computed(() => {
+  if (flow.value === 'new') return 4
+  if (flow.value === 'free') return 4
+  if (flow.value === 'post_claim') return 1
+  return 0
+})
 
 const hasNewFlowEligibility = computed(() => {
   if (!userStore?.profile) return false
@@ -561,7 +578,7 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
   opacity: 0.95;
 }
 .onboarding-body { width: 100%; display: flex; justify-content: center; align-items: center; }
-.headline { font-size: 16px; line-height: 1.4; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 500; }
+.headline { font-size: 20px; line-height: 1.45; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 600; }
 .headline-mono { font-size: 20px; line-height: 1.2; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .headline-24 { font-size: 24px; line-height: 1.2; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 600; }
 .headline-sub { font-size: 14px; line-height: 1.45; margin: 8px 0 0 0; color: rgba(255,255,255,0.78); text-align: center; font-weight: 400; padding: 0 8px; }
@@ -582,6 +599,11 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 /* Пузырь текста по центру поверх изображения (вторая карточка) */
 .overlay-center { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; justify-content: center; padding: 0 16px; }
 .overlay-bubble { background: rgba(30,30,60,0.85); color: #fff; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.25; box-shadow: 0 8px 24px rgba(0,0,0,0.35); max-width: 260px; text-align: left; }
+/* Step dots */
+.onboarding-dots { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 10; pointer-events: none; }
+.onboarding-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: all 0.25s ease; }
+.onboarding-dot.active { width: 24px; border-radius: 4px; background: rgba(255,255,255,0.92); }
+
 .onboarding-actions {
   margin-top: 16px;
   display: flex;
