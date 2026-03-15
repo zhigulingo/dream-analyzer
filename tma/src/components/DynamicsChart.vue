@@ -1,5 +1,22 @@
 <template>
   <div class="dynamics-chart-container">
+    <!-- HVDC subtitle / explanation -->
+    <div class="hvdc-header">
+      <div class="hvdc-title-row">
+        <span class="hvdc-title">Динамика снов</span>
+        <button class="hvdc-info-btn" @click="showHvdcTooltip = !showHvdcTooltip" aria-label="Что такое HVDC">
+          <span>?</span>
+        </button>
+      </div>
+      <div v-if="showHvdcTooltip" class="hvdc-tooltip">
+        <strong>HVDC</strong> — модель анализа снов по четырём осям:<br/>
+        Действия, Эмоции, Обстановка, Персонажи.<br/>
+        График показывает, как менялась каждая ось от сна к сну.
+        <button class="hvdc-tooltip-close" @click="showHvdcTooltip = false">✕</button>
+      </div>
+      <p v-else class="hvdc-subtitle">Свайпай → чтобы увидеть все 4 оси</p>
+    </div>
+
     <!-- Swipeable chart area -->
     <div 
       class="chart-wrapper"
@@ -11,7 +28,7 @@
         <div :key="currentIndex" class="chart-content">
           <!-- Chart Title -->
           <div class="text-sm font-semibold mb-2 flex items-center justify-between">
-            <span>{{ currentMetric.category || currentMetric.metric }}</span>
+            <span>{{ translatedCategory }}</span>
             <span class="text-xs opacity-70">{{ currentValues[currentValues.length - 1] }}</span>
           </div>
           
@@ -109,7 +126,7 @@
           <!-- Legend -->
           <div class="chart-legend">
             <span class="legend-line"></span>
-            <span class="legend-text">{{ currentMetric.category || currentMetric.metric }}</span>
+            <span class="legend-text">{{ translatedCategory }}</span>
           </div>
 
           <!-- Analysis (new format) or Interpretation (legacy) -->
@@ -162,6 +179,25 @@ const currentIndex = ref(0)
 const touchStartX = ref(0)
 const touchEndX = ref(0)
 const transitionName = ref('slide-left')
+const showHvdcTooltip = ref(false)
+
+// Перевод категорий HVDC на русский с emoji
+const categoryLabels: Record<string, string> = {
+  'actions': 'Действия 🏃',
+  'emotions': 'Эмоции 💫',
+  'settings': 'Обстановка 🌍',
+  'characters': 'Персонажи 👥',
+  // legacy / Russian keys
+  'Действия': 'Действия 🏃',
+  'Эмоции': 'Эмоции 💫',
+  'Сцены': 'Обстановка 🌍',
+  'Персонажи': 'Персонажи 👥',
+}
+
+const translatedCategory = computed(() => {
+  const raw = currentMetric.value.category || currentMetric.value.metric || ''
+  return categoryLabels[raw] || raw
+})
 
 // Tooltip state
 const tooltip = ref({ visible: false, x: 0, value: 0, label: '' })
@@ -354,7 +390,80 @@ function triggerHaptic() {
 .dynamics-chart-container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+/* HVDC header */
+.hvdc-header {
+  margin-bottom: 2px;
+}
+
+.hvdc-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hvdc-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.hvdc-info-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.7);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.hvdc-info-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.hvdc-subtitle {
+  font-size: 11px;
+  opacity: 0.45;
+  margin: 2px 0 0 0;
+  line-height: 1;
+}
+
+.hvdc-tooltip {
+  position: relative;
+  background: rgba(30, 20, 60, 0.95);
+  border: 1px solid rgba(167,139,250,0.3);
+  border-radius: 12px;
+  padding: 12px 32px 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.9);
+  margin-top: 6px;
+  backdrop-filter: blur(8px);
+}
+
+.hvdc-tooltip-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px;
+  line-height: 1;
 }
 
 .chart-wrapper {
