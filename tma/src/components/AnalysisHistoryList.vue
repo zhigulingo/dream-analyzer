@@ -18,29 +18,36 @@
     <div class="flex items-center gap-8 mb-6 border-b" style="border-color: var(--tg-theme-hint-color, rgba(255,255,255,0.1))">
       <button
         @click="switchTab('history')"
-        class="relative pb-3 text-lg font-semibold transition-all duration-200"
+        class="relative pb-3 text-lg font-semibold transition-all duration-200 min-h-[44px]"
         :class="[
           activeTab === 'history' 
             ? 'tab-active' 
             : 'tab-inactive'
         ]"
+        role="tab"
+        :aria-selected="activeTab === 'history'"
+        aria-controls="tab-history"
       >
         🌙 Дневник снов
         <div
           v-if="activeTab === 'history'"
           class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full tab-underline"
+          aria-hidden="true"
         ></div>
       </button>
       <button
         @click="switchTab('deep')"
-        class="relative pb-3 text-lg font-semibold transition-all duration-200"
+        class="relative pb-3 text-lg font-semibold transition-all duration-200 min-h-[44px]"
         :class="[
           activeTab === 'deep' 
             ? 'tab-active' 
             : 'tab-inactive',
           !hasDeepUnlocked ? 'opacity-60' : ''
         ]"
+        role="tab"
+        :aria-selected="activeTab === 'deep'"
         :aria-disabled="!hasDeepUnlocked"
+        aria-controls="tab-deep"
       >
         <span class="inline-flex items-center gap-2">
           🔮 Анализ

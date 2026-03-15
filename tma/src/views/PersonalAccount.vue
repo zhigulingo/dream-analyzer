@@ -67,7 +67,7 @@
       <!-- Contextual greeting -->
       <section class="account-block w-full max-w-72r pt-1 pb-0">
         <div class="greeting-line">
-          <span class="greeting-emoji">{{ greetingEmoji }}</span>
+          <span class="greeting-emoji" aria-hidden="true">{{ greetingEmoji }}</span>
           <span class="greeting-text">{{ greetingText }}</span>
         </div>
       </section>
@@ -98,7 +98,7 @@
     <!-- Sticky CTA: Записать сон (открывает бот) -->
     <div class="fab-wrapper">
       <button class="fab-cta" @click="openBotChat" aria-label="Записать сон">
-        <span class="fab-icon">✍️</span>
+        <span class="fab-icon" aria-hidden="true">✍️</span>
         <span class="fab-label">Записать сон</span>
       </button>
     </div>
