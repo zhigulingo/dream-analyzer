@@ -30,7 +30,13 @@
       <!-- Title and full date inside the opened card (only in overlay) -->
       <div v-if="overlayMode" class="space-y-2">
         <h2 class="text-[32px] font-bold leading-tight">{{ displayTitle }}</h2>
-        <div class="text-base opacity-80">{{ fullDate }}</div>
+        <div class="flex items-center gap-3 flex-wrap">
+          <div class="text-base opacity-80">{{ fullDate }}</div>
+          <div v-if="readingTime > 0" class="inline-flex items-center gap-1 text-sm opacity-60 bg-white/10 rounded-full px-2.5 py-0.5">
+            <span>📖</span>
+            <span>{{ readingTime }} мин чтения</span>
+          </div>
+        </div>
         <!-- Tags badges for regular dreams (placed here, under title/date) -->
         <div v-if="displayTags.length && !isDeep" class="flex flex-wrap gap-2 pt-2">
           <span v-for="tag in displayTags" :key="tag" class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white border border-white/10 backdrop-blur-sm">
@@ -278,10 +284,17 @@
         <h2 class="text-2xl font-bold flex items-center gap-2">🧠 <span>Психоаналитический подход</span></h2>
         
         <template v-for="(sec, idx) in sections" :key="`psycho-${sec.key}`">
-          <div v-if="['arch', 'freud', 'jung'].includes(sec.key)" class="rounded-lg bg-white/10">
-            <h3 class="text-xl font-semibold px-4 py-3">{{ sec.title }}</h3>
-            <div class="px-4 pb-4 text-white/90">
-              <div v-html="sec.html" class="text-lg leading-snug space-y-2"></div>
+          <div v-if="['arch', 'freud', 'jung'].includes(sec.key)" class="rounded-lg bg-white/10 overflow-hidden">
+            <button
+              class="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/5 transition-colors"
+              @click.stop="toggleSection(sec.key)"
+            >
+              <h3 class="text-xl font-semibold">{{ sec.title }}</h3>
+              <span class="text-xl opacity-60 transition-transform duration-300 shrink-0 select-none"
+                :style="{ transform: expanded[sec.key] ? 'rotate(45deg)' : 'rotate(0deg)' }">+</span>
+            </button>
+            <div class="accordion-body px-4 text-white/90" :class="expanded[sec.key] ? 'accordion-open' : 'accordion-closed'">
+              <div v-html="sec.html" class="text-lg leading-snug space-y-2 pb-4"></div>
             </div>
           </div>
         </template>
@@ -891,7 +904,7 @@ const sections = computed(() => {
 })
 
 const expanded = reactive<Record<string,boolean>>({ 
-  arch:true, hvdc:false, func:false, freud:false, jung:false,
+  arch:false, hvdc:false, func:false, freud:false, jung:false,
   symbols:true, dynamics:true, conclusion:true,  // New deep analysis blocks - open by default
   dreamText: false,  // Dream text collapsed by default (show 3 lines)
   funcExercise: false  // Functional exercise collapsed by default
@@ -1055,6 +1068,16 @@ const fullDate = computed(() => {
   } catch { return created }
 })
 
+// Время чтения (~200 слов/мин, учитываем анализ + текст сна)
+const readingTime = computed(() => {
+  const texts = [
+    props.dream?.dream_text || '',
+    props.dream?.analysis || '',
+  ]
+  const totalWords = texts.reduce((acc, t) => acc + String(t).split(/\s+/).filter(Boolean).length, 0)
+  return Math.max(1, Math.round(totalWords / 200))
+})
+
 // Градиент карточки с цветовой кодировкой по типу сна
 const gradientClass = computed(() => {
   // Deep analysis: purple (as before)
@@ -1108,5 +1131,20 @@ article.bg-gradient-to-br div,
 article.bg-gradient-to-br span,
 article.bg-gradient-to-br button {
   color: white !important;
+}
+
+/* Accordion sections */
+.accordion-body {
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease;
+}
+.accordion-open {
+  max-height: 1200px;
+  opacity: 1;
+}
+.accordion-closed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 </style>
