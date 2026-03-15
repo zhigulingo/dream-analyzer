@@ -95,14 +95,14 @@
     <div v-else-if="activeTab === 'history'">
       <div v-if="!regularDreams?.length" class="empty-state py-10 flex flex-col items-center gap-4">
         <div class="empty-state-icon">🌙</div>
-        <div class="empty-state-title">Дневник снов пуст</div>
+        <div class="empty-state-title">Первый сон ещё впереди</div>
         <div class="empty-state-desc">
-          Напиши боту свой первый сон — любой, даже обрывок.<br/>
+          Напиши боту любой сон — даже обрывок или ощущение.<br/>
           ИИ найдёт символы и расскажет, что скрывает твой мозг.
         </div>
-        <div class="empty-state-hint">✨ Первый анализ уже ждёт тебя</div>
+        <div class="empty-state-hint">✨ Первый токен уже начислен — не теряй!</div>
         <button class="empty-state-cta" @click="openBot">
-          ✍️ Записать первый сон
+          ✍️ Написать первый сон
         </button>
       </div>
       <div v-else class="flex flex-col gap-4 pb-[5vh]">
@@ -130,7 +130,7 @@
     <div v-else-if="activeTab === 'deep'">
       <div v-if="!deepAnalyses?.length" class="empty-state py-10 flex flex-col items-center gap-4">
         <div class="empty-state-icon">🔮</div>
-        <div class="empty-state-title">Глубокий анализ недоступен</div>
+        <div class="empty-state-title">Глубокий анализ ждёт тебя</div>
         <div class="empty-state-desc">
           <template v-if="hasDeepUnlocked">
             Запроси глубокий анализ у бота — ИИ найдёт повторяющиеся паттерны в твоих снах.

@@ -16,11 +16,18 @@
       </div>
     </div>
 
-    <div v-if="isLoading" class="py-4"><LoadingSpinner size="sm" label="Загрузка..." /></div>
-    <div v-else-if="error" class="p-3 bg-red-500/10 rounded text-sm">{{ error }}</div>
+    <div v-if="isLoading" class="py-4"><LoadingSpinner size="sm" label="Анализируем..." /></div>
+    <div v-else-if="error" class="p-3 bg-red-500/15 rounded-xl text-sm flex items-center gap-2">
+      <span>😔</span>
+      <span>Не удалось загрузить. Потяни вниз чтобы попробовать снова.</span>
+    </div>
 
     <div v-else>
-      <div v-if="!items || items.length === 0" class="text-sm opacity-70">Пока нет глубоких анализов</div>
+      <div v-if="!items || items.length === 0" class="flex flex-col items-center gap-3 py-8 text-center">
+        <div class="text-4xl">🔮</div>
+        <div class="font-semibold opacity-90">Здесь будут глубокие анализы</div>
+        <div class="text-sm opacity-65 max-w-[240px] leading-snug">Запроси глубокий анализ у бота — ИИ раскроет паттерны из всех твоих снов.</div>
+      </div>
       <div v-else class="space-y-4">
         <DreamCard 
           v-for="(item, idx) in items"
