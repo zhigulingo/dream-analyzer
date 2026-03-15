@@ -486,7 +486,7 @@ select { -webkit-appearance: auto; appearance: auto; }
 .empty-state { text-align: center; }
 .empty-state-icon { font-size: 48px; line-height: 1; filter: drop-shadow(0 0 16px rgba(154,60,255,0.5)); }
 .empty-state-title { font-size: 20px; font-weight: 600; color: var(--tg-theme-text-color, #fff); }
-.empty-state-desc { font-size: 14px; line-height: 1.6; color: var(--tg-theme-hint-color, rgba(255,255,255,0.65)); max-width: 280px; }
+.empty-state-desc { font-size: 14px; line-height: 1.6; color: var(--tg-theme-hint-color, rgba(255,255,255,0.75)); max-width: 280px; word-break: break-word; overflow-wrap: break-word; }
 .empty-state-hint { font-size: 13px; color: #a78bfa; font-weight: 500; background: rgba(167,139,250,0.12); border-radius: 20px; padding: 6px 16px; }
 .empty-state-cta { background: linear-gradient(135deg, #7C3AED 0%, #9C41FF 100%); color: #fff; border: none; border-radius: 20px; padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 16px rgba(124,58,237,0.35); transition: transform 0.15s ease, box-shadow 0.15s ease; }
 .empty-state-cta:active { transform: scale(0.96); box-shadow: 0 2px 8px rgba(124,58,237,0.25); }
@@ -496,12 +496,12 @@ select { -webkit-appearance: auto; appearance: auto; }
 /* Deep unlock progress block */
 .deep-unlock-progress { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; max-width: 280px; background: rgba(124,58,237,0.10); border: 1px solid rgba(167,139,250,0.2); border-radius: 16px; padding: 16px 20px; }
 .deep-unlock-header { display: flex; justify-content: space-between; width: 100%; align-items: center; }
-.deep-unlock-label { font-size: 13px; color: rgba(255,255,255,0.65); }
+.deep-unlock-label { font-size: 13px; color: rgba(255,255,255,0.80); }
 .deep-unlock-count { font-size: 14px; font-weight: 700; color: #a78bfa; }
 .deep-unlock-steps { display: flex; gap: 8px; margin-top: 4px; }
 .deep-step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; transition: all 0.3s ease; }
 .deep-step-done { background: linear-gradient(135deg,#7C3AED,#a78bfa); color: #fff; }
-.deep-step-empty { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.12); }
+.deep-step-empty { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.15); }
 
 /* Stagger animation */
 @keyframes card-enter {

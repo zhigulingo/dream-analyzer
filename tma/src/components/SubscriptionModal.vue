@@ -261,8 +261,8 @@ onUnmounted(() => {
 
 .cta-hint {
   text-align: center;
-  font-size: 12px;
-  color: rgba(255,255,255,0.45);
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
   margin-top: 16px;
   padding-bottom: 8px;
 }

@@ -114,7 +114,7 @@
         🪙 Пополнить токены
       </button>
       <button
-        class="w-full bg-white/10 text-white/60 rounded-xl py-3 font-semibold transition-all fade-seq is-open seq-offset-600 relative"
+        class="w-full bg-white/10 text-white/80 rounded-xl py-3 font-semibold transition-all fade-seq is-open seq-offset-600 relative"
         @click.stop="showTokensHint"
         :class="tokensHintVisible ? 'bg-white/15' : ''"
       >
@@ -323,5 +323,5 @@ const openTariff = () => {
 }
 .mini-stat-icon { font-size: 15px; line-height: 1; }
 .mini-stat-value { font-weight: 700; color: var(--tg-theme-text-color, #fff); }
-.mini-stat-label { opacity: 0.7; }
+.mini-stat-label { opacity: 0.8; }
 </style>

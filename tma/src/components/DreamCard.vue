@@ -38,7 +38,7 @@
             aria-label="Поделиться"
           >
             <span>📤</span>
-            <span class="text-xs">Поделиться</span>
+            <span class="text-sm">Поделиться</span>
           </button>
         </div>
         <div class="flex items-center gap-3 flex-wrap">
@@ -328,7 +328,7 @@
                 <span class="inline-flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full inline-block bg-white/20 shrink-0"></span> <span class="leading-tight">{{ hvdcLegend }}</span></span>
               </div>
               <div class="text-sm opacity-65 flex items-start gap-2 leading-tight">
-                <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[10px] shrink-0 aspect-square mt-0.5">i</span>
+                <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-xs shrink-0 aspect-square mt-0.5">i</span>
                 <span>Контент‑анализ по методу HVdC; нормы по данным DreamBank и SDDB.</span>
               </div>
               <div v-if="!hasDemographics" class="mt-3 bg-white/10 rounded-lg p-3 text-sm flex items-center gap-3">
