@@ -67,8 +67,16 @@
         </div>
       </div>
     </div>
-    <div v-else-if="userStore?.errorHistory" class="text-center text-red-400 py-8">
-      Ошибка загрузки: {{ userStore.errorHistory }}
+    <div v-else-if="userStore?.errorHistory" class="flex flex-col items-center gap-3 py-10 text-center">
+      <div class="text-4xl">😔</div>
+      <div class="font-semibold" style="color: var(--tg-theme-text-color, #fff)">Что-то пошло не так</div>
+      <div class="text-sm" style="color: var(--tg-theme-hint-color, rgba(255,255,255,0.6))">Не удалось загрузить историю снов. Попробуй ещё раз.</div>
+      <button 
+        class="mt-2 px-5 py-2.5 rounded-xl text-sm font-semibold themed-button"
+        @click="userStore.retryFetchHistory?.() || userStore.fetchHistory?.()"
+      >
+        🔄 Повторить
+      </button>
     </div>
     
     <!-- Вкладка История снов -->
@@ -81,6 +89,9 @@
           ИИ найдёт символы и расскажет, что скрывает твой мозг.
         </div>
         <div class="empty-state-hint">✨ Первый анализ уже ждёт тебя</div>
+        <button class="empty-state-cta" @click="openBot">
+          ✍️ Записать первый сон
+        </button>
       </div>
       <div v-else class="flex flex-col gap-4 pb-[5vh]">
         <DreamCard
@@ -91,10 +102,11 @@
         />
         <button
           v-if="canLoadMoreRegular"
-          class="self-center rounded-full px-4 py-2 text-sm font-medium transition-colors my-2 themed-button"
+          class="self-center rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 my-2 themed-button flex items-center gap-2"
           @click="loadMoreRegular"
         >
-          Загрузить ещё
+          <span>↓</span>
+          <span>Загрузить ещё ({{ regularDreams.length - regularPageSize }} снов)</span>
         </button>
       </div>
     </div>
@@ -105,9 +117,18 @@
         <div class="empty-state-icon">🔮</div>
         <div class="empty-state-title">Глубокий анализ не запущен</div>
         <div class="empty-state-desc">
-          После {{ hasDeepUnlocked ? 'первого запроса' : `${5 - regularCount} снов` }} ИИ сможет найти повторяющиеся паттерны<br/>
-          и рассказать, что беспокоит тебя глубже всего.
+          <template v-if="hasDeepUnlocked">
+            Запроси глубокий анализ у бота — ИИ найдёт повторяющиеся паттерны в твоих снах.
+          </template>
+          <template v-else>
+            Ещё {{ 5 - regularCount }} {{ pluralSny(5 - regularCount) }} — и ИИ сможет найти паттерны<br/>
+            и рассказать, что беспокоит тебя глубже всего.
+          </template>
         </div>
+        <div v-if="!hasDeepUnlocked" class="deep-progress-bar">
+          <div class="deep-progress-fill" :style="{ width: (regularCount / 5 * 100) + '%' }"></div>
+        </div>
+        <div v-if="!hasDeepUnlocked" class="empty-state-hint">{{ regularCount }} / 5 снов</div>
       </div>
       <div v-else class="flex flex-col gap-4 pb-[5vh]">
         <DreamCard
@@ -118,10 +139,11 @@
         />
         <button
           v-if="canLoadMoreDeep"
-          class="self-center rounded-full px-4 py-2 text-sm font-medium transition-colors my-2 themed-button"
+          class="self-center rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 my-2 themed-button flex items-center gap-2"
           @click="loadMoreDeep"
         >
-          Загрузить ещё
+          <span>↓</span>
+          <span>Загрузить ещё</span>
         </button>
       </div>
     </div>
@@ -220,6 +242,23 @@ const closeOverlay = () => {
   selectedItem.value = null
   anchorY.value = null
 }
+
+const openBot = () => {
+  if ((window as any).triggerHaptic) (window as any).triggerHaptic('medium')
+  try {
+    const tg = (window as any)?.Telegram?.WebApp
+    if (tg?.close) { tg.close(); return }
+  } catch (_) {}
+}
+
+const pluralSny = (n: number): string => {
+  const abs = Math.abs(n) % 100
+  const n1 = abs % 10
+  if (abs > 10 && abs < 20) return 'снов'
+  if (n1 > 1 && n1 < 5) return 'сна'
+  if (n1 === 1) return 'сон'
+  return 'снов'
+}
 </script>
 
 <style scoped>
@@ -288,4 +327,8 @@ select { -webkit-appearance: auto; appearance: auto; }
 .empty-state-title { font-size: 20px; font-weight: 600; color: var(--tg-theme-text-color, #fff); }
 .empty-state-desc { font-size: 14px; line-height: 1.6; color: var(--tg-theme-hint-color, rgba(255,255,255,0.65)); max-width: 280px; }
 .empty-state-hint { font-size: 13px; color: #a78bfa; font-weight: 500; background: rgba(167,139,250,0.12); border-radius: 20px; padding: 6px 16px; }
+.empty-state-cta { background: linear-gradient(135deg, #7C3AED 0%, #9C41FF 100%); color: #fff; border: none; border-radius: 20px; padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 16px rgba(124,58,237,0.35); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.empty-state-cta:active { transform: scale(0.96); box-shadow: 0 2px 8px rgba(124,58,237,0.25); }
+.deep-progress-bar { width: 120px; height: 6px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden; }
+.deep-progress-fill { height: 100%; background: linear-gradient(90deg, #7C3AED, #a78bfa); border-radius: 999px; transition: width 0.4s ease; }
 </style>
