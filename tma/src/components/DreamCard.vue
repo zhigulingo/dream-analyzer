@@ -182,8 +182,8 @@
       <!-- Dream text - collapsible, with left border quote style and quote mark -->
       <div class="relative border-l-4 border-pink-400 pl-4 space-y-2">
         <div class="flex items-start justify-between gap-3">
-          <h3 class="text-2xl font-bold leading-tight">Сон</h3>
-          <span class="opacity-70 text-pink-300 text-4xl leading-none" style="font-family: Georgia, ui-serif;">"</span>
+          <h3 class="text-2xl font-bold leading-tight">💭 Сон</h3>
+          <span class="opacity-50 text-pink-300 text-4xl leading-none" style="font-family: Georgia, ui-serif;">"</span>
         </div>
         <div class="text-white/90">
           <p 
@@ -205,7 +205,7 @@
 
       <!-- Scientific Approach Section -->
       <div class="space-y-3">
-        <h2 class="text-2xl font-bold">Научный подход</h2>
+        <h2 class="text-2xl font-bold flex items-center gap-2">🔬 <span>Научный подход</span></h2>
         
         <!-- HVdC Content Analysis -->
         <div v-if="hvdc" class="rounded-lg bg-white/10">
@@ -271,7 +271,7 @@
 
       <!-- Psychoanalytic Approach Section -->
       <div class="space-y-3">
-        <h2 class="text-2xl font-bold">Психоаналитический подход</h2>
+        <h2 class="text-2xl font-bold flex items-center gap-2">🧠 <span>Психоаналитический подход</span></h2>
         
         <template v-for="(sec, idx) in sections" :key="`psycho-${sec.key}`">
           <div v-if="['arch', 'freud', 'jung'].includes(sec.key)" class="rounded-lg bg-white/10">
