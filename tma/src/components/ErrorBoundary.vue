@@ -24,14 +24,14 @@
             class="retry-button"
           >
             <LoadingSpinner v-if="isRetrying" size="xs" variant="white" class="mr-2" />
-            {{ isRetrying ? 'Повторная попытка...' : 'Попробовать снова' }}
+            {{ isRetrying ? 'Загружаем...' : '🔄 Попробовать снова' }}
           </button>
           
           <button 
             @click="handleReload" 
             class="reload-button"
           >
-            Перезагрузить страницу
+            Перезапустить приложение
           </button>
           
           <button 
@@ -105,47 +105,47 @@ const errorTitle = computed(() => {
   const errorMessage = error.value.message || '';
   
   if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
-    return 'Проблемы с сетью';
+    return 'Нет соединения 📡';
   }
   if (errorMessage.includes('timeout')) {
-    return 'Превышено время ожидания';
+    return 'Долго нет ответа ⏱';
   }
-  if (errorMessage.includes('Authentication')) {
-    return 'Ошибка авторизации';
+  if (errorMessage.includes('Authentication') || errorMessage.includes('Unauthorized')) {
+    return 'Сессия устарела 🔐';
   }
   if (errorMessage.includes('Permission') || errorMessage.includes('Forbidden')) {
-    return 'Нет доступа';
+    return 'Нет доступа 🚫';
   }
   
-  return 'Произошла ошибка';
+  return 'Что-то пошло не так 😔';
 });
 
 const errorMessage = computed(() => {
-  if (!error.value) return 'Что-то пошло не так';
+  if (!error.value) return 'Что-то пошло не так. Потяните вниз чтобы попробовать снова.';
   
   const errorMsg = error.value.message || '';
   
   // User-friendly сообщения
   if (errorMsg.includes('Network Error') || errorMsg.includes('failed to fetch')) {
-    return 'Проверьте подключение к интернету и попробуйте снова.';
+    return 'Нет соединения. Проверьте интернет и потяните вниз чтобы попробовать снова.';
   }
   if (errorMsg.includes('timeout')) {
-    return 'Сервер не отвечает. Попробуйте позже или проверьте соединение.';
+    return 'Не удалось загрузить. Потяните вниз чтобы попробовать снова.';
   }
-  if (errorMsg.includes('Authentication failed')) {
-    return 'Сессия истекла. Необходимо войти заново.';
+  if (errorMsg.includes('Authentication failed') || errorMsg.includes('Unauthorized') || errorMsg.includes('401')) {
+    return 'Сессия истекла. Перезапустите приложение.';
   }
-  if (errorMsg.includes('Permission denied') || errorMsg.includes('403')) {
-    return 'У вас нет прав для выполнения этого действия.';
+  if (errorMsg.includes('Permission denied') || errorMsg.includes('403') || errorMsg.includes('Forbidden')) {
+    return 'Нет доступа к этому разделу. Напишите в поддержку.';
   }
   if (errorMsg.includes('404')) {
-    return 'Запрашиваемый ресурс не найден.';
+    return 'Раздел не найден. Попробуй перезапустить приложение.';
   }
-  if (errorMsg.includes('500')) {
-    return 'Ошибка сервера. Мы работаем над её устранением.';
+  if (errorMsg.includes('500') || errorMsg.includes('Internal Server Error')) {
+    return 'Сервер не отвечает. Мы уже знаем — попробуй через пару минут.';
   }
   
-  return 'Произошла непредвиденная ошибка. Мы работаем над её устранением.';
+  return 'Что-то пошло не так. Потяните вниз чтобы попробовать снова.';
 });
 
 const errorDetails = computed(() => {
@@ -212,7 +212,7 @@ const handleGlobalError = (event) => {
 
 const handleRetry = async () => {
   if (retryCount.value >= props.maxRetries) {
-    notificationStore.error(`Превышено максимальное количество попыток (${props.maxRetries})`);
+    notificationStore.error(`Не удаётся загрузить. Попробуй перезапустить приложение.`);
     return;
   }
   
@@ -228,12 +228,12 @@ const handleRetry = async () => {
     clearError();
     
     emit('retry', { attempt: retryCount.value });
-    notificationStore.success('Операция выполнена успешно');
+    notificationStore.success('Готово! Всё загрузилось.');
     
   } catch (retryError) {
     console.error('Retry failed:', retryError);
     setError(retryError);
-    notificationStore.error('Повторная попытка не удалась');
+    notificationStore.error('Не получилось. Попробуй ещё раз или перезапусти приложение.');
   } finally {
     isRetrying.value = false;
   }
@@ -259,10 +259,10 @@ const handleReportError = () => {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(JSON.stringify(errorReport, null, 2))
       .then(() => {
-        notificationStore.info('Информация об ошибке скопирована в буфер обмена');
+        notificationStore.info('Информация скопирована. Отправь её в поддержку.');
       })
       .catch(() => {
-        notificationStore.warning('Не удалось скопировать информацию об ошибке');
+        notificationStore.warning('Не удалось скопировать. Сделай скриншот.');
       });
   }
 };

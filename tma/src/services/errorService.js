@@ -25,7 +25,7 @@ export class ErrorService {
       return {
         category: 'network',
         severity: 'medium',
-        userMessage: 'Проблемы с сетью. Проверьте подключение к интернету.',
+        userMessage: 'Нет соединения. Проверьте интернет и потяните вниз чтобы попробовать снова.',
         canRetry: true,
         suggestedAction: 'retry'
       };
@@ -36,7 +36,7 @@ export class ErrorService {
       return {
         category: 'auth',
         severity: 'high',
-        userMessage: 'Сессия истекла. Необходимо войти заново.',
+        userMessage: 'Сессия истекла. Перезапустите приложение.',
         canRetry: false,
         suggestedAction: 'reauth'
       };
@@ -47,7 +47,7 @@ export class ErrorService {
       return {
         category: 'permission',
         severity: 'medium',
-        userMessage: 'У вас нет прав для выполнения этого действия.',
+        userMessage: 'Нет доступа к этому разделу. Напишите в поддержку.',
         canRetry: false,
         suggestedAction: 'contact_support'
       };
@@ -69,7 +69,7 @@ export class ErrorService {
       return {
         category: 'server',
         severity: 'high',
-        userMessage: 'Ошибка сервера. Мы работаем над её устранением.',
+        userMessage: 'Сервер не отвечает. Мы уже знаем — попробуй через пару минут.',
         canRetry: true,
         suggestedAction: 'retry'
       };
@@ -80,7 +80,7 @@ export class ErrorService {
       return {
         category: 'timeout',
         severity: 'medium',
-        userMessage: 'Превышено время ожидания. Попробуйте позже.',
+        userMessage: 'Не удалось загрузить. Потяните вниз чтобы попробовать снова.',
         canRetry: true,
         suggestedAction: 'retry'
       };
@@ -90,7 +90,7 @@ export class ErrorService {
     return {
       category: 'unknown',
       severity: 'medium',
-      userMessage: 'Произошла непредвиденная ошибка.',
+      userMessage: 'Что-то пошло не так. Потяните вниз чтобы попробовать снова.',
       canRetry: true,
       suggestedAction: 'retry'
     };
@@ -134,16 +134,16 @@ export class ErrorService {
     let actionText = '';
     switch (suggestedAction) {
       case 'retry':
-        actionText = ' Попробуйте ещё раз.';
+        actionText = '';
         break;
       case 'reauth':
-        actionText = ' Войдите в систему заново.';
+        actionText = '';
         break;
       case 'contact_support':
-        actionText = ' Обратитесь в поддержку.';
+        actionText = '';
         break;
       case 'fix_input':
-        actionText = ' Проверьте введённые данные.';
+        actionText = ' Проверь введённые данные.';
         break;
     }
 
