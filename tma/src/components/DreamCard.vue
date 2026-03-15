@@ -10,13 +10,17 @@
       <div class="text-3xl shrink-0">{{ emoji }}</div>
       <div class="flex-1 min-w-0">
         <div class="truncate font-semibold leading-tight text-base">{{ displayTitle }}</div>
-        <div class="text-sm opacity-80 leading-tight mt-0.5">{{ relativeDate }}</div>
+        <div class="flex items-center gap-2 mt-0.5">
+          <span class="text-sm opacity-70 leading-tight">{{ relativeDate }}</span>
+          <span v-if="displayTags.length" class="text-xs opacity-50">·</span>
+          <span v-if="displayTags.length" class="text-xs opacity-60 truncate">{{ displayTags[0] }}</span>
+        </div>
       </div>
-      <button class="shrink-0 w-5 h-5 opacity-60 hover:opacity-100 flex items-center justify-center transition-opacity"
+      <button class="shrink-0 w-8 h-8 opacity-50 hover:opacity-90 flex items-center justify-center transition-all rounded-lg hover:bg-white/10"
               @click.stop="emitOpen()"
               aria-label="Открыть">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 4L13 10L7 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
     </div>
