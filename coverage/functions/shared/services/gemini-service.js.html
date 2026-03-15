@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">67.72% </span>
+                <span class="strong">67.42% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>149/220</span>
+                <span class='fraction'>149/221</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">61.02% </span>
+                <span class="strong">59.71% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>83/136</span>
+                <span class='fraction'>83/139</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">67.9% </span>
+                <span class="strong">67.59% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>146/215</span>
+                <span class='fraction'>146/216</span>
             </div>
         
             
@@ -550,7 +550,24 @@
 <a name='L485'></a><a href='#L485'>485</a>
 <a name='L486'></a><a href='#L486'>486</a>
 <a name='L487'></a><a href='#L487'>487</a>
-<a name='L488'></a><a href='#L488'>488</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L488'></a><a href='#L488'>488</a>
+<a name='L489'></a><a href='#L489'>489</a>
+<a name='L490'></a><a href='#L490'>490</a>
+<a name='L491'></a><a href='#L491'>491</a>
+<a name='L492'></a><a href='#L492'>492</a>
+<a name='L493'></a><a href='#L493'>493</a>
+<a name='L494'></a><a href='#L494'>494</a>
+<a name='L495'></a><a href='#L495'>495</a>
+<a name='L496'></a><a href='#L496'>496</a>
+<a name='L497'></a><a href='#L497'>497</a>
+<a name='L498'></a><a href='#L498'>498</a>
+<a name='L499'></a><a href='#L499'>499</a>
+<a name='L500'></a><a href='#L500'>500</a>
+<a name='L501'></a><a href='#L501'>501</a>
+<a name='L502'></a><a href='#L502'>502</a>
+<a name='L503'></a><a href='#L503'>503</a>
+<a name='L504'></a><a href='#L504'>504</a>
+<a name='L505'></a><a href='#L505'>505</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
@@ -618,6 +635,13 @@
 <span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">16x</span>
@@ -690,6 +714,13 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -745,6 +776,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1104,13 +1138,20 @@ class GeminiService {
             const candidate = this.modelFallbacks[i];
             try {
                 console.log(`[GeminiService] Trying model: ${candidate}`);
-                const model = this.genAI.getGenerativeModel({ model: candidate });
+                const model = this.genAI.getGenerativeModel({ 
+                    model: candidate,
+                    generationConfig: {
+                        temperature: 0,     // Детерминированный вывод для стабильных результатов
+                        topK: 1,           // Выбираем только самый вероятный токен
+                        topP: 0.1,         // Минимальная случайность в выборке
+                    }
+                });
                 // Быстрая проверка доступности: запросим минимальный токен limit через empty prompt
                 // (Некоторые SDK не позволяют пустой запрос — тогда просто примем как валидно и пойдём дальше)
                 this.model = model;
                 this.MODEL_NAME = candidate;
                 this.isInitialized = true;
-                console.log("[GeminiService] Initialization completed successfully", { model: candidate });
+                console.log("[GeminiService] Initialization completed successfully", { model: candidate, deterministic: true });
                 return this.model;
             } catch (err) {
 <span class="cstat-no" title="statement not covered" >                lastErr = err;</span>
@@ -1176,7 +1217,14 @@ class GeminiService {
                         // Переинициализируем модель на лету
                         const GEMINI_API_KEY = <span class="cstat-no" title="statement not covered" >process.env.GEMINI_API_KEY;</span>
 <span class="cstat-no" title="statement not covered" >                        this.genAI = new (require('@google/generative-ai').GoogleGenerativeAI)(GEMINI_API_KEY);</span>
-<span class="cstat-no" title="statement not covered" >                        this.model = this.genAI.getGenerativeModel({ model: this.MODEL_NAME });</span>
+<span class="cstat-no" title="statement not covered" >                        this.model = this.genAI.getGenerativeModel({ </span>
+                            model: this.MODEL_NAME,
+                            generationConfig: {
+                                temperature: 0,
+                                topK: 1,
+                                topP: 0.1,
+                            }
+                        });
 <span class="cstat-no" title="statement not covered" >                        return await this.analyzeDream(dreamText, promptKey);</span>
                     }
                 }
@@ -1231,9 +1279,12 @@ class GeminiService {
 <span class="cstat-no" title="statement not covered" >        return await this._parseStructuredJson(raw, 'basic_json');</span>
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    as</span>ync deepAnalyzeDreamsJSON(combinedDreams) {
-        const raw = <span class="cstat-no" title="statement not covered" >await this.deepAnalyzeDreams(combinedDreams, 'deep_json', { attempts: 1 });</span>
-<span class="cstat-no" title="statement not covered" >        return await this._parseStructuredJson(raw, 'deep_json');</span>
+<span class="fstat-no" title="function not covered" >    as</span>ync deepAnalyzeDreamsJSON(combinedDreams, useFast = <span class="branch-0 cbranch-no" title="branch not covered" >false)</span> {
+        // Use full prompt by default for background functions (no timeout concerns)
+        // Set useFast=true only if called from synchronous endpoint with strict time limits
+        const promptKey = <span class="cstat-no" title="statement not covered" >useFast ? 'deep_json_fast' : 'deep_json';</span>
+        const raw = <span class="cstat-no" title="statement not covered" >await this.deepAnalyzeDreams(combinedDreams, promptKey, { attempts: 1 });</span>
+<span class="cstat-no" title="statement not covered" >        return await this._parseStructuredJson(raw, promptKey);</span>
     }
 &nbsp;
 <span class="fstat-no" title="function not covered" >    as</span>ync _parseStructuredJson(rawText, mode) {
@@ -1531,7 +1582,7 @@ module.exports = geminiService;</pre></td></tr></table></pre>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-17T12:07:18.751Z
+                at 2026-03-13T18:25:48.922Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

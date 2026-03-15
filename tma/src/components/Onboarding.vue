@@ -23,25 +23,25 @@
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="wizard-thining.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">Сюжеты снов часто отражают эмоции,<br/>а не реальные события.</h2>
+          <h2 class="headline centered">Каждую ночь твой мозг рассказывает историю.<br/>Пора её расшифровать.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="thinking.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">DreamsTalk поможет сохранить<br/>и исследовать сны, чтобы лучше<br/>понимать себя и свои эмоции.</h2>
+          <h2 class="headline centered">DreamsTalk запоминает твои сны<br/>и находит скрытые паттерны —<br/>ты начнёшь понимать себя глубже.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">Чтобы описать сон — просто отправь его в чат.</h2>
+          <h2 class="headline centered">Просто напиши сон боту — как другу.<br/>ИИ найдёт символы и эмоции,<br/>о которых ты не задумывался.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="telegram-star.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">Получи первый токен для анализа сна<br/>за подписку на канал @TheDreamsHub</h2>
+          <h2 class="headline centered">Подпишись на @TheDreamsHub —<br/>и получи первый анализ бесплатно.<br/>Токен начислим сразу.</h2>
         </div>
       </SwiperSlide>
     </Swiper>
@@ -68,7 +68,7 @@
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="chat.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">Чтобы описать сон — просто отправь его в чат.</h2>
+          <h2 class="headline centered">Отличный старт! 🎉<br/>Теперь — напиши свой первый сон боту.<br/>Анализ займёт меньше минуты.</h2>
         </div>
       </SwiperSlide>
     </Swiper>
@@ -96,18 +96,20 @@
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-media media-top"><StickerPlayer src="wizard-happy.tgs" :width="220" :height="220" /></div>
         <div class="onboarding-body">
-          <h2 class="headline centered">Ура!<br/>Твой первый сон проанализирован.<br/><br/>Все сны твои сны<br/>в одном месте – личный кабинет.<br/><br/>Давай покажу его!</h2>
+          <h2 class="headline centered">Первый сон расшифрован! 🌙<br/>Теперь у тебя есть личный дневник снов — всё в одном месте.</h2>
         </div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-body">
-          <h2 class="headline-24 centered">Удобный доступ</h2>
+          <h2 class="headline-24 centered">Все сны под рукой</h2>
+          <p class="headline-sub centered">Открывай приложение — история и символы всегда доступны.</p>
         </div>
         <div class="onboarding-media media-bottom"><img class="onboarding-media-img" :src="frame1" alt="onboarding-2" /></div>
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-body">
-          <h2 class="headline-24 centered">Полезные факты</h2>
+          <h2 class="headline-24 centered">Узнавай новое о снах</h2>
+          <p class="headline-sub centered">Каждый день — интересный факт о том, как работает твой мозг ночью.</p>
         </div>
         <div class="onboarding-media media-bottom">
           <img class="onboarding-media-img" :src="frame2" alt="onboarding-3" />
@@ -115,7 +117,8 @@
       </SwiperSlide>
       <SwiperSlide class="onboarding-card slidePeek center-card">
         <div class="onboarding-body">
-          <h2 class="headline-24 centered">История снов и анализ</h2>
+          <h2 class="headline-24 centered">Дневник + глубокий анализ</h2>
+          <p class="headline-sub centered">После 5 снов откроется анализ паттернов — найдём, что тебя тревожит или радует.</p>
         </div>
         <div class="onboarding-media media-bottom">
           <img class="onboarding-media-img" :src="frame3" alt="onboarding-4" />
@@ -561,6 +564,7 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 .headline { font-size: 16px; line-height: 1.4; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 500; }
 .headline-mono { font-size: 20px; line-height: 1.2; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .headline-24 { font-size: 24px; line-height: 1.2; margin: 12px 0 0 0; color: #fff; text-align: center; font-weight: 600; }
+.headline-sub { font-size: 14px; line-height: 1.45; margin: 8px 0 0 0; color: rgba(255,255,255,0.78); text-align: center; font-weight: 400; padding: 0 8px; }
 .centered { text-align: center; }
 .media-overlay { position: relative; display: inline-block; }
 .overlay-stack { position: absolute; left: 24px; top: 18px; right: 24px; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.55); }

@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/62</span>
+                <span class='fraction'>0/61</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/33</span>
+                <span class='fraction'>0/35</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/62</span>
+                <span class='fraction'>0/61</span>
             </div>
         
             
@@ -182,7 +182,10 @@
 <a name='L117'></a><a href='#L117'>117</a>
 <a name='L118'></a><a href='#L118'>118</a>
 <a name='L119'></a><a href='#L119'>119</a>
-<a name='L120'></a><a href='#L120'>120</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -263,16 +266,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -367,7 +373,7 @@ function <span class="fstat-no" title="function not covered" >createStartCommand
 <span class="cstat-no" title="statement not covered" >                    if (updated) {</span>
 <span class="cstat-no" title="statement not covered" >                        try {</span>
 <span class="cstat-no" title="statement not covered" >                            await messageService.sendReply(ctx, 'Бета-доступ открыт! Нажмите кнопку, чтобы открыть приложение.', {</span>
-                                reply_markup: messageService.createWebAppButton('Открыть Личный кабинет', TMA_URL)
+                                reply_markup: messageService.createWebAppButton('Открыть приложение', TMA_URL)
                             });
                         } catch (_) {}
                     }
@@ -381,34 +387,37 @@ function <span class="fstat-no" title="function not covered" >createStartCommand
 <span class="cstat-no" title="statement not covered" >                await messageService.deleteMessage(chatId, userData.lastMessageId);</span>
             }
             
+            // For guests (not claimed) without explicit weblogin param — stay silent after cleanup
+<span class="cstat-no" title="statement not covered" >            if (!userData.claimed &amp;&amp; startParam !== 'weblogin') {</span>
+<span class="cstat-no" title="statement not covered" >                console.log('[StartCommandHandler] Guest user: no message will be sent.');</span>
+<span class="cstat-no" title="statement not covered" >                return;</span>
+            }
+&nbsp;
             // Determine message text and button based on user state
             let messageText, buttonText, buttonUrl;
-            
+&nbsp;
 <span class="cstat-no" title="statement not covered" >            if (userData.claimed) {</span>
 <span class="cstat-no" title="statement not covered" >                messageText = messages.get('start.returning');</span>
 <span class="cstat-no" title="statement not covered" >                buttonText = messages.get('buttons.open_account');</span>
 <span class="cstat-no" title="statement not covered" >                buttonUrl = TMA_URL;</span>
-            } else <span class="cstat-no" title="statement not covered" >if (startParam === 'weblogin') {</span>
+            } else {
+                // weblogin path for guests
 <span class="cstat-no" title="statement not covered" >                messageText = messages.get('start.weblogin');</span>
 <span class="cstat-no" title="statement not covered" >                buttonText = messages.get('buttons.open_web');</span>
 <span class="cstat-no" title="statement not covered" >                buttonUrl = `${TMA_URL}/login`;</span>
-            } else {
-<span class="cstat-no" title="statement not covered" >                messageText = messages.get('start.new_user');</span>
-<span class="cstat-no" title="statement not covered" >                buttonText = messages.get('buttons.claim_reward');</span>
-<span class="cstat-no" title="statement not covered" >                buttonUrl = `${TMA_URL}?action=claim_reward`;</span>
             }
-            
+&nbsp;
             // Send new message
 <span class="cstat-no" title="statement not covered" >            console.log(`[StartCommandHandler] Sending new message (Claimed: ${userData.claimed})`);</span>
             const sentMessage = <span class="cstat-no" title="statement not covered" >await messageService.sendReply(ctx, messageText, {</span>
                 parse_mode: 'HTML',
                 reply_markup: messageService.createWebAppButton(buttonText, buttonUrl)
             });
-            
+&nbsp;
 <span class="cstat-no" title="statement not covered" >            if (!sentMessage) {</span>
 <span class="cstat-no" title="statement not covered" >                throw new Error("Failed to send start message");</span>
             }
-            
+&nbsp;
             // Save new message ID
 <span class="cstat-no" title="statement not covered" >            await userService.updateLastStartMessageId(userData.id, sentMessage.message_id);</span>
 <span class="cstat-no" title="statement not covered" >            console.log(`[StartCommandHandler] Updated last_start_message_id to ${sentMessage.message_id}.`);</span>
@@ -427,7 +436,7 @@ function <span class="fstat-no" title="function not covered" >createStartCommand
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-17T12:07:18.751Z
+                at 2026-03-13T18:25:48.922Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
