@@ -13,7 +13,7 @@ export default defineConfig({
   define: {
     // Set API base URL for TMA application
     'import.meta.env.VITE_API_BASE_URL': JSON.stringify(
-      process.env.VITE_API_BASE_URL || 'https://sparkling-cupcake-940504.netlify.app/.netlify/functions'
+      process.env.VITE_API_BASE_URL || 'https://dream-analyzer-bot.vercel.app/api'
     ),
   },
   build: {
