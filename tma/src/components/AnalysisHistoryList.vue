@@ -99,8 +99,11 @@
     </div>
     
     <!-- Вкладка История снов -->
-    <div v-if="activeTab === 'history' && !regularDreams?.length" class="empty-state-container"></div>
-    <div v-if="activeTab === 'history'">
+    <Transition name="tab-fade" mode="out-in">
+    <div v-if="activeTab === 'history' && !regularDreams?.length" class="empty-state-container" key="history-empty"></div>
+    </Transition>
+    <Transition name="tab-fade" mode="out-in">
+    <div v-if="activeTab === 'history'" :key="'tab-history'">
       <div v-if="!regularDreams?.length" class="empty-state py-10 flex flex-col items-center gap-4">
         <div class="empty-state-icon">🌙</div>
         <div class="empty-state-title">Первый сон ещё впереди</div>
@@ -135,8 +138,11 @@
       </div>
     </div>
     
+    </Transition>
+
     <!-- Вкладка Глубокий анализ -->
-    <div v-else-if="activeTab === 'deep'">
+    <Transition name="tab-fade" mode="out-in">
+    <div v-if="activeTab === 'deep'" :key="'tab-deep'">
       <div v-if="!deepAnalyses?.length" class="empty-state py-10 flex flex-col items-center gap-4">
         <div class="empty-state-icon">🔮</div>
         <div class="empty-state-title">Глубокий анализ ждёт тебя</div>
@@ -193,6 +199,7 @@
         </button>
       </div>
     </div>
+    </Transition>
     <DreamOverlay :dream="selectedItem" :anchor-y="anchorY" @close="closeOverlay" />
   </div>
 </template>
@@ -439,6 +446,12 @@ select { -webkit-appearance: auto; appearance: auto; }
   animation: card-enter 0.4s cubic-bezier(0.4,0,0.2,1) both;
   animation-delay: var(--stagger-delay, 0ms);
 }
+/* Tab content fade */
+.tab-fade-enter-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.tab-fade-leave-active { transition: opacity 0.15s ease, transform 0.15s ease; }
+.tab-fade-enter-from { opacity: 0; transform: translateY(6px); }
+.tab-fade-leave-to { opacity: 0; transform: translateY(-4px); }
+
 .card-stagger-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
 .card-stagger-leave-to { opacity: 0; transform: translateY(-10px); }
 .card-stagger-move { transition: transform 0.35s ease; }

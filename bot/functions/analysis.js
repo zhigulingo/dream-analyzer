@@ -3,7 +3,7 @@
 
 const { createClient } = require('@supabase/supabase-js')
 const jwt = require('jsonwebtoken')
-const crypto = require('crypto')
+const { validateTelegramData, isInitDataValid } = require('./shared/auth/telegram-validator')
 const userCacheService = require('./shared/services/user-cache-service')
 
 const SUPABASE_URL = process.env.SUPABASE_URL
@@ -13,20 +13,6 @@ const JWT_SECRET = process.env.JWT_SECRET
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN
 const ALLOWED_WEB_ORIGIN = process.env.ALLOWED_WEB_ORIGIN
 
-function validateTelegramData(initData, botToken) {
-  if (!initData || !botToken) return { valid: false }
-  const params = new URLSearchParams(initData)
-  const hash = params.get('hash')
-  if (!hash) return { valid: false }
-  params.delete('hash')
-  const arr = []
-  params.sort(); params.forEach((v,k)=>arr.push(`${k}=${v}`))
-  const s = arr.join('\n')
-  const key = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest()
-  const chk = crypto.createHmac('sha256', key).update(s).digest('hex')
-  if (chk !== hash) return { valid: false }
-  try { const u = JSON.parse(decodeURIComponent(params.get('user')||'')); return { valid: true, data: u } } catch (_) { return { valid: true, data: null } }
-}
 
 exports.handler = async (event) => {
   const allowed = [ALLOWED_TMA_ORIGIN, ALLOWED_WEB_ORIGIN].filter(Boolean)
@@ -50,6 +36,7 @@ exports.handler = async (event) => {
   if (initDataHeader) {
     const vr = validateTelegramData(initDataHeader, BOT_TOKEN)
     if (!vr.valid || !vr.data?.id) return { statusCode: 403, headers: { ...cors, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Forbidden' }) }
+    if (!isInitDataValid(initDataHeader, 3600)) return { statusCode: 401, headers: { ...cors, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: InitData expired. Please reopen the app.' }) }
     tgId = vr.data.id
   } else if (authHeader && authHeader.startsWith('Bearer ')) {
     try { const d = jwt.verify(authHeader.substring(7), JWT_SECRET); tgId = d.tgId; userDbId = d.userId } catch { return { statusCode: 401, headers: { ...cors, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized' }) } }

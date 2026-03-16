@@ -3,6 +3,7 @@
 
 # Environment variables (NEVER commit these!)
 .env
+.env.test
 .env.local
 .env.*.local
 
@@ -29,3 +30,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
+-e 
+# Backup files
+*.backup
+*.bak

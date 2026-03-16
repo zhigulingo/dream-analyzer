@@ -1,5 +1,15 @@
 <template>
   <div v-if="visible" class="onboarding-overlay opaque">
+    <!-- Skip button (for users reopening onboarding) -->
+    <button
+      v-if="flow === 'new' && step < 4"
+      class="onboarding-skip-btn"
+      @click="handleSkip"
+      aria-label="Пропустить онбординг"
+    >
+      Пропустить
+    </button>
+
     <!-- Step dots indicator -->
     <div class="onboarding-dots" v-if="flow !== 'none' && totalSteps > 1">
       <span
@@ -298,6 +308,21 @@ onBeforeUnmount(() => {
 
 // drag-логика упразднена — ею управляет Swiper
 
+const handleSkip = () => {
+  // Если пользователь уже получил токен — показываем post_claim, иначе закрываем
+  const claimed = !!userStore.profile?.channel_reward_claimed
+  if (claimed) {
+    flow.value = 'post_claim'
+    step.value = 1
+  } else {
+    // Перепрыгиваем к последнему слайду (подписка на канал)
+    // MainButton будет активирован через onSlideChangeNew на step 4
+    flow.value = 'none'
+    emit('visible-change', false)
+    clearMainButton()
+  }
+}
+
 const goToCommunity = () => {
   const url = 'https://t.me/thedreamshub'
   try { localStorage.setItem('visited_channel', '1') } catch (_) {}
@@ -543,8 +568,33 @@ watch(() => [userStore.history?.length, userStore.profile?.subscription_type], a
 </script>
 
 <style scoped>
-.onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: stretch; justify-content: center; z-index: 1000; padding: 0; box-sizing: border-box; }
+.onboarding-overlay { position: fixed; inset: 0; background: linear-gradient(180deg, #0A0A1A 0%, #0D0820 100%); display: flex; align-items: stretch; justify-content: center; z-index: 1000; padding: 0; box-sizing: border-box; }
 .onboarding-card { width: 100%; max-width: 560px; background: linear-gradient(135deg, #6A4DFF 0%, #9A3CFF 100%); border-radius: 16px; padding: 20px 16px 0 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 0 auto; }
+
+/* Slide-specific gradients */
+.onboarding-swiper .swiper-slide:nth-child(1) .onboarding-card { background: linear-gradient(135deg, #1A1060 0%, #6A4DFF 100%); }
+.onboarding-swiper .swiper-slide:nth-child(2) .onboarding-card { background: linear-gradient(135deg, #0D3060 0%, #2A7FFF 100%); }
+.onboarding-swiper .swiper-slide:nth-child(3) .onboarding-card { background: linear-gradient(135deg, #1A3020 0%, #2A8F5F 100%); }
+.onboarding-swiper .swiper-slide:nth-child(4) .onboarding-card { background: linear-gradient(135deg, #3A1540 0%, #9A3CFF 100%); }
+
+/* Skip button */
+.onboarding-skip-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.65);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+.onboarding-skip-btn:hover { background: rgba(255,255,255,0.18); color: rgba(255,255,255,0.9); }
 .center-card { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
 /* Карточка чуть меньше экрана для peeking; контент вертикально выстроен */
 .slidePeek { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 72vh; max-height: 72vh; }

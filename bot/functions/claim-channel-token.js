@@ -1,7 +1,7 @@
 // bot/functions/claim-channel-token.js (Исправлено: добавляем токен, а не устанавливаем)
 const { createClient } = require("@supabase/supabase-js");
 const { Api, GrammyError } = require('grammy');
-const crypto = require('crypto');
+const { validateTelegramData, isInitDataValid } = require('./shared/auth/telegram-validator');
 
 // --- Переменные Окружения ---
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -9,25 +9,6 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
 const TARGET_CHANNEL_ID = process.env.TARGET_CHANNEL_ID || '@TheDreamsHub'; // <<<--- ID/юзернейм вашего канала (лучше через ENV)
-
-// --- Ваша Функция валидации InitData ---
-function validateTelegramData(initData, botToken) {
-    // ... (код функции валидации без изменений) ...
-    if (!initData || !botToken) return { valid: false, data: null, error: "Missing initData or botToken" };
-    const params = new URLSearchParams(initData); const hash = params.get('hash');
-    if (!hash) return { valid: false, data: null, error: "Hash is missing" };
-    params.delete('hash'); const dataCheckArr = []; params.sort(); params.forEach((value, key) => dataCheckArr.push(`${key}=${value}`)); const dataCheckString = dataCheckArr.join('\n');
-    try {
-        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
-        const checkHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-        if (checkHash === hash) {
-            const userDataString = params.get('user');
-            if (!userDataString) { return { valid: true, data: null, error: "User data missing" }; }
-            try { const userData = JSON.parse(decodeURIComponent(userDataString)); if (!userData || typeof userData.id === 'undefined') { return { valid: true, data: null, error: "User ID missing" }; } return { valid: true, data: userData, error: null }; }
-            catch (parseError) { return { valid: true, data: null, error: "Failed to parse user data" }; }
-        } else { return { valid: false, data: null, error: "Hash mismatch" }; }
-    } catch (error) { return { valid: false, data: null, error: "Validation crypto error" }; }
-}
 
 // --- Генерация Заголовков CORS ---
 const generateCorsHeaders = () => {
@@ -68,6 +49,9 @@ exports.handler = async (event) => {
     const validationResult = validateTelegramData(initDataHeader, BOT_TOKEN);
     if (!validationResult.valid || !validationResult.data?.id) {
          return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: `Forbidden: Invalid InitData (${validationResult.error})` }) };
+    }
+    if (!isInitDataValid(initDataHeader, 3600)) {
+        return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: InitData expired. Please reopen the app.' }) };
     }
     verifiedUserId = validationResult.data.id;
     console.log(`[claim-channel-token] Access validated for user: ${verifiedUserId}`);

@@ -1585,6 +1585,22 @@ const gradientClass = computed(() => {
 </script>
 
 <style scoped>
+/* ── Micro-interactions ─────────────────────────────────────── */
+/* Card press effect */
+.swipe-wrapper > article {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.swipe-wrapper > article:active {
+  transform: scale(0.98);
+}
+
+/* Button press effect — applies to most buttons inside cards */
+button:not(.context-menu-item):not(.hvdc-bar):active {
+  transform: scale(0.96);
+  opacity: 0.85;
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
 /* HVdC bar entrance animation */
 .hvdc-bar {
   width: 0;

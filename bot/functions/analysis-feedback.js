@@ -3,7 +3,7 @@
 
 const { createClient } = require('@supabase/supabase-js')
 const jwt = require('jsonwebtoken')
-const crypto = require('crypto')
+const { validateTelegramData, isInitDataValid } = require('./shared/auth/telegram-validator')
 const userCacheService = require('./shared/services/user-cache-service')
 
 const SUPABASE_URL = process.env.SUPABASE_URL
@@ -12,27 +12,6 @@ const BOT_TOKEN = process.env.BOT_TOKEN
 const JWT_SECRET = process.env.JWT_SECRET
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN
 const ALLOWED_WEB_ORIGIN = process.env.ALLOWED_WEB_ORIGIN
-
-function validateTelegramData(initData, botToken) {
-  if (!initData || !botToken) return { valid: false }
-  const params = new URLSearchParams(initData)
-  const hash = params.get('hash')
-  if (!hash) return { valid: false }
-  params.delete('hash')
-  const dataCheckArr = []
-  params.sort()
-  params.forEach((value, key) => dataCheckArr.push(`${key}=${value}`))
-  const dataCheckString = dataCheckArr.join('\n')
-  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest()
-  const checkHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex')
-  if (checkHash !== hash) return { valid: false }
-  try {
-    const userStr = params.get('user')
-    if (!userStr) return { valid: true, data: null }
-    const user = JSON.parse(decodeURIComponent(userStr))
-    return { valid: true, data: user }
-  } catch (_) { return { valid: true, data: null } }
-}
 
 exports.handler = async (event) => {
   const allowedOrigins = [ALLOWED_TMA_ORIGIN, ALLOWED_WEB_ORIGIN].filter(Boolean)
@@ -66,6 +45,9 @@ exports.handler = async (event) => {
     const vr = validateTelegramData(initDataHeader, BOT_TOKEN)
     if (!vr.valid || !vr.data?.id) {
       return { statusCode: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Forbidden: Invalid InitData' }) }
+    }
+    if (!isInitDataValid(initDataHeader, 3600)) {
+      return { statusCode: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Unauthorized: InitData expired. Please reopen the app.' }) }
     }
     verifiedTgId = vr.data.id
   } else if (authHeader && authHeader.startsWith('Bearer ')) {

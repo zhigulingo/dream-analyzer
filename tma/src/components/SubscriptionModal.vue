@@ -110,15 +110,22 @@
           <div class="earn-card-icon">▶️</div>
           <div class="earn-card-body">
             <div class="earn-card-title">Подпишись на YouTube</div>
-            <div class="earn-card-desc">Видео о снах, психологии и толкованиях</div>
+            <div class="earn-card-desc">
+              <template v-if="youtubeStep === 'subscribing'">Подпишись и нажми «Я подписался»</template>
+              <template v-else>Видео о снах, психологии и толкованиях</template>
+            </div>
           </div>
           <div class="earn-card-reward">+1 🪙</div>
           <button
-            v-if="!youtubeClaimed"
+            v-if="!youtubeClaimed && youtubeStep !== 'done'"
             class="earn-btn"
+            :class="{ 'earn-btn-confirm': youtubeStep === 'subscribing' }"
+            :disabled="isClaimingYoutube"
             @click="handleYouTubeClaim"
           >
-            Подписаться
+            <template v-if="isClaimingYoutube">...</template>
+            <template v-else-if="youtubeStep === 'idle'">Подписаться</template>
+            <template v-else>Я подписался</template>
           </button>
           <div v-else class="earn-done-badge">✓</div>
         </div>
@@ -161,6 +168,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/user'
+import api from '@/services/api'
 
 const userStore = useUserStore()
 const emit = defineEmits(['close'])
@@ -169,6 +177,8 @@ const tg = window.Telegram?.WebApp
 const activeTab = ref('buy')
 const copied = ref(false)
 const isClaimingChannel = ref(false)
+const isClaimingYoutube = ref(false)
+const youtubeStep = ref('idle') // idle | subscribing | claiming | done
 
 // Статус выполненных заданий (из профиля)
 const channelClaimed = computed(() => userStore.profile?.channel_reward_claimed || false)
@@ -219,12 +229,47 @@ const handleChannelClaim = async () => {
   }
 }
 
-const handleYouTubeClaim = () => {
-  // Mark as claimed + open YouTube (placeholder)
-  if (tg?.openLink) {
-    tg.openLink('https://youtube.com/@dreamstalk', { try_instant_view: false })
-  } else {
-    window.open('https://youtube.com/@dreamstalk', '_blank')
+const handleYouTubeClaim = async () => {
+  if (youtubeStep.value === 'idle') {
+    // Step 1: open YouTube channel
+    youtubeStep.value = 'subscribing'
+    const ytUrl = 'https://youtube.com/@dreamstalkapp'
+    if (tg?.openLink) {
+      tg.openLink(ytUrl, { try_instant_view: false })
+    } else {
+      window.open(ytUrl, '_blank')
+    }
+    return
+  }
+
+  if (youtubeStep.value === 'subscribing') {
+    // Step 2: user says they subscribed → call backend
+    isClaimingYoutube.value = true
+    youtubeStep.value = 'claiming'
+    try {
+      const response = await api.claimYoutubeReward()
+      const data = response?.data
+      if (data?.success) {
+        youtubeStep.value = 'done'
+        // Update local token count
+        if (userStore.profile && data.newTokens !== undefined) {
+          userStore.profile.tokens = data.newTokens
+        }
+        await userStore.fetchProfile?.()
+      } else if (data?.alreadyClaimed) {
+        youtubeStep.value = 'done'
+        // Mark as claimed locally
+        if (userStore.profile) userStore.profile.youtube_reward_claimed = true
+      } else {
+        youtubeStep.value = 'subscribing'
+        console.error('YouTube claim failed:', data?.error)
+      }
+    } catch (e) {
+      youtubeStep.value = 'subscribing'
+      console.error('YouTube claim error:', e)
+    } finally {
+      isClaimingYoutube.value = false
+    }
   }
 }
 
@@ -534,6 +579,12 @@ onUnmounted(() => {
 }
 .earn-btn:hover { background: rgba(124,58,237,0.35); }
 .earn-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.earn-btn-confirm {
+  background: rgba(52,211,153,0.2);
+  border-color: rgba(52,211,153,0.5);
+  color: #34d399;
+}
+.earn-btn-confirm:hover { background: rgba(52,211,153,0.3); }
 
 .earn-done-badge {
   width: 28px;

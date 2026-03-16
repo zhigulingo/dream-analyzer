@@ -1,15 +1,15 @@
 // tma/src/services/api.js (Исправлено: добавлена запятая)
 import axios from 'axios';
 
-// Используем переменную окружения Vite. Убедитесь, что она ЗАДАНА в Netlify UI для сайта TMA
-// и содержит ПОЛНЫЙ путь к функциям (включая /.netlify/functions)
+// Используем переменную окружения Vite. Убедитесь, что она ЗАДАНА в Vercel для сайта TMA
+// и содержит ПОЛНЫЙ URL API (например: https://dream-analyzer-bot.vercel.app/api)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Логируем URL для проверки при запуске TMA
 if (!API_BASE_URL) {
     console.error("CRITICAL: VITE_API_BASE_URL is not set in environment variables!");
-    console.error("Please set VITE_API_BASE_URL in your Netlify environment variables.");
-    console.error("Example: https://your-site.netlify.app/.netlify/functions");
+    console.error("Please set VITE_API_BASE_URL in your Vercel environment variables.");
+    console.error("Example: https://dream-analyzer-bot.vercel.app/api");
     
     // Показываем ошибку пользователю
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
@@ -186,6 +186,12 @@ const apiMethods = {
   deleteAnalysis(analysisId) {
     console.log('[api.js] Calling DELETE /analysis');
     return apiClient.delete('/analysis', { data: { analysisId } });
+  },
+
+  // YouTube reward (trust-based, no API verification)
+  claimYoutubeReward() {
+    console.log("[api.js] Calling POST /claim-youtube-token");
+    return apiClient.post('/claim-youtube-token');
   },
 
   // Трекинг онбординга через существующий endpoint performance-metrics (bot_event)

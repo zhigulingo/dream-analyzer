@@ -2,47 +2,15 @@
 
 const { createClient } = require("@supabase/supabase-js");
 const { DatabaseQueries, createOptimizedClient } = require('./shared/database/queries');
-const crypto = require('crypto');
-const jwt = require('jsonwebtoken'); // Assuming jsonwebtoken is available
+const { validateTelegramData, isInitDataValid } = require('./shared/auth/telegram-validator');
+const jwt = require('jsonwebtoken');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BOT_TOKEN = process.env.BOT_TOKEN; // Still needed for TMA InitData validation
 const ALLOWED_TMA_ORIGIN = process.env.ALLOWED_TMA_ORIGIN;
-const ALLOWED_WEB_ORIGIN = process.env.ALLOWED_WEB_ORIGIN; // New: Allowed origin for web
-const JWT_SECRET = process.env.JWT_SECRET; // New: JWT Secret for web token validation
-
-// --- Your Telegram InitData Validation Function (can be made a shared helper) ---
-function validateTelegramData(initData, botToken) {
-    if (!initData || !botToken) {
-        console.warn("[validateTelegramData] Missing initData or botToken");
-        return { valid: false, data: null, error: "Missing initData or botToken" };
-    }
-    const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
-    if (!hash) {
-        console.warn("[validateTelegramData] Hash is missing in initData");
-        return { valid: false, data: null, error: "Hash is missing" };
-    }
-    params.delete('hash');
-    const dataCheckArr = [];
-    params.sort();
-    params.forEach((value, key) => dataCheckArr.push(`${key}=${value}`));
-    const dataCheckString = dataCheckArr.join('\n');
-    try {
-        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
-        const checkHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-        if (checkHash === hash) {
-            const userDataString = params.get('user');
-            if (!userDataString) { return { valid: true, data: null, error: "User data missing" }; }
-            try {
-                const userData = JSON.parse(decodeURIComponent(userDataString));
-                if (!userData || typeof userData.id === 'undefined') { return { valid: true, data: null, error: "User ID missing in parsed data" }; }
-                return { valid: true, data: userData, error: null };
-            } catch (parseError) { return { valid: true, data: null, error: "Failed to parse user data" }; }
-        } else { return { valid: false, data: null, error: "Hash mismatch" }; }
-    } catch (error) { return { valid: false, data: null, error: "Validation crypto error" }; }
-}
+const ALLOWED_WEB_ORIGIN = process.env.ALLOWED_WEB_ORIGIN;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // --- CORS Headers (Unified for TMA and Web) ---
 const generateCorsHeaders = (isWeb) => {
