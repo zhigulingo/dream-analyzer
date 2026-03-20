@@ -215,26 +215,6 @@ onBeforeUnmount(() => {
 :deep(.swiper) { margin-bottom: 0 !important; padding-bottom: 0 !important; }
 :deep(.swiper-wrapper) { margin-bottom: 0 !important; transition-timing-function: ease-in-out !important; }
 
-/* Match DreamOverlay positioning logic */
-.card-overlay-scroller {
-  position: fixed;
-  inset: 0;
-  z-index: 500;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: flex-end;
-}
-
-.card-overlay-pad {
-  /* Fixed gap so header never hides under Telegram UI */
-  padding-top: 64px;
-  /* If we know safe area (via CSS var or env()), add it on top of fixed gap */
-  padding-top: calc(var(--tg-safe-top, env(safe-area-inset-top, 0px)) + 64px);
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
 .card-expandable { cursor: pointer; position: relative; }
 .card-expandable:active { opacity: 0.92; transform: scale(0.985); transition: transform 0.12s ease; }
 
@@ -269,14 +249,24 @@ onBeforeUnmount(() => {
   inset: 0;
   z-index: 500;
   background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: flex-end;
+}
+
+.card-overlay-scroller {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+}
+
+.card-overlay-pad {
+  min-height: 100%;
+  box-sizing: border-box;
+  padding-top: 64px;
+  padding-top: calc(var(--tg-safe-top, env(safe-area-inset-top, 0px)) + 64px);
 }
 
 .card-overlay-sheet {
   width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
+  min-height: calc(100vh - (var(--tg-safe-top, env(safe-area-inset-top, 0px)) + 64px));
   background: linear-gradient(160deg, #2d1b7a 0%, #1a0f4a 100%);
   border-radius: 20px 20px 0 0;
   padding: 0 0 48px;
