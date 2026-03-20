@@ -45,28 +45,30 @@
       </SwiperSlide>
     </Swiper>
 
-    <Transition name="card-expand">
-      <div v-if="expandedCard" class="card-overlay" @click.self="closeCard">
-        <div class="card-overlay-scroller">
-          <div class="card-overlay-pad">
-            <div class="card-overlay-sheet" @click.stop>
-          <div class="card-overlay-handle"></div>
-          <div class="card-overlay-header">
-            <span class="fact-badge" :class="`fact-badge--${getBadgeType(expandedCard.type)}`">
-              {{ getBadgeLabel(expandedCard.type) }}
-            </span>
-            <button class="card-overlay-close" @click="closeCard" aria-label="Закрыть">✕</button>
-          </div>
-          <div class="card-overlay-title" v-if="expandedCard.title">{{ expandedCard.title }}</div>
-          <div class="card-overlay-body">{{ expandedCard.fullText || expandedCard.text }}</div>
-          <div v-if="expandedCard.source" class="card-overlay-source">
-            Источник: {{ expandedCard.source }}
-          </div>
+    <Teleport to="body">
+      <Transition name="card-expand">
+        <div v-if="expandedCard" class="card-overlay" @click.self="closeCard">
+          <div class="card-overlay-scroller">
+            <div class="card-overlay-pad">
+              <div class="card-overlay-sheet" @click.stop>
+                <div class="card-overlay-handle"></div>
+                <div class="card-overlay-header">
+                  <span class="fact-badge" :class="`fact-badge--${getBadgeType(expandedCard.type)}`">
+                    {{ getBadgeLabel(expandedCard.type) }}
+                  </span>
+                  <button class="card-overlay-close" @click="closeCard" aria-label="Закрыть">✕</button>
+                </div>
+                <div class="card-overlay-title" v-if="expandedCard.title">{{ expandedCard.title }}</div>
+                <div class="card-overlay-body">{{ expandedCard.fullText || expandedCard.text }}</div>
+                <div v-if="expandedCard.source" class="card-overlay-source">
+                  Источник: {{ expandedCard.source }}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </section>
 </template>
 
