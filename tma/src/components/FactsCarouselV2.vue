@@ -47,7 +47,9 @@
 
     <Transition name="card-expand">
       <div v-if="expandedCard" class="card-overlay" @click.self="closeCard">
-        <div class="card-overlay-sheet" @click.stop>
+        <div class="card-overlay-scroller">
+          <div class="card-overlay-pad">
+            <div class="card-overlay-sheet" @click.stop>
           <div class="card-overlay-handle"></div>
           <div class="card-overlay-header">
             <span class="fact-badge" :class="`fact-badge--${getBadgeType(expandedCard.type)}`">
@@ -59,6 +61,8 @@
           <div class="card-overlay-body">{{ expandedCard.fullText || expandedCard.text }}</div>
           <div v-if="expandedCard.source" class="card-overlay-source">
             Источник: {{ expandedCard.source }}
+          </div>
+            </div>
           </div>
         </div>
       </div>
@@ -210,6 +214,26 @@ onBeforeUnmount(() => {
 <style scoped>
 :deep(.swiper) { margin-bottom: 0 !important; padding-bottom: 0 !important; }
 :deep(.swiper-wrapper) { margin-bottom: 0 !important; transition-timing-function: ease-in-out !important; }
+
+/* Match DreamOverlay positioning logic */
+.card-overlay-scroller {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-end;
+}
+
+.card-overlay-pad {
+  /* Fixed gap so header never hides under Telegram UI */
+  padding-top: 64px;
+  /* If we know safe area (via CSS var or env()), add it on top of fixed gap */
+  padding-top: calc(var(--tg-safe-top, env(safe-area-inset-top, 0px)) + 64px);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
 
 .card-expandable { cursor: pointer; position: relative; }
 .card-expandable:active { opacity: 0.92; transform: scale(0.985); transition: transform 0.12s ease; }
