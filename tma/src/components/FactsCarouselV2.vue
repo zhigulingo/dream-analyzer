@@ -48,15 +48,20 @@
     <Teleport to="body">
       <Transition name="card-expand">
         <div v-if="expandedCard" class="card-overlay" @click.self="closeCard">
-          <div class="card-overlay-scroller">
-            <div class="card-overlay-pad">
-              <div class="card-overlay-sheet" @click.stop>
+          <div
+            class="card-overlay-scroller"
+            ref="scrollerRef"
+            @touchstart="onTouchStart"
+            @touchmove="onTouchMove"
+            @touchend="onTouchEnd"
+          >
+            <div class="card-overlay-pad" :style="{ paddingTop: overlayTop + 'px' }">
+              <div ref="cardOverlayRef" class="card-overlay-sheet" :style="{ minHeight: `calc(100vh - ${overlayTop}px)` }" @click.stop>
                 <div class="card-overlay-handle"></div>
                 <div class="card-overlay-header">
                   <span class="fact-badge" :class="`fact-badge--${getBadgeType(expandedCard.type)}`">
                     {{ getBadgeLabel(expandedCard.type) }}
                   </span>
-                  <button class="card-overlay-close" @click="closeCard" aria-label="Закрыть">✕</button>
                 </div>
                 <div class="card-overlay-title" v-if="expandedCard.title">{{ expandedCard.title }}</div>
                 <div class="card-overlay-body">{{ expandedCard.fullText || expandedCard.text }}</div>
@@ -89,9 +94,18 @@ const swiperInstance = ref<any>(null)
 const slideWidthPx = ref<number>(Math.round(window.innerWidth * 0.86))
 const edgeOffset = ref<number>(Math.max(0, Math.round((window.innerWidth - slideWidthPx.value) / 2)))
 const expandedCard = ref<any>(null)
+const overlayTop = ref<number>(64)
+const scrollerRef = ref<HTMLElement | null>(null)
+const cardOverlayRef = ref<HTMLElement | null>(null)
+
+let startY = 0
+let dragging = false
+let startedAtTop = false
+let dragDelta = 0
 
 const openCard = (fact: any) => {
   expandedCard.value = fact
+  measureOverlayTop()
   if ((window as any).triggerHaptic) (window as any).triggerHaptic('light')
   swiperInstance.value?.autoplay?.stop()
   try {
@@ -180,14 +194,61 @@ const onInit = (swiper: any) => {
 
 const measureUserCardWidth = () => {
   try {
-    const firstBlock = document.querySelector('main section.account-block');
-    const userCard = firstBlock?.querySelector('article') as HTMLElement | null;
-    const w = userCard?.getBoundingClientRect().width;
+    const firstBlock = document.querySelector('main section.account-block')
+    const userCard = firstBlock?.querySelector('article') as HTMLElement | null
+    const rect = userCard?.getBoundingClientRect()
+    const w = rect?.width
     if (w && w > 0) {
-      slideWidthPx.value = Math.round(w);
-      edgeOffset.value = Math.max(0, Math.round((window.innerWidth - slideWidthPx.value) / 2));
+      slideWidthPx.value = Math.round(w)
+      edgeOffset.value = Math.max(0, Math.round((window.innerWidth - slideWidthPx.value) / 2))
+    }
+    if (rect?.top != null && rect.top > 0) {
+      overlayTop.value = Math.round(rect.top)
     }
   } catch {}
+}
+
+const measureOverlayTop = () => {
+  measureUserCardWidth()
+  if (!overlayTop.value || overlayTop.value < 24) {
+    overlayTop.value = 64
+  }
+}
+
+function onTouchStart(e: TouchEvent) {
+  try {
+    const scroller = scrollerRef.value
+    if (!scroller) return
+    startedAtTop = scroller.scrollTop <= 0
+    if (!startedAtTop) return
+    startY = e.touches[0].clientY
+    dragDelta = 0
+    dragging = true
+  } catch {}
+}
+
+function onTouchMove(e: TouchEvent) {
+  if (!dragging || !startedAtTop) return
+  const y = e.touches[0].clientY
+  dragDelta = Math.max(0, y - startY)
+  if (dragDelta > 0) {
+    e.preventDefault()
+    const el = cardOverlayRef.value as HTMLElement | null
+    if (el) el.style.transform = `translateY(${Math.min(120, dragDelta)}px)`
+  }
+}
+
+function onTouchEnd() {
+  if (dragging && startedAtTop && dragDelta >= 120) {
+    closeCard()
+  } else {
+    const el = cardOverlayRef.value as HTMLElement | null
+    if (el) el.style.transform = ''
+  }
+  dragging = false
+  startedAtTop = false
+  startY = 0
+  dragDelta = 0
 }
 
 const handleResize = () => {
@@ -249,8 +310,9 @@ onBeforeUnmount(() => {
 .card-overlay {
   position: fixed;
   inset: 0;
-  z-index: 500;
-  background: rgba(0, 0, 0, 0.6);
+  z-index: 9998;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
 }
 
 .card-overlay-scroller {
@@ -262,18 +324,17 @@ onBeforeUnmount(() => {
 .card-overlay-pad {
   min-height: 100%;
   box-sizing: border-box;
-  padding-top: 64px;
-  padding-top: calc(var(--tg-safe-top, env(safe-area-inset-top, 0px)) + 64px);
 }
 
 .card-overlay-sheet {
   width: 100%;
-  min-height: calc(100vh - (var(--tg-safe-top, env(safe-area-inset-top, 0px)) + 64px));
   background: linear-gradient(160deg, #2d1b7a 0%, #1a0f4a 100%);
   border-radius: 20px 20px 0 0;
   padding: 0 0 48px;
   display: flex;
   flex-direction: column;
+  transition: transform 0.18s ease;
+  touch-action: pan-y;
 }
 
 .card-overlay-handle {
@@ -287,22 +348,8 @@ onBeforeUnmount(() => {
 .card-overlay-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 16px 20px 8px;
-}
-
-.card-overlay-close {
-  background: rgba(255,255,255,0.12);
-  border: none;
-  color: rgba(255,255,255,0.7);
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-size: 14px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .card-overlay-title {
